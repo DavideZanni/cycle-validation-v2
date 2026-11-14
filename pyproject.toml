@@ -60,5 +60,10 @@ strict = true
 python_version = "3.12"
 files = ["src"]
 
+[[tool.mypy.overrides]]
+# Librerie senza annotazioni di tipo.
+module = ["pypdfium2", "pypdfium2.*", "boto3", "boto3.*"]
+ignore_missing_imports = true
+
 [tool.uv]
 python-preference = "only-system"

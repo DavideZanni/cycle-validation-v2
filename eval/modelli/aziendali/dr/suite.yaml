@@ -1,0 +1,19 @@
+# Modello per i cicli DR veri. Copiare la cartella in eval/casi/aziendali/dr/ (ignorata da git).
+# Percorsi relativi a questa cartella.
+
+# La fotografia della conoscenza fatta con `cycle-validation eval fotografia`.
+conoscenza: ../conoscenza/foto-AAAAMMGG
+tipo_conoscenza: fotografia
+# Prefisso, dentro la fotografia, dei manuali pubblicati dall'ingestion v2
+# (manifest.json, documents/*.md, tasks.json). DA CONFERMARE sullo snapshot reale.
+manuali: "Manufacturing AI/exports/manuali/"
+# Prefissi dei dati strutturati: targhe (TM), schede di processo (SP), recommendation DR.
+targhe: structured/TM/
+schede: structured/SP/
+dr: structured/DR/
+# Elenco delle targhe attive (lista JSON di stringhe), esportato dal sistema delle macchine.
+macchine: ../macchine_attive.json
+# dal_pdf: il ciclo si estrae da ciclo.pdf come in produzione (si prova anche l'estrazione).
+estrazione: dal_pdf
+profilo: dr
+# Ogni caso DR ha in expected.json i selettori: {"serial_number": "...", "conditions": [1]}.

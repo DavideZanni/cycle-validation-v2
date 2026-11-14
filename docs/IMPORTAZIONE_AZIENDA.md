@@ -308,6 +308,13 @@ vecchio solo se:
 3. il costo per ciclo non è più alto;
 4. il frontend accetta la risposta senza modifiche.
 
+## Passo 11. Esperimenti sui cicli veri
+
+Per misurare il programma sui cicli veri e provare le varianti (meno ragionamento, più
+concorrenza, un altro modello) c'è una guida a parte: `docs/ESPERIMENTI_AZIENDA.md`. In breve: una
+fotografia della conoscenza da S3, i cicli veri con gli esiti controllati da un esperto, e un
+comando (`eval pipeline`) che verifica il codice, fa girare tutto e scrive la classifica.
+
 ---
 
 ## Se qualcosa non va

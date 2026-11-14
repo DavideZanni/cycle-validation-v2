@@ -1,8 +1,8 @@
 """Esecuzione di una variante sui casi: un file JSON di risultati grezzi per ogni prova.
 
-Una suite è una cartella con `suite.yaml` (conoscenza e macchine) e un caso per sottocartella,
-nel formato del golden set (`ciclo.json`, `expected.json`, `ciclo.pdf` facoltativo). Le misure
-si calcolano dopo, dai file grezzi (`evaluation.metrics`), così si rifanno senza rilanciare.
+Una suite è una cartella con `suite.yaml` (conoscenza, macchine, modo di estrazione) e un caso
+per sottocartella, nel formato del golden set. Le misure si calcolano dopo, dai file grezzi
+(`evaluation.metrics`), così si rifanno senza rilanciare.
 """
 
 import json
@@ -22,18 +22,31 @@ from cycle_validation.agent.prompt import OPERATION_PROMPT_FILE, load_prompt, pr
 from cycle_validation.agent.session import AgentSession
 from cycle_validation.config import AgentSettings, Settings, load_profile
 from cycle_validation.domain.check import Reason
+from cycle_validation.domain.cycle import Cycle
 from cycle_validation.domain.report import Report
-from cycle_validation.errors import ConfigError
+from cycle_validation.errors import ConfigError, CycleValidationError
+from cycle_validation.evaluation.snapshot import snapshot_version
 from cycle_validation.evaluation.variant import Variant
+from cycle_validation.extract.base import CycleExtractor
+from cycle_validation.extract.factory import make_pdf_extractor
 from cycle_validation.extract.from_file import FileCycleExtractor
 from cycle_validation.golden import GoldenCase, case_request, load_cases
-from cycle_validation.kb.ej200 import Ej200Catalog, Ej200KnowledgeBase
+from cycle_validation.ingest.transcribe import make_transcriber
+from cycle_validation.kb.ej200 import (
+    DEFAULT_CATALOG_KEY,
+    DEFAULT_TEXT_PREFIX,
+    Ej200Catalog,
+    Ej200KnowledgeBase,
+)
 from cycle_validation.kb.local import load_local_knowledge
 from cycle_validation.kb.port import KnowledgeBase
+from cycle_validation.kb.remote import RemoteKnowledgeBase
+from cycle_validation.kb.snapshot import SnapshotManualSource
 from cycle_validation.kb.stores import LocalDirObjectStore
 from cycle_validation.kb.structured import StructuredLayout
 from cycle_validation.pipeline import Dependencies, arun_validation
-from cycle_validation.services.machines import load_machine_registry
+from cycle_validation.services.machines import MachineRegistry, load_machine_registry
+from cycle_validation.text import normalize_code
 
 FORMAT = 1
 SessionFactory = Callable[[AgentSettings, Path | None], AgentSession]
@@ -45,9 +58,24 @@ class SuiteConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     conoscenza: Path
-    tipo_conoscenza: Literal["locale", "ej200"] = "locale"
+    # locale = cartella nel formato di examples/sintetico/knowledge;
+    # fotografia = copia delle chiavi S3 (manuali dell'ingestion + dati TM/SP/DR), letta con il
+    # codice di produzione; ej200 = copia delle chiavi S3 delle pubblicazioni EJ200.
+    tipo_conoscenza: Literal["locale", "fotografia", "ej200"] = "locale"
     macchine: Path | None = None
     versione: str | None = None
+    # ciclo_json = il ciclo si legge da ciclo.json (si provano solo i controlli);
+    # dal_pdf = si estrae da ciclo.pdf come in produzione (si prova anche l'estrazione).
+    estrazione: Literal["ciclo_json", "dal_pdf"] = "ciclo_json"
+    profilo: str | None = None
+    # fotografia: prefisso dei manuali e dei tre insiemi di dati (null = non usato).
+    manuali: str = ""
+    targhe: str | None = "structured/TM/"
+    schede: str | None = "structured/SP/"
+    dr: str | None = "structured/DR/"
+    # ej200: chiavi del catalogo e dei testi.
+    catalogo: str = DEFAULT_CATALOG_KEY
+    testi: str = DEFAULT_TEXT_PREFIX
 
 
 @dataclass(frozen=True)
@@ -61,16 +89,41 @@ class Suite:
         return value if value.is_absolute() else self.directory / value
 
     def knowledge(self, workdir: Path) -> KnowledgeBase:
+        """Carica e controlla la conoscenza. Un difetto ferma la prova prima del modello."""
         folder = self.path(self.config.conoscenza)
-        if self.config.tipo_conoscenza == "locale":
-            return load_local_knowledge(folder)
-        store = LocalDirObjectStore(folder)
-        return Ej200KnowledgeBase(
-            self.config.versione or f"{self.name}-locale",
-            Ej200Catalog(store),
-            workdir,
-            store,
-            StructuredLayout(sp=None, dr=None),
+        version = self.config.versione or snapshot_version(folder) or folder.name
+        cfg = self.config
+        try:
+            if cfg.tipo_conoscenza == "locale":
+                return load_local_knowledge(folder)
+            if not folder.is_dir():
+                raise ConfigError(f"cartella non trovata: {folder}")
+            store = LocalDirObjectStore(folder)
+            kb: Ej200KnowledgeBase | RemoteKnowledgeBase
+            if cfg.tipo_conoscenza == "ej200":
+                kb = Ej200KnowledgeBase(
+                    version,
+                    Ej200Catalog(store, cfg.catalogo),
+                    workdir / "ej200",
+                    store,
+                    StructuredLayout(tm=cfg.targhe, sp=None, dr=None),
+                    text_prefix=cfg.testi,
+                )
+            else:
+                kb = RemoteKnowledgeBase(
+                    version,
+                    store,
+                    SnapshotManualSource(store, cfg.manuali, workdir / "manuali"),
+                    StructuredLayout(tm=cfg.targhe, sp=cfg.schede, dr=cfg.dr),
+                )
+            kb.preload()
+            return kb
+        except CycleValidationError as exc:
+            raise ConfigError(f"Suite {self.name}: conoscenza non leggibile ({exc})") from exc
+
+    def machines(self) -> MachineRegistry:
+        return load_machine_registry(
+            self.path(self.config.macchine) if self.config.macchine else None
         )
 
 
@@ -116,6 +169,61 @@ def _resolve(root: Path, path: Path) -> Path:
     return path if path.is_absolute() else root / path
 
 
+@dataclass(frozen=True)
+class Prompts:
+    system: str
+    prompts_dir: Path
+    profiles_dir: Path
+
+
+def load_prompts(variant: Variant, project_root: Path) -> Prompts:
+    paths = variant.settings.paths
+    prompts_dir = _resolve(project_root, paths.prompts_dir)
+    return Prompts(
+        load_prompt(prompts_dir, OPERATION_PROMPT_FILE),
+        prompts_dir,
+        _resolve(project_root, paths.profiles_dir),
+    )
+
+
+def case_dependencies(
+    variant: Variant,
+    suite: Suite,
+    case: GoldenCase,
+    kb: KnowledgeBase,
+    session: AgentSession,
+    prompts: Prompts,
+    *,
+    from_pdf: bool,
+) -> Dependencies:
+    """Le dipendenze della pipeline per un caso. `from_pdf`: il ciclo si estrae da ciclo.pdf."""
+    settings = variant.settings
+    profile = load_profile(case.expected.profile, prompts.profiles_dir)
+    extractor: CycleExtractor
+    extraction_prompt = ""
+    if from_pdf:
+        if case.pdf_path is None:
+            raise ConfigError(f"{case.directory}: manca ciclo.pdf (estrazione: dal_pdf).")
+        extractor, extraction_prompt = make_pdf_extractor(
+            profile, settings.agent, session, prompts.prompts_dir
+        )
+    else:
+        if case.cycle_json is None:
+            raise ConfigError(f"{case.directory}: manca ciclo.json (estrazione: ciclo_json).")
+        extractor = FileCycleExtractor(case.cycle_path)
+    return Dependencies(
+        settings=settings,
+        profile=profile,
+        kb=kb,
+        machines=suite.machines(),
+        extractor=extractor,
+        session=session,
+        system_prompt=prompts.system,
+        prompt_version=prompt_version(prompts.system, extraction_prompt),
+        transcriber=make_transcriber(settings.agent) if from_pdf else None,
+    )
+
+
 def _row(result: Any) -> dict[str, Any]:
     return {
         "check": result.check.value,
@@ -128,6 +236,38 @@ def _row(result: Any) -> dict[str, Any]:
     }
 
 
+def _codes(values: Sequence[str]) -> list[str]:
+    return sorted(normalize_code(value) for value in values)
+
+
+def compare_extraction(extracted: Cycle, reference: Cycle) -> dict[str, list[int]]:
+    """Operazioni e fonti estratte uguali al riferimento, sui campi che i controlli usano.
+    Le descrizioni non si confrontano: piccole differenze di trascrizione sono normali."""
+
+    def operation(op: Any) -> tuple[Any, ...]:
+        sheet = op.process_sheet.code if op.process_sheet else None
+        return (
+            normalize_code(op.operation_number),
+            normalize_code(op.machine_tag or ""),
+            tuple(_codes(op.task_codes)),
+            normalize_code(sheet or ""),
+        )
+
+    def source(item: Any) -> tuple[str, str]:
+        return (normalize_code(item.manual), normalize_code(item.task or ""))
+
+    got_ops = {operation(op)[0]: operation(op) for op in extracted.operations}
+    same_ops = sum(
+        1 for op in reference.operations if got_ops.get(operation(op)[0]) == operation(op)
+    )
+    got_sources = {source(item) for item in extracted.sources}
+    same_sources = sum(1 for item in reference.sources if source(item) in got_sources)
+    return {
+        "operazioni": [same_ops, len(reference.operations)],
+        "fonti": [same_sources, len(reference.sources)],
+    }
+
+
 def _record(
     suite: Suite,
     case: GoldenCase,
@@ -135,6 +275,8 @@ def _record(
     report: Report | None,
     failure: str | None,
     elapsed_ms: int,
+    *,
+    from_pdf: bool,
 ) -> dict[str, Any]:
     record: dict[str, Any] = {
         "suite": suite.name,
@@ -150,6 +292,7 @@ def _record(
         "consumi": {},
         "sessioni": {},
         "errori_pipeline": 0,
+        "estrazione": None,
     }
     if report is not None:
         record.update(
@@ -160,6 +303,9 @@ def _record(
             sessioni=report.session_modes,
             errori_pipeline=len(report.pipeline_errors),
         )
+        if from_pdf and case.cycle_json is not None:
+            reference = Cycle.model_validate_json(case.cycle_json.read_text(encoding="utf-8"))
+            record["estrazione"] = compare_extraction(report.cycle, reference)
     return record
 
 
@@ -181,46 +327,50 @@ async def run_variant(
     cases_label: str = "",
     progress: Callable[[str], None] | None = None,
 ) -> Path:
-    """Esegue ogni caso `repetitions` volte, uno dopo l'altro, e scrive il file dei risultati."""
+    """Esegue ogni caso `repetitions` volte, uno dopo l'altro, e scrive il file dei risultati.
+
+    La conoscenza di ogni suite si carica una volta sola, prima di qualunque chiamata al
+    modello: se non si legge, la prova si ferma subito e non si spende niente."""
     if repetitions < 1:
         raise ConfigError("Serve almeno una ripetizione.")
+    say = progress or (lambda _: None)
     settings = variant.settings
-    prompts_dir = _resolve(project_root, settings.paths.prompts_dir)
-    profiles_dir = _resolve(project_root, settings.paths.profiles_dir)
-    system_prompt = load_prompt(prompts_dir, OPERATION_PROMPT_FILE)
-    version = prompt_version(system_prompt, "")
+    prompts = load_prompts(variant, project_root)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     run_id = f"{stamp}_{variant.name}"
+    base = runs_dir / "eval" / run_id
+    knowledge = {suite.name: suite.knowledge(base / suite.name) for suite in suites}
+    skipped = [f"{s.name}/{c.name}" for s in suites for c in s.cases if not c.expected.rivisto]
+    for name in skipped:
+        say(f'saltato {name}: esiti attesi da rivedere (expected.json ha "rivisto": false)')
+    plan = [(s, c) for s in suites for c in s.cases if c.expected.rivisto]
     records: list[dict[str, Any]] = []
-    total = repetitions * sum(len(suite.cases) for suite in suites)
+    total = repetitions * len(plan)
     for repetition in range(1, repetitions + 1):
-        for suite in suites:
-            for case in suite.cases:
-                work = runs_dir / "eval" / run_id / f"{suite.name}-{case.name}-r{repetition}"
-                report: Report | None = None
-                failure: str | None = None
-                began = time.perf_counter()
-                try:
-                    deps = Dependencies(
-                        settings=settings,
-                        profile=load_profile(case.expected.profile, profiles_dir),
-                        kb=suite.knowledge(work / "work"),
-                        machines=load_machine_registry(
-                            suite.path(suite.config.macchine) if suite.config.macchine else None
-                        ),
-                        extractor=FileCycleExtractor(case.cycle_path),
-                        session=session_factory(settings.agent, work / "transcripts"),
-                        system_prompt=system_prompt,
-                        prompt_version=version,
-                    )
-                    report = await arun_validation(case_request(case), deps)
-                except Exception as error:  # un caso rotto non ferma la prova
-                    failure = _describe(error)
-                elapsed = int((time.perf_counter() - began) * 1000)
-                record = _record(suite, case, repetition, report, failure, elapsed)
-                records.append(record)
-                if progress is not None:
-                    progress(_progress_line(len(records), total, record))
+        for suite, case in plan:
+            work = base / f"{suite.name}-{case.name}-r{repetition}"
+            from_pdf = suite.config.estrazione == "dal_pdf"
+            report: Report | None = None
+            failure: str | None = None
+            began = time.perf_counter()
+            try:
+                session = session_factory(settings.agent, work / "transcripts")
+                deps = case_dependencies(
+                    variant,
+                    suite,
+                    case,
+                    knowledge[suite.name],
+                    session,
+                    prompts,
+                    from_pdf=from_pdf,
+                )
+                report = await arun_validation(case_request(case), deps)
+            except Exception as error:  # un caso rotto non ferma la prova
+                failure = _describe(error)
+            elapsed = int((time.perf_counter() - began) * 1000)
+            record = _record(suite, case, repetition, report, failure, elapsed, from_pdf=from_pdf)
+            records.append(record)
+            say(_progress_line(len(records), total, record))
     commit = _git(project_root, "rev-parse", "--short", "HEAD")
     dirty = _git(project_root, "status", "--porcelain")
     data = {
@@ -236,8 +386,10 @@ async def run_variant(
         "data": datetime.now().isoformat(timespec="seconds"),
         "ripetizioni": repetitions,
         "casi": cases_label,
+        "conoscenza": {name: kb.version for name, kb in knowledge.items()},
+        "saltati": skipped,
         "impostazioni": settings.model_dump(mode="json"),
-        "prompt_version": version,
+        "prompt_version": prompt_version(prompts.system, ""),
         "tool_version": __version__,
         "esecuzioni": records,
     }
@@ -247,7 +399,7 @@ async def run_variant(
     while path.exists():
         counter += 1
         path = results_dir / f"{run_id}-{counter}.json"
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8", newline="\n")
     return path
 
 

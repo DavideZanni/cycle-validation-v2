@@ -33,7 +33,8 @@ la baseline aziendale.
 
 ## Come si fa un esperimento
 
-Con la cartella `eval/` (istruzioni in `eval/README.md`). In breve:
+Con la cartella `eval/` (istruzioni in `eval/README.md`; sui dati veri `docs/ESPERIMENTI_AZIENDA.md`).
+`uv run cycle-validation eval pipeline` fa i passi 2-4 da solo. Uno per uno:
 
 1. Scrivi una variante in `eval/varianti/` che cambia **una sola cosa** rispetto a `baseline`.
    Se serve codice nuovo, entra in `src/` dietro le interfacce che esistono già e la variante
@@ -42,8 +43,9 @@ Con la cartella `eval/` (istruzioni in `eval/README.md`). In breve:
 3. Lancia `baseline` e la variante con le stesse ripetizioni (almeno **tre**: il modello non
    risponde sempre uguale):
    `uv run cycle-validation eval esegui --variante eval/varianti/<nome>.yaml --ripetizioni 3`.
-4. `uv run cycle-validation eval classifica` scrive `eval/classifica.md`: dice se la variante
-   supera i paletti (ERRATO falsi, errori mancati, concordanza, stabilità, esiti tecnici) e di
+4. `uv run cycle-validation eval classifica` scrive `eval/risultati/classifica.md`: dice se la variante
+   supera i paletti (ERRATO falsi, errori mancati, concordanza, stabilità, esiti tecnici,
+   estrazione dal PDF) e di
    quanto cambiano tempo e costo.
 5. Se vince, la modifica va in `config/settings.yaml` o nel codice di `main`, la baseline avanza
    (`baseline-v2`) e si scrive la decisione nel registro qui sotto.
@@ -53,6 +55,9 @@ Con la cartella `eval/` (istruzioni in `eval/README.md`). In breve:
 | Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione |
 |---|---|---|---|---|---|---|
 | 2026-11-14 | `effort: low` (prova veloce, una volta sola) | — | MOS 18-19 su 19 | -30% | -27% per sessione | da ripetere con il metodo sopra |
+| 2026-11-14 | `effort: low`, casi sintetici, 3 ripetizioni, login locale | `effort_low` | 99,5% (come baseline) | -22% | -9% | ammessa e più veloce; da confermare su Bedrock con casi veri |
+| 2026-11-14 | concorrenza 12 | `concorrenza_12` | 99,0% | -17% | uguale | scartata: concordanza più bassa |
+| 2026-11-14 | modello Sonnet | `sonnet` | 98,6% | ×10 | -17% | scartata: concordanza più bassa, costo |
 
 ## Da fare nel prossimo passo
 
@@ -64,4 +69,5 @@ Con la cartella `eval/` (istruzioni in `eval/README.md`). In breve:
    - provare il parser di layout anche sul DR (MIGLIORIE A6 e B5);
    - aggiungere un caso DR vero alle prove della baseline.
 4. **Casi veri** per MOS ed EJ200, con gli esiti attesi campo per campo: i casi di oggi sono
-   inventati e dicono se la meccanica regge, non se il giudizio tecnico è giusto.
+   inventati e dicono se la meccanica regge, non se il giudizio tecnico è giusto. Come
+   prepararli: `docs/ESPERIMENTI_AZIENDA.md` (bozza con `eval prepara`, revisione di un esperto).

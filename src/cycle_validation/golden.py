@@ -1,7 +1,7 @@
 """Golden set: cicli con esiti attesi riga per riga, e misura della concordanza.
 
-Una cartella per caso: `ciclo.json` (il ciclo), `expected.json` (esiti attesi) e, se
-disponibile, `ciclo.pdf` reale. Senza PDF se ne genera uno sintetico dal ciclo.
+Una cartella per caso: `expected.json` (esiti attesi) più `ciclo.json` (il ciclo), `ciclo.pdf`
+(la stampa vera) o entrambi. Senza PDF se ne genera uno sintetico dal ciclo.
 """
 
 import json
@@ -36,6 +36,9 @@ class Expected(BaseModel):
     profile: str = "mos"
     selectors: dict[str, object] | None = None
     status: str | None = None
+    # False = bozza scritta dal programma (`eval prepara`), non ancora controllata da una
+    # persona: gli esperimenti la saltano.
+    rivisto: bool = True
     rows: list[ExpectedRow]
 
 
@@ -48,6 +51,10 @@ class GoldenCase:
     @property
     def cycle_path(self) -> Path:
         return self.directory / "ciclo.json"
+
+    @property
+    def cycle_json(self) -> Path | None:
+        return self.cycle_path if self.cycle_path.is_file() else None
 
     @property
     def pdf_path(self) -> Path | None:
@@ -69,7 +76,8 @@ def load_cases(directory: Path) -> list[GoldenCase]:
     cases: list[GoldenCase] = []
     for folder in sorted(p for p in directory.iterdir() if p.is_dir()):
         path = folder / "expected.json"
-        if not path.is_file() or not (folder / "ciclo.json").is_file():
+        has_input = (folder / "ciclo.json").is_file() or (folder / "ciclo.pdf").is_file()
+        if not path.is_file() or not has_input:
             continue
         try:
             expected = Expected.model_validate(json.loads(path.read_text(encoding="utf-8")))

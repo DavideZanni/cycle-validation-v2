@@ -17,6 +17,7 @@ Le operazioni ripetute su più pagine (stesso numero) si uniscono in una sola.
 
 import re
 from dataclasses import dataclass
+from typing import Any
 
 from cycle_validation.domain.check import Usage
 from cycle_validation.domain.cycle import Cycle, Operation, Source
@@ -74,7 +75,7 @@ def parse_pvrm320(pdf: PdfDocument, layout: Pvrm320Layout | None = None) -> Cycl
     layout = layout or Pvrm320Layout()
     if not layout.marker.search(pdf.text):
         raise ExtractionError("Il PDF non ha il layout PVRM320.")
-    head: dict[str, str] = {}
+    head: dict[str, Any] = {}
     sources: list[Source] = []
     operations: dict[str, _Op] = {}
     current: _Op | None = None

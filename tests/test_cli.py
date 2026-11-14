@@ -198,3 +198,76 @@ def test_eval_reports_a_bad_variant_clearly(tmp_path: Path) -> None:
     result = runner.invoke(cli.app, ["eval", "esegui", "--variante", str(tmp_path / "x.yaml")])
     assert result.exit_code == 1
     assert "Variante non trovata" in result.output
+
+
+def test_eval_pipeline_runs_every_variant_and_writes_the_leaderboard(tmp_path: Path) -> None:
+    import shutil
+
+    root = Path(__file__).parents[1]
+    variants = tmp_path / "varianti"
+    variants.mkdir()
+    for name in ("baseline", "effort_low"):
+        shutil.copy(root / "eval" / "varianti" / f"{name}.yaml", variants)
+    results = tmp_path / "risultati"
+    result = runner.invoke(
+        cli.app,
+        [
+            "eval",
+            "pipeline",
+            "--salta-verifiche",
+            "--casi",
+            str(root / "eval" / "casi" / "sintetici" / "dr"),
+            "--varianti",
+            str(variants),
+            "--ripetizioni",
+            "1",
+            "--ambiente",
+            "prova",
+            "--risultati",
+            str(results),
+            "--runs",
+            str(tmp_path / "runs"),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "2 varianti x 5 casi x 1 ripetizioni (baseline, effort_low)" in result.output
+    assert "variante 1/2: baseline" in result.output
+    assert "`effort_low`" in (results / "classifica.md").read_text(encoding="utf-8")
+
+
+def test_eval_pipeline_stops_when_no_case_has_been_reviewed(tmp_path: Path) -> None:
+    suite = tmp_path / "s"
+    (suite / "c").mkdir(parents=True)
+    (suite / "suite.yaml").write_text(f"conoscenza: {EXAMPLE_KB.as_posix()}\n", encoding="utf-8")
+    (suite / "c" / "ciclo.json").write_text("{}", encoding="utf-8")
+    (suite / "c" / "expected.json").write_text(
+        '{"profile": "mos", "rivisto": false, "rows": []}', encoding="utf-8"
+    )
+    result = runner.invoke(cli.app, ["eval", "pipeline", "--salta-verifiche", "--casi", str(suite)])
+    assert result.exit_code == 1
+    assert "Nessun caso rivisto" in result.output
+
+
+def test_eval_prepare_writes_a_draft_to_review(tmp_path: Path) -> None:
+    suite = tmp_path / "aziendali"
+    case = suite / "caso"
+    case.mkdir(parents=True)
+    (suite / "suite.yaml").write_text(
+        f"conoscenza: {EXAMPLE_KB.as_posix()}\n"
+        f"macchine: {(EXAMPLE_DIR / 'macchine_attive.json').as_posix()}\n",
+        encoding="utf-8",
+    )
+    write_cycle_pdf(case / "ciclo.pdf", example_cycle())
+    (case / "ciclo.json").write_text(example_cycle().model_dump_json(), encoding="utf-8")
+    result = runner.invoke(cli.app, ["eval", "prepara", str(case), "--profilo", "mos"])
+    assert result.exit_code == 0, result.output
+    assert "Bozza scritta" in result.output
+    expected = json.loads((case / "expected.json").read_text(encoding="utf-8"))
+    assert expected["rivisto"] is False and expected["rows"]
+    again = runner.invoke(cli.app, ["eval", "prepara", str(case)])
+    assert again.exit_code == 0  # una bozza non rivista si può rifare
+    reviewed = {**expected, "rivisto": True}
+    (case / "expected.json").write_text(json.dumps(reviewed), encoding="utf-8")
+    refused = runner.invoke(cli.app, ["eval", "prepara", str(case)])
+    assert refused.exit_code == 1
+    assert "già stato rivisto" in refused.output

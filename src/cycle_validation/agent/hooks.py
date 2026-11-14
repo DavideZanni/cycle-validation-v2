@@ -9,7 +9,7 @@ senza `limit`, o con `limit` oltre soglia, viene rifiutata con le istruzioni per
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeGuard
 
 ALLOWED_TOOLS = ("Read", "Grep")
 # Tool interno con cui l'SDK consegna l'output strutturato (`output_format`): non legge
@@ -47,7 +47,7 @@ def _deny(reason: str) -> Decision:
     return Decision(allowed=False, reason=reason)
 
 
-def _is_positive_int(value: object) -> bool:
+def _is_positive_int(value: object) -> TypeGuard[int]:
     return isinstance(value, int) and not isinstance(value, bool) and value >= 1
 
 

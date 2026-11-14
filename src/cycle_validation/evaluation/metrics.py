@@ -26,6 +26,8 @@ class Metrics:
     false_errato: float
     missed_errors: float
     citations_verified: float | None
+    # Operazioni e fonti estratte dal PDF uguali al ciclo di riferimento (None = non misurata)
+    extraction_accuracy: float | None
     # Stabilità (None con una sola ripetizione)
     unstable_rows: int | None
     unstable_cases: int | None
@@ -75,6 +77,7 @@ def measure(data: dict[str, Any]) -> Metrics:
     overhead = sessions = 0
     costs: list[float] = []
     tokens: list[int] = []
+    extracted_same = extracted_total = 0
 
     for record in records:
         case = f"{record['suite']}/{record['caso']}"
@@ -125,6 +128,9 @@ def measure(data: dict[str, Any]) -> Metrics:
             elif row["reason"] == UNVERIFIED_CITATION:
                 unverified += 1
         technical += record.get("errori_pipeline", 0)
+        for same, count in (record.get("estrazione") or {}).values():
+            extracted_same += same
+            extracted_total += count
         if record["guasto"]:
             failures += 1
             technical += 1
@@ -163,6 +169,7 @@ def measure(data: dict[str, Any]) -> Metrics:
         false_errato=false_errato / repetitions,
         missed_errors=missed / repetitions,
         citations_verified=verified / (verified + unverified) if verified + unverified else None,
+        extraction_accuracy=extracted_same / extracted_total if extracted_total else None,
         unstable_rows=len(unstable) if repetitions > 1 else None,
         unstable_cases=len({case for case, _ in unstable}) if repetitions > 1 else None,
         time_median_ms=median(totals) if totals else 0.0,

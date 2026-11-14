@@ -4,18 +4,29 @@ Qui si provano le alternative del sistema (un'impostazione diversa, un altro mod
 avanti codice nuovo) sugli stessi casi, e si mettono in classifica. **Un esperimento è un file,
 non un ramo git.**
 
-## In due comandi
+## Un comando
+
+```bash
+uv run cycle-validation eval pipeline --ripetizioni 3
+```
+
+Fa tutto in ordine: verifiche del codice (test, ruff, formato, mypy; se una fallisce si ferma
+senza chiamare il modello), poi `baseline` e ogni variante di `eval/varianti/` su tutti i casi
+rivisti, poi la classifica in `eval/risultati/classifica.md`. Con `--variante effort_low` (anche
+più volte) fa girare solo quelle, più la baseline che c'è sempre.
+
+I passi si possono fare anche uno per uno:
 
 ```bash
 uv run cycle-validation eval esegui --variante eval/varianti/effort_low.yaml --ripetizioni 3
 uv run cycle-validation eval classifica
 ```
 
-Il primo fa girare la variante su tutti i casi, tre volte, e scrive un file in
-`eval/risultati/`. Il secondo legge tutti i risultati e scrive `eval/classifica.md`.
+Il primo scrive un file in `eval/risultati/`, il secondo legge tutti i risultati e scrive la
+classifica.
 
-Per una prima misura completa: lanciare `baseline` e poi le altre varianti, con le stesse
-ripetizioni, poi `classifica`.
+**Sui dati veri, in azienda:** la guida passo passo è `docs/ESPERIMENTI_AZIENDA.md` (fotografia della
+conoscenza, bozza e revisione dei casi, pipeline).
 
 ## Cosa c'è nella cartella
 
@@ -26,7 +37,8 @@ ripetizioni, poi `classifica`.
 | `casi/aziendali/` | cicli veri annotati da chi li conosce | **no** |
 | `casi/mutazioni/` | cicli veri con un difetto messo apposta (prossimo giro) | **no** |
 | `risultati/` | un file JSON per ogni prova, con tutti i dati grezzi | **no** |
-| `classifica.md` | la classifica, scritta dal comando | sì |
+| `modelli/aziendali/` | i `suite.yaml` da copiare in `casi/aziendali/` | sì |
+| `risultati/classifica.md` | la classifica, scritta dal comando | **no** (può contenere nomi di casi veri) |
 
 ## Una variante
 
@@ -57,17 +69,26 @@ Opzioni utili di `eval esegui`:
 
 ## I casi
 
-Una suite è una cartella con `suite.yaml` e un caso per sottocartella (`ciclo.json`,
-`expected.json` e, se c'è, `ciclo.pdf` vero). Lo stesso formato del golden set.
+Una suite è una cartella con `suite.yaml` e un caso per sottocartella: `expected.json` più
+`ciclo.json` oppure `ciclo.pdf` (meglio entrambi: il PDF è l'ingresso, `ciclo.json` il
+riferimento controllato). Lo stesso formato del golden set.
 
 ```yaml
 conoscenza: ../../../../examples/sintetico/knowledge   # relativo a questa cartella
-tipo_conoscenza: locale                                # locale | ej200
+tipo_conoscenza: locale        # locale | fotografia | ej200
 macchine: ../../../../examples/sintetico/macchine_attive.json
+estrazione: ciclo_json         # ciclo_json | dal_pdf
 ```
 
-Per EJ200 la conoscenza è una cartella con la stessa struttura delle chiavi S3 (catalogo e
-testi delle pubblicazioni).
+- `locale`: la cartella di conoscenza del programma (`examples/sintetico/knowledge`).
+- `fotografia`: una copia di S3 fatta con `eval fotografia`, letta con lo stesso codice di
+  produzione. Servono i prefissi `manuali`, `targhe`, `schede`, `dr` (vedi
+  `modelli/aziendali/`).
+- `ej200`: la stessa struttura delle chiavi S3 delle pubblicazioni EJ200 (`catalogo`, `testi`).
+- `dal_pdf`: il ciclo si legge dal PDF a ogni prova, e la colonna "Estrazione" misura quanto la
+  lettura somiglia a `ciclo.json`.
+
+Un caso con `"rivisto": false` in `expected.json` è una bozza (`eval prepara`) e viene saltato.
 
 ## Cosa si misura
 
@@ -82,6 +103,7 @@ testi delle pubblicazioni).
 | Avvio agente | tempo della sessione meno tempo del modello, per sessione | quanto si guadagnerebbe senza l'agente |
 | Costo e token | medi per ciclo | spesa |
 | Citazioni verificate | citazioni del modello ritrovate davvero nel manuale | il modello non inventa |
+| Estrazione | operazioni e fonti lette dal PDF uguali a `ciclo.json` (solo `dal_pdf`) | separa gli errori di lettura da quelli di giudizio |
 
 ERRATO falsi, errori mancati ed esiti tecnici sono **medie per ripetizione**. La stabilità
 serve almeno due ripetizioni.
@@ -99,14 +121,15 @@ Prima i paletti. Una variante è **scartata**, anche se è più veloce, se ha:
 3. concordanza più bassa;
 4. più righe instabili;
 5. più esiti tecnici;
+6. estrazione dal PDF peggiore (solo con `estrazione: dal_pdf`);
 
-oppure se è stata provata su casi diversi dalla baseline.
+oppure se è stata provata su casi diversi, o su una conoscenza diversa, dalla baseline.
 
 Poi l'obiettivo: tra le ammesse vince la più veloce (tempo mediano per ciclo), a parità la
 meno cara. Accanto c'è il caso peggiore, perché una media buona può nascondere un caso lento.
 
 Test, `ruff` e `mypy` devono restare verdi: è un requisito per tenere una modifica, non un
-punteggio.
+punteggio. `eval pipeline` li controlla prima di ogni giro.
 
 ## Quando una variante vince
 

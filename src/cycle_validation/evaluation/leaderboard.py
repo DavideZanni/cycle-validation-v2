@@ -24,6 +24,7 @@ class Entry:
     date: str
     commit: str
     metrics: Metrics
+    knowledge: dict[str, str] = field(default_factory=dict)
     reasons: list[str] = field(default_factory=list)
 
 
@@ -55,6 +56,8 @@ def _guardrails(entry: Entry, reference: Entry) -> list[str]:
     m, ref = entry.metrics, reference.metrics
     if m.cases != ref.cases:
         return ["casi diversi dalla baseline: non confrontabile"]
+    if entry.knowledge != reference.knowledge:
+        return ["conoscenza diversa dalla baseline: non confrontabile, rilanciare la baseline"]
     reasons = []
     if m.false_errato > ref.false_errato + _EPSILON:
         reasons.append(f"più ERRATO falsi ({_num(m.false_errato)} contro {_num(ref.false_errato)})")
@@ -74,6 +77,15 @@ def _guardrails(entry: Entry, reference: Entry) -> list[str]:
         reasons.append(f"più righe instabili ({m.unstable_rows} contro {ref.unstable_rows})")
     if m.technical > ref.technical + _EPSILON:
         reasons.append(f"più esiti tecnici ({_num(m.technical)} contro {_num(ref.technical)})")
+    if (
+        m.extraction_accuracy is not None
+        and ref.extraction_accuracy is not None
+        and m.extraction_accuracy < ref.extraction_accuracy - _EPSILON
+    ):
+        reasons.append(
+            f"estrazione dal PDF peggiore ({_pct(m.extraction_accuracy)} contro "
+            f"{_pct(ref.extraction_accuracy)})"
+        )
     return reasons
 
 
@@ -86,6 +98,7 @@ def build_leaderboard(folder: Path) -> list[Board]:
             date=data.get("data", ""),
             commit=data.get("commit", ""),
             metrics=measure(data),
+            knowledge=data.get("conoscenza") or {},
         )
         key = (data["ambiente"], entry.name)
         if key not in latest or entry.date >= latest[key].date:
@@ -143,6 +156,7 @@ def _row(position: str, entry: Entry, reference: Entry | None) -> str:
         f"{m.tokens_per_cycle:.0f}",
         _seconds(m.agent_overhead_ms),
         _pct(m.citations_verified),
+        _pct(m.extraction_accuracy),
         str(m.repetitions),
         f"{entry.commit} · {entry.date}",
     ]
@@ -152,8 +166,8 @@ def _row(position: str, entry: Entry, reference: Entry | None) -> str:
 _HEADER = (
     "| # | Variante | Concordanza | ERRATO falsi | Errori mancati | Righe instabili "
     "| Esiti tecnici | Tempo mediano per ciclo | Caso peggiore | Costo per ciclo (USD) "
-    "| Token per ciclo | Avvio agente per sessione | Citazioni verificate | Ripetizioni "
-    "| Prova |\n" + "|---" * 15 + "|"
+    "| Token per ciclo | Avvio agente per sessione | Citazioni verificate | Estrazione "
+    "| Ripetizioni | Prova |\n" + "|---" * 16 + "|"
 )
 
 

@@ -3,7 +3,7 @@ del sistema attuale. La logica sta nella libreria; qui solo traduzione HTTP."""
 
 import traceback
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Annotated, Any, Protocol
@@ -63,6 +63,13 @@ class MetricsSink(Protocol):
 class NullMetrics:
     def llm_cost(self, usd: float) -> None:
         return None
+
+
+def _first_error(errors: Sequence[Any]) -> str:
+    """Il primo errore di validazione, come testo: dove e perché."""
+    first = errors[0] if errors else {}
+    where = ".".join(str(part) for part in first.get("loc", ()))
+    return f"Richiesta non valida ({where}): {first.get('msg', '')}".strip()
 
 
 @dataclass
@@ -432,15 +439,11 @@ def create_app(services: ApiServices) -> FastAPI:
 
     @app.exception_handler(RequestValidationError)
     async def invalid(request: Request, exc: RequestValidationError) -> JSONResponse:
-        first = exc.errors()[0] if exc.errors() else {}
-        where = ".".join(str(part) for part in first.get("loc", ()))
-        return _error(422, f"Richiesta non valida ({where}): {first.get('msg', '')}".strip())
+        return _error(422, _first_error(exc.errors()))
 
     @app.exception_handler(ValidationError)
     async def invalid_model(request: Request, exc: ValidationError) -> JSONResponse:
-        first = exc.errors()[0] if exc.errors() else {}
-        where = ".".join(str(part) for part in first.get("loc", ()))
-        return _error(422, f"Richiesta non valida ({where}): {first.get('msg', '')}".strip())
+        return _error(422, _first_error(exc.errors()))
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request: Request, exc: StarletteHTTPException) -> JSONResponse:

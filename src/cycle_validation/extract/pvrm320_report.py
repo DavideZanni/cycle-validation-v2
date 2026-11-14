@@ -221,9 +221,9 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
     for op in operations.values():
         description = _description(op)
         tag = op.tag if op.tag and op.tag.upper() != "NOTE" else None
-        sheet = None
+        process_sheet: ProcessSheet | None = None
         if op.sheet:
-            sheet = ProcessSheet.model_validate(
+            process_sheet = ProcessSheet.model_validate(
                 {"code": op.sheet, **({"sp_orig": op.sp_orig} if op.sp_orig else {})}
             )
         tasks = list(dict.fromkeys(" ".join(t.upper().split()) for t in _TASK.findall(description)))
@@ -233,7 +233,7 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
                 operation_description=description,
                 machine_tag=tag,
                 task_codes=tasks,
-                process_sheet=sheet,
+                process_sheet=process_sheet,
                 page=op.page,
             )
         )

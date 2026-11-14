@@ -6,7 +6,7 @@ trascrive con il modello. Le immagini (JPEG, PNG) sono una pagina sola.
 
 import hashlib
 import io
-from collections.abc import Iterable, Iterator
+from collections.abc import Generator, Iterable
 from contextlib import closing
 from pathlib import Path
 from typing import Any
@@ -105,7 +105,9 @@ def _render_page(document: Any, index: int) -> tuple[bytes, str]:
     return _encode_under_limit(image), "image/jpeg"
 
 
-def _rendered_pages(data: bytes, name: str, limits: FileLimits) -> Iterator[tuple[bytes, str]]:
+def _rendered_pages(
+    data: bytes, name: str, limits: FileLimits
+) -> Generator[tuple[bytes, str], None, None]:
     """Le pagine come immagini, una alla volta: in memoria ce n'è una sola, e se la trascrizione di
     una pagina fallisce le successive non vengono nemmeno renderizzate."""
     with PDFIUM_LOCK:

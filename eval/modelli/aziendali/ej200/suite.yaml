@@ -1,0 +1,12 @@
+# Modello per i cicli EJ200 veri. Copiare la cartella in eval/casi/aziendali/ej200/ (ignorata).
+# Percorsi relativi a questa cartella.
+
+conoscenza: ../conoscenza/foto-AAAAMMGG
+tipo_conoscenza: ej200
+# Chiavi del catalogo e dei testi delle pubblicazioni dentro la fotografia. DA CONFERMARE.
+catalogo: "Manufacturing AI/exports/ej200_publication/catalog.json"
+testi: "Manufacturing AI/exports/ej200_publication/text/"
+targhe: structured/TM/
+macchine: ../macchine_attive.json
+estrazione: dal_pdf
+profilo: ej200
