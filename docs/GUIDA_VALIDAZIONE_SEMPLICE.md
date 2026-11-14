@@ -9,7 +9,9 @@ dall'insieme sintetico del progetto (`examples/sintetico/`, `tests/golden/`): ne
 
 > **Cosa è verificato e cosa no.** Il codice di validazione è stato letto. Del progetto di
 > ingestion ho letto solo la sua documentazione tecnica, non il codice. Nessuna chiamata reale a
-> Bedrock è mai stata fatta: il comportamento del modello su cicli veri va provato in azienda.
+> Bedrock è mai stata fatta. Il 14 novembre 2026 il percorso completo è stato provato con un
+> modello vero (Haiku, login locale) sui soli dati inventati: il comportamento su cicli veri va
+> provato in azienda.
 
 ---
 
@@ -456,4 +458,4 @@ rifiutato dall'hook, quanto costa davvero una sessione: da vedere in uno smoke t
 | Impostazioni | `config/settings.yaml`, `config/profiles/{mos,dr,ej200}.yaml` |
 | Prompt | `prompts/operation_check.md`, `prompts/extract_cycle.md` |
 | Insieme di prova | `examples/sintetico/`, `tests/golden/` |
-| Passaggio in azienda | `docs/PASSAGGIO_AZIENDA.md`, `docs/superpowers/COMPLETION_REPORT.md` |
+| Passaggio in azienda | `docs/IMPORTAZIONE_AZIENDA.md`, `docs/superpowers/COMPLETION_REPORT.md` |

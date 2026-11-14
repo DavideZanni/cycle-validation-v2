@@ -1,7 +1,7 @@
 # Impostazioni di Cycle Validation. Nessuna credenziale in questo file.
 agent:
   # Alias ("haiku") oppure id completo del modello o del profilo di inferenza Bedrock.
-  # In azienda: impostare l'id abilitato nell'account (vedi docs/PASSAGGIO_AZIENDA.md).
+  # In azienda: impostare l'id abilitato nell'account (vedi docs/IMPORTAZIONE_AZIENDA.md).
   model: haiku
   # low | medium | high. Vuoto = valore predefinito del modello.
   effort:

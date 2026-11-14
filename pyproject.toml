@@ -16,6 +16,10 @@ dependencies = [
     "uvicorn>=0.54.0",
 ]
 
+[project.optional-dependencies]
+# Client AWS (S3, Bedrock per la trascrizione, CloudWatch): servono in azienda, non ai test.
+aws = ["boto3>=1.35"]
+
 [project.scripts]
 cycle-validation = "cycle_validation.cli:app"
 

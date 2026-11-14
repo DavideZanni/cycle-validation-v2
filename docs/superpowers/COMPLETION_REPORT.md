@@ -5,7 +5,7 @@ Avanzamento per fase: `docs/superpowers/plans/FULL_EXECUTION_PROGRESS.md`.
 
 Dopo le Fasi 1-6 il lavoro è stato riletto in modo critico e ottimizzato sul ramo
 `review/correctness-and-optimization` (da 404 a 488 test): vedi "Revisione critica" più sotto.
-Per il passaggio in azienda: `docs/PASSAGGIO_AZIENDA.md`.
+Per il passaggio in azienda: `docs/IMPORTAZIONE_AZIENDA.md`.
 
 ## Cosa non è verificato (leggere prima di fidarsi)
 

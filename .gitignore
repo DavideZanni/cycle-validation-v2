@@ -15,3 +15,5 @@ __pycache__/
 # Esempi di input reali (scansioni aziendali)
 docs/Esempio ciclo mos/
 docs/Esempio EJ200/
+# qualunque altra cartella di esempi (per esempio "docs/Esempio ciclo DR/")
+docs/Esempio*/

@@ -8,7 +8,7 @@ e assegna l'esito. Tutto ciò che è esterno (S3, Redshift, Bedrock, autenticazi
 dietro una porta con un'implementazione di prova: la suite gira offline.
 
 ```bash
-uv sync
+uv sync --all-groups --extra aws
 uv run pytest                      # suite completa, offline
 uv run ruff check .
 uv run cycle-validation kb-check examples/sintetico/knowledge
@@ -21,5 +21,10 @@ uv run cycle-validation golden tests/golden/mos --knowledge examples/sintetico/k
 `run` senza `--cycle-json` estrae il ciclo con il modello (serve Bedrock). Gli smoke test reali
 vanno eseguiti dove ci sono le credenziali.
 
-Documenti: `docs/superpowers/specs` (design), `docs/superpowers/plans` (piani e avanzamento),
-`docs/superpowers/COMPLETION_REPORT.md` (moduli, test, punti di aggancio alla produzione).
+Documenti:
+
+- `docs/IMPORTAZIONE_AZIENDA.md`: come portare il progetto sul computer aziendale, passo per passo;
+- `docs/MIGLIORIE.md`: migliorie di affidabilità, velocità e costo, con le misure;
+- `docs/BASELINE.md`: la versione di riferimento e come si prova un esperimento;
+- `docs/GUIDA_VALIDAZIONE_SEMPLICE.md`: come funziona la validazione, spiegato semplice;
+- `docs/superpowers/`: design, piani e resoconto dei moduli.

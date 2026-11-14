@@ -64,6 +64,13 @@ def test_other_tools_are_denied(tool: str) -> None:
     assert not check_tool_call(tool, {}, POLICY).allowed
 
 
+def test_structured_output_tool_is_allowed() -> None:
+    """L'SDK consegna l'output strutturato con il tool `StructuredOutput`: rifiutarlo fa
+    fallire ogni sessione con ricerca (visto su una sessione vera, SDK 0.2.18x)."""
+    answer = {"judgement": "coerente", "rationale": "ok", "citations": []}
+    assert check_tool_call("StructuredOutput", answer, POLICY).allowed
+
+
 def test_hook_format() -> None:
     hook = make_pre_tool_use_hook(POLICY)
     allowed = asyncio.run(hook({"tool_name": "Read", "tool_input": read(limit=10)}, "t1", None))

@@ -12,6 +12,9 @@ from pathlib import Path
 from typing import Any
 
 ALLOWED_TOOLS = ("Read", "Grep")
+# Tool interno con cui l'SDK consegna l'output strutturato (`output_format`): non legge
+# nulla, ma passa anch'esso dall'hook. Se lo si rifiuta la sessione non può rispondere.
+OUTPUT_TOOL = "StructuredOutput"
 _GREP_CONTEXT_KEYS = ("-A", "-B", "-C", "context")
 
 PreToolUseHook = Callable[[Any, str | None, Any], Awaitable[dict[str, Any]]]
@@ -96,6 +99,8 @@ def check_tool_call(tool_name: str, tool_input: dict[str, Any], policy: ToolPoli
         return _check_read(tool_input, policy)
     if tool_name == "Grep":
         return _check_grep(tool_input, policy)
+    if tool_name == OUTPUT_TOOL:
+        return _ALLOW
     return _deny(f"Tool '{tool_name}' non consentito. Usa solo Read e Grep.")
 
 
