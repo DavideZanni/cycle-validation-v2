@@ -1,7 +1,7 @@
 """Porta verso la conoscenza: le sole domande che i controlli fanno.
 
 Controlli, agente e report dipendono da questa interfaccia, non dalla sorgente.
-Un adattatore nuovo (S3, OpenSearch, catalogo EJ200) deve solo implementarla
+Un adattatore nuovo (snapshot S3, catalogo EJ200) deve solo implementarla
 e superare la suite `tests/test_kb_contract.py`.
 """
 

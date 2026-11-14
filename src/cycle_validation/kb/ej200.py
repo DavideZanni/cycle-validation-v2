@@ -1,8 +1,8 @@
-"""Knowledge base EJ200: catalogo delle pubblicazioni (S3) e testo dei documenti (indice).
+"""Knowledge base EJ200: catalogo delle pubblicazioni e testo dei documenti, entrambi su S3.
 
-Come nel sistema attuale i documenti EJ200 non si cercano per similarità: il codice citato
-(RN, EF, RDR) si risolve nel catalogo e il testo si legge per identità esatta
-(`document_id` e `content_hash`). Il catalogo ha un TTL e un errore di lettura non viene
+I documenti EJ200 non si cercano per similarità: il codice citato (RN, EF, RDR) si risolve
+nel catalogo e il testo è un markdown a righe, con marcatori di pagina, all'oggetto
+`<text_prefix><document_id>/<content_hash>.md` dello store. Il catalogo ha un TTL e un errore di lettura non viene
 memorizzato come catalogo valido. Le targhe sono i dati TM condivisi con i profili civili.
 """
 
@@ -16,7 +16,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from cycle_validation.errors import KnowledgeError, SourceUnavailableError
-from cycle_validation.kb.documents import chunk_lines, digest, file_name
+from cycle_validation.kb.documents import digest, file_name
 from cycle_validation.kb.port import (
     DocumentInfo,
     DrRecommendation,
@@ -24,11 +24,12 @@ from cycle_validation.kb.port import (
     ProcessSheetEntry,
     TaskLocation,
 )
-from cycle_validation.kb.stores import ObjectNotFoundError, ObjectStore, SearchIndex
+from cycle_validation.kb.stores import ObjectNotFoundError, ObjectStore
 from cycle_validation.kb.structured import StructuredData, StructuredLayout, load_structured
 from cycle_validation.text import normalize_code
 
 DEFAULT_CATALOG_KEY = "Manufacturing AI/exports/ej200_publication/catalog.json"
+DEFAULT_TEXT_PREFIX = "Manufacturing AI/exports/ej200_publication/text/"
 DEFAULT_TTL_S = 300.0
 
 
@@ -118,29 +119,23 @@ class Ej200KnowledgeBase:
         self,
         version: str,
         catalog: Ej200Catalog,
-        index: SearchIndex,
         workdir: Path,
         store: ObjectStore,
         layout: StructuredLayout | None = None,
         *,
-        document_id_field: str = "document_id",
-        hash_field: str = "content_hash",
-        order_field: str = "chunk_index",
-        page_field: str = "page",
-        text_field: str = "text",
+        text_prefix: str = DEFAULT_TEXT_PREFIX,
     ) -> None:
         self._version = version
         self._catalog = catalog
-        self._index = index
         self._workdir = workdir
         self._store = store
         self._layout = layout or StructuredLayout(sp=None, dr=None)
-        self._fields = (document_id_field, hash_field, order_field, page_field, text_field)
+        self._text_prefix = text_prefix
         self._lock = threading.Lock()
         self._documents: dict[str, DocumentInfo] = {}
         self._building: dict[str, threading.Lock] = {}
         self._data: StructuredData | None = None
-        self.exact_queries = 0
+        self.text_reads = 0
 
     @property
     def version(self) -> str:
@@ -168,7 +163,7 @@ class Ej200KnowledgeBase:
                 return cached
             building = self._building.setdefault(cache_key, threading.Lock())
         # Un lock per documento: chi arriva mentre un altro lo sta scrivendo aspetta e riusa
-        # il risultato, senza una seconda lettura dell'indice e senza due scritture dello
+        # il risultato, senza una seconda lettura del testo e senza due scritture dello
         # stesso file. Documenti diversi non si aspettano tra loro.
         with building:
             with self._lock:
@@ -186,12 +181,9 @@ class Ej200KnowledgeBase:
         path = self._workdir / "ej200" / digest(cache_key) / file_name(entry.key)
         path.parent.mkdir(parents=True, exist_ok=True)
         if full:
-            doc_id, hash_name, order, page_field, text_field = self._fields
             with self._lock:
-                self.exact_queries += 1
-            hits = self._index.search({doc_id: entry.document_id, hash_name: entry.content_hash})
-            lines, _ = chunk_lines(hits, order=order, page=page_field, text=text_field)
-            body = "\n".join(lines) or f"{entry.title or entry.code}: nessun testo nell'indice."
+                self.text_reads += 1
+            body = self._read_text(entry) or f"{entry.title or entry.code}: nessun testo su S3."
         else:
             body = f"{entry.code} issue {entry.issue or 'n/d'}: testo non caricato."
         path.write_text(f"{body}\n", encoding="utf-8")
@@ -205,6 +197,13 @@ class Ej200KnowledgeBase:
             published=entry.published,
             partial=entry.partial,
         )
+
+    def _read_text(self, entry: CatalogEntry) -> str:
+        key = f"{self._text_prefix}{entry.document_id}/{entry.content_hash}.md"
+        try:
+            return self._store.get_bytes(key).decode("utf-8").rstrip("\n")
+        except ObjectNotFoundError:
+            return ""
 
     def find_manuals(self, manual: str) -> list[DocumentInfo]:
         entries = self._catalog.find(manual)

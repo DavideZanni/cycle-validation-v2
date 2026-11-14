@@ -69,14 +69,17 @@ Per ognuno esiste l'adattatore con client iniettato; manca solo il dato aziendal
 
 1. **Forma dei JSON su S3** (TM, SP, DR): prefissi in `StructuredLayout`, alias dei campi in
    `FieldMap`.
-2. **Campi dell'indice OpenSearch** per i manuali civili (`ChunkSchema`: manuale, task, versione,
-   pagina, ordine, testo). La ricerca è una `term` esatta sui metadati: se i campi sono analizzati
-   (non `keyword`) non trova nulla e serve il `fallback`.
-3. **Dimensione dei risultati.** Si chiedono al massimo 2000 chunk per task e 1000 per documento
-   EJ200. Un documento più lungo verrebbe troncato senza avviso: verificare i conteggi reali, o
-   aggiungere la paginazione nell'adattatore.
+2. **Testo dei manuali civili: cartella su S3 nel formato locale** (`kb/snapshot.py`). OpenSearch
+   non c'è più: l'ingestion pubblica `manifest.json`, `documents/*.md` (con `<!-- page N -->`) e
+   `tasks.json` sotto un prefisso, e `SnapshotManualSource` li scarica una volta in una cartella
+   di lavoro. Il formato è quello di `kb-check`; da verificare con lo snapshot reale di
+   ingestion v2 (se le chiavi o i campi differiscono serve un piccolo convertitore, non altro).
+3. **Dimensione dello snapshot.** Si scarica tutto il prefisso alla prima richiesta: con molti
+   manuali grandi conviene un prefisso per programma o un download per documento.
 4. **Catalogo EJ200** (`CatalogEntry`: `code`, `kind`, `issue`, `document_id`, `content_hash`,
-   `published`, `partial`, `references`) e campi dell'indice dei documenti.
+   `published`, `partial`, `references`) e testo dei documenti: un markdown a righe per issue
+   all'oggetto `<text_prefix><document_id>/<content_hash>.md` (`DEFAULT_TEXT_PREFIX`, da
+   confermare con la pubblicazione reale).
 5. **Query Redshift** delle macchine attive e intervallo di rilettura.
 6. **Modello Haiku** in `eu-south-1`: id o profilo di inferenza; smoke test di una sessione vera
    (l'adattatore SDK è provato solo su messaggi simulati, versione 0.2.181).
@@ -122,7 +125,6 @@ Per ognuna, il rischio se è sbagliata.
 | La famiglia del motore si riconosce come sottostringa del modello | Una famiglia il cui nome è contenuto in un altro modello viene riconosciuta a torto |
 | Citazione valida da 8 caratteri in su (`MIN_QUOTE_CHARS`) | Citazioni cortissime ma decisive vengono scartate (WARNING), mai accettate a torto |
 | Integrità del numero di operazione: basta che compaia ovunque nel PDF | Controllo quasi sempre vero: non prova che l'operazione sia stata letta bene |
-| Una pagina dell'indice non numerica lascia il chunk sotto l'ultima pagina nota | La pagina riportata nell'evidenza può essere quella precedente |
 
 ### Servizio
 
@@ -167,9 +169,9 @@ quattro operazioni). Il golden set con modello simulato gira in `tests/test_gold
 
 1. Decidere sulla history (sezione 1).
 2. Scrivere la `factory` con i client aziendali e far partire `preload()`: gli errori di forma dei
-   JSON e dei campi dell'indice escono subito, con il nome del campo.
-3. `cycle-validation kb-check` e poi `kb-export` su un insieme piccolo di manuali, per lavorare
-   senza rete.
+   JSON e dello snapshot dei manuali escono subito, con il nome del campo o del file.
+3. `cycle-validation kb-check` sulla cartella dello snapshot scaricata (stesso formato di S3),
+   per lavorare senza rete.
 4. Smoke test di una sessione vera e di una trascrizione vera.
 5. Golden set su PDF reali con esiti attesi scritti da chi conosce i cicli: è l'unico modo per
    chiudere le voci della sezione 5.

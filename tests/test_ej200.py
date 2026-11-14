@@ -6,12 +6,14 @@ import pytest
 from ej200_fixtures import (
     DM_A,
     DM_C,
+    RecordingStore,
     catalog_entries,
-    chunks,
     judge,
     make_kb,
     make_store,
     pvrm320_pages,
+    text_key,
+    text_objects,
 )
 from fakes import ScriptedSession
 from kb_fixtures import PROFILES_DIR
@@ -30,11 +32,11 @@ from cycle_validation.extract.pvrm320 import Pvrm320LayoutExtractor, parse_pvrm3
 from cycle_validation.ingest.pdf import read_pdf_bytes
 from cycle_validation.kb.ej200 import (
     DEFAULT_CATALOG_KEY,
+    DEFAULT_TEXT_PREFIX,
     Ej200Catalog,
     Ej200KnowledgeBase,
     parse_catalog,
 )
-from cycle_validation.kb.stores import InMemorySearchIndex
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
 from cycle_validation.services.machines import StaticMachineRegistry
 from cycle_validation.testing.pdf import build_pdf
@@ -139,15 +141,15 @@ def test_invalid_catalog_is_explicit() -> None:
         parse_catalog(b'[{"code": "X"}]')
 
 
-def test_lookup_is_exact_by_document_id_and_hash_never_semantic(tmp_path: Path) -> None:
-    kb, index = make_kb(tmp_path)
+def test_text_is_read_by_exact_document_id_and_hash(tmp_path: Path) -> None:
+    kb, store = make_kb(tmp_path)
     documents = kb.find_manuals("rn-100")
     assert {d.key for d in documents} == {"RN-100-1", "RN-100-2"}
-    assert index.queries == [{"document_id": "rn100-2", "content_hash": "h-rn100-2"}]
+    assert store.text_reads() == [text_key("rn100-2")]
     latest = next(d for d in documents if d.version == "2")
     assert "Pulire la pala con solvente tipo A." in latest.path.read_text(encoding="utf-8")
     kb.find_manuals("RN-100")
-    assert len(index.queries) == 1  # materializzato una sola volta
+    assert len(store.text_reads()) == 1  # materializzato una sola volta
     assert kb.find_task("RN-100", "x") is None
     assert kb.find_process_sheet("SP-1") is None
     assert kb.find_machine_tag("tm-1001") is not None
@@ -370,13 +372,7 @@ def test_a_new_issue_does_not_replace_the_text_another_validation_is_reading(
     # finire nel file che una validazione in corso sta leggendo come testo completo
     now = {"t": 0.0}
     store = make_store()
-    kb = Ej200KnowledgeBase(
-        "v",
-        Ej200Catalog(store, clock=lambda: now["t"]),
-        InMemorySearchIndex(chunks()),
-        tmp_path,
-        store,
-    )
+    kb = Ej200KnowledgeBase("v", Ej200Catalog(store, clock=lambda: now["t"]), tmp_path, store)
     in_use = next(d for d in kb.find_manuals("RN-100") if d.version == "2")
     assert "Pulire la pala con solvente tipo A." in in_use.path.read_text(encoding="utf-8")
 
@@ -394,21 +390,21 @@ def test_a_new_issue_does_not_replace_the_text_another_validation_is_reading(
     assert "Pulire la pala con solvente tipo A." in in_use.path.read_text(encoding="utf-8")
 
 
-def test_concurrent_lookups_read_a_publication_from_the_index_once(tmp_path: Path) -> None:
+def test_concurrent_lookups_read_a_publication_text_once(tmp_path: Path) -> None:
     import threading
 
     started, release = threading.Event(), threading.Event()
 
-    class SlowIndex(InMemorySearchIndex):
-        def search(self, filters: Any, *, size: int = 1000) -> list[dict[str, Any]]:
-            hits = super().search(filters, size=size)
-            started.set()
-            release.wait(5)
-            return hits
+    class SlowStore(RecordingStore):
+        def get_bytes(self, key: str) -> bytes:
+            data = super().get_bytes(key)
+            if key.startswith(DEFAULT_TEXT_PREFIX):
+                started.set()
+                release.wait(5)
+            return data
 
-    store = make_store()
-    index = SlowIndex(chunks())
-    kb = Ej200KnowledgeBase("v", Ej200Catalog(store), index, tmp_path, store)
+    store = SlowStore({DEFAULT_CATALOG_KEY: catalog_entries(), **text_objects()})
+    kb = Ej200KnowledgeBase("v", Ej200Catalog(store), tmp_path, store)
     found: list[list[Any]] = []
     workers = [
         threading.Thread(target=lambda: found.append(kb.find_manuals("EF-200"))) for _ in range(2)
@@ -416,11 +412,11 @@ def test_concurrent_lookups_read_a_publication_from_the_index_once(tmp_path: Pat
     workers[0].start()
     assert started.wait(5)
     workers[1].start()
-    workers[1].join(0.3)  # il secondo o aspetta il primo, o (prima) interrogava l'indice
+    workers[1].join(0.3)  # il secondo o aspetta il primo, o (prima) rileggeva il testo
     release.set()
     for worker in workers:
         worker.join(5)
-    assert len(index.queries) == 1
+    assert len(store.text_reads()) == 1
     assert len(found) == 2 and found[0][0].path == found[1][0].path
 
 

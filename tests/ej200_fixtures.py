@@ -1,11 +1,16 @@
-"""Pubblicazioni EJ200 sintetiche: catalogo, indice dei chunk, dati TM. Tutto inventato."""
+"""Pubblicazioni EJ200 sintetiche: catalogo, testi, dati TM. Tutto inventato."""
 
 from pathlib import Path
 from typing import Any
 
 from cycle_validation.agent.session import SessionRequest
-from cycle_validation.kb.ej200 import DEFAULT_CATALOG_KEY, Ej200Catalog, Ej200KnowledgeBase
-from cycle_validation.kb.stores import InMemoryObjectStore, InMemorySearchIndex
+from cycle_validation.kb.ej200 import (
+    DEFAULT_CATALOG_KEY,
+    DEFAULT_TEXT_PREFIX,
+    Ej200Catalog,
+    Ej200KnowledgeBase,
+)
+from cycle_validation.kb.stores import InMemoryObjectStore
 from cycle_validation.kb.structured import StructuredLayout
 
 DM_A = "DMC-EJ200-A-72-31-00-00A-520A-A"
@@ -105,53 +110,69 @@ def catalog_entries() -> list[dict[str, Any]]:
     return entries
 
 
-def chunks(long_document: str | None = None) -> list[dict[str, Any]]:
-    out: list[dict[str, Any]] = []
-    by_id = {p["document_id"]: p for p in PUBLICATIONS}
+class RecordingStore(InMemoryObjectStore):
+    """Store che ricorda quali testi di pubblicazione sono stati letti."""
+
+    def __init__(self, objects: dict[str, Any]) -> None:
+        super().__init__(objects)
+        self.reads: list[str] = []
+
+    def get_bytes(self, key: str) -> bytes:
+        self.reads.append(key)
+        return super().get_bytes(key)
+
+    def text_reads(self) -> list[str]:
+        return [key for key in self.reads if key.startswith(DEFAULT_TEXT_PREFIX)]
+
+
+def text_key(document_id: str) -> str:
+    content_hash = next(p["content_hash"] for p in PUBLICATIONS if p["document_id"] == document_id)
+    return f"{DEFAULT_TEXT_PREFIX}{document_id}/{content_hash}.md"
+
+
+def text_objects(long_document: str | None = None) -> dict[str, str]:
+    """Il testo di ogni pubblicazione come markdown a righe, con un marcatore ogni 50 righe."""
     texts = dict(TEXTS)
     if long_document:
         texts[long_document] = [f"riga di prova {n}" for n in range(400)]
+    out: dict[str, str] = {}
     for document_id, lines in texts.items():
-        publication = by_id[document_id]
+        body: list[str] = []
         for number, line in enumerate(lines):
-            out.append(
-                {
-                    "document_id": document_id,
-                    "content_hash": publication["content_hash"],
-                    "chunk_index": number,
-                    "page": 1 + number // 50,
-                    "text": line,
-                }
-            )
+            if number % 50 == 0:
+                body.append(f"<!-- page {1 + number // 50} -->")
+            body.append(line)
+        out[text_key(document_id)] = "\n".join(body) + "\n"
     return out
 
 
-def make_store(entries: list[dict[str, Any]] | None = None) -> InMemoryObjectStore:
-    return InMemoryObjectStore(
+def make_store(
+    entries: list[dict[str, Any]] | None = None, long_document: str | None = None
+) -> RecordingStore:
+    return RecordingStore(
         {
             DEFAULT_CATALOG_KEY: entries if entries is not None else catalog_entries(),
             "structured/TM/tm.json": [
                 {"tag": "TM-1001", "function": "Banco di lavaggio"},
                 {"tag": "TM-2002", "function": "Rettificatrice"},
             ],
+            **text_objects(long_document),
         }
     )
 
 
 def make_kb(
-    workdir: Path, *, long_document: str | None = None, store: InMemoryObjectStore | None = None
-) -> tuple[Ej200KnowledgeBase, InMemorySearchIndex]:
-    store = store or make_store()
-    index = InMemorySearchIndex(chunks(long_document))
+    workdir: Path, *, long_document: str | None = None, store: RecordingStore | None = None
+) -> tuple[Ej200KnowledgeBase, RecordingStore]:
+    store = store or make_store(long_document=long_document)
     kb = Ej200KnowledgeBase(
         "ej200-sintetico",
         Ej200Catalog(store),
-        index,
         workdir,
         store,
         StructuredLayout(sp=None, dr=None),
     )
-    return kb, index
+    return kb, store
 
 
 def pvrm320_pages() -> list[str]:

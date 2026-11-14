@@ -1,7 +1,6 @@
 """CLI: `cycle-validation run` e `cycle-validation kb-check`."""
 
 import asyncio
-import tempfile
 from pathlib import Path
 from typing import Annotated
 
@@ -15,16 +14,12 @@ from cycle_validation.domain.check import CheckName
 from cycle_validation.errors import CycleValidationError
 from cycle_validation.extract.base import CycleExtractor
 from cycle_validation.extract.composite import FallbackCycleExtractor
-from cycle_validation.extract.from_file import FileCycleExtractor, load_cycle
+from cycle_validation.extract.from_file import FileCycleExtractor
 from cycle_validation.extract.llm import LlmCycleExtractor
 from cycle_validation.extract.pvrm320 import Pvrm320LayoutExtractor
 from cycle_validation.golden import GoldenCase, load_cases, run_golden
 from cycle_validation.ingest.transcribe import make_transcriber
-from cycle_validation.kb.export import export_local_knowledge
 from cycle_validation.kb.local import load_local_knowledge
-from cycle_validation.kb.manuals import IndexedManualSource
-from cycle_validation.kb.remote import RemoteKnowledgeBase
-from cycle_validation.kb.stores import LocalDirObjectStore, load_jsonl_index
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
 from cycle_validation.resolve.dr import parse_selectors
 from cycle_validation.services.machines import load_machine_registry
@@ -54,42 +49,6 @@ def kb_check(
     typer.echo(f"Knowledge base {kb.version}")
     for name, count in kb.stats().items():
         typer.echo(f"  {name}: {count}")
-
-
-@app.command("kb-export")
-def kb_export(
-    structured_dir: Annotated[Path, typer.Option(help="Snapshot dei JSON S3 (TM, SP, DR).")],
-    chunks: Annotated[Path, typer.Option(help="Snapshot JSONL dei chunk dei manuali.")],
-    cycle_json: Annotated[Path, typer.Option(help="Ciclo: indica manuali e task da esportare.")],
-    out: Annotated[Path, typer.Option(help="Cartella della knowledge base locale.")],
-    version: Annotated[str, typer.Option(help="Versione da scrivere nel manifest.")] = "export",
-) -> None:
-    """Scrive una knowledge base locale a partire da snapshot delle sorgenti reali."""
-    try:
-        cycle = load_cycle(cycle_json)
-        wanted: dict[str, list[str]] = {}
-        for source in cycle.sources:
-            wanted.setdefault(source.manual, [])
-            if source.task:
-                wanted[source.manual].append(source.task)
-        for operation in cycle.operations:
-            for source in cycle.sources:
-                wanted.setdefault(source.manual, []).extend(operation.task_codes)
-        with tempfile.TemporaryDirectory() as workdir:
-            kb = RemoteKnowledgeBase(
-                version,
-                LocalDirObjectStore(structured_dir),
-                IndexedManualSource(load_jsonl_index(chunks), Path(workdir)),
-            )
-            kb.preload()
-            report = export_local_knowledge(
-                kb, out, [(m, list(dict.fromkeys(t))) for m, t in wanted.items()], version=version
-            )
-    except CycleValidationError as error:
-        raise _fail(error) from error
-    typer.echo(f"{report.manuals} manuali e {report.tasks} task esportati in {out}")
-    for item in report.missing:
-        typer.echo(f"  non trovato: {item}")
 
 
 @app.command()

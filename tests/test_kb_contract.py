@@ -17,7 +17,7 @@ from cycle_validation.kb.port import KnowledgeBase
 KNOWLEDGE: dict[str, Callable[[Path], KnowledgeBase]] = {
     "cartella_locale": lambda workdir: load_local_knowledge(EXAMPLE_KB),
     "in_memoria": lambda workdir: memory_knowledge(),
-    "remota_s3_opensearch": remote_knowledge,
+    "remota_snapshot_s3": remote_knowledge,
 }
 
 

@@ -131,31 +131,6 @@ class BrokenKnowledge(IndexedKnowledgeBase):
         return []
 
 
-def example_chunks() -> list[dict[str, object]]:
-    """I task dell'esempio come chunk d'indice: un chunk per task, con pagina e versione."""
-    import json
-
-    from cycle_validation.kb.documents import PAGE_MARKER, page_at, read_lines
-
-    rows = json.loads((EXAMPLE_KB / "tasks.json").read_text(encoding="utf-8"))
-    documents = {"MAN-DEMO-72": DOC_72, "MAN-DEMO-75": DOC_75}
-    chunks: list[dict[str, object]] = []
-    for row in rows:
-        document = documents[row["manual"]]
-        lines = read_lines(document.path)[row["line_start"] - 1 : row["line_end"]]
-        chunks.append(
-            {
-                "manual": row["manual"],
-                "version": document.version,
-                "task": row["task"],
-                "page": page_at(document.path, row["line_start"]),
-                "chunk_index": 0,
-                "text": "\n".join(line for line in lines if not PAGE_MARKER.match(line)),
-            }
-        )
-    return chunks
-
-
 def example_store() -> "InMemoryObjectStore":
     """Dati strutturati dell'esempio, nel layout S3 atteso dall'adattatore."""
     import json
@@ -174,14 +149,20 @@ def example_store() -> "InMemoryObjectStore":
     )
 
 
-def remote_knowledge(workdir: Path) -> "RemoteKnowledgeBase":
-    from cycle_validation.kb.manuals import IndexedManualSource
-    from cycle_validation.kb.remote import RemoteKnowledgeBase
-    from cycle_validation.kb.stores import InMemorySearchIndex
+def snapshot_store(prefix: str = "kb/sintetico") -> "InMemoryObjectStore":
+    """La cartella dell'esempio come oggetti S3 sotto un prefisso."""
+    from cycle_validation.kb.stores import InMemoryObjectStore
 
-    manuals = IndexedManualSource(
-        InMemorySearchIndex(example_chunks()),
-        workdir,
-        aliases={"MAN-DEMO-72": ["Manuale Demo 72", "MD72"], "MAN-DEMO-75": ["MD75"]},
-    )
+    store = InMemoryObjectStore()
+    for path in EXAMPLE_KB.rglob("*"):
+        if path.is_file():
+            store.put(f"{prefix}/{path.relative_to(EXAMPLE_KB).as_posix()}", path.read_bytes())
+    return store
+
+
+def remote_knowledge(workdir: Path) -> "RemoteKnowledgeBase":
+    from cycle_validation.kb.remote import RemoteKnowledgeBase
+    from cycle_validation.kb.snapshot import SnapshotManualSource
+
+    manuals = SnapshotManualSource(snapshot_store(), "kb/sintetico", workdir)
     return RemoteKnowledgeBase("sintetico-2026-11", example_store(), manuals)

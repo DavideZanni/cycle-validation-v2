@@ -157,38 +157,3 @@ def test_dr_profile_blocks_on_not_applicable_recommendation(pdf: Path, tmp_path:
     result = runner.invoke(cli.app, args)
     assert result.exit_code == 0, result.output
     assert "bloccato" in result.output
-
-
-def test_kb_export_from_snapshot_then_kb_check(tmp_path: Path) -> None:
-    import json as _json
-
-    from kb_fixtures import example_chunks, example_store
-
-    snapshot = tmp_path / "snapshot"
-    for key in example_store().list_keys(""):
-        target = snapshot / key
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(example_store().get_bytes(key))
-    chunks = tmp_path / "chunks.jsonl"
-    chunks.write_text("\n".join(_json.dumps(c) for c in example_chunks()), encoding="utf-8")
-    out = tmp_path / "kb"
-    result = runner.invoke(
-        cli.app,
-        [
-            "kb-export",
-            "--structured-dir",
-            str(snapshot),
-            "--chunks",
-            str(chunks),
-            "--cycle-json",
-            str(EXAMPLE_DIR / "ciclo.json"),
-            "--out",
-            str(out),
-            "--version",
-            "export-test",
-        ],
-    )
-    assert result.exit_code == 0, result.output
-    assert "task esportati" in result.output
-    check = runner.invoke(cli.app, ["kb-check", str(out)])
-    assert check.exit_code == 0 and "export-test" in check.output

@@ -1,11 +1,10 @@
 """Knowledge base alimentata dalle sorgenti attuali: dati strutturati su un ObjectStore
-(S3) e testo dei manuali da un ManualSource (indice OpenSearch). Implementa la porta
+(S3) e testo dei manuali da un ManualSource (cartella di markdown su S3). Implementa la porta
 `KnowledgeBase`: i controlli non sanno da dove arriva la conoscenza."""
 
 import threading
 
 from cycle_validation.errors import KnowledgeError, SourceUnavailableError
-from cycle_validation.kb.manuals import ManualSource
 from cycle_validation.kb.port import (
     DocumentInfo,
     DrRecommendation,
@@ -13,6 +12,7 @@ from cycle_validation.kb.port import (
     ProcessSheetEntry,
     TaskLocation,
 )
+from cycle_validation.kb.snapshot import ManualSource
 from cycle_validation.kb.stores import ObjectStore
 from cycle_validation.kb.structured import StructuredData, StructuredLayout, load_structured
 from cycle_validation.text import normalize_code
@@ -45,6 +45,9 @@ class RemoteKnowledgeBase:
         il run non deve partire con una knowledge base incompleta."""
         with self._lock:
             self._load()
+        preload = getattr(self._manuals, "preload", None)
+        if callable(preload):
+            preload()
 
     def _load(self) -> StructuredData:
         if self._data is None:

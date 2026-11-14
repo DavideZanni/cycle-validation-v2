@@ -6,10 +6,8 @@ Le righe si contano da 1, come fanno Read e Grep.
 
 import hashlib
 import re
-from collections.abc import Iterable, Mapping
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
 
 from cycle_validation.errors import SourceUnavailableError
 from cycle_validation.text import normalize_quote
@@ -61,47 +59,6 @@ def folded_text(path: Path) -> str:
         return _cached_folded(str(path), path.stat().st_mtime_ns)
     except (OSError, UnicodeDecodeError) as exc:
         raise SourceUnavailableError(f"Documento non leggibile: {path.name} ({exc})") from exc
-
-
-def _whole(value: object) -> int | None:
-    """Intero da un metadato dell'indice, comunque sia stato salvato (12, "12", 12.0)."""
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    if isinstance(value, float):
-        return int(value) if value.is_integer() else None
-    if isinstance(value, str) and value.strip().isdecimal():
-        return int(value.strip())
-    return None
-
-
-def chunk_lines(
-    hits: Iterable[Mapping[str, Any]], *, order: str, page: str, text: str
-) -> tuple[list[str], int]:
-    """Righe di un documento dai chunk dell'indice, nell'ordine del campo `order`, con un
-    marcatore a ogni cambio di pagina. Restituisce anche la riga del primo testo (0 se manca).
-
-    Un numero di pagina non leggibile non ferma la lettura: il chunk resta sotto l'ultima
-    pagina nota."""
-
-    def position(hit: Mapping[str, Any]) -> tuple[bool, int]:
-        number = _whole(hit.get(order))
-        return number is None, number or 0
-
-    lines: list[str] = []
-    current: int | None = None
-    first_text = 0
-    for hit in sorted(hits, key=position):
-        number = _whole(hit.get(page))
-        if number is not None and number != current:
-            lines.append(f"<!-- page {number} -->")
-            current = number
-        body = str(hit.get(text) or "").splitlines()
-        if body and not first_text:
-            first_text = len(lines) + 1
-        lines.extend(body)
-    return lines, first_text
 
 
 def page_at(path: Path, line: int) -> int | None:
