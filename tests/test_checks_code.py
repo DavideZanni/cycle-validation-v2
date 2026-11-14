@@ -1,0 +1,392 @@
+from pathlib import Path
+
+import pytest
+from kb_fixtures import EXAMPLE_DIR, BrokenKnowledge, memory_knowledge, profile
+
+from cycle_validation.checks.base import CheckContext
+from cycle_validation.checks.dr_recommendation import check_dr_recommendation, dr_tasks
+from cycle_validation.checks.machine_tag import check_machine_tags
+from cycle_validation.checks.process_sheet import check_process_sheets, engine_family
+from cycle_validation.checks.source import check_sources
+from cycle_validation.checks.task_code import check_task_codes
+from cycle_validation.domain.check import CheckResult, Reason, Verdict
+from cycle_validation.domain.cycle import Cycle
+from cycle_validation.extract.from_file import load_cycle
+from cycle_validation.kb.memory import IndexedKnowledgeBase
+from cycle_validation.kb.port import DocumentInfo, KnowledgeBase
+from cycle_validation.resolve.dr import (
+    DrSelectors,
+    SelectorError,
+    normalize_conditions,
+    parse_selectors,
+)
+from cycle_validation.services.machines import (
+    MachineRegistry,
+    StaticMachineRegistry,
+    UnavailableMachineRegistry,
+)
+
+ACTIVE = StaticMachineRegistry(["TM-1001", "TM-2002"])
+
+
+def _ctx(
+    cycle: Cycle | None = None,
+    *,
+    kb: KnowledgeBase | None = None,
+    machines: MachineRegistry = ACTIVE,
+    profile_name: str = "mos",
+    selectors: DrSelectors | None = None,
+) -> CheckContext:
+    return CheckContext(
+        cycle=cycle or load_cycle(EXAMPLE_DIR / "ciclo.json"),
+        kb=kb or memory_knowledge(),
+        machines=machines,
+        profile=profile(profile_name),
+        selectors=selectors,
+    )
+
+
+def _reasons(results: list[CheckResult]) -> list[Reason]:
+    return [result.reason for result in results]
+
+
+def test_sources() -> None:
+    results = check_sources(_ctx())
+    assert _reasons(results) == [Reason.VERIFICATO, Reason.VERIFICATO, Reason.FONTE_ASSENTE]
+    evidence = results[1].evidence[0]
+    assert (evidence.document_key, evidence.version, evidence.page, evidence.line) == (
+        "MAN-DEMO-72",
+        "Rev. 12",
+        2,
+        17,
+    )
+    assert evidence.quote.startswith("TASK 72-00-01-350-003")
+    assert results[2].verdict is Verdict.WARNING
+
+
+def test_source_task_missing_in_existing_manual() -> None:
+    cycle = Cycle.model_validate(
+        {"sources": [{"manual": "MD75", "task": "72-00-01-110-001"}], "operations": []}
+    )
+    result = check_sources(_ctx(cycle))[0]
+    assert result.reason is Reason.FONTE_ASSENTE
+    assert "MAN-DEMO-75" in result.rationale
+
+
+def test_source_without_task_checks_only_the_manual() -> None:
+    cycle = Cycle.model_validate({"sources": [{"manual": "MD75"}], "operations": []})
+    assert _reasons(check_sources(_ctx(cycle))) == [Reason.VERIFICATO]
+
+
+def test_task_codes() -> None:
+    results = check_task_codes(_ctx())
+    assert _reasons(results) == [
+        Reason.VERIFICATO,
+        Reason.VERIFICATO,
+        Reason.VERIFICATO,
+        Reason.FONTE_ASSENTE,
+    ]
+    assert "72-00-01-999-009" in results[3].rationale
+
+
+def test_task_code_absent_field() -> None:
+    cycle = Cycle.model_validate({"operations": [{"operation_number": "1"}]})
+    assert _reasons(check_task_codes(_ctx(cycle))) == [Reason.CAMPO_ASSENTE]
+
+
+def test_task_code_is_searched_in_linked_manuals_only() -> None:
+    cycle = Cycle.model_validate(
+        {
+            "sources": [
+                {"manual": "MD72", "repair_code": "R-01"},
+                {"manual": "MD75", "repair_code": "R-02"},
+            ],
+            "operations": [
+                {"operation_number": "1", "repair_code": "R-02", "task_codes": "72-00-01-110-001"},
+                {"operation_number": "2", "repair_code": "R-09", "task_codes": "72-00-01-110-001"},
+            ],
+        }
+    )
+    assert _reasons(check_task_codes(_ctx(cycle))) == [Reason.FONTE_ASSENTE, Reason.VERIFICATO]
+
+
+def test_machine_tags() -> None:
+    results = check_machine_tags(_ctx())
+    assert _reasons(results) == [
+        Reason.VERIFICATO,
+        Reason.VERIFICATO,
+        Reason.MACCHINA_NON_ATTIVA,
+        Reason.CAMPO_ASSENTE,
+    ]
+    assert results[2].verdict is Verdict.ERRATO
+
+
+def test_machine_active_but_unknown_to_tm() -> None:
+    cycle = Cycle.model_validate({"operations": [{"operation_number": "1", "machine_tag": "X-9"}]})
+    ctx = _ctx(cycle, machines=StaticMachineRegistry(["X-9"]))
+    assert _reasons(check_machine_tags(ctx)) == [Reason.FONTE_ASSENTE]
+
+
+def test_machine_registry_unavailable_is_a_warning() -> None:
+    results = check_machine_tags(_ctx(machines=UnavailableMachineRegistry("Redshift giù")))
+    assert results[0].reason is Reason.ERRORE_TECNICO
+    assert "Redshift giù" in results[0].rationale
+    assert results[3].reason is Reason.CAMPO_ASSENTE
+
+
+def test_process_sheets() -> None:
+    results = check_process_sheets(_ctx())
+    assert _reasons(results) == [
+        Reason.VERIFICATO,
+        Reason.ESCLUSO_DA_REGOLA,
+        Reason.CAMPO_ASSENTE,
+        Reason.EVIDENZA_NON_TROVATA,
+    ]
+    assert "LEAP" in results[3].rationale
+
+
+def test_process_sheet_unknown() -> None:
+    cycle = Cycle.model_validate(
+        {"operations": [{"operation_number": "1", "process_sheet": "SP-9999"}]}
+    )
+    assert _reasons(check_process_sheets(_ctx(cycle))) == [Reason.FONTE_ASSENTE]
+
+
+def test_process_sheet_without_engine_model_checks_presence_only() -> None:
+    cycle = Cycle.model_validate(
+        {"operations": [{"operation_number": "1", "process_sheet": "SP-0202"}]}
+    )
+    assert _reasons(check_process_sheets(_ctx(cycle))) == [Reason.VERIFICATO]
+
+
+def test_applicability_is_claimed_only_when_the_engine_family_was_compared() -> None:
+    known = check_process_sheets(_ctx())[0]
+    assert "applicabile alla famiglia GENX" in known.rationale
+    cycle = Cycle.model_validate(
+        {
+            "engine_model": "MOTORE-SCONOSCIUTO",
+            "operations": [{"operation_number": "1", "process_sheet": "SP-0202"}],
+        }
+    )
+    unknown = check_process_sheets(_ctx(cycle))[0]
+    assert "applicabilità non verificata" in unknown.rationale
+    assert "e applicabile" not in unknown.rationale
+
+
+def test_process_sheet_not_verified_for_ej200() -> None:
+    results = check_process_sheets(_ctx(profile_name="ej200"))
+    assert results[0].reason is Reason.NON_VERIFICATO_PER_PROFILO
+    assert results[2].reason is Reason.CAMPO_ASSENTE
+
+
+def test_engine_family() -> None:
+    assert engine_family("genx-1b", ["GENX", "LEAP"]) == "GENX"
+    assert engine_family("CFM56", ["GENX", "LEAP"]) is None
+    assert engine_family(None, ["GENX"]) is None
+
+
+@pytest.mark.parametrize(
+    "check", [check_sources, check_task_codes, check_machine_tags, check_process_sheets]
+)
+def test_unreachable_knowledge_is_a_warning_not_an_error(check: object) -> None:
+    all_active = StaticMachineRegistry(["TM-1001", "TM-2002", "TM-3003"])
+    results = check(_ctx(kb=BrokenKnowledge(), machines=all_active))  # type: ignore[operator]
+    assert all(result.verdict is not Verdict.ERRATO for result in results)
+    assert Reason.ERRORE_TECNICO in _reasons(results)
+
+
+# --- documenti con stato (pubblicazioni EJ200) ---------------------------------------
+
+
+def _publications(tmp_path: Path) -> IndexedKnowledgeBase:
+    def doc(key: str, **extra: object) -> DocumentInfo:
+        path = tmp_path / f"{key}.md"
+        path.write_text(f"<!-- page 1 -->\nPubblicazione {key}\nCodice DM-AA-01 citato\n", "utf-8")
+        return DocumentInfo(key=key, path=path, **extra)  # type: ignore[arg-type]
+
+    return IndexedKnowledgeBase(
+        "pubblicazioni",
+        documents=[
+            doc("RN-1_i2", code="RN-1", kind="RN", version="002"),
+            doc("RN-1_i3", code="RN-1", kind="RN", version="003"),
+            doc("EF-7", kind="EF", version="001", partial=True),
+            doc("RDR-5", kind="RDR", version="001", published=False),
+            doc("RDR-9A", kind="RDR", version="001"),
+            doc("RDR-9B", kind="RDR", version="001"),
+            doc("RN-2", kind="RN"),
+        ],
+        aliases={"RDR-9A": ["RDR-9"], "RDR-9B": ["RDR-9"]},
+    )
+
+
+def _source_cycle(manual: str, issue: str | None = None) -> Cycle:
+    return Cycle.model_validate({"sources": [{"manual": manual, "issue": issue}], "operations": []})
+
+
+@pytest.mark.parametrize(
+    ("manual", "issue", "reason"),
+    [
+        ("RN-1", None, Reason.VERIFICATO),
+        ("RN-1", "003", Reason.VERIFICATO),
+        ("RN-1", "002", Reason.VERSIONE_DIVERSA),
+        ("RN-2", "001", Reason.VERSIONE_DIVERSA),
+        ("EF-7", None, Reason.PUBBLICAZIONE_PARZIALE),
+        ("RDR-5", None, Reason.FONTE_ASSENTE),
+        ("RDR-9", None, Reason.RIFERIMENTO_AMBIGUO),
+        ("XX-0", None, Reason.FONTE_ASSENTE),
+    ],
+)
+def test_publication_states(tmp_path: Path, manual: str, issue: str | None, reason: Reason) -> None:
+    ctx = _ctx(_source_cycle(manual, issue), kb=_publications(tmp_path), profile_name="ej200")
+    result = check_sources(ctx)[0]
+    assert result.reason is reason
+    if reason is Reason.VERIFICATO:
+        assert result.evidence[0].document_key == "RN-1_i3"
+
+
+def test_codes_in_cited_documents(tmp_path: Path) -> None:
+    cycle = Cycle.model_validate(
+        {
+            "sources": [{"manual": "RN-1"}],
+            "operations": [
+                {"operation_number": "1", "task_codes": ["DM-AA-01"]},
+                {"operation_number": "2", "task_codes": ["DM-ZZ-99"]},
+            ],
+        }
+    )
+    results = check_task_codes(_ctx(cycle, kb=_publications(tmp_path), profile_name="ej200"))
+    assert _reasons(results) == [Reason.VERIFICATO, Reason.EVIDENZA_NON_TROVATA]
+    assert results[0].evidence[0].line == 3
+
+
+@pytest.mark.parametrize(
+    ("code", "reason"),
+    [
+        ("DM-AA-01", Reason.VERIFICATO),
+        ("dm - aa - 01", Reason.VERIFICATO),
+        ("AA-01", Reason.VERIFICATO),  # componenti intere di un codice più lungo
+        ("DM-AA-0", Reason.EVIDENZA_NON_TROVATA),  # pezzo di un codice più lungo
+        ("M-AA-01", Reason.EVIDENZA_NON_TROVATA),
+        ("A-0", Reason.EVIDENZA_NON_TROVATA),
+    ],
+)
+def test_a_code_is_found_whole_not_as_a_fragment_of_another(
+    tmp_path: Path, code: str, reason: Reason
+) -> None:
+    cycle = Cycle.model_validate(
+        {
+            "sources": [{"manual": "RN-1"}],
+            "operations": [{"operation_number": "1", "task_codes": [code]}],
+        }
+    )
+    results = check_task_codes(_ctx(cycle, kb=_publications(tmp_path), profile_name="ej200"))
+    assert _reasons(results) == [reason]
+
+
+def test_a_code_broken_across_two_lines_is_found_with_its_line(tmp_path: Path) -> None:
+    kb = _publications(tmp_path)
+    path = tmp_path / "RN-2.md"
+    path.write_text("<!-- page 1 -->\nVedere il modulo DM-BB-\n02 per i limiti.\n", "utf-8")
+    cycle = Cycle.model_validate(
+        {
+            "sources": [{"manual": "RN-2"}],
+            "operations": [{"operation_number": "1", "task_codes": ["DM-BB-02"]}],
+        }
+    )
+    results = check_task_codes(_ctx(cycle, kb=kb, profile_name="ej200"))
+    assert _reasons(results) == [Reason.VERIFICATO]
+    assert results[0].evidence[0].line == 2
+
+
+def test_codes_without_available_documents(tmp_path: Path) -> None:
+    cycle = Cycle.model_validate(
+        {
+            "sources": [{"manual": "RDR-5"}],
+            "operations": [{"operation_number": "1", "task_codes": ["DM-AA-01"]}],
+        }
+    )
+    results = check_task_codes(_ctx(cycle, kb=_publications(tmp_path), profile_name="ej200"))
+    assert _reasons(results) == [Reason.FONTE_ASSENTE]
+
+
+# --- DR ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [(1, [1]), ([1, 2], [1, 2]), ("1", [1]), ("1,2", [1, 2]), ("[1, 2]", [1, 2]), ("2, 2", [2])],
+)
+def test_conditions_are_normalized(value: object, expected: list[int]) -> None:
+    assert normalize_conditions(value) == expected
+
+
+@pytest.mark.parametrize("value", [None, "", "a", "[1", [1, "x"], True, 1.5, []])
+def test_invalid_conditions_are_rejected(value: object) -> None:
+    with pytest.raises(SelectorError):
+        normalize_conditions(value)
+
+
+@pytest.mark.parametrize("value", ["--1", "1,--2", "²", '["³"]'])
+def test_malformed_numbers_are_a_selector_error_not_a_crash(value: str) -> None:
+    with pytest.raises(SelectorError):
+        normalize_conditions(value)
+
+
+def test_selectors_policy() -> None:
+    assert parse_selectors(is_dr=False) is None
+    assert parse_selectors(is_dr=True, serial_number=" SN-1 ", conditions="1,2") == DrSelectors(
+        "SN-1", (1, 2)
+    )
+    with pytest.raises(SelectorError, match="solo per i cicli DR"):
+        parse_selectors(is_dr=False, serial_number="SN-1")
+    with pytest.raises(SelectorError, match="serial number"):
+        parse_selectors(is_dr=True, conditions=[1])
+    with pytest.raises(SelectorError, match="repair condition"):
+        parse_selectors(is_dr=True, serial_number="SN-1")
+
+
+def _dr(serial: str, *conditions: int, kb: KnowledgeBase | None = None) -> CheckResult:
+    ctx = _ctx(kb=kb, profile_name="dr", selectors=DrSelectors(serial, conditions))
+    return check_dr_recommendation(ctx)[0]
+
+
+def test_dr_multiple_recommendations_are_disambiguated_by_condition() -> None:
+    result = _dr("SN-DEMO-001", 1)
+    assert result.reason is Reason.VERIFICATO
+    assert "DR-DEMO-01" in result.rationale
+
+
+def test_dr_accept_as_is_stops_the_validation() -> None:
+    result = _dr("SN-DEMO-001", 2)
+    assert result.reason is Reason.DR_NON_APPLICABILE
+    assert result.verdict is Verdict.ERRATO
+
+
+def test_dr_reject_stops_even_with_a_single_recommendation() -> None:
+    assert _dr("SN-DEMO-002", 9).reason is Reason.DR_NON_APPLICABILE
+
+
+def test_dr_no_recommendation_for_serial() -> None:
+    assert _dr("SN-ASSENTE", 1).reason is Reason.DR_NESSUNA_CORRISPONDENZA
+
+
+def test_dr_no_recommendation_for_condition() -> None:
+    result = _dr("SN-DEMO-001", 7)
+    assert result.reason is Reason.DR_NESSUNA_CORRISPONDENZA
+    assert "2 recommendation" in result.rationale
+
+
+def test_dr_data_unavailable_is_a_warning() -> None:
+    assert _dr("SN-DEMO-001", 1, kb=BrokenKnowledge()).reason is Reason.ERRORE_TECNICO
+
+
+def test_dr_without_selectors_is_a_warning() -> None:
+    result = check_dr_recommendation(_ctx(profile_name="dr"))[0]
+    assert result.reason is Reason.ERRORE_TECNICO
+
+
+def test_dr_tasks_feed_the_context() -> None:
+    kb = memory_knowledge()
+    assert dr_tasks(kb, DrSelectors("SN-DEMO-001", (1,))) == [("MAN-DEMO-72", "72-00-01-350-003")]
+    assert dr_tasks(kb, DrSelectors("SN-DEMO-001", (2,))) == []
+    assert dr_tasks(kb, None) == []

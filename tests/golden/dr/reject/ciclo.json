@@ -1,0 +1,18 @@
+{
+  "cycle_code": "DR-reject",
+  "engine_model": "GENX-1B",
+  "repair_code": "R-01",
+  "sources": [],
+  "operations": [
+    {
+      "operation_number": "0010",
+      "repair_code": "R-01",
+      "operation_description": "Rettificare la sede fino al diametro 45,00 mm.",
+      "machine_tag": "TM-2002",
+      "task_codes": [],
+      "process_sheet": {
+        "code": "SP-0101"
+      }
+    }
+  ]
+}

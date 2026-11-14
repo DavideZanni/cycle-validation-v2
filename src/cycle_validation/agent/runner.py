@@ -1,0 +1,101 @@
+"""Esecuzione delle sessioni: in parallelo con un tetto, con nuovi tentativi sui guasti
+tecnici e sugli output non conformi. Un guasto resta confinato alla sua sessione."""
+
+import asyncio
+from collections.abc import Awaitable, Callable, Sequence
+from typing import Any
+
+from cycle_validation.agent.session import (
+    AgentSession,
+    SessionOutcome,
+    SessionRequest,
+    SessionStatus,
+)
+from cycle_validation.domain.check import Usage
+
+Validator = Callable[[dict[str, Any]], object]
+Sleep = Callable[[float], Awaitable[None]]
+
+
+def _validated(outcome: SessionOutcome, validate: Validator | None) -> SessionOutcome:
+    if outcome.status is not SessionStatus.OK:
+        return outcome
+    if outcome.output is None:
+        return outcome.model_copy(
+            update={"status": SessionStatus.INVALID_OUTPUT, "error": "Nessun output strutturato."}
+        )
+    if validate is None:
+        return outcome
+    try:
+        validate(outcome.output)
+    except ValueError as exc:  # pydantic.ValidationError è un ValueError
+        return outcome.model_copy(
+            update={
+                "status": SessionStatus.INVALID_OUTPUT,
+                "error": f"Output non conforme allo schema: {type(exc).__name__}",
+            }
+        )
+    return outcome
+
+
+async def _run_one(
+    session: AgentSession,
+    request: SessionRequest,
+    *,
+    retries: int,
+    backoff_s: float,
+    invalid_output_retries: int,
+    validate: Validator | None,
+    sleep: Sleep,
+) -> SessionOutcome:
+    usage = Usage()
+    errors_left = retries
+    invalid_left = invalid_output_retries
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            outcome = _validated(await session.run(request), validate)
+        except Exception as exc:
+            # solo il tipo: il messaggio di un'eccezione può riportare testo del ciclo o dei
+            # documenti, e questo campo finisce in _pipeline_errors, nel payload e nei log
+            outcome = SessionOutcome(status=SessionStatus.ERROR, error=type(exc).__name__)
+        usage = usage + outcome.usage
+        final = outcome.model_copy(update={"usage": usage, "attempts": attempts})
+        if outcome.status is SessionStatus.ERROR and errors_left > 0:
+            errors_left -= 1
+            await sleep(backoff_s * 2 ** (retries - errors_left - 1))
+            continue
+        if outcome.status is SessionStatus.INVALID_OUTPUT and invalid_left > 0:
+            invalid_left -= 1
+            continue
+        return final
+
+
+async def run_sessions(
+    session: AgentSession,
+    requests: Sequence[SessionRequest],
+    *,
+    concurrency: int,
+    retries: int,
+    backoff_s: float,
+    invalid_output_retries: int,
+    validate: Validator | None = None,
+    sleep: Sleep = asyncio.sleep,
+) -> list[SessionOutcome]:
+    """Esegue le richieste e restituisce gli esiti nello stesso ordine."""
+    gate = asyncio.Semaphore(concurrency)
+
+    async def guarded(request: SessionRequest) -> SessionOutcome:
+        async with gate:
+            return await _run_one(
+                session,
+                request,
+                retries=retries,
+                backoff_s=backoff_s,
+                invalid_output_retries=invalid_output_retries,
+                validate=validate,
+                sleep=sleep,
+            )
+
+    return list(await asyncio.gather(*(guarded(request) for request in requests)))

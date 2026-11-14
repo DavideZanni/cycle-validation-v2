@@ -1,0 +1,29 @@
+{
+  "cycle_code": "G-ASSENTI",
+  "engine_model": "GENX-1B",
+  "repair_code": "R-01",
+  "sources": [
+    {
+      "manual": "MAN-DEMO-72",
+      "task": "72-00-01-110-001",
+      "repair_code": "R-01"
+    },
+    {
+      "manual": "MAN-DEMO-99",
+      "task": "99-00-00-000-001",
+      "repair_code": "R-01"
+    }
+  ],
+  "operations": [
+    {
+      "operation_number": "0010",
+      "repair_code": "R-01",
+      "operation_description": "Pulire il supporto con solvente tipo A.",
+      "machine_tag": "TM-1001",
+      "task_codes": [
+        "72-00-01-999-009"
+      ],
+      "process_sheet": null
+    }
+  ]
+}

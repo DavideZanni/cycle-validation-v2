@@ -1,0 +1,17 @@
+# Materiale aziendale: mai in git
+docs/doc_lavoro/
+data/
+runs/
+.env
+
+# Ambiente e cache
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Esempi di input reali (scansioni aziendali)
+docs/Esempio ciclo mos/
+docs/Esempio EJ200/

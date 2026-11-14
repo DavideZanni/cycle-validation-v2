@@ -1,0 +1,261 @@
+"""Controllo `operation_description`: la descrizione dell'operazione è coerente con il
+testo di riferimento. È l'unico controllo che usa il modello.
+
+Il codice trova il dove (documenti e righe), l'agente confronta, il codice verifica le
+citazioni e assegna l'esito. Un giudizio senza citazione verificata non diventa mai
+né CORRETTO né ERRATO.
+"""
+
+import asyncio
+from collections.abc import Sequence
+from dataclasses import dataclass
+
+from pydantic import ValidationError
+
+from cycle_validation.agent.prompt import (
+    Judgement,
+    OperationJudgement,
+    build_operation_prompt,
+    judgement_schema,
+)
+from cycle_validation.agent.runner import run_sessions
+from cycle_validation.agent.session import (
+    AgentSession,
+    SessionOutcome,
+    SessionRequest,
+    SessionStatus,
+)
+from cycle_validation.checks.base import CheckContext, make_result
+from cycle_validation.checks.dr_recommendation import dr_tasks
+from cycle_validation.config import AgentSettings
+from cycle_validation.domain.check import (
+    CheckName,
+    CheckResult,
+    Evidence,
+    Reason,
+    Target,
+    TargetKind,
+)
+from cycle_validation.domain.cycle import Operation
+from cycle_validation.domain.report import PipelineError
+from cycle_validation.errors import SourceUnavailableError
+from cycle_validation.kb.port import DocumentInfo, TaskLocation
+from cycle_validation.resolve.civil import cited_documents, context_locations, whole_document
+from cycle_validation.verdict.citations import verify_citation
+
+CHECK = CheckName.OPERATION_DESCRIPTION
+STAGE = "operation_description"
+
+
+@dataclass(frozen=True)
+class OperationJob:
+    index: int
+    operation: Operation
+    locations: tuple[TaskLocation, ...]
+    request: SessionRequest
+
+    @property
+    def target(self) -> Target:
+        return Target.operation(self.index, self.operation)
+
+    @property
+    def documents(self) -> list[DocumentInfo]:
+        return list({item.document.key: item.document for item in self.locations}.values())
+
+
+def _facts(ctx: CheckContext, operation: Operation) -> list[str]:
+    """Fatti che il codice ha già risolto e che l'agente non deve cercare."""
+    facts: list[str] = []
+    try:
+        if operation.machine_tag is not None:
+            tag = ctx.kb.find_machine_tag(operation.machine_tag)
+            if tag is not None and tag.function:
+                facts.append(f"Macchina {tag.tag}: {tag.function}")
+        if operation.process_sheet is not None:
+            sheet = ctx.kb.find_process_sheet(operation.process_sheet.code)
+            if sheet is not None and sheet.treatment:
+                facts.append(f"Scheda {sheet.code}: {sheet.treatment}")
+    except SourceUnavailableError:
+        return facts
+    return facts
+
+
+def _locations(ctx: CheckContext, operation: Operation) -> tuple[TaskLocation, ...]:
+    if ctx.profile.reference_mode == "document":
+        documents = cited_documents(ctx.cycle, ctx.kb, ctx.profile.document_order)
+        return tuple(whole_document(document) for document in documents)
+    return context_locations(
+        ctx.cycle, operation, ctx.kb, extra_tasks=dr_tasks(ctx.kb, ctx.selectors)
+    )
+
+
+def plan_operation_checks(
+    ctx: CheckContext, settings: AgentSettings, system_prompt: str
+) -> tuple[list[OperationJob], list[CheckResult]]:
+    """Decide per ogni operazione se serve una sessione e come costruirla."""
+    jobs: list[OperationJob] = []
+    immediate: list[CheckResult] = []
+    schema = judgement_schema()
+    for index, operation in enumerate(ctx.cycle.operations):
+        target = Target.operation(index, operation)
+        if not operation.operation_description:
+            immediate.append(
+                make_result(CHECK, target, Reason.CAMPO_ASSENTE, "Descrizione assente.")
+            )
+            continue
+        if (CHECK, TargetKind.OPERATION, index) in ctx.unconfirmed:
+            # il giudizio verrebbe comunque declassato: non si spende una sessione
+            immediate.append(
+                make_result(
+                    CHECK,
+                    target,
+                    Reason.ESTRAZIONE_NON_CONFERMATA,
+                    "La descrizione estratta non è confermata dal testo del PDF: "
+                    "confronto con i documenti non eseguito.",
+                )
+            )
+            continue
+        try:
+            locations = _locations(ctx, operation)
+        except SourceUnavailableError as exc:
+            immediate.append(
+                make_result(CHECK, target, Reason.ERRORE_TECNICO, f"Controllo non eseguito: {exc}")
+            )
+            continue
+        if not locations:
+            immediate.append(
+                make_result(
+                    CHECK,
+                    target,
+                    Reason.FONTE_ASSENTE,
+                    "Nessun riferimento dell'operazione è disponibile nella knowledge base: "
+                    "descrizione non verificata.",
+                )
+            )
+            continue
+        inline = sum(item.n_lines for item in locations) <= settings.inline_max_lines
+        prompt = build_operation_prompt(
+            ctx.cycle,
+            operation,
+            _facts(ctx, operation),
+            locations,
+            inline=inline,
+            settings=settings,
+        )
+        request = SessionRequest(
+            session_id=f"op-{index:03d}-{operation.operation_number}",
+            system_prompt=system_prompt,
+            prompt=prompt,
+            output_schema=schema,
+            use_tools=not inline,
+            allowed_files=tuple({item.document.path for item in locations}),
+            max_turns=settings.inline_max_turns if inline else settings.max_turns,
+        )
+        jobs.append(OperationJob(index, operation, locations, request))
+    return jobs, immediate
+
+
+def _failure(
+    job: OperationJob, outcome: SessionOutcome
+) -> tuple[CheckResult, PipelineError | None]:
+    if outcome.status is SessionStatus.MAX_TURNS:
+        result = make_result(
+            CHECK,
+            job.target,
+            Reason.BUDGET_ESAURITO,
+            "La verifica non si è conclusa entro il numero massimo di passi.",
+            decided_by="agent",
+            usage=outcome.usage,
+        )
+        return result, None
+    result = make_result(
+        CHECK,
+        job.target,
+        Reason.ERRORE_TECNICO,
+        "Controllo non eseguito per un errore tecnico: descrizione non verificata.",
+        decided_by="agent",
+        usage=outcome.usage,
+    )
+    detail = f"{outcome.status.value} dopo {outcome.attempts} tentativi: {outcome.error}"
+    return result, PipelineError(stage=STAGE, target=job.target.label, message=detail)
+
+
+def decide_operation(
+    job: OperationJob, outcome: SessionOutcome, settings: AgentSettings
+) -> tuple[CheckResult, PipelineError | None]:
+    """Dal giudizio dell'agente all'esito: decide il codice, sulle citazioni verificate."""
+    if outcome.status is not SessionStatus.OK or outcome.output is None:
+        return _failure(job, outcome)
+    try:
+        judgement = OperationJudgement.model_validate(outcome.output)
+    except ValidationError:
+        invalid = outcome.model_copy(update={"status": SessionStatus.INVALID_OUTPUT})
+        return _failure(job, invalid)
+
+    evidence: list[Evidence] = []
+    for citation in judgement.citations:
+        try:
+            verified = verify_citation(citation, job.documents, settings.citation_window)
+        except SourceUnavailableError:
+            verified = None
+        if verified is not None and verified not in evidence:
+            evidence.append(verified)
+
+    if judgement.judgement is Judgement.NON_VERIFICABILE:
+        reason = Reason.EVIDENZA_NON_TROVATA
+        rationale = judgement.rationale
+    elif not evidence:
+        reason = Reason.CITAZIONE_NON_VERIFICATA
+        rationale = (
+            f"L'agente ha giudicato la descrizione '{judgement.judgement.value}', ma nessuna "
+            f"citazione è stata ritrovata nei documenti. Motivazione: {judgement.rationale}"
+        )
+    elif judgement.judgement is Judgement.CONTRADDETTO:
+        reason = Reason.CONTRADDIZIONE
+        rationale = judgement.rationale
+    else:
+        reason = Reason.VERIFICATO
+        rationale = judgement.rationale
+    result = make_result(
+        CHECK,
+        job.target,
+        reason,
+        rationale,
+        evidence=evidence,
+        decided_by="agent",
+        usage=outcome.usage,
+    )
+    return result, None
+
+
+async def check_operations(
+    ctx: CheckContext,
+    session: AgentSession,
+    settings: AgentSettings,
+    system_prompt: str,
+    stats: dict[str, int] | None = None,
+) -> tuple[list[CheckResult], list[PipelineError]]:
+    """`stats`, se dato, riceve il numero di sessioni "inline" e "search" pianificate."""
+    # La pianificazione interroga la knowledge base (rete, file): fuori dal loop degli eventi,
+    # che nel servizio è lo stesso di tutte le altre richieste.
+    jobs, results = await asyncio.to_thread(plan_operation_checks, ctx, settings, system_prompt)
+    if stats is not None:
+        stats["inline"] = sum(1 for job in jobs if not job.request.use_tools)
+        stats["search"] = sum(1 for job in jobs if job.request.use_tools)
+    outcomes: Sequence[SessionOutcome] = await run_sessions(
+        session,
+        [job.request for job in jobs],
+        concurrency=settings.concurrency,
+        retries=settings.retries,
+        backoff_s=settings.retry_backoff_s,
+        invalid_output_retries=settings.invalid_output_retries,
+        validate=OperationJudgement.model_validate,
+    )
+    errors: list[PipelineError] = []
+    for job, outcome in zip(jobs, outcomes, strict=True):
+        result, error = decide_operation(job, outcome, settings)
+        results.append(result)
+        if error is not None:
+            errors.append(error)
+    results.sort(key=lambda item: item.target.index or 0)
+    return results, errors

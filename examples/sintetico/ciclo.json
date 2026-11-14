@@ -1,0 +1,46 @@
+{
+  "cycle_code": "CICLO-DEMO-001",
+  "cycle_description": "Riparazione dimostrativa del supporto",
+  "engine_model": "GENX-1B",
+  "operation_type": "Riparazione",
+  "repair_code": "R-01",
+  "sources": [
+    {"manual": "MAN-DEMO-72", "task": "72-00-01-110-001", "repair_code": "R-01"},
+    {"manual": "MAN-DEMO-72", "task": "72-00-01-350-003", "repair_code": "R-01"},
+    {"manual": "MAN-DEMO-99", "task": "99-00-00-000-001", "repair_code": "R-01"}
+  ],
+  "operations": [
+    {
+      "operation_number": "0010",
+      "repair_code": "R-01",
+      "operation_description": "Pulire il supporto con solvente tipo A e asciugare con aria compressa.",
+      "machine_tag": "TM-1001",
+      "task_codes": ["72-00-01-110-001"],
+      "process_sheet": {"code": "SP-0101"}
+    },
+    {
+      "operation_number": "0020",
+      "repair_code": "R-01",
+      "operation_description": "Rettificare la sede fino al diametro 46,00 mm.",
+      "machine_tag": "TM-2002",
+      "task_codes": ["72-00-01-350-003"],
+      "process_sheet": {"code": "SWJ-0007"}
+    },
+    {
+      "operation_number": "0030",
+      "repair_code": "R-01",
+      "operation_description": "Ispezionare la superficie con lente 10x.",
+      "machine_tag": "TM-3003",
+      "task_codes": ["72-00-01-220-002"],
+      "process_sheet": null
+    },
+    {
+      "operation_number": "0040",
+      "repair_code": "R-01",
+      "operation_description": "Applicare protettivo anticorrosione.",
+      "machine_tag": null,
+      "task_codes": ["72-00-01-999-009"],
+      "process_sheet": {"code": "SP-0202"}
+    }
+  ]
+}

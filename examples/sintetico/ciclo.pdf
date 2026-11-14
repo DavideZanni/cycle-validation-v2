@@ -1,0 +1,51 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 751 >>
+stream
+BT
+/F1 10 Tf
+40 760 Td
+12 TL
+(CICLO CICLO-DEMO-001 MOTORE GENX-1B) Tj T*
+(FONTE MAN-DEMO-72 TASK 72-00-01-110-001) Tj T*
+(FONTE MAN-DEMO-72 TASK 72-00-01-350-003) Tj T*
+(FONTE MAN-DEMO-99 TASK 99-00-00-000-001) Tj T*
+(OPERAZIONE 0010 Pulire il supporto con solvente tipo A e asciugare con aria compressa.) Tj T*
+(Targa TM-1001 Task 72-00-01-110-001) Tj T*
+(Scheda SP-0101) Tj T*
+(OPERAZIONE 0020 Rettificare la sede fino al diametro 46,00 mm.) Tj T*
+(Targa TM-2002 Task 72-00-01-350-003) Tj T*
+(Scheda SWJ-0007) Tj T*
+(OPERAZIONE 0030 Ispezionare la superficie con lente 10x.) Tj T*
+(Targa TM-3003 Task 72-00-01-220-002) Tj T*
+(OPERAZIONE 0040 Applicare protettivo anticorrosione.) Tj T*
+(Targa - Task 72-00-01-999-009) Tj T*
+(Scheda SP-0202) Tj T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000185 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1113
+%%EOF

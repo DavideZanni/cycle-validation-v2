@@ -1,0 +1,17 @@
+name: mos
+enabled: true
+file_limits:
+  require_pdf_header: true
+  min_chars: 100
+checks:
+  - source
+  - task_code
+  - machine_tag
+  - process_sheet
+  - operation_description
+reference_mode: task
+excluded_sheet_prefixes: [SWJ, SSS, SPS]
+engine_families: [GENX, LEAP]
+extraction_prompt: extract_cycle.md
+# Stesso modulo PVRM320 degli EJ200: parser di layout davanti all'LLM (riserva se il layout non è riconosciuto).
+layout_extractor: pvrm320

@@ -1,0 +1,5 @@
+{"profile": "mos", "status": "completo", "rows": [
+  {"check": "operation_description", "kind": "operation", "index": 0, "verdict": "ERRATO", "reason": "CONTRADDIZIONE"},
+  {"check": "process_sheet", "kind": "operation", "index": 0, "verdict": "NON_APPLICABILE", "reason": "ESCLUSO_DA_REGOLA"},
+  {"check": "machine_tag", "kind": "operation", "index": 0, "verdict": "CORRETTO"}
+]}

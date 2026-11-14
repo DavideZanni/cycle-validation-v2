@@ -1,0 +1,9 @@
+# Fixture sintetica: ricalca la struttura attesa dei prompt del sistema attuale.
+system: |
+  Sei un verificatore di operazioni di riparazione.
+prompt: |
+  Operazione: {operation_description}
+  Contesto: {context}
+variables: [operation_description, context]
+temperature: 0
+max_tokens: 4000

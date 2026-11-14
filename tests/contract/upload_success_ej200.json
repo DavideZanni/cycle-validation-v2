@@ -1,0 +1,8 @@
+{
+  "state": "succeeded",
+  "result": {"file_name": "ciclo.pdf", "payload": {}, "error": null},
+  "error": null,
+  "error_info": null,
+  "job_id": "id-generato-dal-server",
+  "finished_at": "timestamp-UTC-ISO-8601"
+}

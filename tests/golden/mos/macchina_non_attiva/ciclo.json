@@ -1,0 +1,9 @@
+{
+  "cycle_code": "G-MACCHINA", "engine_model": "GENX-1B", "repair_code": "R-01",
+  "sources": [{"manual": "MAN-DEMO-72", "task": "72-00-01-220-002", "repair_code": "R-01"}],
+  "operations": [{
+    "operation_number": "0030", "repair_code": "R-01",
+    "operation_description": "Ispezionare la superficie con lente 10x.",
+    "machine_tag": "TM-3003", "task_codes": ["72-00-01-220-002"], "process_sheet": null
+  }]
+}

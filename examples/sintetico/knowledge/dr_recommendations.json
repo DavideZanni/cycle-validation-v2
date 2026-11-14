@@ -1,0 +1,22 @@
+[
+  {
+    "serial_number": "SN-DEMO-001",
+    "conditions": [1],
+    "procedure": "Repair",
+    "reference": "DR-DEMO-01",
+    "manual": "MAN-DEMO-72",
+    "tasks": ["72-00-01-350-003"]
+  },
+  {
+    "serial_number": "SN-DEMO-001",
+    "conditions": [2],
+    "procedure": "Accept as is",
+    "reference": "DR-DEMO-02"
+  },
+  {
+    "serial_number": "SN-DEMO-002",
+    "conditions": [1, 2],
+    "procedure": "Reject",
+    "reference": "DR-DEMO-03"
+  }
+]

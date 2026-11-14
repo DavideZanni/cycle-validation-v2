@@ -1,0 +1,33 @@
+{
+  "profile": "mos",
+  "rows": [
+    {
+      "check": "source",
+      "kind": "source",
+      "index": 0,
+      "verdict": "CORRETTO",
+      "reason": "VERIFICATO"
+    },
+    {
+      "check": "source",
+      "kind": "source",
+      "index": 1,
+      "verdict": "WARNING",
+      "reason": "FONTE_ASSENTE"
+    },
+    {
+      "check": "task_code",
+      "kind": "operation",
+      "index": 0,
+      "verdict": "WARNING",
+      "reason": "FONTE_ASSENTE"
+    },
+    {
+      "check": "operation_description",
+      "kind": "operation",
+      "index": 0,
+      "verdict": "CORRETTO",
+      "reason": "VERIFICATO"
+    }
+  ]
+}

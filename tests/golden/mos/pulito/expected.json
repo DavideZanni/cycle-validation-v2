@@ -1,0 +1,7 @@
+{"profile": "mos", "status": "completo", "rows": [
+  {"check": "source", "kind": "source", "index": 0, "verdict": "CORRETTO"},
+  {"check": "task_code", "kind": "operation", "index": 0, "verdict": "CORRETTO"},
+  {"check": "machine_tag", "kind": "operation", "index": 0, "verdict": "CORRETTO"},
+  {"check": "process_sheet", "kind": "operation", "index": 0, "verdict": "CORRETTO"},
+  {"check": "operation_description", "kind": "operation", "index": 0, "verdict": "CORRETTO", "reason": "VERIFICATO"}
+]}

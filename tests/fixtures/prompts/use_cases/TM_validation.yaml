@@ -1,0 +1,3 @@
+system_prompt: "Verifica le targhe macchina."
+template: "Targa: {machine_tag}. Dati TM: {tm_data}."
+input_variables: [machine_tag, tm_data]

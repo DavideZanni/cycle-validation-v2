@@ -1,0 +1,16 @@
+{
+  "state": "succeeded",
+  "result": {
+    "file_name": "ciclo.pdf",
+    "payload": {
+      "sources": [],
+      "operations": [],
+      "cycle_errors_count": 0,
+      "cycle_errors_count_perc": 0.0,
+      "profile": {}
+    },
+    "error": null
+  },
+  "error": null,
+  "error_info": null
+}

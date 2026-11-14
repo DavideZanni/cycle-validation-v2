@@ -1,0 +1,52 @@
+# Impostazioni di Cycle Validation. Nessuna credenziale in questo file.
+agent:
+  # Alias ("haiku") oppure id completo del modello o del profilo di inferenza Bedrock.
+  # In azienda: impostare l'id abilitato nell'account (vedi docs/PASSAGGIO_AZIENDA.md).
+  model: haiku
+  # low | medium | high. Vuoto = valore predefinito del modello.
+  effort:
+  use_bedrock: true
+  # Regione Bedrock. Vuoto = quella dell'ambiente (AWS_REGION).
+  aws_region:
+  # Modello Bedrock (es. Haiku) che trascrive foto, scansioni e PDF senza testo.
+  # Vuoto = solo PDF con testo (PDFium). Richiede boto3 e il ruolo AWS dell'ambiente.
+  transcribe_model:
+  max_turns: 10            # sessioni con ricerca
+  inline_max_turns: 3      # sessioni con il testo già nel messaggio
+  extraction_max_turns: 3
+  concurrency: 6
+  retries: 2
+  retry_backoff_s: 2.0
+  invalid_output_retries: 1
+  # GRASP: righe massime per Read, finestra consigliata, righe prima del match.
+  read_limit: 40
+  read_window: 30
+  read_before: 15
+  grep_max_context: 10
+  # Fino a questo numero di righe il testo del task va nel messaggio, senza tool.
+  inline_max_lines: 150
+  # Tolleranza in righe tra la riga citata dall'agente e quella reale.
+  citation_window: 3
+  save_transcripts: true
+
+paths:
+  profiles_dir: config/profiles
+  prompts_dir: prompts
+  knowledge_dir: data/knowledge
+  runs_dir: runs
+  # JSON con l'elenco delle targhe attive. Vuoto = stato macchina non verificabile.
+  machines_file:
+
+# Il file caricato deve essere del tipo scelto (MOS, DR, militare): si legge la testata.
+# Un tipo diverso ferma il run con "Modulo sbagliato". Testata non riconosciuta = nessun blocco.
+module_check:
+  enabled: true
+  # Valori del campo PROGETTO della testata.
+  military_projects: [EJ200]
+  civil_projects: [GENX, LEAP]
+  # Espressioni regolari che in testata identificano un ciclo DR.
+  # ASSUNZIONE non verificata su una stampa DR reale: correggere, oppure lasciare la lista
+  # vuota per non distinguere MOS da DR (resta il controllo civile contro militare).
+  dr_markers:
+    - '\bDR\b'
+    - 'DEPARTURE\s+RECOMMENDATION'

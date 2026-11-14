@@ -1,0 +1,38 @@
+{
+  "cycle_code": "G-SCHEDE",
+  "engine_model": "GENX-1B",
+  "repair_code": "R-01",
+  "sources": [
+    {
+      "manual": "MAN-DEMO-72",
+      "task": "72-00-01-110-001",
+      "repair_code": "R-01"
+    }
+  ],
+  "operations": [
+    {
+      "operation_number": "0010",
+      "repair_code": "R-01",
+      "operation_description": "Pulire il supporto con solvente tipo A.",
+      "machine_tag": "TM-1001",
+      "task_codes": [
+        "72-00-01-110-001"
+      ],
+      "process_sheet": {
+        "code": "SP-0202"
+      }
+    },
+    {
+      "operation_number": "0020",
+      "repair_code": "R-01",
+      "operation_description": "Pulire il supporto con solvente tipo A.",
+      "machine_tag": "TM-1001",
+      "task_codes": [
+        "72-00-01-110-001"
+      ],
+      "process_sheet": {
+        "code": "SWJ-0007"
+      }
+    }
+  ]
+}

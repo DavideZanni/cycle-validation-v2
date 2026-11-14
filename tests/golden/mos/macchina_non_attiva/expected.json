@@ -1,0 +1,4 @@
+{"profile": "mos", "rows": [
+  {"check": "machine_tag", "kind": "operation", "index": 0, "verdict": "ERRATO", "reason": "MACCHINA_NON_ATTIVA"},
+  {"check": "process_sheet", "kind": "operation", "index": 0, "verdict": "NON_APPLICABILE", "reason": "CAMPO_ASSENTE"}
+]}

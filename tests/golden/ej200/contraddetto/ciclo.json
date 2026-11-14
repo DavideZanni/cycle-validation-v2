@@ -1,0 +1,23 @@
+{
+  "cycle_code": "EJ-contraddetto",
+  "engine_model": "EJ200",
+  "sources": [
+    {
+      "manual": "RN-100",
+      "issue": "2"
+    },
+    {
+      "manual": "EF-200"
+    }
+  ],
+  "operations": [
+    {
+      "operation_number": "0020",
+      "operation_description": "Rettificare la sede fino al diametro 46,00 mm.",
+      "machine_tag": "TM-2002",
+      "task_codes": [
+        "DMC-EJ200-A-72-41-00-00A-250A-A"
+      ]
+    }
+  ]
+}

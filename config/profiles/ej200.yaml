@@ -1,0 +1,22 @@
+name: ej200
+enabled: true
+file_limits:
+  require_pdf_header: true
+  max_bytes: 20971520      # 20 MB
+  max_pages: 60
+  min_chars: 100
+  required_text: [EJ200]
+checks:
+  - source
+  - task_code
+  - machine_tag
+  - process_sheet
+  - operation_description
+# I riferimenti sono pubblicazioni intere (RN, EF, RDR), non task dentro un manuale.
+reference_mode: document
+document_order: [RDR, EF, RN]
+# Le schede di processo EJ200 non si verificano: esito N/A.
+verify_process_sheet: false
+extraction_prompt: extract_cycle_ej200.md
+# Parser di layout PVRM320 davanti all'LLM (riserva se il layout non è riconosciuto).
+layout_extractor: pvrm320

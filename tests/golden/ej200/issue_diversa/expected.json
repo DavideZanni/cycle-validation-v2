@@ -1,0 +1,18 @@
+{
+  "profile": "ej200",
+  "rows": [
+    {
+      "check": "source",
+      "kind": "source",
+      "index": 0,
+      "verdict": "WARNING",
+      "reason": "VERSIONE_DIVERSA"
+    },
+    {
+      "check": "source",
+      "kind": "source",
+      "index": 1,
+      "verdict": "CORRETTO"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "profile": "dr",
+  "selectors": {
+    "serial_number": "SN-DEMO-001",
+    "conditions": [
+      1
+    ]
+  },
+  "status": "completo",
+  "rows": [
+    {
+      "check": "dr_recommendation",
+      "kind": "cycle",
+      "index": null,
+      "verdict": "CORRETTO",
+      "reason": "VERIFICATO"
+    },
+    {
+      "check": "machine_tag",
+      "kind": "operation",
+      "index": 0,
+      "verdict": "CORRETTO"
+    },
+    {
+      "check": "process_sheet",
+      "kind": "operation",
+      "index": 0,
+      "verdict": "CORRETTO"
+    },
+    {
+      "check": "operation_description",
+      "kind": "operation",
+      "index": 0,
+      "verdict": "CORRETTO",
+      "reason": "VERIFICATO"
+    }
+  ]
+}

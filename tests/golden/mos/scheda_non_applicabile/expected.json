@@ -1,0 +1,26 @@
+{
+  "profile": "mos",
+  "rows": [
+    {
+      "check": "process_sheet",
+      "kind": "operation",
+      "index": 0,
+      "verdict": "WARNING",
+      "reason": "EVIDENZA_NON_TROVATA"
+    },
+    {
+      "check": "process_sheet",
+      "kind": "operation",
+      "index": 1,
+      "verdict": "NON_APPLICABILE",
+      "reason": "ESCLUSO_DA_REGOLA"
+    },
+    {
+      "check": "machine_tag",
+      "kind": "operation",
+      "index": 0,
+      "verdict": "CORRETTO",
+      "reason": "VERIFICATO"
+    }
+  ]
+}

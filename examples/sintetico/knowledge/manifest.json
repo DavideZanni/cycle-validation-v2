@@ -1,0 +1,20 @@
+{
+  "format": 1,
+  "version": "sintetico-2026-11",
+  "documents": [
+    {
+      "key": "MAN-DEMO-72",
+      "aliases": ["Manuale Demo 72", "MD72"],
+      "version": "Rev. 12",
+      "title": "Manuale dimostrativo, capitolo 72",
+      "file": "documents/MAN-DEMO-72.md"
+    },
+    {
+      "key": "MAN-DEMO-75",
+      "aliases": ["MD75"],
+      "version": "Rev. 3",
+      "title": "Manuale dimostrativo, capitolo 75",
+      "file": "documents/MAN-DEMO-75.md"
+    }
+  ]
+}

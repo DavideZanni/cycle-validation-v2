@@ -1,0 +1,4 @@
+[
+  {"code": "SP-0101", "edition": "B", "treatment": "Lavaggio con solvente", "engine_families": ["GENX"]},
+  {"code": "SP-0202", "edition": "A", "treatment": "Controllo dimensionale", "engine_families": ["LEAP"]}
+]

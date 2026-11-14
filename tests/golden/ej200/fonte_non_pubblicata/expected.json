@@ -1,0 +1,26 @@
+{
+  "profile": "ej200",
+  "rows": [
+    {
+      "check": "source",
+      "kind": "source",
+      "index": 0,
+      "verdict": "WARNING",
+      "reason": "FONTE_ASSENTE"
+    },
+    {
+      "check": "operation_description",
+      "kind": "operation",
+      "index": 0,
+      "verdict": "WARNING",
+      "reason": "FONTE_ASSENTE"
+    },
+    {
+      "check": "task_code",
+      "kind": "operation",
+      "index": 0,
+      "verdict": "WARNING",
+      "reason": "FONTE_ASSENTE"
+    }
+  ]
+}

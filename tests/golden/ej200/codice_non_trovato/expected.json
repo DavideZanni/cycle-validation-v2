@@ -1,0 +1,26 @@
+{
+  "profile": "ej200",
+  "rows": [
+    {
+      "check": "source",
+      "kind": "source",
+      "index": 0,
+      "verdict": "CORRETTO",
+      "reason": "VERIFICATO"
+    },
+    {
+      "check": "task_code",
+      "kind": "operation",
+      "index": 0,
+      "verdict": "WARNING",
+      "reason": "EVIDENZA_NON_TROVATA"
+    },
+    {
+      "check": "operation_description",
+      "kind": "operation",
+      "index": 0,
+      "verdict": "CORRETTO",
+      "reason": "VERIFICATO"
+    }
+  ]
+}

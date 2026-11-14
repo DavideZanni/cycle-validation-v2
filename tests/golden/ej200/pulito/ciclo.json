@@ -1,0 +1,23 @@
+{
+  "cycle_code": "EJ-pulito",
+  "engine_model": "EJ200",
+  "sources": [
+    {
+      "manual": "RN-100",
+      "issue": "2"
+    },
+    {
+      "manual": "EF-200"
+    }
+  ],
+  "operations": [
+    {
+      "operation_number": "0010",
+      "operation_description": "Pulire la pala con solvente tipo A.",
+      "machine_tag": "TM-1001",
+      "task_codes": [
+        "DMC-EJ200-A-72-31-00-00A-520A-A"
+      ]
+    }
+  ]
+}

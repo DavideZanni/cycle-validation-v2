@@ -1,0 +1,19 @@
+name: dr
+enabled: true
+file_limits:
+  require_pdf_header: true
+  min_chars: 100
+checks:
+  - dr_recommendation
+  - source
+  - task_code
+  - machine_tag
+  - process_sheet
+  - operation_description
+# Se la recommendation non è applicabile i controlli successivi non partono.
+blocking_checks: [dr_recommendation]
+requires_selectors: true
+reference_mode: task
+excluded_sheet_prefixes: [SWJ, SSS, SPS]
+engine_families: [GENX, LEAP]
+extraction_prompt: extract_cycle.md

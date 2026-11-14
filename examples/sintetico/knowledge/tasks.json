@@ -1,0 +1,6 @@
+[
+  {"manual": "MAN-DEMO-72", "task": "72-00-01-110-001", "line_start": 5, "line_end": 9},
+  {"manual": "MAN-DEMO-72", "task": "72-00-01-220-002", "line_start": 12, "line_end": 15},
+  {"manual": "MAN-DEMO-72", "task": "72-00-01-350-003", "line_start": 17, "line_end": 20},
+  {"manual": "MAN-DEMO-75", "task": "75-10-02-400-001", "line_start": 5, "line_end": 8}
+]

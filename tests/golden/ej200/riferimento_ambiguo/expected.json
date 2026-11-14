@@ -1,0 +1,26 @@
+{
+  "profile": "ej200",
+  "rows": [
+    {
+      "check": "source",
+      "kind": "source",
+      "index": 0,
+      "verdict": "CORRETTO",
+      "reason": "VERIFICATO"
+    },
+    {
+      "check": "source",
+      "kind": "source",
+      "index": 1,
+      "verdict": "WARNING",
+      "reason": "RIFERIMENTO_AMBIGUO"
+    },
+    {
+      "check": "task_code",
+      "kind": "operation",
+      "index": 0,
+      "verdict": "CORRETTO",
+      "reason": "VERIFICATO"
+    }
+  ]
+}
