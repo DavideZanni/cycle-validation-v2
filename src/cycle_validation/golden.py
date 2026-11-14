@@ -161,20 +161,22 @@ class GoldenSummary:
         return "\n".join(lines)
 
 
+def case_request(case: GoldenCase) -> RunRequest:
+    """Il PDF reale del caso, se c'è; altrimenti uno sintetico generato dal ciclo."""
+    if case.pdf_path:
+        return RunRequest(pdf_path=case.pdf_path, selectors=case.selectors())
+    return RunRequest(
+        pdf_bytes=synthetic_cycle_pdf(load_cycle(case.cycle_path)),
+        pdf_name=f"{case.name}.pdf",
+        selectors=case.selectors(),
+    )
+
+
 async def run_golden(
     cases: Sequence[GoldenCase], deps_for: Callable[[GoldenCase], Dependencies]
 ) -> GoldenSummary:
     results: list[CaseResult] = []
     for case in cases:
         deps = deps_for(case)
-        request = (
-            RunRequest(pdf_path=case.pdf_path, selectors=case.selectors())
-            if case.pdf_path
-            else RunRequest(
-                pdf_bytes=synthetic_cycle_pdf(load_cycle(case.cycle_path)),
-                pdf_name=f"{case.name}.pdf",
-                selectors=case.selectors(),
-            )
-        )
-        results.append(evaluate_case(case, await arun_validation(request, deps)))
+        results.append(evaluate_case(case, await arun_validation(case_request(case), deps)))
     return GoldenSummary(results)

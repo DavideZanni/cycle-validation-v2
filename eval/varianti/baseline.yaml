@@ -1,0 +1,5 @@
+# Il punto di partenza: le impostazioni di oggi, senza modifiche.
+# Tutte le altre varianti ereditano da qui e cambiano solo quello che serve.
+nome: baseline
+descrizione: impostazioni di config/settings.yaml, così come sono
+config: config/settings.yaml

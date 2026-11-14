@@ -1,6 +1,8 @@
-"""CLI: `cycle-validation run` e `cycle-validation kb-check`."""
+"""CLI: `run`, `golden`, `kb-check` ed `eval` (esperimenti: `eval esegui`, `eval classifica`)."""
 
 import asyncio
+import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated
 
@@ -12,6 +14,10 @@ from cycle_validation.agent.session import AgentSession
 from cycle_validation.config import AgentSettings, Settings, load_profile, load_settings
 from cycle_validation.domain.check import CheckName
 from cycle_validation.errors import CycleValidationError
+from cycle_validation.evaluation.leaderboard import build_leaderboard, render_leaderboard
+from cycle_validation.evaluation.metrics import measure
+from cycle_validation.evaluation.run import load_suites, run_variant
+from cycle_validation.evaluation.variant import load_variant
 from cycle_validation.extract.base import CycleExtractor
 from cycle_validation.extract.composite import FallbackCycleExtractor
 from cycle_validation.extract.from_file import FileCycleExtractor
@@ -25,6 +31,10 @@ from cycle_validation.resolve.dr import parse_selectors
 from cycle_validation.services.machines import load_machine_registry
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, help="Validazione dei cicli.")
+eval_app = typer.Typer(
+    no_args_is_help=True, help="Esperimenti: varianti provate sugli stessi casi e classifica."
+)
+app.add_typer(eval_app, name="eval")
 
 
 def make_session(settings: AgentSettings, transcripts_dir: Path | None) -> AgentSession:
@@ -175,3 +185,82 @@ def run(
         f"{counts.errato} errati, {counts.non_applicabile} non applicabili."
     )
     typer.echo(f"Risultati in {out}")
+
+
+def _session_for(name: str) -> Callable[[AgentSettings, Path | None], AgentSession]:
+    """Implementazioni di AgentSession scelte per nome da una variante (`sessione:`)."""
+    factories: dict[str, Callable[[AgentSettings, Path | None], AgentSession]] = {
+        "sdk": lambda settings, transcripts: make_session(settings, transcripts),
+    }
+    return factories[name]
+
+
+@eval_app.command("esegui")
+def eval_run(
+    variante: Annotated[Path, typer.Option(help="File YAML della variante.")],
+    ripetizioni: Annotated[int, typer.Option(min=1, max=20, help="Volte per caso.")] = 3,
+    casi: Annotated[Path, typer.Option(help="Una suite o una cartella di suite.")] = Path(
+        "eval/casi/sintetici"
+    ),
+    config: Annotated[
+        Path | None, typer.Option(help="Sostituisce il settings.yaml di partenza.")
+    ] = None,
+    ambiente: Annotated[
+        str | None, typer.Option(help="Etichetta dell'ambiente. Vuoto = dedotta.")
+    ] = None,
+    risultati: Annotated[Path, typer.Option(help="Cartella dei risultati.")] = Path(
+        "eval/risultati"
+    ),
+    runs: Annotated[
+        Path | None, typer.Option(help="Cartella di lavoro e transcript. Vuoto = paths.runs_dir.")
+    ] = None,
+) -> None:
+    """Esegue una variante su tutti i casi e scrive un file di risultati in eval/risultati."""
+    try:
+        variant = load_variant(variante, config_override=config)
+        suites = load_suites(casi)
+        path = asyncio.run(
+            run_variant(
+                variant,
+                suites,
+                repetitions=ripetizioni,
+                results_dir=risultati,
+                session_factory=_session_for(variant.session),
+                project_root=Path.cwd(),
+                runs_dir=runs or variant.settings.paths.runs_dir,
+                environment=ambiente,
+                cases_label=casi.as_posix(),
+                progress=typer.echo,
+            )
+        )
+        metrics = measure(json.loads(path.read_text(encoding="utf-8")))
+    except CycleValidationError as error:
+        raise _fail(error) from error
+    typer.echo(
+        f"{variant.name}: concordanza {metrics.concordance:.1%}".replace(".", ",")
+        + f", ERRATO falsi {metrics.false_errato:g}, errori mancati {metrics.missed_errors:g}, "
+        f"esiti tecnici {metrics.technical:g}, tempo mediano per ciclo "
+        f"{metrics.time_median_ms / 1000:.1f} s, costo per ciclo {metrics.cost_per_cycle:.4f} USD"
+    )
+    for item in metrics.mismatches[:20]:
+        typer.echo(f"    {item}")
+    if len(metrics.mismatches) > 20:
+        typer.echo(f"    ... e altre {len(metrics.mismatches) - 20} discordanze")
+    typer.echo(f"Risultati in {path}")
+
+
+@eval_app.command("classifica")
+def eval_leaderboard(
+    risultati: Annotated[Path, typer.Option(help="Cartella dei risultati.")] = Path(
+        "eval/risultati"
+    ),
+    out: Annotated[Path, typer.Option(help="File della classifica.")] = Path("eval/classifica.md"),
+) -> None:
+    """Mette in classifica le varianti, per ambiente, e scrive eval/classifica.md."""
+    try:
+        text = render_leaderboard(build_leaderboard(risultati))
+    except CycleValidationError as error:
+        raise _fail(error) from error
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text, encoding="utf-8")
+    typer.echo(text)

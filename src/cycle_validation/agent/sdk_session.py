@@ -9,6 +9,7 @@ import dataclasses
 import json
 import os
 import re
+import time
 from pathlib import Path
 from typing import Any, cast
 
@@ -32,6 +33,7 @@ def usage_from_result(result: ResultMessage) -> Usage:
         cache_write_tokens=int(raw.get("cache_creation_input_tokens") or 0),
         cost_usd=float(result.total_cost_usd or 0.0),
         duration_ms=int(result.duration_ms or 0),
+        api_duration_ms=int(result.duration_api_ms or 0),
         turns=int(result.num_turns or 0),
         sessions=1,
     )
@@ -150,6 +152,14 @@ class SdkAgentSession:
         return options
 
     async def run(self, request: SessionRequest) -> SessionOutcome:
+        began = time.perf_counter()
+        outcome = await self._run(request)
+        wall_ms = int((time.perf_counter() - began) * 1000)
+        return outcome.model_copy(
+            update={"usage": outcome.usage.model_copy(update={"wall_ms": wall_ms})}
+        )
+
+    async def _run(self, request: SessionRequest) -> SessionOutcome:
         result: ResultMessage | None = None
         transcript = None
         if self._transcripts_dir is not None:

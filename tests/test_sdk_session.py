@@ -177,3 +177,29 @@ def test_a_process_failure_reports_its_exit_code_but_not_its_stderr(
     outcome = asyncio.run(SdkAgentSession(AgentSettings()).run(request()))
     assert outcome.status is SessionStatus.ERROR
     assert outcome.error == "ProcessError (exit code 2)"
+
+
+def test_usage_carries_model_time_separately_from_session_time() -> None:
+    usage = outcome_from_result(result()).usage
+    assert (usage.duration_ms, usage.api_duration_ms) == (1200, 1000)
+
+
+def test_run_measures_the_wall_time_of_the_whole_session(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def slow_query(*, prompt: str, options: Any):  # type: ignore[no-untyped-def]
+        await asyncio.sleep(0.05)
+        yield result()
+
+    monkeypatch.setattr(sdk_session, "query", slow_query)
+    outcome = asyncio.run(SdkAgentSession(AgentSettings(save_transcripts=False)).run(request()))
+    assert outcome.usage.wall_ms >= 50
+
+
+def test_wall_time_is_measured_also_when_the_process_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sdk_session, "query", _failing_query(error=ProcessError("x", exit_code=1)))
+    outcome = asyncio.run(SdkAgentSession(AgentSettings(save_transcripts=False)).run(request()))
+    assert outcome.status is SessionStatus.ERROR
+    assert outcome.usage.wall_ms >= 0

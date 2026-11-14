@@ -1,0 +1,5 @@
+# Percorsi relativi a questa cartella. La conoscenza replica le chiavi S3 delle pubblicazioni
+# EJ200 (catalogo e testi), esportata dalle fixture dei test: tutto inventato.
+conoscenza: conoscenza
+tipo_conoscenza: ej200
+macchine: ../../../../examples/sintetico/macchine_attive.json

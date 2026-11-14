@@ -340,7 +340,7 @@ def test_extraction_discrepancies_are_reported(tmp_path: Path) -> None:
 def test_ej200_golden_set_is_concordant(tmp_path: Path) -> None:
     from cycle_validation.golden import load_cases, run_golden
 
-    golden = Path(__file__).parent / "golden" / "ej200"
+    golden = Path(__file__).parents[1] / "eval" / "casi" / "sintetici" / "ej200"
     cases = load_cases(golden)
     assert [c.name for c in cases] == [
         "codice_non_trovato",

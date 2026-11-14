@@ -108,3 +108,8 @@ def test_target_labels() -> None:
     source = Source(manual="M1", task="T-1")
     assert Target.source(0, source).label == "M1 / T-1"
     assert Target.operation(2, Operation(operation_number="0030")).label == "0030"
+
+
+def test_usage_adds_up_session_and_model_times() -> None:
+    total = Usage(wall_ms=300, api_duration_ms=100) + Usage(wall_ms=200, api_duration_ms=50)
+    assert (total.wall_ms, total.api_duration_ms) == (500, 150)

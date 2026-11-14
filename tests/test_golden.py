@@ -12,7 +12,7 @@ from cycle_validation.golden import GoldenCase, evaluate_case, load_cases, run_g
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
 from cycle_validation.testing.pdf import synthetic_cycle_pdf
 
-GOLDEN = Path(__file__).parent / "golden"
+GOLDEN = Path(__file__).parents[1] / "eval" / "casi" / "sintetici"
 
 
 def deps_for(case: GoldenCase) -> Dependencies:

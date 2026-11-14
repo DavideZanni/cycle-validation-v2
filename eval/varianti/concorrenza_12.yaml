@@ -1,0 +1,5 @@
+nome: concorrenza_12
+descrizione: dodici operazioni controllate insieme invece di sei
+base: baseline
+agent:
+  concurrency: 12

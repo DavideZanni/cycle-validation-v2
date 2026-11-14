@@ -120,7 +120,7 @@ def test_run_without_cycle_json_extracts_with_the_model(
 def test_golden_command(tmp_path: Path) -> None:
     from pathlib import Path as P
 
-    golden = P(__file__).parent / "golden" / "mos"
+    golden = P(__file__).parents[1] / "eval" / "casi" / "sintetici" / "mos"
     result = runner.invoke(
         cli.app,
         [
@@ -157,3 +157,44 @@ def test_dr_profile_blocks_on_not_applicable_recommendation(pdf: Path, tmp_path:
     result = runner.invoke(cli.app, args)
     assert result.exit_code == 0, result.output
     assert "bloccato" in result.output
+
+
+def test_eval_runs_a_variant_and_writes_the_leaderboard(tmp_path: Path) -> None:
+    root = Path(__file__).parents[1]
+    results = tmp_path / "risultati"
+    common = ["--risultati", str(results)]
+    for variant in ("baseline", "effort_low"):
+        result = runner.invoke(
+            cli.app,
+            [
+                "eval",
+                "esegui",
+                "--variante",
+                str(root / "eval" / "varianti" / f"{variant}.yaml"),
+                "--casi",
+                str(root / "eval" / "casi" / "sintetici" / "dr"),
+                "--ripetizioni",
+                "2",
+                "--ambiente",
+                "prova",
+                "--runs",
+                str(tmp_path / "runs"),
+                *common,
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "[10/10]" in result.output
+        assert "concordanza 100,0%" in result.output
+    out = tmp_path / "classifica.md"
+    result = runner.invoke(cli.app, ["eval", "classifica", *common, "--out", str(out)])
+    assert result.exit_code == 0, result.output
+    text = out.read_text(encoding="utf-8")
+    assert "## Ambiente: prova" in text
+    assert "`effort_low`" in text and "`baseline`" in text
+    assert "Ambiente: prova" in result.output
+
+
+def test_eval_reports_a_bad_variant_clearly(tmp_path: Path) -> None:
+    result = runner.invoke(cli.app, ["eval", "esegui", "--variante", str(tmp_path / "x.yaml")])
+    assert result.exit_code == 1
+    assert "Variante non trovata" in result.output

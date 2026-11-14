@@ -125,6 +125,10 @@ class Usage(BaseModel):
     cache_write_tokens: int = 0
     cost_usd: float = 0.0
     duration_ms: int = 0
+    # Tempo del modello (API) e durata reale della sessione, avvio del processo compreso:
+    # la differenza è il costo fisso dell'agente.
+    api_duration_ms: int = 0
+    wall_ms: int = 0
     turns: int = 0
     sessions: int = 0
 
@@ -136,6 +140,8 @@ class Usage(BaseModel):
             cache_write_tokens=self.cache_write_tokens + other.cache_write_tokens,
             cost_usd=self.cost_usd + other.cost_usd,
             duration_ms=self.duration_ms + other.duration_ms,
+            api_duration_ms=self.api_duration_ms + other.api_duration_ms,
+            wall_ms=self.wall_ms + other.wall_ms,
             turns=self.turns + other.turns,
             sessions=self.sessions + other.sessions,
         )

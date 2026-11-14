@@ -1,0 +1,5 @@
+nome: effort_low
+descrizione: meno ragionamento del modello (effort low)
+base: baseline
+agent:
+  effort: low

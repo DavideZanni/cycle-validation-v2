@@ -14,7 +14,7 @@ uv run ruff check .
 uv run cycle-validation kb-check examples/sintetico/knowledge
 uv run cycle-validation run examples/sintetico/ciclo.pdf --cycle-json examples/sintetico/ciclo.json \
     --knowledge examples/sintetico/knowledge --machines examples/sintetico/macchine_attive.json
-uv run cycle-validation golden tests/golden/mos --knowledge examples/sintetico/knowledge \
+uv run cycle-validation golden eval/casi/sintetici/mos --knowledge examples/sintetico/knowledge \
     --machines examples/sintetico/macchine_attive.json
 ```
 

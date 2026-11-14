@@ -5,7 +5,7 @@ Contiene la stessa spiegazione della pagina pubblicata, più una sezione complet
 comporta l'agente (il modello) e quali strumenti usa.
 
 Stato al 14 novembre 2026, ramo `review/correctness-and-optimization`. Gli esempi vengono
-dall'insieme sintetico del progetto (`examples/sintetico/`, `tests/golden/`): nessun dato aziendale.
+dall'insieme sintetico del progetto (`examples/sintetico/`, `eval/casi/sintetici/`): nessun dato aziendale.
 
 > **Cosa è verificato e cosa no.** Il codice di validazione è stato letto. Del progetto di
 > ingestion ho letto solo la sua documentazione tecnica, non il codice. Nessuna chiamata reale a
@@ -301,7 +301,7 @@ Voto:     ERRATO, motivo CONTRADDIZIONE, con documento, pagina 2 e riga 18
 ```
 
 Il giudizio del modello in questo esempio è scritto per illustrare: è la risposta attesa, non
-l'output di una chiamata reale. Il caso esiste nel golden set (`tests/golden/mos/contraddetto`), con
+l'output di una chiamata reale. Il caso esiste nel golden set (`eval/casi/sintetici/mos/contraddetto`), con
 ERRATO / CONTRADDIZIONE come esito atteso.
 
 ### Passo 8. Cosa si ottiene nel report
@@ -457,5 +457,5 @@ rifiutato dall'hook, quanto costa davvero una sessione: da vedere in uno smoke t
 | Report | `report/builder.py`, `report/markdown_writer.py`, `report/legacy_payload.py` |
 | Impostazioni | `config/settings.yaml`, `config/profiles/{mos,dr,ej200}.yaml` |
 | Prompt | `prompts/operation_check.md`, `prompts/extract_cycle.md` |
-| Insieme di prova | `examples/sintetico/`, `tests/golden/` |
+| Insieme di prova | `examples/sintetico/`, `eval/casi/sintetici/` |
 | Passaggio in azienda | `docs/IMPORTAZIONE_AZIENDA.md`, `docs/superpowers/COMPLETION_REPORT.md` |

@@ -1,0 +1,6 @@
+# In azienda: sostituire con l'id del profilo di inferenza Sonnet abilitato su Bedrock.
+nome: sonnet
+descrizione: modello più grande (Sonnet al posto di Haiku)
+base: baseline
+agent:
+  model: sonnet

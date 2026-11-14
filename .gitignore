@@ -17,3 +17,8 @@ docs/Esempio ciclo mos/
 docs/Esempio EJ200/
 # qualunque altra cartella di esempi (per esempio "docs/Esempio ciclo DR/")
 docs/Esempio*/
+
+# Esperimenti: risultati grezzi e casi veri restano sulla macchina che li produce
+eval/risultati/
+eval/casi/aziendali/
+eval/casi/mutazioni/

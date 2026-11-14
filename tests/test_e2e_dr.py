@@ -11,7 +11,7 @@ from cycle_validation.pipeline import RunRequest, run_validation
 from cycle_validation.resolve.dr import DrSelectors, SelectorError
 from cycle_validation.testing.pdf import synthetic_cycle_pdf
 
-GOLDEN = Path(__file__).parent / "golden" / "dr"
+GOLDEN = Path(__file__).parents[1] / "eval" / "casi" / "sintetici" / "dr"
 
 
 def dr_cycle():  # type: ignore[no-untyped-def]

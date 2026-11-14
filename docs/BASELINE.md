@@ -1,7 +1,6 @@
 # Baseline ed esperimenti
 
-**Stato: base di partenza.** Il metodo e i numeri ci sono; lo strumento di misura e il registro
-li completiamo nel prossimo passo.
+**Stato:** metodo e strumento di misura pronti (`eval/`); il registro si riempie con le prove.
 
 ## A cosa serve
 
@@ -34,32 +33,30 @@ la baseline aziendale.
 
 ## Come si fa un esperimento
 
-1. Parti dalla baseline: `git switch -c exp/<nome-breve>` da `baseline-v1`.
-2. Cambia **una sola cosa**.
-3. Lancia i test: `uv run pytest`. Devono passare tutti.
-4. Lancia le stesse prove della tabella, con lo stesso file di impostazioni, **tre volte**: il
-   modello non risponde sempre uguale, una sola prova può ingannare.
-5. Scrivi i numeri nel registro qui sotto.
-6. Tieni la modifica solo se:
-   - la concordanza non scende su nessun caso;
-   - tempo e costo non salgono (salvo che l'esperimento serva proprio ad altro, per esempio
-     all'affidabilità, e lo si scrive);
-   - nessun nuovo WARNING "errore tecnico".
-7. Se la tieni, la si unisce a `main` e la baseline avanza (`baseline-v2`, con i nuovi numeri).
+Con la cartella `eval/` (istruzioni in `eval/README.md`). In breve:
 
-I comandi delle prove sono quelli del Passo 6 di `docs/IMPORTAZIONE_AZIENDA.md`. Per la
-modalità ricerca forzata si usa una copia delle impostazioni con `inline_max_lines: 0`.
+1. Scrivi una variante in `eval/varianti/` che cambia **una sola cosa** rispetto a `baseline`.
+   Se serve codice nuovo, entra in `src/` dietro le interfacce che esistono già e la variante
+   lo sceglie per nome: il codice vecchio resta e si può sempre confrontare.
+2. Lancia i test: `uv run pytest`. Devono passare tutti.
+3. Lancia `baseline` e la variante con le stesse ripetizioni (almeno **tre**: il modello non
+   risponde sempre uguale):
+   `uv run cycle-validation eval esegui --variante eval/varianti/<nome>.yaml --ripetizioni 3`.
+4. `uv run cycle-validation eval classifica` scrive `eval/classifica.md`: dice se la variante
+   supera i paletti (ERRATO falsi, errori mancati, concordanza, stabilità, esiti tecnici) e di
+   quanto cambiano tempo e costo.
+5. Se vince, la modifica va in `config/settings.yaml` o nel codice di `main`, la baseline avanza
+   (`baseline-v2`) e si scrive la decisione nel registro qui sotto.
 
 ## Registro degli esperimenti
 
-| Data | Esperimento | Ramo | Concordanza | Costo | Tempo | Decisione |
+| Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione |
 |---|---|---|---|---|---|---|
 | 2026-11-14 | `effort: low` (prova veloce, una volta sola) | — | MOS 18-19 su 19 | -30% | -27% per sessione | da ripetere con il metodo sopra |
 
 ## Da fare nel prossimo passo
 
-1. **Uno strumento di misura unico**: un comando che lancia tutte le prove della tabella N
-   volte e stampa media e peggior caso, così ogni esperimento si misura allo stesso modo.
+1. ~~Uno strumento di misura unico~~: fatto, è `cycle-validation eval` (`eval/README.md`).
 2. **La prova con il modello vero** (`pytest -m live`, MIGLIORIE A5).
 3. **Un esempio di ciclo DR.** Davide lo fornirà. Andrà in `docs/Esempio ciclo DR/` (cartella
    ignorata da git) con il risultato atteso scritto da chi conosce il ciclo. Serve a:

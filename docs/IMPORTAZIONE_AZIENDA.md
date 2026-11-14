@@ -190,8 +190,8 @@ Ciclo completo: 10 corretti, 4 warning, 2 errati, 3 non applicabili.
 Poi i casi di prova:
 
 ```bash
-uv run cycle-validation golden tests/golden/mos --knowledge examples/sintetico/knowledge --machines examples/sintetico/macchine_attive.json --config config/settings.yaml
-uv run cycle-validation golden tests/golden/dr --knowledge examples/sintetico/knowledge --machines examples/sintetico/macchine_attive.json --config config/settings.yaml
+uv run cycle-validation golden eval/casi/sintetici/mos --knowledge examples/sintetico/knowledge --machines examples/sintetico/macchine_attive.json --config config/settings.yaml
+uv run cycle-validation golden eval/casi/sintetici/dr --knowledge examples/sintetico/knowledge --machines examples/sintetico/macchine_attive.json --config config/settings.yaml
 ```
 
 Devi vedere `concordanza 100.0%` per tutti e due. Per MOS va bene anche `94.7%`, se l'unico caso

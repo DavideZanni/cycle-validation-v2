@@ -1,0 +1,4 @@
+# Percorsi relativi a questa cartella.
+conoscenza: ../../../../examples/sintetico/knowledge
+tipo_conoscenza: locale
+macchine: ../../../../examples/sintetico/macchine_attive.json
