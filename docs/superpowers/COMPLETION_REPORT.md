@@ -1,7 +1,7 @@
 # Cycle Validation v2 — Rapporto di completamento (Fasi 1-6)
 
 Esito finale: **488 test superati**, `pytest` verde e `ruff check .` pulito, tutto offline.
-Avanzamento per fase: `docs/superpowers/plans/FULL_EXECUTION_PROGRESS.md`.
+I piani di lavoro per fase sono stati tolti il 15 novembre 2026: restano nella history di git.
 
 Dopo le Fasi 1-6 il lavoro è stato riletto in modo critico e ottimizzato sul ramo
 `review/correctness-and-optimization` (da 404 a 488 test): vedi "Revisione critica" più sotto.

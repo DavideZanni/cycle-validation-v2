@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-13
 **Stato:** approvato il 2026-11-13, con una modifica di perimetro: `ingestion_v2` è fuori ambito
-**Sostituisce:** `archivio/2026-11-12-cycle-validation-design.md`, scritto prima di avere la documentazione del sistema attuale.
+**Sostituisce:** il design del 2026-11-12 (tolto, resta nella history di git), scritto prima di avere la documentazione del sistema attuale.
 
 **Fonti usate:** `docs/doc_lavoro/DOCUMENTAZIONE_TECNICA_cycle_validation.md` (sistema attuale). Non ho accesso al codice del sistema attuale: dove il design dipende da dettagli che la guida non riporta, il punto è marcato **da verificare** ed è raccolto nel §17.
 

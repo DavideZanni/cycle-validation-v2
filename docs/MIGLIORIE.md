@@ -5,8 +5,11 @@ esperimenti. Ognuna
 dice cosa cambia, quanto rende (con la misura, quando c'è), quanto costa farla e se va provata
 prima in azienda.
 
-Ogni miglioria si prova come esperimento contro la baseline: un ramo, una modifica, le stesse
-misure prima e dopo. Il metodo è in `docs/BASELINE.md`.
+Ogni miglioria si prova come esperimento contro la baseline, cioè la versione di oggi con i suoi
+numeri: una variante in `eval/varianti/` che cambia una cosa sola, gli stessi casi prima e dopo,
+almeno tre ripetizioni. Il metodo è in `eval/README.md` (sui cicli veri in
+`docs/ESPERIMENTI_AZIENDA.md`). Si tiene la modifica solo se non peggiora niente, e la decisione
+va nel [registro degli esperimenti](#registro-degli-esperimenti) in fondo.
 
 ---
 
@@ -27,6 +30,22 @@ dati inventati.
 
 **Dove va il tempo.** Non nel codice. Per ogni operazione: avvio di un processo dell'agente
 (circa 4 s) più risposta del modello (circa 3 s). Metà dell'attesa è l'avvio.
+
+**I casi di prova con il modello vero** (stesso giorno, stesso ambiente, impostazioni
+predefinite: `effort` predefinito, concorrenza 6, soglia "in linea" 150 righe; codice con
+etichetta git `baseline-v1`):
+
+| Prova | Concordanza | Costo | Tempo |
+|---|---|---|---|
+| Casi MOS, in linea | 19 su 19 (a volte 18: caso ambiguo, vedi A2) | 0,0038 USD | 31 s |
+| Casi MOS, ricerca forzata | 19 su 19 | 0,0050 USD | 33 s |
+| Casi DR | 29 su 29 | 0,0008 USD | 5 s |
+| Casi EJ200 | 22 su 22 | 0,0065 USD | 39 s |
+| Ciclo di esempio da 4 operazioni | esiti attesi | 0,0038 USD | 12,7 s |
+
+**I numeri valgono solo nello stesso ambiente.** In azienda il modello passa da Bedrock, con
+altre latenze e altri prezzi: la prima cosa da fare lì è rifare queste misure con
+`eval pipeline`. Quella diventa la baseline aziendale.
 
 ---
 
@@ -87,11 +106,17 @@ Oltre il limite la sessione è un errore tecnico: WARNING sul controllo, errore 
 sulla lettura. Non si riprova, perché raddoppierebbe l'attesa. Da guardare in azienda: se con
 Bedrock qualche sessione normale supera i 90 s, alzare il limite.
 
-### A5. Una prova con il modello vero, da lanciare a mano
+### A5. Una prova con il modello vero, da lanciare a mano. **Fatto**
 
 Una piccola prova (`pytest -m live`) che fa una sessione vera in linea e una in ricerca sul ciclo
 di esempio. Non parte con i test normali. In azienda si lancia dopo ogni aggiornamento della
 libreria dell'agente o del modello. Avrebbe trovato subito l'errore A1. Costo: piccolo.
+
+**Stato (15 novembre 2026):** fatto, in `tests/test_live.py`. Prova il caso `pulito` di MOS ed
+EJ200 in linea e il caso MOS con la ricerca (`inline_max_lines: 0`): nessun esito tecnico, nessun
+ERRATO falso, concordanza 100%. Si lancia con `pytest -m live`; la configurazione è
+`CV_LIVE_CONFIG` se impostata, altrimenti `config/settings.yaml`. Con il login locale: 3 sessioni,
+17 s, passata.
 
 ### A6. Leggere il DR senza modello, ma solo dopo una stampa DR vera
 
@@ -132,13 +157,20 @@ targa che si chiama "-". Il trattino ora vuol dire "targa assente" per tutte le 
 varianti da misurare: `effort_low` di nuovo, e `effort_low_controlli`, che tiene il
 ragionamento pieno nella lettura del PDF (`agent.extraction_effort: high`).
 
-### B3. Trascrivere le pagine in parallelo
+### B3. Trascrivere le pagine in parallelo. **Fatto**
 
 Le stampe di esempio sono foto. Ogni pagina è una chiamata al modello, e oggi le pagine si
 trascrivono una dopo l'altra. Per esempio, se una pagina richiede 5 s, un ciclo di 6 pagine
 richiede 30 s solo per essere letto; in parallelo, circa 5 s (tempo per pagina da misurare in
 azienda). Se in produzione i cicli arrivano come foto o scansioni, è la
 miglioria più utile dopo B1. Costo: piccolo, in `src/cycle_validation/ingest/document.py`.
+
+**Stato (15 novembre 2026):** fatto. Le pagine vanno al trascrittore insieme, al massimo
+`agent.transcribe_concurrency` alla volta (predefinito 4). L'ordine delle pagine resta quello del
+PDF. La pagina successiva si prepara solo quando un posto si libera: in memoria restano poche
+immagini, e se una pagina fallisce le altre non partono. Da guardare in azienda: con molti
+utenti insieme le chiamate di trascrizione arrivano a `API_MAX_WORKERS` per questo numero; se
+Bedrock risponde con throttling, abbassarlo.
 
 ### B4. Più operazioni insieme (`agent.concurrency`)
 
@@ -152,18 +184,32 @@ operazione in più è un processo pesante in più.
 Vedi A6. Una chiamata al modello in meno per ciclo DR. Si attiva con una riga in
 `config/profiles/dr.yaml` (`layout_extractor: pvrm320`), dopo la prova su una stampa vera.
 
-### B6. Non chiamare il modello quando non serve
+### B6. Non chiamare il modello quando non serve. **Pronta da misurare**
 
 Già oggi il modello non viene chiamato se la descrizione manca, se l'estrazione non è confermata
 o se non c'è nessun testo di riferimento. Da aggiungere, se si sceglie la strada 2 del punto A2:
 task citato inesistente.
 
-### B7. Conoscenza pronta all'avvio
+**Stato (15 novembre 2026):** fatto, spento di default (`agent.skip_missing_task`). Acceso, il
+task citato che il manuale non ha dà subito WARNING (`FONTE_ASSENTE`, con il codice nel
+messaggio), senza sessione. La variante `eval/varianti/salta_task_mancante.yaml` lo accende.
+Sui casi sintetici viene scartata, ed è giusto così: `fonte_e_codice_assenti` si aspetta
+CORRETTO, perché il modello confronta la descrizione con le fonti del ciclo. Si tiene solo se chi
+conosce i cicli dice che lì l'esito giusto è WARNING; in quel caso va cambiato anche
+`expected.json`. Da confrontare con A2 strada 1 (`prompt_task_mancante`).
+
+### B7. Conoscenza pronta all'avvio. **Fatto**
 
 La cartella dei manuali su S3 viene scaricata tutta alla prima richiesta: la prima validazione
 dopo un riavvio è lenta. Chiamare `preload()` all'avvio del servizio (Passo 7 della guida di
 importazione) sposta l'attesa all'avvio. Con molti manuali grandi, meglio scaricare un documento
 alla volta, quando serve.
+
+**Stato (15 novembre 2026):** fatto. `ApiServices(warmup=...)` viene chiamata una volta
+all'avvio, prima di accettare richieste; di solito `runner.preload(["mos", "dr", "ej200"])`, che
+costruisce le dipendenze di ogni profilo e chiama `preload()` sulla loro conoscenza. Se un file non
+è valido il servizio non parte e l'errore dice quale. Perché serva davvero, la `deps_for` della
+factory aziendale deve riusare le dipendenze già costruite, non rifarle a ogni richiesta.
 
 ### B8. Casi di prova in parallelo
 
@@ -207,7 +253,8 @@ dalla cache (visto oggi: circa 1500 token letti dalla cache per sessione).
 ### E1. Varianti di prompt proposte dal modello (`eval proponi`). **Futura**
 
 **L'idea.** Oggi le varianti di `eval/varianti/` le scrive una persona. Il paper Harness²
-(Google Research, arXiv 2610.14224, ottobre 2026) fa scrivere al modello le modifiche al proprio
+(Google Research, arXiv 2610.14224, ottobre 2026; codice in
+<https://github.com/google-research/harness2>) fa scrivere al modello le modifiche al proprio
 "harness" (istruzioni, regole, strumenti), le prova sullo stesso compito e tiene quelle che
 funzionano. Il suo punto debole: non ha esiti attesi, quindi sceglie in base al giudizio del
 modello, e a volte sbaglia (nel paper, un risultato da 55 punti preferito a uno da 95). Noi
@@ -219,7 +266,7 @@ la parte che ci manca: **la proposta**. La scelta resta a `eval classifica`.
 | Propose: il modello scrive modifiche | **da fare**: `eval proponi` |
 | Probe: prova le modifiche sullo stesso compito | c'è: `eval esegui` / `eval pipeline` |
 | Compose: tiene le modifiche migliori | c'è, ed è più sicuro: i paletti di `eval classifica` |
-| Libreria di esperienza (`EXPERIENCE.md`) | in parte: il registro di `docs/BASELINE.md`, ma solo da leggere per una persona |
+| Libreria di esperienza (`EXPERIENCE.md`) | in parte: il registro in fondo a questo documento, ma solo da leggere per una persona |
 
 **Cosa non si fa.** Niente modifiche automatiche nel servizio, ciclo per ciclo: costerebbero
 almeno 4 sessioni per ciclo invece di una, cambierebbero `prompt_version` a ogni ciclo e
@@ -240,8 +287,8 @@ in `prompts/` resta una scelta umana, come oggi ("Quando una variante vince" in 
    (può citare casi veri). Un file per variante provata: cosa cambia, perché, i numeri della
    classifica contro la baseline, il file di risultato da cui vengono, la decisione (ammessa,
    scartata e per quale paletto) e una riga di lezione. Più un `INDICE.md`, una riga per file.
-   `eval classifica` scrive la parte dei numeri, la lezione la scrive chi decide. Il registro di
-   `docs/BASELINE.md` resta il posto delle decisioni: una riga, con un rimando al file.
+   `eval classifica` scrive la parte dei numeri, la lezione la scrive chi decide. Il registro in
+   fondo a questo documento resta il posto delle decisioni: una riga, con un rimando al file.
    Regola presa dal paper: una lezione si scrive solo se la classifica la sostiene; se
    l'evidenza è debole (tempi rumorosi, un solo caso) si scrive "da rimisurare", non una lezione.
 
@@ -316,10 +363,34 @@ passi 3 e 4 piccoli. Nessuna modifica a `src/cycle_validation/agent/` né al ser
 
 ## Ordine consigliato
 
-1. **A5** (prova con il modello vero): protegge tutte le altre modifiche.
+Fatte: A1, A4, A5, B3, B7; pronte da misurare: A2 (`prompt_task_mancante`) e B6
+(`salta_task_mancante`). Restano, in quest'ordine:
+
+1. **Casi veri nella suite** (`eval prepara`, poi revisione): senza, le misure valgono solo sui
+   dati inventati.
 2. **B2** (`effort: low`): una riga, guadagno misurato, da confermare su cicli veri.
-3. **A2** e **A4**: piccole, tolgono un'ambiguità e le attese infinite.
-4. **B1** (chiamata diretta): il guadagno più grande sul tempo.
-5. **B3** se i cicli arrivano come foto, poi **B4**.
+3. **A2** contro **B6**: misurare le due varianti con 3 ripetizioni (su un caso solo il 100% dice
+   poco) e decidere con chi conosce i cicli quale esito è giusto per un task citato inesistente.
+4. **B1** (chiamata diretta): il guadagno più grande sul tempo; solo in azienda.
+5. **B4** (`agent.concurrency`), dopo B1.
 6. **A3**, **A6/B5**: quando ci sono i dati veri (Redshift, stampa DR).
-7. **E1** (`eval proponi`): dopo i casi aziendali rivisti e la decisione sulla semplificazione.
+7. **D**, rotte storiche: quando il frontend nuovo usa solo `validation/upload`.
+8. **E1** (`eval proponi`): dopo i casi aziendali rivisti e la decisione sulla semplificazione.
+
+---
+
+## Registro degli esperimenti
+
+Una riga per ogni prova decisa. I numeri sono contro la baseline dello stesso giro.
+
+| Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione |
+|---|---|---|---|---|---|---|
+| 2026-11-14 | `effort: low` (prova veloce, una volta sola) | — | MOS 18-19 su 19 | -30% | -27% per sessione | da ripetere con il metodo sopra |
+| 2026-11-14 | `effort: low`, casi sintetici, 3 ripetizioni, login locale | `effort_low` | 99,5% (come baseline) | -22% | -9% | ammessa e più veloce; da confermare su Bedrock con casi veri |
+| 2026-11-14 | concorrenza 12 | `concorrenza_12` | 99,0% | -17% | uguale | scartata: concordanza più bassa |
+| 2026-11-14 | modello Sonnet | `sonnet` | 98,6% | ×10 | -17% | scartata: concordanza più bassa, costo |
+| 2026-11-14 | `effort: low`, un ciclo MOS di prova letto dal PDF, 2 ripetizioni | `effort_low` | 97,6% (baseline 100%) | -22% | -11% | scartata: un ERRATO falso ("Targa -" letta come targa) ed estrazione 87,5%; causa corretta nel codice, da rimisurare |
+| 2026-11-15 | giro 3, stesso ciclo di prova, 2 ripetizioni, login locale | `effort_low` | 100% | -33% | +25% | ammessa: il "-" letto come targa c'è ancora, ma ora vale "targa assente"; tempi su un caso solo troppo rumorosi per decidere |
+| 2026-11-15 | come sopra | `effort_low_controlli` | 100% | -31% | +26% | ammessa; non legge più il "-"; da misurare in azienda contro `effort_low` |
+| 2026-11-15 | come sopra | `prompt_task_mancante` | 100% | -30% | +66% | ammessa; il tempo è rumore (cambia una sola sessione); serve `fonte_e_codice_assenti` con più ripetizioni |
+| 2026-11-15 | come sopra | `guasti` | — | — | — | regge: 0 ERRATO falsi, 4,5 esiti tecnici per ripetizione |

@@ -286,3 +286,21 @@ def test_a_stuck_session_gives_a_technical_warning_not_a_wait() -> None:
     results, errors = asyncio.run(check_operations(ctx([op()]), Stuck(), settings, "s"))
     assert [r.reason for r in results] == [Reason.ERRORE_TECNICO]
     assert errors and "tempo massimo" in errors[0].message
+
+
+def test_a_missing_task_can_skip_the_model_with_a_direct_warning() -> None:
+    # MIGLIORIE B6 (A2 strada 2): niente sessione, WARNING che dice quale task manca
+    settings = AgentSettings(retry_backoff_s=0, skip_missing_task=True)
+    jobs, immediate = plan_operation_checks(
+        ctx([op(codes=["72-00-01-999-009"]), op()]), settings, "s"
+    )
+    assert [job.index for job in jobs] == [1]
+    assert [r.reason for r in immediate] == [Reason.FONTE_ASSENTE]
+    assert immediate[0].verdict is Verdict.WARNING
+    assert "72-00-01-999-009" in immediate[0].rationale
+
+
+def test_the_model_is_still_called_for_a_missing_task_by_default() -> None:
+    assert AgentSettings().skip_missing_task is False
+    jobs, immediate = plan_operation_checks(ctx([op(codes=["72-00-01-999-009"])]), SETTINGS, "s")
+    assert len(jobs) == 1 and immediate == []

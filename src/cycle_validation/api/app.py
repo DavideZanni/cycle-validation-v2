@@ -4,7 +4,8 @@ del sistema attuale. La logica sta nella libreria; qui solo traduzione HTTP."""
 import asyncio
 import traceback
 import uuid
-from collections.abc import Callable, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Annotated, Any, Protocol
@@ -80,6 +81,9 @@ class ApiServices:
     metrics: MetricsSink = field(default_factory=NullMetrics)
     clock: Callable[[], datetime] = lambda: datetime.now(UTC)
     new_id: Callable[[], str] = lambda: uuid.uuid4().hex
+    # Chiamata una volta all'avvio, prima delle richieste (MIGLIORIE B7): di solito
+    # `runner.preload(profili)`. Se solleva, il servizio non parte e l'errore dice quale file.
+    warmup: Callable[[], None] | None = None
 
 
 class ApiError(Exception):
@@ -275,7 +279,19 @@ def _sessions_router(
 
 
 def create_app(services: ApiServices) -> FastAPI:
-    app = FastAPI(title="Cycle Validation", docs_url=None, redoc_url=None, openapi_url=None)
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        if services.warmup is not None:
+            await asyncio.to_thread(services.warmup)
+        yield
+
+    app = FastAPI(
+        title="Cycle Validation",
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+        lifespan=lifespan,
+    )
     civil_sessions = SessionStore(services.store, CIVIL)
     ej_sessions = SessionStore(services.store, EJ200)
     router = APIRouter(prefix=PREFIX)

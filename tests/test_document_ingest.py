@@ -462,3 +462,97 @@ def test_bedrock_adapter_refuses_a_format_it_cannot_send() -> None:
         BedrockPageTranscriber(client, "m", "p").transcribe(b"GIF89a", "image/gif")
     assert caught.value.http_status == 415
     assert client.requests == []
+
+
+COLORS = ["red", "green", "blue", "yellow", "white", "black"]
+
+
+def colored_scan(colors: list[str]) -> bytes:
+    images = [Image.new("RGB", (200, 100), color) for color in colors]
+    buffer = io.BytesIO()
+    images[0].save(buffer, format="PDF", save_all=True, append_images=images[1:])
+    return buffer.getvalue()
+
+
+class ColorTranscriber:
+    """Riconosce la pagina dal colore, aspetta che tutte le pagine siano in volo e risponde
+    prima dalle ultime: se la trascrizione fosse in fila, la barriera scadrebbe."""
+
+    def __init__(self, in_flight: int, fail_on: str | None = None) -> None:
+        import threading
+
+        self.barrier = threading.Barrier(in_flight, timeout=5)
+        self.fail_on = fail_on
+        self.seen: list[str] = []
+        self._lock = threading.Lock()
+
+    def transcribe(self, image: bytes, media_type: str) -> tuple[str, Usage]:
+        import time
+
+        # la pagina passa da un JPEG dentro il PDF: il colore torna vicino, non identico
+        rgb = Image.open(io.BytesIO(image)).convert("RGB").getpixel((5, 5))
+
+        def distance(name: str) -> int:
+            ref = Image.new("RGB", (1, 1), name).getpixel((0, 0))
+            return sum((a - b) ** 2 for a, b in zip(rgb, ref, strict=True))  # type: ignore[arg-type]
+
+        color = min(COLORS, key=distance)
+        with self._lock:
+            self.seen.append(color)
+        if color == self.fail_on:
+            raise IngestError("pagina illeggibile", http_status=502)
+        if self.fail_on is None:
+            self.barrier.wait()
+            time.sleep(0.01 * (len(COLORS) - COLORS.index(color)))
+        return f"{TEXT} {color}", Usage(input_tokens=1)
+
+
+def test_scanned_pages_are_transcribed_together_and_keep_their_order() -> None:
+    # MIGLIORIE B3: 3 pagine da 5 s fanno 5 s, non 15 s
+    colors = COLORS[:3]
+    transcriber = ColorTranscriber(in_flight=3)
+    document, usage = read_document_bytes(
+        colored_scan(colors), "scan.pdf", LIMITS, transcriber, concurrency=3
+    )
+    assert [page.text for page in document.pages] == [f"{TEXT} {c}" for c in colors]
+    assert [page.number for page in document.pages] == [1, 2, 3]
+    assert usage.input_tokens == 3
+
+
+def test_a_page_that_cannot_be_transcribed_stops_the_others() -> None:
+    # le pagine oltre quelle in volo non si renderizzano né si mandano al modello
+    transcriber = ColorTranscriber(in_flight=2, fail_on="red")
+    with pytest.raises(IngestError, match="illeggibile"):
+        read_document_bytes(colored_scan(COLORS), "scan.pdf", LIMITS, transcriber, concurrency=2)
+    assert len(transcriber.seen) <= 3
+
+
+def test_pages_are_transcribed_four_at_a_time_by_default() -> None:
+    from cycle_validation.config import AgentSettings
+
+    assert AgentSettings().transcribe_concurrency == 4
+
+
+def test_the_pipeline_transcribes_with_the_configured_concurrency(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import dataclasses
+
+    from support import make_deps
+
+    from cycle_validation import pipeline
+    from cycle_validation.pipeline import RunRequest, run_validation
+
+    seen: list[int] = []
+
+    def fake_read(*args: Any, concurrency: int = 1) -> Any:
+        seen.append(concurrency)
+        raise IngestError("fermo qui", http_status=400)
+
+    monkeypatch.setattr(pipeline, "read_document_bytes", fake_read)
+    deps, _ = make_deps()
+    agent = deps.settings.agent.model_copy(update={"transcribe_concurrency": 7})
+    deps = dataclasses.replace(deps, settings=deps.settings.model_copy(update={"agent": agent}))
+    with pytest.raises(IngestError):
+        run_validation(RunRequest(pdf_bytes=png_bytes(), pdf_name="foto.png"), deps)
+    assert seen == [7]

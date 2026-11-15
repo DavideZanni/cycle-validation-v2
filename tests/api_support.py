@@ -72,6 +72,7 @@ class Env:
         self.metrics = RecordingMetrics()
         self.session = ScriptedSession(scripted_judge)
         runner_override = changes.pop("runner", None)
+        warmup = changes.pop("warmup", None)
         self.deps_for = lambda profile: (
             ej200_deps(tmp_path) if profile == "ej200" else civil_deps(profile, tmp_path)
         )
@@ -82,6 +83,7 @@ class Env:
             metrics=self.metrics,
             clock=lambda: datetime(2026, 11, 13, 12, 0, tzinfo=UTC),
             new_id=iter(f"id{n}" for n in range(1000)).__next__,
+            warmup=warmup,
         )
         self.client = TestClient(create_app(self.services), raise_server_exceptions=False)
 

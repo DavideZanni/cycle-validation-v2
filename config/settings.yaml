@@ -13,6 +13,7 @@ agent:
   # Modello Bedrock (es. Haiku) che trascrive foto, scansioni e PDF senza testo.
   # Vuoto = solo PDF con testo (PDFium). Richiede boto3 e il ruolo AWS dell'ambiente.
   transcribe_model:
+  transcribe_concurrency: 4  # pagine trascritte insieme (MIGLIORIE B3)
   max_turns: 10            # sessioni con ricerca
   inline_max_turns: 3      # sessioni con il testo già nel messaggio
   extraction_max_turns: 3

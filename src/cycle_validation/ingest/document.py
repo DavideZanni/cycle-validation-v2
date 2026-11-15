@@ -6,7 +6,9 @@ trascrive con il modello. Le immagini (JPEG, PNG) sono una pagina sola.
 
 import hashlib
 import io
+from collections import deque
 from collections.abc import Generator, Iterable
+from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
 from typing import Any
@@ -133,17 +135,42 @@ def _rendered_pages(
             document.close()
 
 
+def _transcribe_pages(
+    images: Iterable[tuple[bytes, str]], tr: PageTranscriber, concurrency: int
+) -> list[tuple[str, Usage]]:
+    """Le trascrizioni in ordine di pagina. Con `concurrency` > 1 le pagine vanno al modello
+    insieme, al massimo `concurrency` alla volta: la pagina successiva si renderizza solo quando
+    un posto si libera, così in memoria restano poche immagini e, se una pagina fallisce, le
+    successive non partono."""
+    if concurrency <= 1:
+        return [tr.transcribe(image, media_type) for image, media_type in images]
+    results: list[tuple[str, Usage]] = []
+    with ThreadPoolExecutor(max_workers=concurrency, thread_name_prefix="trascrizione") as pool:
+        pending: deque[Future[tuple[str, Usage]]] = deque()
+        try:
+            for image, media_type in images:
+                pending.append(pool.submit(tr.transcribe, image, media_type))
+                if len(pending) >= concurrency:
+                    results.append(pending.popleft().result())
+            while pending:
+                results.append(pending.popleft().result())
+        finally:
+            for future in pending:
+                future.cancel()
+    return results
+
+
 def _transcribe(
     images: Iterable[tuple[bytes, str]],
     data: bytes,
     name: str,
     limits: FileLimits,
     tr: PageTranscriber,
+    concurrency: int = 1,
 ) -> tuple[PdfDocument, Usage]:
     usage = Usage()
     pages: list[PdfPage] = []
-    for number, (image, media_type) in enumerate(images, 1):
-        text, used = tr.transcribe(image, media_type)
+    for number, (text, used) in enumerate(_transcribe_pages(images, tr, concurrency), 1):
         usage = usage + used
         pages.append(PdfPage(number=number, text=text.strip()))
     document = PdfDocument(
@@ -159,9 +186,15 @@ def _transcribe(
 
 
 def read_document_bytes(
-    data: bytes, name: str, limits: FileLimits, transcriber: PageTranscriber | None
+    data: bytes,
+    name: str,
+    limits: FileLimits,
+    transcriber: PageTranscriber | None,
+    *,
+    concurrency: int = 1,
 ) -> tuple[PdfDocument, Usage]:
-    """Legge PDF o immagine. Restituisce il documento e i consumi del modello (zero se PDFium)."""
+    """Legge PDF o immagine. Restituisce il documento e i consumi del modello (zero se PDFium).
+    `concurrency`: pagine scansionate trascritte insieme (`agent.transcribe_concurrency`)."""
     if not data:
         raise IngestError(f"Il file {name} è vuoto.", http_status=400)
     is_pdf = _PDF in data[:_PDF_WINDOW]
@@ -184,14 +217,18 @@ def read_document_bytes(
         if transcriber is None:
             raise
     with closing(_rendered_pages(data, name, limits)) as pages:
-        return _transcribe(pages, data, name, limits, transcriber)
+        return _transcribe(pages, data, name, limits, transcriber, concurrency)
 
 
 def read_document(
-    path: Path, limits: FileLimits, transcriber: PageTranscriber | None
+    path: Path,
+    limits: FileLimits,
+    transcriber: PageTranscriber | None,
+    *,
+    concurrency: int = 1,
 ) -> tuple[PdfDocument, Usage]:
     try:
         data = path.read_bytes()
     except OSError as exc:
         raise IngestError(f"Impossibile leggere {path}: {exc}", http_status=400) from exc
-    return read_document_bytes(data, path.name, limits, transcriber)
+    return read_document_bytes(data, path.name, limits, transcriber, concurrency=concurrency)

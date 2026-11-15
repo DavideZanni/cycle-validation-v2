@@ -26,6 +26,9 @@ class AgentSettings(_Strict):
     aws_region: str | None = None
     # Modello Bedrock che trascrive immagini e PDF senza testo. None = disattivato.
     transcribe_model: str | None = None
+    # Pagine scansionate mandate insieme al trascrittore (MIGLIORIE B3). Il limite vero sono le
+    # quote Bedrock: con molti utenti insieme le chiamate sono API_MAX_WORKERS per questo.
+    transcribe_concurrency: int = Field(default=4, ge=1, le=16)
     max_turns: int = Field(default=10, ge=1, le=50)
     inline_max_turns: int = Field(default=3, ge=1, le=10)
     extraction_max_turns: int = Field(default=3, ge=1, le=10)
@@ -46,6 +49,10 @@ class AgentSettings(_Strict):
     # Dire al modello che i task citati non sono nel manuale e che il testo è quello delle
     # fonti del ciclo (MIGLIORIE A2). Da provare con la variante `prompt_task_mancante`.
     missing_task_note: bool = False
+    # Task citato che il manuale non ha: WARNING subito, senza chiamare il modello (MIGLIORIE
+    # B6, strada 2 di A2). Una sessione in meno, ma niente confronto con le fonti del ciclo.
+    # Da provare con la variante `salta_task_mancante`.
+    skip_missing_task: bool = False
     # Testo delle sessioni su disco: contiene cicli e manuali. Spento nel servizio, acceso
     # negli esperimenti (eval/varianti/baseline.yaml).
     save_transcripts: bool = False

@@ -43,6 +43,7 @@ packages = ["src/cycle_validation"]
 testpaths = ["tests"]
 pythonpath = ["tests"]
 addopts = "-q"
+markers = ["live: prova con il modello vero, solo con `pytest -m live` (MIGLIORIE A5)"]
 
 [tool.ruff]
 line-length = 100

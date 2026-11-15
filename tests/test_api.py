@@ -514,3 +514,56 @@ def test_simultaneous_validations_are_capped_by_api_max_workers(tmp_path: Path) 
 
     codes = asyncio.run(main())
     assert runner.peak == 2, codes
+
+
+# --- avvio --------------------------------------------------------------------------------
+
+
+def test_the_knowledge_is_loaded_when_the_service_starts(tmp_path: Path) -> None:
+    # MIGLIORIE B7: l'attesa del download sta all'avvio, non sulla prima validazione
+    from fastapi.testclient import TestClient
+
+    from cycle_validation.api.app import create_app
+
+    calls: list[str] = []
+    env = Env(tmp_path, warmup=lambda: calls.append("preload"))
+    assert calls == []
+    with TestClient(create_app(env.services)) as client:
+        assert calls == ["preload"]
+        assert client.get(f"{BASE}/health").status_code == 200
+
+
+def test_a_knowledge_that_cannot_be_read_stops_the_service_at_start(tmp_path: Path) -> None:
+    from fastapi.testclient import TestClient
+
+    from cycle_validation.api.app import create_app
+    from cycle_validation.errors import KnowledgeError
+
+    def broken() -> None:
+        raise KnowledgeError("targhe.json: campo `tag` mancante")
+
+    env = Env(tmp_path, warmup=broken)
+    with pytest.raises(KnowledgeError, match="targhe"), TestClient(create_app(env.services)):
+        pass
+
+
+def test_the_runner_preloads_the_knowledge_of_each_profile() -> None:
+    import dataclasses
+
+    from support import make_deps
+
+    from cycle_validation.api.runner import PipelineRunner
+
+    loaded: list[str] = []
+
+    class Kb:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        def preload(self) -> None:
+            loaded.append(self.name)
+
+    deps, _ = make_deps()
+    runner = PipelineRunner(lambda profile: dataclasses.replace(deps, kb=Kb(profile)))
+    runner.preload(["mos", "dr", "ej200"])
+    assert loaded == ["mos", "dr", "ej200"]

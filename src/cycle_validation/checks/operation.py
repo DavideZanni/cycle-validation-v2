@@ -95,8 +95,10 @@ def _locations(ctx: CheckContext, operation: Operation) -> tuple[TaskLocation, .
 
 
 def _missing_tasks(ctx: CheckContext, operation: Operation, settings: AgentSettings) -> list[str]:
-    """I task citati, se nessuno è nel manuale e il testo viene dalle fonti del ciclo."""
-    if not settings.missing_task_note or ctx.profile.reference_mode == "document":
+    """I task citati, se nessuno è nel manuale e il testo viene dalle fonti del ciclo. Si
+    cercano solo se servono: per la nota al modello (A2) o per saltarlo (B6)."""
+    wanted = settings.missing_task_note or settings.skip_missing_task
+    if not wanted or ctx.profile.reference_mode == "document":
         return []
     if not operation.task_codes or resolve_operation(ctx.cycle, operation, ctx.kb).found:
         return []
@@ -135,6 +137,17 @@ def plan_operation_checks(
         except SourceUnavailableError as exc:
             immediate.append(
                 make_result(CHECK, target, Reason.ERRORE_TECNICO, f"Controllo non eseguito: {exc}")
+            )
+            continue
+        if missing_tasks and settings.skip_missing_task:
+            immediate.append(
+                make_result(
+                    CHECK,
+                    target,
+                    Reason.FONTE_ASSENTE,
+                    f"I task citati ({', '.join(missing_tasks)}) non sono nel manuale: "
+                    "descrizione non confrontata.",
+                )
             )
             continue
         if not locations:

@@ -25,7 +25,6 @@ Documenti:
 
 - `docs/IMPORTAZIONE_AZIENDA.md`: come portare il progetto sul computer aziendale, passo per passo;
 - `docs/ESPERIMENTI_AZIENDA.md`: come misurare il programma e le varianti sui cicli veri, in azienda;
-- `docs/MIGLIORIE.md`: migliorie di affidabilità, velocità e costo, con le misure;
-- `docs/BASELINE.md`: la versione di riferimento e come si prova un esperimento;
+- `docs/MIGLIORIE.md`: migliorie di affidabilità, velocità e costo, le misure e il registro degli esperimenti;
 - `docs/GUIDA_VALIDAZIONE_SEMPLICE.md`: come funziona la validazione, spiegato semplice;
-- `docs/superpowers/`: design, piani e resoconto dei moduli.
+- `docs/superpowers/`: design e resoconto dei moduli.

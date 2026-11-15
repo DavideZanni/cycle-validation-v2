@@ -1,0 +1,5 @@
+nome: salta_task_mancante
+descrizione: task citato non nel manuale = WARNING subito, senza modello (MIGLIORIE B6)
+base: baseline
+agent:
+  skip_missing_task: true

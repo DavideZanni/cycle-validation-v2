@@ -82,14 +82,17 @@ def _read(
     profile: ProfileConfig,
     transcriber: PageTranscriber | None,
     module_check: ModuleCheckSettings,
+    concurrency: int = 1,
 ) -> tuple[PdfDocument, Usage]:
     # Il testo richiesto dal profilo si controlla dopo il tipo di modulo: a chi carica un
     # ciclo di un altro tipo va detto quale ha caricato, non quale parola manca.
     limits = profile.file_limits.model_copy(update={"required_text": []})
     if request.pdf_bytes is not None:
-        pdf, usage = read_document_bytes(request.pdf_bytes, request.pdf_name, limits, transcriber)
+        pdf, usage = read_document_bytes(
+            request.pdf_bytes, request.pdf_name, limits, transcriber, concurrency=concurrency
+        )
     elif request.pdf_path is not None:
-        pdf, usage = read_document(request.pdf_path, limits, transcriber)
+        pdf, usage = read_document(request.pdf_path, limits, transcriber, concurrency=concurrency)
     else:
         raise ExtractionError("Nessun PDF indicato.")
     check_module_kind(pdf.text, profile.name, module_check)
@@ -126,7 +129,12 @@ async def arun_validation(
 
     mark = perf_counter()
     pdf, ingest_usage = await asyncio.to_thread(
-        _read, request, profile, deps.transcriber, deps.settings.module_check
+        _read,
+        request,
+        profile,
+        deps.transcriber,
+        deps.settings.module_check,
+        deps.settings.agent.transcribe_concurrency,
     )
     timings["ingest"] = _ms(mark)
 

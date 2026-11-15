@@ -8,7 +8,7 @@ Se vedi qualcosa di diverso, fermati a quel passo e guarda la tabella "Se qualco
 fondo.
 
 **Le migliorie** stanno in `docs/MIGLIORIE.md`. **Come provare le modifiche** sta in
-`docs/BASELINE.md`.
+`docs/ESPERIMENTI_AZIENDA.md`.
 
 ---
 
@@ -141,6 +141,7 @@ Controllo: scrivi `git status`. Non deve comparire nessuno di questi file.
 | `agent.use_bedrock` | `true` (lascialo così) |
 | `agent.aws_region` | la regione di Bedrock, per esempio `eu-south-1`. Vuoto = quella dell'ambiente |
 | `agent.transcribe_model` | **importante, vedi sotto** |
+| `agent.transcribe_concurrency` | pagine di una foto o scansione trascritte insieme (4); abbassalo se Bedrock risponde con throttling |
 | `agent.save_transcripts` | `false` (predefinito) nel servizio, perché salva su disco il testo dei cicli e dei manuali; `true` solo mentre provi. Gli esperimenti lo accendono da soli |
 | `agent.session_timeout_s`, `agent.extraction_timeout_s` | tempo massimo di una sessione (90 s) e della lettura del PDF (300 s): oltre, WARNING per errore tecnico invece di un'attesa senza fine |
 | `module_check.dr_markers` | come si riconosce un ciclo DR dalla testata: vedi il Passo 8 |
@@ -210,6 +211,16 @@ Devi vedere `concordanza 100.0%` per tutti e due. Per MOS va bene anche `94.7%`,
 diverso è `fonte_e_codice_assenti`: è un caso ambiguo noto, il modello a volte risponde WARNING
 invece di CORRETTO (spiegato in `docs/MIGLIORIE.md`, punto A2).
 
+Infine la prova automatica, che usa il modello sia con il testo nel messaggio sia con la ricerca
+(3 sessioni, meno di un minuto):
+
+```bash
+uv run pytest -m live
+```
+
+Deve dire `1 passed`. Va rilanciata dopo ogni aggiornamento della libreria dell'agente o del
+modello.
+
 Se invece **tutte** le operazioni escono WARNING con "errore tecnico", il modello non risponde:
 controlla credenziali, regione e `agent.model`. Il motivo preciso sta nei file in
 `runs/ultimo/transcripts/`.
@@ -232,8 +243,11 @@ funzione `build_services` di `src/cycle_validation/api/main.py`. Deve costruire 
 Le classi esistono e sono provate con dati finti: vanno solo create con i client veri. Come
 esempio di montaggio guarda `tests/api_support.py`, che fa la stessa cosa con pezzi finti.
 
-All'avvio chiama `preload()` sulla conoscenza: se un file su S3 ha una forma diversa da quella
-attesa, l'errore esce subito e dice quale file e quale campo.
+All'avvio fai scaricare la conoscenza: in `ApiServices` metti
+`warmup=lambda: runner.preload(["mos", "dr", "ej200"])`. Il servizio la carica prima di accettare
+richieste, così la prima validazione non aspetta S3; se un file su S3 ha una forma diversa da
+quella attesa, il servizio non parte e l'errore dice quale file e quale campo. La `deps_for` del
+runner deve riusare le dipendenze già costruite (un dizionario per profilo basta).
 
 Questo passo lo possiamo scrivere insieme in azienda: bastano i nomi dei prefissi S3 e la query
 Redshift.

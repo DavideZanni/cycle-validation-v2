@@ -20,3 +20,13 @@ def make_pdf(tmp_path: Path) -> Callable[..., Path]:
         return path
 
     return _make
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Le prove `live` chiamano il modello vero: partono solo se chieste con `-m live`."""
+    if "live" in (config.getoption("markexpr") or ""):
+        return
+    skip = pytest.mark.skip(reason="prova con il modello vero: lanciala con `pytest -m live`")
+    for item in items:
+        if "live" in item.keywords:
+            item.add_marker(skip)

@@ -4,7 +4,7 @@ Guida in italiano a **Cycle Validation v2**, scritta per essere portata da un co
 Contiene la stessa spiegazione della pagina pubblicata, più una sezione completa su come si
 comporta l'agente (il modello) e quali strumenti usa.
 
-Stato al 14 novembre 2026, ramo `review/correctness-and-optimization`. Gli esempi vengono
+Stato al 15 novembre 2026, ramo `main`. Gli esempi vengono
 dall'insieme sintetico del progetto (`examples/sintetico/`, `eval/casi/sintetici/`): nessun dato aziendale.
 
 > **Cosa è verificato e cosa no.** Il codice di validazione è stato letto. Del progetto di

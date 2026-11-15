@@ -184,7 +184,7 @@ chiama il modello, quindi la prova costa meno della baseline.
 ## Quando una variante vince
 
 Si porta la modifica in `config/settings.yaml` (o nel codice), si rilancia `baseline` per avere
-il nuovo riferimento, e si scrive la decisione nel registro di `docs/BASELINE.md`.
+il nuovo riferimento, e si scrive la decisione nel registro in fondo a `docs/MIGLIORIE.md`.
 
 ## Varianti di questo giro
 
@@ -193,6 +193,7 @@ il nuovo riferimento, e si scrive la decisione nel registro di `docs/BASELINE.md
 | `effort_low` | meno ragionamento ovunque |
 | `effort_low_controlli` | meno ragionamento nei controlli, pieno nella lettura del PDF (`agent.extraction_effort`) |
 | `prompt_task_mancante` | dire al modello che il task citato non è nel manuale (`docs/MIGLIORIE.md` A2) |
+| `salta_task_mancante` | task citato non nel manuale: WARNING subito, senza modello (`docs/MIGLIORIE.md` B6) |
 | `guasti` | robustezza, giudicata a parte |
 
 ## Prossimo giro

@@ -206,7 +206,7 @@ Una variante vince se è tra le ammesse e più veloce o meno cara della baseline
 
 1. porta la modifica in `config/settings.yaml` (o nel codice);
 2. rilancia la pipeline: la nuova baseline è il nuovo riferimento;
-3. scrivi la decisione nel registro di `docs/BASELINE.md`.
+3. scrivi la decisione nel registro in fondo a `docs/MIGLIORIE.md`.
 
 ## Passo 9. Errori fabbricati e guasti
 
@@ -236,6 +236,7 @@ meno della baseline, perché le sessioni guaste non chiamano il modello.
 | `effort_low` | meno ragionamento ovunque | era ammessa sui casi sintetici, ma sul ciclo di prova leggeva peggio il PDF (87,5%) |
 | `effort_low_controlli` | meno ragionamento nei controlli, pieno nella lettura del PDF | se tiene la velocità di `effort_low` senza perdere estrazione |
 | `prompt_task_mancante` | dice al modello quando il task citato non è nel manuale | la concordanza del controllo `operation_description` e le righe instabili |
+| `salta_task_mancante` | task citato non nel manuale: WARNING subito, senza modello | sui sintetici è scartata per `fonte_e_codice_assenti` (atteso CORRETTO); sui casi veri conta il parere di chi conosce i cicli |
 | `guasti` | robustezza | "regge" |
 
 Da questo giro il programma controlla anche due cose della lettura del PDF:
