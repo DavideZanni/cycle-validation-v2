@@ -109,7 +109,7 @@ def test_run_writes_transcript_and_returns_outcome(
         yield result()
 
     monkeypatch.setattr(sdk_session, "query", fake_query)
-    session = SdkAgentSession(AgentSettings(), tmp_path / "t")
+    session = SdkAgentSession(AgentSettings(save_transcripts=True), tmp_path / "t")
     outcome = asyncio.run(session.run(request()))
     assert outcome.status is SessionStatus.OK
     assert (tmp_path / "t" / "op_001.jsonl").read_text(encoding="utf-8").count("\n") == 2

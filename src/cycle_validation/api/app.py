@@ -1,6 +1,7 @@
 """App FastAPI: stesse rotte, stessi modelli, stessi codici HTTP e stessa forma degli errori
 del sistema attuale. La logica sta nella libreria; qui solo traduzione HTTP."""
 
+import asyncio
 import traceback
 import uuid
 from collections.abc import Callable, Sequence
@@ -19,9 +20,8 @@ from cycle_validation.api.auth import (
     PREFIX,
     SERVICE_ALL,
     SERVICE_EJ200,
-    AuthBackend,
-    AuthMiddleware,
     Identity,
+    IdentityMiddleware,
 )
 from cycle_validation.api.models import (
     SESSION_ID,
@@ -75,7 +75,6 @@ def _first_error(errors: Sequence[Any]) -> str:
 @dataclass
 class ApiServices:
     config: AppConfig
-    auth: AuthBackend
     store: WritableObjectStore
     runner: ValidationRunner
     metrics: MetricsSink = field(default_factory=NullMetrics)
@@ -280,6 +279,13 @@ def create_app(services: ApiServices) -> FastAPI:
     civil_sessions = SessionStore(services.store, CIVIL)
     ej_sessions = SessionStore(services.store, EJ200)
     router = APIRouter(prefix=PREFIX)
+    # Tetto alle validazioni contemporanee (API_MAX_WORKERS): ognuna apre più sessioni del
+    # modello. Le richieste oltre il tetto aspettano il loro turno.
+    gate = asyncio.Semaphore(services.config.max_workers)
+
+    async def validate(profile: str, request: RunRequest) -> Report:
+        async with gate:
+            return await services.runner.run(profile, request)
 
     @router.get("/health")
     async def health() -> dict[str, Any]:
@@ -329,7 +335,7 @@ def create_app(services: ApiServices) -> FastAPI:
             pdf_bytes=data, pdf_name=file.filename or "ciclo.pdf", selectors=selectors
         )
         try:
-            report = await services.runner.run("dr" if dr else "mos", request)
+            report = await validate("dr" if dr else "mos", request)
         except (IngestError, SelectorError, KnowledgeError, ProfileUnavailableError) as exc:
             _raise_for(exc)
             raise
@@ -369,7 +375,7 @@ def create_app(services: ApiServices) -> FastAPI:
         data = await _read_pdf(file, services.config.max_upload_bytes)
         run = RunRequest(pdf_bytes=data, pdf_name=file.filename or "ciclo.pdf", selectors=selectors)
         try:
-            report = await services.runner.run(profile, run)
+            report = await validate(profile, run)
         except Exception as exc:
             if military or isinstance(
                 exc, (IngestError, SelectorError, KnowledgeError, ProfileUnavailableError)
@@ -404,7 +410,7 @@ def create_app(services: ApiServices) -> FastAPI:
         data = await _read_pdf(file, services.config.max_upload_bytes)
         request = RunRequest(pdf_bytes=data, pdf_name=file.filename or "ciclo.pdf")
         try:
-            report = await services.runner.run("ej200", request)
+            report = await validate("ej200", request)
         except Exception as exc:
             _raise_for(exc)
             raise
@@ -420,7 +426,11 @@ def create_app(services: ApiServices) -> FastAPI:
     )
     app.include_router(router)
 
-    app.add_middleware(AuthMiddleware, backend=services.auth)
+    app.add_middleware(
+        IdentityMiddleware,
+        user_header=services.config.user_header,
+        services_header=services.config.services_header,
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[services.config.frontend_url],

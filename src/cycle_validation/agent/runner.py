@@ -1,5 +1,8 @@
 """Esecuzione delle sessioni: in parallelo con un tetto, con nuovi tentativi sui guasti
-tecnici e sugli output non conformi. Un guasto resta confinato alla sua sessione."""
+tecnici e sugli output non conformi. Un guasto resta confinato alla sua sessione.
+
+Una sessione che supera il tempo massimo è un errore tecnico e non si riprova: riprovare
+raddoppierebbe proprio l'attesa che il limite serve a togliere."""
 
 import asyncio
 from collections.abc import Awaitable, Callable, Sequence
@@ -47,6 +50,7 @@ async def _run_one(
     invalid_output_retries: int,
     validate: Validator | None,
     sleep: Sleep,
+    timeout_s: float | None,
 ) -> SessionOutcome:
     usage = Usage()
     errors_left = retries
@@ -55,7 +59,14 @@ async def _run_one(
     while True:
         attempts += 1
         try:
-            outcome = _validated(await session.run(request), validate)
+            outcome = _validated(await asyncio.wait_for(session.run(request), timeout_s), validate)
+        except TimeoutError:
+            return SessionOutcome(
+                status=SessionStatus.ERROR,
+                error=f"tempo massimo superato ({timeout_s:g} s)",
+                usage=usage,
+                attempts=attempts,
+            )
         except Exception as exc:
             # solo il tipo: il messaggio di un'eccezione può riportare testo del ciclo o dei
             # documenti, e questo campo finisce in _pipeline_errors, nel payload e nei log
@@ -82,8 +93,11 @@ async def run_sessions(
     invalid_output_retries: int,
     validate: Validator | None = None,
     sleep: Sleep = asyncio.sleep,
+    timeout_s: float | None = None,
 ) -> list[SessionOutcome]:
-    """Esegue le richieste e restituisce gli esiti nello stesso ordine."""
+    """Esegue le richieste e restituisce gli esiti nello stesso ordine.
+
+    `timeout_s` vale per ogni tentativo di ogni sessione. None = nessun limite."""
     gate = asyncio.Semaphore(concurrency)
 
     async def guarded(request: SessionRequest) -> SessionOutcome:
@@ -96,6 +110,7 @@ async def run_sessions(
                 invalid_output_retries=invalid_output_retries,
                 validate=validate,
                 sleep=sleep,
+                timeout_s=timeout_s,
             )
 
     return list(await asyncio.gather(*(guarded(request) for request in requests)))

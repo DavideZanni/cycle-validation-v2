@@ -1,27 +1,32 @@
-"""Autenticazione e autorizzazione per servizio.
+"""Chi è l'utente e quali servizi può usare.
 
-Nel sistema attuale la verifica è dell'SDK condiviso (`chatbot_ai_sdk.auth`: introspezione
-del token e permessi letti da S3). Qui sta dietro `AuthBackend`: l'adattatore sull'SDK
-si scrive dove l'SDK è disponibile; `StaticAuthBackend` serve ai test. L'identità viene
-sempre dal backend, mai da un header `sso` passato dal chiamante.
+L'accesso lo verifica il **frontend**: il backend non legge token. Il frontend, dopo aver
+riconosciuto l'utente, mette nella richiesta due header (nomi in `AppConfig`, di solito `X-User`
+e `X-Services`): l'utente e i suoi servizi separati da virgole. Il backend se ne fida, quindi
+**deve essere raggiungibile solo dal frontend** (rete privata o gateway): chi arrivasse diretto
+potrebbe presentarsi come un altro.
+
+L'utente finisce nel percorso S3 delle sessioni e dei feedback: si accettano solo lettere,
+cifre e `.`, `_`, `@`, `-`, così nessuno può puntare ai file di un altro.
 """
 
+import re
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
-from typing import Protocol
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from cycle_validation.errors import SourceUnavailableError
-
 PREFIX = "/cycle_validation"
 EJ200_PREFIX = f"{PREFIX}/ej200"
 PUBLIC_PATHS = frozenset({f"{PREFIX}/health"})
+
 SERVICE_CIVIL = "cv"
 SERVICE_EJ200 = "cv_ej200"
 SERVICE_ALL = "all"
+
+_USER = re.compile(r"[A-Za-z0-9._@-]{1,128}")
 
 
 @dataclass(frozen=True)
@@ -30,20 +35,16 @@ class Identity:
     services: frozenset[str]
 
 
-class AuthBackend(Protocol):
-    def authenticate(self, headers: Mapping[str, str]) -> Identity | None:
-        """None se il token manca o non è valido. SourceUnavailableError se l'IdP non risponde."""
-        ...
-
-
-class StaticAuthBackend:
-    def __init__(self, tokens: Mapping[str, Identity]) -> None:
-        self._tokens = dict(tokens)
-
-    def authenticate(self, headers: Mapping[str, str]) -> Identity | None:
-        authorization = headers.get("authorization", "")
-        token = authorization.removeprefix("Bearer ").strip() if authorization else ""
-        return self._tokens.get(token)
+def identity_from_headers(
+    headers: Mapping[str, str], user_header: str, services_header: str
+) -> Identity | None:
+    """None se l'utente manca o ha una forma che potrebbe uscire dalla sua cartella."""
+    user = headers.get(user_header, "").strip()
+    if not _USER.fullmatch(user) or set(user) == {"."}:
+        return None
+    raw = headers.get(services_header, "")
+    services = frozenset(part.strip() for part in raw.split(",") if part.strip())
+    return Identity(user, services)
 
 
 def required_services(path: str) -> frozenset[str]:
@@ -53,10 +54,11 @@ def required_services(path: str) -> frozenset[str]:
     return frozenset({SERVICE_CIVIL, SERVICE_EJ200, SERVICE_ALL})
 
 
-class AuthMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app: object, backend: AuthBackend) -> None:
+class IdentityMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: object, user_header: str, services_header: str) -> None:
         super().__init__(app)  # type: ignore[arg-type]
-        self._backend = backend
+        self._user_header = user_header
+        self._services_header = services_header
 
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
@@ -64,12 +66,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         if request.method == "OPTIONS" or path in PUBLIC_PATHS or not path.startswith(PREFIX):
             return await call_next(request)
-        try:
-            identity = self._backend.authenticate(request.headers)
-        except SourceUnavailableError:
-            return JSONResponse({"detail": "Servizio di autenticazione non disponibile."}, 503)
+        identity = identity_from_headers(request.headers, self._user_header, self._services_header)
         if identity is None:
-            return JSONResponse({"detail": "Autenticazione richiesta."}, 401)
+            return JSONResponse({"detail": "Utente mancante o non valido."}, 401)
         if not identity.services & required_services(path):
             return JSONResponse({"detail": "Permesso insufficiente per il servizio."}, 403)
         request.state.identity = identity

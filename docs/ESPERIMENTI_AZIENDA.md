@@ -154,8 +154,9 @@ Le varianti partono da `config/settings.yaml`, già configurato al Passo 5 dell'
 `sonnet` usa la parola `sonnet`: in azienda va sostituita in `eval/varianti/sonnet.yaml` con
 l'id del profilo di inferenza Sonnet abilitato.
 
-Durante le prove `agent.save_transcripts: true` salva in `runs/eval/<prova>/` il testo delle sessioni:
-utile per capire un esito strano, ma contiene testo aziendale. `runs/` è ignorata da git.
+Durante le prove `agent.save_transcripts: true` salva in `runs/eval/<prova>/` il testo delle
+sessioni: utile per capire un esito strano, ma contiene testo aziendale. Lo accende
+`eval/varianti/baseline.yaml`; nel servizio è spento. `runs/` è ignorata da git.
 
 ## Passo 6. La pipeline
 

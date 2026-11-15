@@ -136,3 +136,43 @@ def test_a_failure_does_not_touch_other_sessions() -> None:
 def test_ok_without_output_is_invalid(output: None) -> None:
     session = ScriptedSession(lambda r, a: SessionOutcome(status=SessionStatus.OK, output=output))
     assert run(session, ["a"], invalid_output_retries=0)[0].status is SessionStatus.INVALID_OUTPUT
+
+
+class _Stuck:
+    """Una sessione che non risponde mai, tranne quelle il cui id è in `quick`."""
+
+    def __init__(self, quick: set[str]) -> None:
+        self.quick = quick
+        self.calls = 0
+
+    async def run(self, request: SessionRequest) -> SessionOutcome:
+        self.calls += 1
+        if request.session_id not in self.quick:
+            await asyncio.sleep(60)
+        return ok({"id": request.session_id})
+
+
+def test_a_stuck_session_stops_at_the_time_limit_without_retrying() -> None:
+    session = _Stuck(quick={"b"})
+    outcomes = asyncio.run(
+        run_sessions(
+            session,
+            [req("a"), req("b")],
+            concurrency=2,
+            retries=2,
+            backoff_s=0,
+            invalid_output_retries=1,
+            timeout_s=0.05,
+        )
+    )
+    assert outcomes[0].status is SessionStatus.ERROR
+    assert outcomes[0].error is not None and "tempo massimo" in outcomes[0].error
+    assert outcomes[0].attempts == 1  # riprovare raddoppierebbe l'attesa
+    assert outcomes[1].status is SessionStatus.OK
+    assert session.calls == 2
+
+
+def test_without_a_time_limit_sessions_are_awaited() -> None:
+    session = ScriptedSession(lambda r, a: {"ok": 1})
+    (outcome,) = run(session, ["a"], timeout_s=None)
+    assert outcome.status is SessionStatus.OK

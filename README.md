@@ -4,7 +4,7 @@ Validazione dei cicli di riparazione (MOS, DR, EJ200) contro manuali e dati stru
 Una pipeline, tre profili: `ingest → extract → integrity → check → consolidate → report`.
 
 Il codice trova il dove (documento e righe), l'agente confronta, il codice verifica la citazione
-e assegna l'esito. Tutto ciò che è esterno (S3, Redshift, Bedrock, autenticazione) sta
+e assegna l'esito. Tutto ciò che è esterno (S3, Redshift, Bedrock) sta
 dietro una porta con un'implementazione di prova: la suite gira offline.
 
 ```bash

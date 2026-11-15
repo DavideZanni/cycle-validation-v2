@@ -1,6 +1,7 @@
 # Migliorie possibili
 
-Elenco delle migliorie, divise in quattro gruppi: affidabilità, velocità, costo, pulizia. Ognuna
+Elenco delle migliorie, divise in cinque gruppi: affidabilità, velocità, costo, pulizia,
+esperimenti. Ognuna
 dice cosa cambia, quanto rende (con la misura, quando c'è), quanto costa farla e se va provata
 prima in azienda.
 
@@ -73,12 +74,18 @@ ERRATO solo se la targa è nei dati TM ma non è attiva; se non è da nessuna pa
 sconosciuta". Va deciso con i dati veri di Redshift. Costo: piccolo, in
 `src/cycle_validation/checks/machine_tag.py`.
 
-### A4. Tempo massimo per sessione
+### A4. Tempo massimo per sessione. **Fatto**
 
 Oggi non c'è. Se una sessione si blocca, tutta la validazione resta ferma e l'utente aspetta
 fino al timeout del server (600 s). Proposta: 60-90 s per sessione, poi WARNING "errore
 tecnico". Non accelera il caso normale, toglie le attese infinite. Costo: piccolo, in
 `src/cycle_validation/agent/runner.py`.
+
+**Stato (15 novembre 2026):** `agent.session_timeout_s: 90` per le sessioni dei controlli,
+`agent.extraction_timeout_s: 300` per la lettura del PDF (un ciclo lungo richiede più tempo).
+Oltre il limite la sessione è un errore tecnico: WARNING sul controllo, errore di estrazione
+sulla lettura. Non si riprova, perché raddoppierebbe l'attesa. Da guardare in azienda: se con
+Bedrock qualche sessione normale supera i 90 s, alzare il limite.
 
 ### A5. Una prova con il modello vero, da lanciare a mano
 
@@ -184,14 +191,126 @@ dalla cache (visto oggi: circa 1500 token letti dalla cache per sessione).
 
 | Cosa | Perché | Costo |
 |---|---|---|
-| `API_MAX_WORKERS` viene letta ma non usata | o la si collega a un limite di validazioni contemporanee, o la si toglie | piccolo |
-| `save_transcripts: true` come valore predefinito | nel servizio scrive su disco testo di cicli e manuali | una riga |
-| `src/cycle_validation/legacy_prompts.py` | nessun codice lo usa, solo i suoi test | piccolo |
-| `Dockerfile` installa `boto3` a parte | usare l'extra `aws` del progetto (`pip install .[aws]`) per avere una sola lista | una riga |
+| ~~`API_MAX_WORKERS` viene letta ma non usata~~ | **fatto**: è il tetto alle validazioni contemporanee, le altre aspettano | — |
+| ~~`save_transcripts: true` come valore predefinito~~ | **fatto**: spento nel servizio, acceso negli esperimenti da `eval/varianti/baseline.yaml` | — |
+| ~~`src/cycle_validation/legacy_prompts.py`~~ | **fatto**: tolto con i suoi test | — |
+| ~~`Dockerfile` installa `boto3` a parte~~ | **fatto**: `pip install ".[aws]"` | — |
 | rotte storiche (`/upload`, `/ej200/upload`, `/conversation`) | da togliere quando il frontend nuovo usa solo `validation/upload` | medio |
-| autenticazione nel backend | hai deciso che è del frontend: si può togliere | medio |
-| `data/simulazione/simula.py` (fuori da git) | usa una classe tolta con OpenSearch: non parte più | da rifare o cancellare |
-| `mypy` | qui non si carica: va lanciato in azienda | — |
+| ~~autenticazione nel backend~~ | **fatto**: il frontend manda utente e servizi negli header, il backend non legge token | — |
+| ~~`data/simulazione/simula.py` (fuori da git)~~ | **fatto**: cancellato | — |
+| ~~`mypy`~~ | **fatto**: ora gira anche qui, 0 errori; `eval pipeline` lo lancia prima di ogni giro | — |
+
+---
+
+## E. Esperimenti
+
+### E1. Varianti di prompt proposte dal modello (`eval proponi`). **Futura**
+
+**L'idea.** Oggi le varianti di `eval/varianti/` le scrive una persona. Il paper Harness²
+(Google Research, arXiv 2610.14224, ottobre 2026) fa scrivere al modello le modifiche al proprio
+"harness" (istruzioni, regole, strumenti), le prova sullo stesso compito e tiene quelle che
+funzionano. Il suo punto debole: non ha esiti attesi, quindi sceglie in base al giudizio del
+modello, e a volte sbaglia (nel paper, un risultato da 55 punti preferito a uno da 95). Noi
+gli esiti attesi li abbiamo (`expected.json`) e anche una classifica con paletti. Prendiamo solo
+la parte che ci manca: **la proposta**. La scelta resta a `eval classifica`.
+
+| Harness² | Da noi |
+|---|---|
+| Propose: il modello scrive modifiche | **da fare**: `eval proponi` |
+| Probe: prova le modifiche sullo stesso compito | c'è: `eval esegui` / `eval pipeline` |
+| Compose: tiene le modifiche migliori | c'è, ed è più sicuro: i paletti di `eval classifica` |
+| Libreria di esperienza (`EXPERIENCE.md`) | in parte: il registro di `docs/BASELINE.md`, ma solo da leggere per una persona |
+
+**Cosa non si fa.** Niente modifiche automatiche nel servizio, ciclo per ciclo: costerebbero
+almeno 4 sessioni per ciclo invece di una, cambierebbero `prompt_version` a ogni ciclo e
+metterebbero in produzione istruzioni non verificate, dove l'errore peggiore è l'ERRATO falso.
+Il servizio non cambia: E1 vive tutto in `eval/`. Anche la promozione di una variante vincente
+in `prompts/` resta una scelta umana, come oggi ("Quando una variante vince" in `eval/README.md`).
+
+**Prima di cominciare** servono:
+
+1. i casi aziendali rivisti (`docs/ESPERIMENTI_AZIENDA.md`). Sui casi sintetici la concordanza
+   è già al 99,5-100%: non c'è niente da migliorare, e ottimizzare su pochi casi inventati vuol
+   dire adattarsi a quei casi e basta;
+2. la decisione sulla proposta di semplificazione, perché E1 aggiunge un comando.
+
+**Il piano, in quattro passi.** Ogni passo si può tenere anche se il successivo non si fa.
+
+1. **Esperienza (piccolo).** Una cartella `eval/esperienza/`, fuori da git come `risultati/`
+   (può citare casi veri). Un file per variante provata: cosa cambia, perché, i numeri della
+   classifica contro la baseline, il file di risultato da cui vengono, la decisione (ammessa,
+   scartata e per quale paletto) e una riga di lezione. Più un `INDICE.md`, una riga per file.
+   `eval classifica` scrive la parte dei numeri, la lezione la scrive chi decide. Il registro di
+   `docs/BASELINE.md` resta il posto delle decisioni: una riga, con un rimando al file.
+   Regola presa dal paper: una lezione si scrive solo se la classifica la sostiene; se
+   l'evidenza è debole (tempi rumorosi, un solo caso) si scrive "da rimisurare", non una lezione.
+
+2. **`eval proponi` (medio).** Legge:
+   - l'ultimo risultato di `baseline` sui casi di proposta: le righe sbagliate
+     (`Metrics.mismatches`), le righe instabili, le citazioni non ritrovate, la concordanza per
+     controllo;
+   - i tre prompt di `prompts/`;
+   - `eval/esperienza/INDICE.md`, per non riproporre una modifica già scartata.
+
+   Poi una sessione dell'editor (la stessa interfaccia `AgentSession` del resto del programma,
+   con istruzioni sue in `eval/editor/proponi.md`) scrive **due** varianti in
+   `eval/varianti/proposte/<data>_<nome>/`: una cartella con i tre prompt modificati e un
+   `<nome>.yaml` con `base: baseline`, `paths.prompts_dir` che punta alla cartella e una
+   `descrizione` con il motivo. Le due varianti sono:
+   - **generale**: regole che valgono per tutti i profili (come si legge un testo, quando un
+     controllo è "non verificabile");
+   - **di profilo**: una sola cosa di MOS, EJ200 o DR, il profilo con più righe sbagliate.
+
+   Il comando rifiuta la proposta (e lo dice) se:
+   - tocca file diversi dai tre prompt, o anche `agent`/`module_check` (le impostazioni le
+     cambia una persona);
+   - cambia più di 20 righe in tutto: deve restare una modifica che si rilegge in un minuto;
+   - ogni modifica non cita **almeno due** righe sbagliate o instabili che vuole correggere
+     (regola del paper: mai correggere un difetto visto una volta sola);
+   - è uguale a una variante già nell'indice dell'esperienza.
+
+   Le proposte sono varianti normali: si provano con
+   `eval pipeline --variante eval/varianti/proposte/...`, senza codice nuovo per provarle.
+   Per l'editor conviene un modello diverso da quello che fa i controlli (per esempio Sonnet
+   se i controlli usano Haiku): con lo stesso modello le sue debolezze si ripetono anche
+   nelle proposte (il paper lo indica come limite). È offline e fa una sessione per giro,
+   quindi il costo conta poco.
+
+3. **Casi di proposta e casi di conferma (piccolo).** L'editor vede solo gli errori dei casi
+   di proposta (sintetici e `casi/mutazioni/`). Una proposta è ammessa solo se supera i paletti
+   **anche** sui casi di conferma (`casi/aziendali/`), che l'editor non ha mai visto. È la
+   protezione contro l'adattarsi ai casi su cui si propone. In pratica: `eval proponi --casi`
+   sceglie da quali risultati leggere, e `eval pipeline` gira due volte, una per gruppo.
+
+4. **Unire due proposte (piccolo, solo se serve).** Se in un giro passano entrambe, l'editor
+   le unisce in una terza variante (`eval proponi --unisci a b`), che si prova come le altre.
+   Si fa solo se nei primi giri capita davvero di avere due proposte ammesse.
+
+**Prove del codice.** Con il modello finto, come gli altri test: una risposta dell'editor fissa
+deve produrre la cartella e lo YAML giusti; una proposta che tocca un file non permesso, che
+cambia troppe righe, che cita una sola riga o che ripete una variante già scartata deve essere
+rifiutata con il motivo.
+
+**Come si decide se E1 vale.** Dopo tre giri con i casi aziendali si conta quante proposte sono
+state ammesse. Con zero ammesse in tre giri E1 si toglie e le varianti si continuano a scrivere
+a mano. Se ne passa qualcuna, si guarda se la stessa modifica si sarebbe scritta a mano
+leggendo `classifica.md`: se sì, E1 fa solo risparmiare tempo; se no, trova cose che una
+persona non vede.
+
+**Rischi.**
+- I prompt crescono a ogni giro: l'editor può anche togliere righe, e il limite di 20 righe
+  vale per aggiunte e tolte insieme.
+- Dati veri: con i casi aziendali l'editor legge contenuti dei cicli veri, quindi in azienda
+  gira su Bedrock come il resto, e `eval/esperienza/` e `eval/varianti/proposte/` restano fuori
+  da git.
+- Il guadagno più grande del paper viene da skills e scripts (strumenti e codice), non dal
+  prompt (−1,5 punti togliendo le modifiche al prompt, −5,3 togliendo le skills). Da noi
+  l'equivalente è spostare un controllo nel codice, come per le mutazioni: quando l'editor
+  propone la stessa regola più volte, è un segnale che quella regola va scritta nel codice,
+  non nel prompt.
+
+**Costo.** Passo 1 piccolo, passo 2 medio (un comando, le istruzioni dell'editor, i test),
+passi 3 e 4 piccoli. Nessuna modifica a `src/cycle_validation/agent/` né al servizio.
 
 ---
 
@@ -203,3 +322,4 @@ dalla cache (visto oggi: circa 1500 token letti dalla cache per sessione).
 4. **B1** (chiamata diretta): il guadagno più grande sul tempo.
 5. **B3** se i cicli arrivano come foto, poi **B4**.
 6. **A3**, **A6/B5**: quando ci sono i dati veri (Redshift, stampa DR).
+7. **E1** (`eval proponi`): dopo i casi aziendali rivisti e la decisione sulla semplificazione.

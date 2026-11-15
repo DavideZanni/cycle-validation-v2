@@ -266,6 +266,7 @@ async def check_operations(
         backoff_s=settings.retry_backoff_s,
         invalid_output_retries=settings.invalid_output_retries,
         validate=OperationJudgement.model_validate,
+        timeout_s=settings.session_timeout_s,
     )
     errors: list[PipelineError] = []
     for job, outcome in zip(jobs, outcomes, strict=True):

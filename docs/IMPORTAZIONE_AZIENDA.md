@@ -141,7 +141,8 @@ Controllo: scrivi `git status`. Non deve comparire nessuno di questi file.
 | `agent.use_bedrock` | `true` (lascialo così) |
 | `agent.aws_region` | la regione di Bedrock, per esempio `eu-south-1`. Vuoto = quella dell'ambiente |
 | `agent.transcribe_model` | **importante, vedi sotto** |
-| `agent.save_transcripts` | `true` mentre provi; `false` nel servizio, perché salva su disco il testo dei cicli e dei manuali |
+| `agent.save_transcripts` | `false` (predefinito) nel servizio, perché salva su disco il testo dei cicli e dei manuali; `true` solo mentre provi. Gli esperimenti lo accendono da soli |
+| `agent.session_timeout_s`, `agent.extraction_timeout_s` | tempo massimo di una sessione (90 s) e della lettura del PDF (300 s): oltre, WARNING per errore tecnico invece di un'attesa senza fine |
 | `module_check.dr_markers` | come si riconosce un ciclo DR dalla testata: vedi il Passo 8 |
 
 **Foto e scansioni.** Le due stampe di esempio in `docs/Esempio ...` sono **foto**: dentro non
@@ -169,8 +170,19 @@ Facoltative:
 | `EJ200_CATALOG_KEY` | percorso standard | dove sta il catalogo EJ200 su S3 |
 | `API_INCLUDE_TRACEBACK` | attivo | **in produzione spegnilo** (`false`) |
 | `SECRET_NAME` | vuoto | secret da cui leggere le variabili |
+| `API_USER_HEADER` | `X-User` | header in cui il frontend mette l'utente già verificato |
+| `API_SERVICES_HEADER` | `X-Services` | header con i servizi dell'utente, separati da virgole (`cv`, `cv_ej200`, `all`) |
 
-`API_MAX_WORKERS` viene letta ma oggi non fa niente.
+`API_MAX_WORKERS` (predefinito 6) è il numero massimo di validazioni contemporanee: le altre
+aspettano il loro turno. Ogni validazione apre fino a `agent.concurrency` sessioni del modello,
+quindi il massimo di sessioni insieme è il prodotto dei due.
+
+**Chi è l'utente.** L'accesso lo verifica il frontend: il backend legge l'utente e i suoi servizi
+dai due header qui sopra e se ne fida. Per questo il backend **deve essere raggiungibile solo dal
+frontend** (rete privata, security group o gateway): chi lo chiamasse diretto potrebbe
+presentarsi come un altro utente. Senza utente, o con un utente che contiene caratteri diversi
+da lettere, cifre e `.` `_` `@` `-`, la risposta è 401; senza il servizio giusto è 403 (i cicli
+EJ200 chiedono `cv_ej200` o `all`).
 
 ## Passo 6. Prima prova con il modello vero, senza dati aziendali
 
@@ -214,7 +226,7 @@ funzione `build_services` di `src/cycle_validation/api/main.py`. Deve costruire 
 | Targhe, schede, recommendation DR | i JSON su S3 | `RemoteKnowledgeBase(versione, store, manuali)` |
 | Catalogo e testi EJ200 | catalogo su S3 | `Ej200Catalog` e `Ej200KnowledgeBase` |
 | Macchine attive | Redshift, oppure un file JSON | `redshift_machine_registry(connect)` oppure `load_machine_registry(file)` |
-| Accesso degli utenti | SDK aziendale `chatbot_ai_sdk.auth` | un `AuthBackend` (oppure lasciare l'accesso al frontend, come hai deciso) |
+| Accesso degli utenti | il frontend | niente da montare: il frontend manda gli header `X-User` e `X-Services` (vedi Passo 5) |
 | Costo su CloudWatch (facoltativo) | client `cloudwatch` | `CloudWatchMetrics(client)` |
 
 Le classi esistono e sono provate con dati finti: vanno solo create con i client veri. Come

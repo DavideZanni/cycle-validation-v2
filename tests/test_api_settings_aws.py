@@ -114,3 +114,15 @@ def test_upload_limit_defaults_to_50_mb_and_reads_megabytes_from_the_environment
     base = {"BUCKETNAME": "b", "REGION_NAME": "r", "FRONTEND_URL": "https://f.example"}
     assert load_app_config(base).max_upload_bytes == 50 * 1024 * 1024
     assert load_app_config({**base, "API_MAX_UPLOAD_MB": "8"}).max_upload_bytes == 8 * 1024 * 1024
+
+
+def test_zero_simultaneous_validations_would_block_the_service() -> None:
+    with pytest.raises(ConfigError, match="API_MAX_WORKERS"):
+        load_app_config({**ENV, "API_MAX_WORKERS": "0"})
+
+
+def test_the_identity_headers_can_be_renamed() -> None:
+    config = load_app_config(ENV)
+    assert (config.user_header, config.services_header) == ("X-User", "X-Services")
+    config = load_app_config({**ENV, "API_USER_HEADER": "X-Utente", "API_SERVICES_HEADER": "X-G"})
+    assert (config.user_header, config.services_header) == ("X-Utente", "X-G")

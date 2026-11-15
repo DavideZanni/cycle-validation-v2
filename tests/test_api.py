@@ -37,16 +37,28 @@ def test_health_is_public_and_matches_the_recorded_response(env: Env) -> None:
     assert response.json() == recorded("health.json")
 
 
-def test_missing_or_invalid_token_is_401(env: Env) -> None:
+def test_without_the_user_set_by_the_frontend_it_is_401(env: Env) -> None:
+    # L'accesso lo verifica il frontend: il backend non legge token, solo l'utente che riceve.
     assert env.client.get(f"{BASE}/flow/start").status_code == 401
     assert (
         env.client.get(f"{BASE}/flow/start", headers={"Authorization": "Bearer x"}).status_code
         == 401
     )
-
-
-def test_sso_header_alone_is_not_authentication(env: Env) -> None:
     assert env.client.get(f"{BASE}/flow/start", headers={"sso": "chiunque"}).status_code == 401
+
+
+@pytest.mark.parametrize("user", ["", "  ", "../altro", "a/b", "..", "x" * 129, "anna\\bob"])
+def test_a_user_that_could_reach_other_users_files_is_refused(env: Env, user: str) -> None:
+    # L'utente finisce nel percorso S3 delle sessioni: niente barre, niente vuoto.
+    headers = {"X-User": user, "X-Services": "all"}
+    assert env.client.get(f"{BASE}/flow/start", headers=headers).status_code == 401
+
+
+def test_the_header_names_follow_the_frontend(tmp_path: Path) -> None:
+    env = Env(tmp_path, user_header="X-Utente", services_header="X-Gruppi")
+    headers = {"X-Utente": "anna.rossi@example.com", "X-Gruppi": "cv, cv_ej200"}
+    assert env.client.get(f"{BASE}/ej200/flow/start", headers=headers).status_code == 200
+    assert env.client.get(f"{BASE}/flow/start", headers={"X-User": "anna"}).status_code == 401
 
 
 def test_service_permissions(env: Env) -> None:
@@ -460,3 +472,45 @@ def test_ej200_extraction_failure_is_422_with_its_message(tmp_path: Path) -> Non
     response = upload_ej200(Env(tmp_path, runner=NoOperations()))
     assert response.status_code == 422
     assert "non contiene operazioni" in response.json()["error"]["message"]
+
+
+def test_simultaneous_validations_are_capped_by_api_max_workers(tmp_path: Path) -> None:
+    # Ogni validazione apre più sessioni del modello: senza tetto, dieci caricamenti insieme
+    # sono decine di sessioni contemporanee e le quote di Bedrock finiscono.
+    import asyncio
+
+    import httpx
+
+    class Counting:
+        def __init__(self) -> None:
+            self.active = 0
+            self.peak = 0
+
+        async def run(self, profile: str, request: Any) -> Any:
+            self.active += 1
+            self.peak = max(self.peak, self.active)
+            await asyncio.sleep(0.05)
+            self.active -= 1
+            raise RuntimeError("basta contare")
+
+    runner = Counting()
+    env = Env(tmp_path, runner=runner, max_workers=2)
+    app = env.client.app
+
+    async def upload(client: httpx.AsyncClient) -> int:
+        files = {"file": ("ciclo.pdf", civil_pdf(), "application/pdf")}
+        response = await client.post(
+            "/cycle_validation/validation/upload",
+            data={"domain": "civil", "civil_type": "mos"},
+            files=files,
+            headers=env.auth(),
+        )
+        return response.status_code
+
+    async def main() -> list[int]:
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            return list(await asyncio.gather(*(upload(client) for _ in range(5))))
+
+    codes = asyncio.run(main())
+    assert runner.peak == 2, codes

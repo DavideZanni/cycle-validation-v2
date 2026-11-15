@@ -94,6 +94,7 @@ class LlmCycleExtractor:
             backoff_s=self._settings.retry_backoff_s,
             invalid_output_retries=self._settings.invalid_output_retries,
             validate=Cycle.model_validate,
+            timeout_s=self._settings.extraction_timeout_s,
         )
         if outcome.status is not SessionStatus.OK or outcome.output is None:
             raise ExtractionError(

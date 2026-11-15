@@ -23,10 +23,14 @@ class AppConfig:
     include_traceback: bool = True
     ej200_enabled: bool = True
     ej200_catalog_key: str = DEFAULT_EJ200_CATALOG_KEY
+    # Validazioni contemporanee (API_MAX_WORKERS); le altre aspettano il loro turno.
     max_workers: int = 6
     # Tetto del file caricato, per ogni rotta: i limiti del profilo (EJ200: 20 MB) valgono
     # dopo, e i profili civili non ne hanno uno proprio.
     max_upload_bytes: int = 50 * 1024 * 1024
+    # Header con cui il frontend passa l'utente già verificato e i suoi servizi (vedi api/auth.py).
+    user_header: str = "X-User"
+    services_header: str = "X-Services"
     environment: str = "development"
     secret_name: str | None = None
     input_tokens_cost: float = 0.0
@@ -75,11 +79,15 @@ def load_app_config(environ: Mapping[str, str]) -> AppConfig:
         ej200_catalog_key=environ.get("EJ200_CATALOG_KEY", DEFAULT_EJ200_CATALOG_KEY).strip(),
         max_workers=_number(environ, "API_MAX_WORKERS", int, 6, problems),
         max_upload_bytes=_number(environ, "API_MAX_UPLOAD_MB", int, 50, problems) * 1024 * 1024,
+        user_header=environ.get("API_USER_HEADER", "").strip() or "X-User",
+        services_header=environ.get("API_SERVICES_HEADER", "").strip() or "X-Services",
         environment=environ.get("ENVIRONMENT", "development").strip() or "development",
         secret_name=environ.get("SECRET_NAME") or None,
         input_tokens_cost=_number(environ, "INPUT_TOKENS_COST", float, 0.0, problems),
         output_tokens_cost=_number(environ, "OUTPUT_TOKENS_COST", float, 0.0, problems),
     )
+    if config.max_workers < 1:
+        problems.append("API_MAX_WORKERS: almeno 1, altrimenti nessuna validazione parte.")
     if problems:
         raise ConfigError("Configurazione del servizio non valida:\n  - " + "\n  - ".join(problems))
     return config

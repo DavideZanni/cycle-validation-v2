@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from support import example_cycle, make_deps, scripted_judge
 
 from cycle_validation.api.app import ApiServices, create_app
-from cycle_validation.api.auth import Identity, StaticAuthBackend
+from cycle_validation.api.auth import Identity
 from cycle_validation.api.runner import PipelineRunner
 from cycle_validation.api.settings import AppConfig
 from cycle_validation.extract.pvrm320 import Pvrm320LayoutExtractor
@@ -77,7 +77,6 @@ class Env:
         )
         self.services = ApiServices(
             config=config(**changes),
-            auth=StaticAuthBackend(TOKENS),
             store=self.store,
             runner=runner_override or PipelineRunner(self.deps_for),
             metrics=self.metrics,
@@ -87,7 +86,9 @@ class Env:
         self.client = TestClient(create_app(self.services), raise_server_exceptions=False)
 
     def auth(self, who: str = "tutto") -> dict[str, str]:
-        return {"Authorization": f"Bearer {who}"}
+        """Gli header che il frontend mette dopo aver verificato l'accesso dell'utente."""
+        identity = TOKENS[who]
+        return {"X-User": identity.sso, "X-Services": ",".join(sorted(identity.services))}
 
 
 def civil_pdf() -> bytes:

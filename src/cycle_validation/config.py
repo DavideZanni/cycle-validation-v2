@@ -33,6 +33,10 @@ class AgentSettings(_Strict):
     retries: int = Field(default=2, ge=0, le=5)
     retry_backoff_s: float = Field(default=2.0, ge=0)
     invalid_output_retries: int = Field(default=1, ge=0, le=3)
+    # Tempo massimo di una sessione dei controlli e della lettura del PDF (MIGLIORIE A4).
+    # Oltre, WARNING per errore tecnico invece di un'attesa senza fine. None = nessun limite.
+    session_timeout_s: float | None = Field(default=90, gt=0, le=600)
+    extraction_timeout_s: float | None = Field(default=300, gt=0, le=1800)
     read_limit: int = Field(default=40, ge=5, le=200)
     read_window: int = Field(default=30, ge=5, le=200)
     read_before: int = Field(default=15, ge=0, le=100)
@@ -42,7 +46,9 @@ class AgentSettings(_Strict):
     # Dire al modello che i task citati non sono nel manuale e che il testo è quello delle
     # fonti del ciclo (MIGLIORIE A2). Da provare con la variante `prompt_task_mancante`.
     missing_task_note: bool = False
-    save_transcripts: bool = True
+    # Testo delle sessioni su disco: contiene cicli e manuali. Spento nel servizio, acceso
+    # negli esperimenti (eval/varianti/baseline.yaml).
+    save_transcripts: bool = False
 
 
 class PathSettings(_Strict):

@@ -20,6 +20,9 @@ agent:
   retries: 2
   retry_backoff_s: 2.0
   invalid_output_retries: 1
+  # Tempo massimo di una sessione: oltre, WARNING per errore tecnico. Vuoto = nessun limite.
+  session_timeout_s: 90
+  extraction_timeout_s: 300   # lettura del PDF: un ciclo lungo richiede più tempo
   # GRASP: righe massime per Read, finestra consigliata, righe prima del match.
   read_limit: 40
   read_window: 30
@@ -29,7 +32,8 @@ agent:
   inline_max_lines: 150
   # Tolleranza in righe tra la riga citata dall'agente e quella reale.
   citation_window: 3
-  save_transcripts: true
+  # Testo delle sessioni su disco (runs/): contiene cicli e manuali. Acceso negli esperimenti.
+  save_transcripts: false
 
 paths:
   profiles_dir: config/profiles

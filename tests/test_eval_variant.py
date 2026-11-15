@@ -89,3 +89,14 @@ def test_the_variants_in_the_project_are_valid() -> None:
     for name in names:
         variant = load_variant(folder / f"{name}.yaml", project_root=ROOT)
         assert variant.chain[0] == "baseline"
+
+
+def test_the_service_keeps_no_transcripts_but_the_experiments_do() -> None:
+    # Nel servizio il testo di cicli e manuali non va su disco; negli esperimenti serve.
+    from cycle_validation.config import AgentSettings, load_settings
+
+    assert AgentSettings().save_transcripts is False
+    assert load_settings(ROOT / "config" / "settings.yaml").agent.save_transcripts is False
+    for path in (ROOT / "eval" / "varianti").glob("*.yaml"):
+        variant = load_variant(path, project_root=ROOT)
+        assert variant.settings.agent.save_transcripts is True, path.name

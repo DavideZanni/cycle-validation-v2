@@ -275,3 +275,14 @@ def test_the_missing_task_note_is_off_by_default_and_absent_when_the_task_exists
     assert "non sono nel manuale" not in job_for(op(codes=["72-00-01-999-009"])).request.prompt
     settings = AgentSettings(retry_backoff_s=0, missing_task_note=True)
     assert "non sono nel manuale" not in job_for(op(), settings).request.prompt
+
+
+def test_a_stuck_session_gives_a_technical_warning_not_a_wait() -> None:
+    class Stuck:
+        async def run(self, request: Any) -> Any:
+            await asyncio.sleep(60)
+
+    settings = SETTINGS.model_copy(update={"session_timeout_s": 0.05})
+    results, errors = asyncio.run(check_operations(ctx([op()]), Stuck(), settings, "s"))
+    assert [r.reason for r in results] == [Reason.ERRORE_TECNICO]
+    assert errors and "tempo massimo" in errors[0].message

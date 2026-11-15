@@ -159,3 +159,22 @@ def test_extraction_can_reason_more_than_the_checks() -> None:
     assert session.requests[0].effort == "high"
     asyncio.run(LlmCycleExtractor(session, SETTINGS, "sistema").extract(PDF))
     assert session.requests[1].effort is None
+
+
+class _Stuck:
+    async def run(self, request: Any) -> SessionOutcome:
+        await asyncio.sleep(60)
+        raise AssertionError("non doveva arrivare qui")
+
+
+def test_a_stuck_extraction_stops_at_its_own_time_limit() -> None:
+    settings = AgentSettings(retry_backoff_s=0, session_timeout_s=60, extraction_timeout_s=0.05)
+    with pytest.raises(ExtractionError, match="tempo massimo"):
+        asyncio.run(LlmCycleExtractor(_Stuck(), settings, "sistema").extract(PDF))
+
+
+def test_time_limits_have_safe_defaults() -> None:
+    settings = AgentSettings()
+    assert settings.session_timeout_s == 90
+    assert settings.extraction_timeout_s == 300  # un ciclo lungo da trascrivere tutto
+    assert AgentSettings(session_timeout_s=None).session_timeout_s is None

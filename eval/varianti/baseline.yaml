@@ -3,3 +3,5 @@
 nome: baseline
 descrizione: impostazioni di config/settings.yaml, così come sono
 config: config/settings.yaml
+agent:
+  save_transcripts: true   # negli esperimenti il testo delle sessioni serve a capire un esito strano

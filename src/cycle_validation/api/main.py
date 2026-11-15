@@ -1,7 +1,7 @@
 """Punto di avvio del servizio: `uvicorn cycle_validation.api.main:app` (o Gunicorn).
 
 Il cablaggio con le sorgenti aziendali è `build_services`, da completare dove ci sono
-credenziali e client (S3, Redshift, CloudWatch, SDK di autenticazione): ogni
+credenziali e client (S3, Redshift, CloudWatch): ogni
 punto è una porta con la sua implementazione di prova, vedi docs/superpowers/COMPLETION_REPORT.md.
 """
 
@@ -21,8 +21,8 @@ def build_services(config: AppConfig) -> ApiServices:
     """Cablaggio di produzione. Non è disponibile senza i client aziendali."""
     raise ConfigError(
         "Il cablaggio di produzione non è configurato: registrare una factory con "
-        "`create_app_from_env(environ, factory)` che costruisca S3, Redshift e "
-        "l'autenticazione con i client aziendali."
+        "`create_app_from_env(environ, factory)` che costruisca S3 e Redshift "
+        "con i client aziendali."
     )
 
 
