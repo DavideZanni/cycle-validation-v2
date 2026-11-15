@@ -147,8 +147,9 @@ class SdkAgentSession:
             output_format={"type": "json_schema", "schema": request.output_schema},
             env=self._environment(),
         )
-        if settings.effort is not None:
-            options.effort = settings.effort
+        effort = request.effort or settings.effort
+        if effort is not None:
+            options.effort = effort
         return options
 
     async def run(self, request: SessionRequest) -> SessionOutcome:

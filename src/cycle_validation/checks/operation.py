@@ -40,7 +40,12 @@ from cycle_validation.domain.cycle import Operation
 from cycle_validation.domain.report import PipelineError
 from cycle_validation.errors import SourceUnavailableError
 from cycle_validation.kb.port import DocumentInfo, TaskLocation
-from cycle_validation.resolve.civil import cited_documents, context_locations, whole_document
+from cycle_validation.resolve.civil import (
+    cited_documents,
+    context_locations,
+    resolve_operation,
+    whole_document,
+)
 from cycle_validation.verdict.citations import verify_citation
 
 CHECK = CheckName.OPERATION_DESCRIPTION
@@ -89,6 +94,15 @@ def _locations(ctx: CheckContext, operation: Operation) -> tuple[TaskLocation, .
     )
 
 
+def _missing_tasks(ctx: CheckContext, operation: Operation, settings: AgentSettings) -> list[str]:
+    """I task citati, se nessuno è nel manuale e il testo viene dalle fonti del ciclo."""
+    if not settings.missing_task_note or ctx.profile.reference_mode == "document":
+        return []
+    if not operation.task_codes or resolve_operation(ctx.cycle, operation, ctx.kb).found:
+        return []
+    return list(operation.task_codes)
+
+
 def plan_operation_checks(
     ctx: CheckContext, settings: AgentSettings, system_prompt: str
 ) -> tuple[list[OperationJob], list[CheckResult]]:
@@ -117,6 +131,7 @@ def plan_operation_checks(
             continue
         try:
             locations = _locations(ctx, operation)
+            missing_tasks = _missing_tasks(ctx, operation, settings)
         except SourceUnavailableError as exc:
             immediate.append(
                 make_result(CHECK, target, Reason.ERRORE_TECNICO, f"Controllo non eseguito: {exc}")
@@ -141,6 +156,7 @@ def plan_operation_checks(
             locations,
             inline=inline,
             settings=settings,
+            missing_tasks=missing_tasks,
         )
         request = SessionRequest(
             session_id=f"op-{index:03d}-{operation.operation_number}",

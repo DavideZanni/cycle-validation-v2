@@ -207,6 +207,45 @@ Una variante vince se è tra le ammesse e più veloce o meno cara della baseline
 2. rilancia la pipeline: la nuova baseline è il nuovo riferimento;
 3. scrivi la decisione nel registro di `docs/BASELINE.md`.
 
+## Passo 9. Errori fabbricati e guasti
+
+Pochi cicli veri hanno un errore, ma servono proprio quelli per sapere se il programma li
+trova. Quando i casi del Passo 4 sono rivisti:
+
+```bash
+uv run cycle-validation eval mutazioni
+uv run cycle-validation eval pipeline --casi eval/casi/mutazioni --salta-verifiche
+```
+
+Il primo comando scrive in `eval/casi/mutazioni/` (ignorata da git) copie dei casi con un
+difetto di cui il programma sa l'esito: una targa che non esiste (atteso ERRATO), un task o una
+scheda che non esistono (atteso WARNING), più copie con modifiche innocue (spazi doppi, targhe in
+minuscolo) che non devono cambiare niente. Il dettaglio è in `eval/README.md`, sezione
+"Mutazioni". Se un difetto non viene trovato, la classifica lo conta come errore mancato.
+
+La variante `guasti` simula il servizio che non risponde, le risposte storte, i passi finiti e
+la conoscenza irraggiungibile. Gira con le altre nella pipeline, ma è giudicata a parte, sotto
+"Prove con guasti simulati": deve **reggere**, cioè nessun guasto deve diventare ERRATO. Costa
+meno della baseline, perché le sessioni guaste non chiamano il modello.
+
+## Passo 10. Le varianti di questo giro
+
+| Variante | Cosa prova | Da guardare |
+|---|---|---|
+| `effort_low` | meno ragionamento ovunque | era ammessa sui casi sintetici, ma sul ciclo di prova leggeva peggio il PDF (87,5%) |
+| `effort_low_controlli` | meno ragionamento nei controlli, pieno nella lettura del PDF | se tiene la velocità di `effort_low` senza perdere estrazione |
+| `prompt_task_mancante` | dice al modello quando il task citato non è nel manuale | la concordanza del controllo `operation_description` e le righe instabili |
+| `guasti` | robustezza | "regge" |
+
+Da questo giro il programma controlla anche due cose della lettura del PDF:
+
+- un trattino o un "n/a" al posto di un codice (per esempio "Targa -") vuol dire **codice
+  assente**, non un codice che si chiama "-". Prima la targa "-" diventava ERRATO "macchina non
+  attiva": era l'ERRATO falso di `effort_low` sul ciclo di prova;
+- se una targa, un task o una scheda letti per un'operazione nel PDF stanno sulla riga di
+  un'altra operazione, l'estrazione non è confermata e l'esito è WARNING, non ERRATO. Se il PDF
+  non è scritto riga per riga (per esempio a colonne), il controllo non giudica.
+
 ## Se qualcosa non va
 
 | Messaggio | Cosa vuol dire | Cosa fare |
@@ -219,4 +258,7 @@ Una variante vince se è tra le ammesse e più veloce o meno cara della baseline
 | `verifiche del codice fallite` | test, ruff o mypy rossi | il dettaglio è stampato sopra; nessuna prova è partita |
 | `GUASTO ...` su un caso | quel caso non è arrivato in fondo | il motivo è nella riga; spesso il PDF (foto senza `transcribe_model`) |
 | molti `esiti tecnici` | il modello non risponde o va in timeout | credenziali, regione, `agent.model`; i transcript in `runs/eval/` |
+| `non è stata scritta dal generatore di mutazioni` | la cartella di `--out` contiene file tuoi | scegli un'altra cartella: il comando non tocca file che non ha scritto |
+| `Valori che il PDF riporta su un'altra operazione` | il modello ha attribuito un valore alla riga sbagliata | guarda il transcript `extract.jsonl` in `runs/eval/`; se succede spesso, la variante legge male |
+| `NON regge` sotto i guasti simulati | un guasto è diventato ERRATO, o un caso non è arrivato in fondo | è un difetto del codice: segnalalo con il file di risultati |
 | `casi diversi` o `conoscenza diversa` | la variante e la baseline non hanno girato sugli stessi dati | rilancia la baseline sugli stessi casi e sulla stessa fotografia |

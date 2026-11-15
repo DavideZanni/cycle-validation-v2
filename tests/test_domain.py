@@ -113,3 +113,31 @@ def test_target_labels() -> None:
 def test_usage_adds_up_session_and_model_times() -> None:
     total = Usage(wall_ms=300, api_duration_ms=100) + Usage(wall_ms=200, api_duration_ms=50)
     assert (total.wall_ms, total.api_duration_ms) == (500, 150)
+
+
+@pytest.mark.parametrize("empty", ["-", " – ", "—", "--", "/", "N/A", "n.d.", "ND", "null"])
+def test_placeholders_for_a_missing_code_mean_absent(empty: str) -> None:
+    # Una stampa scrive "Targa -" quando la targa non c'è: "-" non è una macchina non attiva.
+    operation = Operation.model_validate(
+        {
+            "operation_number": "0040",
+            "machine_tag": empty,
+            "repair_code": empty,
+            "task_codes": [empty, "72-00-01-999-009"],
+            "process_sheet": {"code": empty},
+        }
+    )
+    assert operation.machine_tag is None
+    assert operation.repair_code is None
+    assert operation.task_codes == ["72-00-01-999-009"]
+    assert operation.process_sheet is None
+    source = Source.model_validate({"manual": "MAN-1", "task": empty})
+    assert source.task is None
+
+
+def test_real_codes_that_contain_dashes_are_kept() -> None:
+    operation = Operation.model_validate(
+        {"operation_number": "0010", "machine_tag": "TM-1001", "task_codes": ["72-00-01"]}
+    )
+    assert operation.machine_tag == "TM-1001"
+    assert operation.task_codes == ["72-00-01"]

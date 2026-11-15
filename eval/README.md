@@ -35,7 +35,7 @@ conoscenza, bozza e revisione dei casi, pipeline).
 | `varianti/` | un file YAML per esperimento | sì |
 | `casi/sintetici/` | casi inventati con l'esito atteso (MOS, DR, EJ200): provano la meccanica | sì |
 | `casi/aziendali/` | cicli veri annotati da chi li conosce | **no** |
-| `casi/mutazioni/` | cicli veri con un difetto messo apposta (prossimo giro) | **no** |
+| `casi/mutazioni/` | copie dei casi veri con un difetto messo apposta, scritte da `eval mutazioni` | **no** |
 | `risultati/` | un file JSON per ogni prova, con tutti i dati grezzi | **no** |
 | `modelli/aziendali/` | i `suite.yaml` da copiare in `casi/aziendali/` | sì |
 | `risultati/classifica.md` | la classifica, scritta dal comando | **no** (può contenere nomi di casi veri) |
@@ -58,6 +58,8 @@ agent:                           # le stesse chiavi di config/settings.yaml
   quando arriverà la chiamata diretta a Bedrock sarà `sessione: diretta`, e il codice vecchio
   resterà, così si potranno sempre confrontare.
 - Per provare un prompt diverso: una cartella con i tre prompt e `paths: {prompts_dir: ...}`.
+- `guasti:` simula guasti del modello e della conoscenza (vedi sotto). Una variante con guasti
+  non entra in classifica: si giudica a parte.
 
 Opzioni utili di `eval esegui`:
 
@@ -131,17 +133,70 @@ meno cara. Accanto c'è il caso peggiore, perché una media buona può nasconder
 Test, `ruff` e `mypy` devono restare verdi: è un requisito per tenere una modifica, non un
 punteggio. `eval pipeline` li controlla prima di ogni giro.
 
+## Mutazioni
+
+I cicli veri con un errore sono pochi, ma sono quelli che misurano gli errori mancati.
+
+```bash
+uv run cycle-validation eval mutazioni          # da eval/casi/aziendali a eval/casi/mutazioni
+uv run cycle-validation eval pipeline --casi eval/casi/mutazioni
+```
+
+Da ogni caso rivisto che ha `ciclo.json` il comando scrive copie con un difetto di cui il
+**codice** sa l'esito, e copie con modifiche che non devono cambiare niente:
+
+| Mutazione | Cosa cambia | Atteso |
+|---|---|---|
+| `targa_non_attiva` | la targa di un'operazione diventa una macchina che non esiste | ERRATO `MACCHINA_NON_ATTIVA` |
+| `task_inesistente` | i task di un'operazione diventano codici che il manuale non ha | WARNING |
+| `scheda_inesistente` | la scheda di un'operazione diventa una scheda che non esiste | WARNING `FONTE_ASSENTE` |
+| `spazi_doppi` | spazi doppi nelle descrizioni | come l'originale |
+| `targhe_minuscole` | targhe in minuscolo | come l'originale |
+
+Il difetto si mette solo dove l'originale è CORRETTO e verificato. Le altre righe
+dell'operazione toccata (per esempio il giudizio sulla descrizione) si tolgono dagli attesi, e
+anche lo stato del ciclo: si confronta solo ciò che è certo. Ogni copia ha un `mutazione.json`
+che dice da dove viene e cosa è cambiato. Le copie leggono `ciclo.json` (il PDF non è mutato) e
+la stessa conoscenza della suite di partenza. Il comando riscrive solo cartelle scritte da lui.
+
+Un difetto numerico (45 mm che diventa 46 mm) non c'è: l'esito lo decide il modello, non il
+codice, e l'atteso andrebbe scritto da un esperto.
+
+## Guasti simulati
+
+```yaml
+nome: guasti
+base: baseline
+guasti:
+  errore: 0.3          # sessioni che falliscono (rete, throttling, servizio giù)
+  risposta_storta: 0.2 # risposte che non rispettano lo schema
+  budget: 0.1          # sessioni che finiscono i passi
+  conoscenza: 0.1      # letture della conoscenza che non riescono
+  ritardo_s: 0         # attesa in più per sessione
+  seme: 1              # stessi guasti a ogni prova
+```
+
+La regola da verificare: **un guasto dà WARNING, mai ERRATO**. Nella classifica la variante
+compare sotto "Prove con guasti simulati": *regge* se nessun guasto è diventato ERRATO e tutti
+i casi sono arrivati in fondo, altrimenti *NON regge* con il motivo. Una sessione guasta non
+chiama il modello, quindi la prova costa meno della baseline.
+
 ## Quando una variante vince
 
 Si porta la modifica in `config/settings.yaml` (o nel codice), si rilancia `baseline` per avere
 il nuovo riferimento, e si scrive la decisione nel registro di `docs/BASELINE.md`.
 
+## Varianti di questo giro
+
+| Variante | Cosa prova |
+|---|---|
+| `effort_low` | meno ragionamento ovunque |
+| `effort_low_controlli` | meno ragionamento nei controlli, pieno nella lettura del PDF (`agent.extraction_effort`) |
+| `prompt_task_mancante` | dire al modello che il task citato non è nel manuale (`docs/MIGLIORIE.md` A2) |
+| `guasti` | robustezza, giudicata a parte |
+
 ## Prossimo giro
 
-- Mutazioni: da un ciclo vero, un programma genera copie con un difetto noto (45 mm che diventa
-  46 mm, una targa sbagliata, un task inesistente) e copie con modifiche innocue che non devono
-  cambiare l'esito.
-- Guasti simulati: Bedrock lento, throttling, risposta storta, un file della conoscenza che
-  manca. La regola da verificare: un guasto dà WARNING, mai ERRATO.
-- Varianti con codice nuovo: `prompt_task_mancante` (dire al modello che il task citato non
-  esiste, `docs/MIGLIORIE.md` A2) e `bedrock_diretto` (niente avvio dell'agente).
+- `bedrock_diretto`: una chiamata diretta a Bedrock per le sessioni in linea, senza avvio
+  dell'agente (`docs/MIGLIORIE.md` B1), con `sessione: diretta`. Va provata in azienda: dal PC
+  personale non si raggiunge Bedrock.

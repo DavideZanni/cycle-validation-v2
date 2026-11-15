@@ -258,3 +258,20 @@ def test_the_session_is_still_planned_when_the_extra_facts_are_unavailable() -> 
     assert immediate == [] and len(jobs) == 1
     assert "Macchina TM-1001" not in jobs[0].request.prompt
     assert "Pulire il supporto" in jobs[0].request.prompt
+
+
+def test_the_model_is_told_when_the_cited_task_does_not_exist() -> None:
+    # MIGLIORIE A2: il task citato non c'è, il testo è quello delle fonti del ciclo. Detto
+    # esplicitamente, il modello non scambia la differenza di codice per un dubbio sul testo.
+    missing = op(codes=["72-00-01-999-009"])
+    settings = AgentSettings(retry_backoff_s=0, missing_task_note=True)
+    request = job_for(missing, settings).request
+    assert "72-00-01-999-009" in request.prompt
+    assert "non sono nel manuale" in request.prompt
+    assert "fonti del ciclo" in request.prompt
+
+
+def test_the_missing_task_note_is_off_by_default_and_absent_when_the_task_exists() -> None:
+    assert "non sono nel manuale" not in job_for(op(codes=["72-00-01-999-009"])).request.prompt
+    settings = AgentSettings(retry_backoff_s=0, missing_task_note=True)
+    assert "non sono nel manuale" not in job_for(op(), settings).request.prompt

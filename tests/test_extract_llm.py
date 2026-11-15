@@ -149,3 +149,13 @@ def test_a_missing_or_malformed_cycle_file_is_an_extraction_error(tmp_path: Path
     broken.write_text("{non json", encoding="utf-8")
     with pytest.raises(ExtractionError, match="Impossibile leggere"):
         load_cycle(broken)
+
+
+def test_extraction_can_reason_more_than_the_checks() -> None:
+    # Si può risparmiare sul ragionamento dei controlli senza rischiare la lettura del PDF.
+    session = ScriptedSession(lambda r, a: GOOD)
+    settings = AgentSettings(retry_backoff_s=0, effort="low", extraction_effort="high")
+    asyncio.run(LlmCycleExtractor(session, settings, "sistema").extract(PDF))
+    assert session.requests[0].effort == "high"
+    asyncio.run(LlmCycleExtractor(session, SETTINGS, "sistema").extract(PDF))
+    assert session.requests[1].effort is None

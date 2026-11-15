@@ -44,7 +44,7 @@ Corretto in `src/cycle_validation/agent/hooks.py`, con un test.
 **Lezione:** i test usano un modello finto e questo errore non lo potevano vedere. Da qui la
 miglioria A5.
 
-### A2. Dire al modello quando il task citato non esiste
+### A2. Dire al modello quando il task citato non esiste. **Pronta da misurare**
 
 Se un'operazione cita un task che il manuale non ha, il programma manda al modello il testo dei
 task delle fonti del ciclo, ma non glielo dice. Il modello vede "task citato: X" e un testo che
@@ -60,6 +60,10 @@ Due strade:
 
 Raccomandazione: strada 1, e decidere con chi conosce i cicli quale esito è giusto. Costo: poche
 righe in `src/cycle_validation/agent/prompt.py`.
+
+**Stato (14 novembre 2026):** strada 1 fatta, spenta di default (`agent.missing_task_note`). La
+variante `eval/varianti/prompt_task_mancante.yaml` la accende; si tiene se in classifica è
+ammessa e la riga di `fonte_e_codice_assenti` smette di cambiare tra le ripetizioni.
 
 ### A3. Distinguere "targa sconosciuta" da "macchina non attiva"
 
@@ -114,6 +118,12 @@ Misurato oggi sui casi MOS, stesso modello:
 Meno 30% di costo e meno 27% di durata. Concordanza uguale: l'unico caso che cambia è quello
 ambiguo del punto A2, che cambia anche con l'impostazione predefinita. Costo: una riga in
 `config/settings.yaml`. Da confermare su cicli veri, dove le contraddizioni sono più sottili.
+
+**Aggiornamento (14 novembre 2026):** sul ciclo di prova letto dal PDF `effort: low` ha letto
+peggio (estrazione 87,5% contro 100%) e ha dato un ERRATO falso: ha letto "Targa -" come una
+targa che si chiama "-". Il trattino ora vuol dire "targa assente" per tutte le varianti. Due
+varianti da misurare: `effort_low` di nuovo, e `effort_low_controlli`, che tiene il
+ragionamento pieno nella lettura del PDF (`agent.extraction_effort: high`).
 
 ### B3. Trascrivere le pagine in parallelo
 

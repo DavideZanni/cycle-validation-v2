@@ -20,6 +20,8 @@ class AgentSettings(_Strict):
 
     model: str = "haiku"
     effort: Literal["low", "medium", "high"] | None = None
+    # Ragionamento per la lettura del PDF. None = come `effort`.
+    extraction_effort: Literal["low", "medium", "high"] | None = None
     use_bedrock: bool = True
     aws_region: str | None = None
     # Modello Bedrock che trascrive immagini e PDF senza testo. None = disattivato.
@@ -37,6 +39,9 @@ class AgentSettings(_Strict):
     grep_max_context: int = Field(default=10, ge=0, le=50)
     inline_max_lines: int = Field(default=150, ge=0, le=2000)
     citation_window: int = Field(default=3, ge=0, le=20)
+    # Dire al modello che i task citati non sono nel manuale e che il testo è quello delle
+    # fonti del ciclo (MIGLIORIE A2). Da provare con la variante `prompt_task_mancante`.
+    missing_task_note: bool = False
     save_transcripts: bool = True
 
 

@@ -3,7 +3,7 @@ da questa interfaccia, non dal Claude Agent SDK, e si testa senza rete."""
 
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -29,6 +29,8 @@ class SessionRequest(BaseModel):
     use_tools: bool = False
     allowed_files: tuple[Path, ...] = ()
     max_turns: int = 3
+    # Ragionamento del modello per questa richiesta. None = quello delle impostazioni.
+    effort: Literal["low", "medium", "high"] | None = None
 
 
 class SessionOutcome(BaseModel):

@@ -1,0 +1,10 @@
+nome: guasti
+descrizione: guasti simulati (servizio giù, risposta storta, passi finiti, conoscenza irraggiungibile); deve dare WARNING, mai ERRATO
+base: baseline
+guasti:
+  errore: 0.3
+  risposta_storta: 0.2
+  budget: 0.1
+  conoscenza: 0.1
+  ritardo_s: 0
+  seme: 1

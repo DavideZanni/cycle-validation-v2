@@ -6,6 +6,16 @@ from typing import Annotated, Any
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 _CODE_SEPARATORS = re.compile(r"[,;\n]+")
+# Come una stampa scrive "nessun codice": "Targa -", "Scheda N/A". Non sono codici veri.
+_DASHES_ONLY = re.compile(r"[\s\-\u2010-\u2015_./*]*")
+_PLACEHOLDER_WORDS = frozenset(
+    {"n/a", "n.a.", "na", "n.d.", "nd", "none", "null", "nessuno", "nessuna"}
+)
+
+
+def _placeholder(value: str) -> bool:
+    text = value.strip()
+    return _DASHES_ONLY.fullmatch(text) is not None or text.casefold() in _PLACEHOLDER_WORDS
 
 
 def _clean(value: object) -> object:
@@ -18,6 +28,13 @@ def _clean_optional(value: object) -> object:
     return value
 
 
+def _clean_code(value: object) -> object:
+    """Un codice facoltativo: vuoto o segnaposto vuol dire assente."""
+    if isinstance(value, str):
+        return None if _placeholder(value) else value.strip()
+    return value
+
+
 def _clean_codes(value: object) -> object:
     """Accetta `null`, una stringa con più codici o una lista; restituisce una lista pulita."""
     if value is None:
@@ -25,19 +42,26 @@ def _clean_codes(value: object) -> object:
     if isinstance(value, str):
         value = _CODE_SEPARATORS.split(value)
     if isinstance(value, list):
-        return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+        return [item.strip() for item in value if isinstance(item, str) and not _placeholder(item)]
     return value
 
 
 def _clean_sheet(value: object) -> object:
     """Accetta `null`, il solo codice della scheda oppure l'oggetto completo."""
     if isinstance(value, str):
-        return {"code": value} if value.strip() else None
+        return None if _placeholder(value) else {"code": value}
+    if (
+        isinstance(value, dict)
+        and isinstance(value.get("code"), str)
+        and _placeholder(value["code"])
+    ):
+        return None
     return value
 
 
 Text = Annotated[str, BeforeValidator(_clean)]
 OptionalText = Annotated[str | None, BeforeValidator(_clean_optional)]
+OptionalCode = Annotated[str | None, BeforeValidator(_clean_code)]
 Codes = Annotated[list[str], BeforeValidator(_clean_codes)]
 
 
@@ -49,8 +73,8 @@ class Source(_Strict):
     """Fonte citata dal ciclo: manuale (o riferimento DR, o pubblicazione) e task."""
 
     manual: Text = Field(min_length=1)
-    task: OptionalText = None
-    repair_code: OptionalText = None
+    task: OptionalCode = None
+    repair_code: OptionalCode = None
     issue: OptionalText = None
     page: int | None = None
 
@@ -66,8 +90,8 @@ class ProcessSheet(BaseModel):
 class Operation(_Strict):
     operation_number: Text = Field(min_length=1)
     operation_description: Text = ""
-    repair_code: OptionalText = None
-    machine_tag: OptionalText = None
+    repair_code: OptionalCode = None
+    machine_tag: OptionalCode = None
     task_codes: Codes = Field(default_factory=list)
     process_sheet: Annotated[ProcessSheet | None, BeforeValidator(_clean_sheet)] = None
     page: int | None = None

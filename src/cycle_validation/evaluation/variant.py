@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from cycle_validation.config import Settings, load_settings
 from cycle_validation.errors import ConfigError
+from cycle_validation.evaluation.faults import Faults
 
 DEFAULT_CONFIG = Path("config/settings.yaml")
 # Implementazioni di AgentSession che una variante può scegliere per nome.
@@ -35,6 +36,8 @@ class VariantFile(BaseModel):
     base: str | None = None
     config: Path | None = None
     sessione: str | None = None
+    # Guasti simulati (vedi `evaluation/faults.py`): la prova verifica la robustezza.
+    guasti: Faults | None = None
     agent: dict[str, Any] = Field(default_factory=dict)
     paths: dict[str, Any] = Field(default_factory=dict)
     module_check: dict[str, Any] = Field(default_factory=dict)
@@ -53,6 +56,7 @@ class Variant:
     session: str
     # Nomi dalla radice alla variante stessa.
     chain: list[str]
+    faults: Faults | None = None
 
 
 def _merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
@@ -122,9 +126,11 @@ def load_variant(
             config = project_root / config
     data = load_settings(config).model_dump()
     session = "sdk"
+    faults: Faults | None = None
     for variant in chain:
         data = _merge(data, variant.overrides())
         session = variant.sessione or session
+        faults = variant.guasti or faults
     try:
         settings = Settings.model_validate(data)
     except ValidationError as exc:
@@ -140,4 +146,5 @@ def load_variant(
         settings=settings,
         session=session,
         chain=[item.nome for item in chain],
+        faults=faults,
     )

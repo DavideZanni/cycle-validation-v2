@@ -203,3 +203,9 @@ def test_wall_time_is_measured_also_when_the_process_fails(
     outcome = asyncio.run(SdkAgentSession(AgentSettings(save_transcripts=False)).run(request()))
     assert outcome.status is SessionStatus.ERROR
     assert outcome.usage.wall_ms >= 0
+
+
+def test_a_request_can_ask_for_its_own_effort() -> None:
+    session = SdkAgentSession(AgentSettings(effort="low"))
+    assert session.build_options(request(effort="high")).effort == "high"
+    assert session.build_options(request()).effort == "low"

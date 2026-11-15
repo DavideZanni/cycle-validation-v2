@@ -58,6 +58,11 @@ Con la cartella `eval/` (istruzioni in `eval/README.md`; sui dati veri `docs/ESP
 | 2026-11-14 | `effort: low`, casi sintetici, 3 ripetizioni, login locale | `effort_low` | 99,5% (come baseline) | -22% | -9% | ammessa e più veloce; da confermare su Bedrock con casi veri |
 | 2026-11-14 | concorrenza 12 | `concorrenza_12` | 99,0% | -17% | uguale | scartata: concordanza più bassa |
 | 2026-11-14 | modello Sonnet | `sonnet` | 98,6% | ×10 | -17% | scartata: concordanza più bassa, costo |
+| 2026-11-14 | `effort: low`, un ciclo MOS di prova letto dal PDF, 2 ripetizioni | `effort_low` | 97,6% (baseline 100%) | -22% | -11% | scartata: un ERRATO falso ("Targa -" letta come targa) ed estrazione 87,5%; causa corretta nel codice, da rimisurare |
+| 2026-11-15 | giro 3, stesso ciclo di prova, 2 ripetizioni, login locale | `effort_low` | 100% | -33% | +25% | ammessa: il "-" letto come targa c'è ancora, ma ora vale "targa assente"; tempi su un caso solo troppo rumorosi per decidere |
+| 2026-11-15 | come sopra | `effort_low_controlli` | 100% | -31% | +26% | ammessa; non legge più il "-"; da misurare in azienda contro `effort_low` |
+| 2026-11-15 | come sopra | `prompt_task_mancante` | 100% | -30% | +66% | ammessa; il tempo è rumore (cambia una sola sessione); serve `fonte_e_codice_assenti` con più ripetizioni |
+| 2026-11-15 | come sopra | `guasti` | — | — | — | regge: 0 ERRATO falsi, 4,5 esiti tecnici per ripetizione |
 
 ## Da fare nel prossimo passo
 

@@ -10,6 +10,8 @@ from cycle_validation.domain.cycle import Cycle
 from cycle_validation.errors import ExtractionError
 from cycle_validation.ingest.pdf import PdfDocument
 
+EXTRACTION_SESSION_ID = "extract"
+
 
 def _nullable(kind: str) -> dict[str, Any]:
     return {"type": [kind, "null"]}
@@ -76,12 +78,13 @@ class LlmCycleExtractor:
 
     async def extract(self, pdf: PdfDocument) -> tuple[Cycle, Usage]:
         request = SessionRequest(
-            session_id="extract",
+            session_id=EXTRACTION_SESSION_ID,
             system_prompt=self._system_prompt,
             prompt=pdf_prompt(pdf),
             output_schema=cycle_schema(),
             use_tools=False,
             max_turns=self._settings.extraction_max_turns,
+            effort=self._settings.extraction_effort,
         )
         (outcome,) = await run_sessions(
             self._session,

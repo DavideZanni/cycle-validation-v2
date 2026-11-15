@@ -192,6 +192,11 @@ def test_eval_runs_a_variant_and_writes_the_leaderboard(tmp_path: Path) -> None:
     assert "## Ambiente: prova" in text
     assert "`effort_low`" in text and "`baseline`" in text
     assert "Ambiente: prova" in result.output
+    # Senza --out la classifica va accanto ai risultati che legge, non in eval/risultati.
+    result = runner.invoke(cli.app, ["eval", "classifica", *common])
+    assert result.exit_code == 0, result.output
+    results = Path(common[common.index("--risultati") + 1])
+    assert "## Ambiente: prova" in (results / "classifica.md").read_text(encoding="utf-8")
 
 
 def test_eval_reports_a_bad_variant_clearly(tmp_path: Path) -> None:
@@ -271,3 +276,16 @@ def test_eval_prepare_writes_a_draft_to_review(tmp_path: Path) -> None:
     refused = runner.invoke(cli.app, ["eval", "prepara", str(case)])
     assert refused.exit_code == 1
     assert "già stato rivisto" in refused.output
+
+
+def test_eval_mutazioni_writes_the_mutated_suites(tmp_path: Path) -> None:
+    root = Path(__file__).parents[1]
+    out = tmp_path / "mutazioni"
+    result = runner.invoke(
+        cli.app,
+        ["eval", "mutazioni", "--casi", str(root / "eval/casi/sintetici/mos"), "--out", str(out)],
+    )
+    assert result.exit_code == 0, result.output
+    assert "targa_non_attiva" in result.output
+    assert (out / "mos" / "suite.yaml").is_file()
+    assert f"eval pipeline --casi {out}" in result.output

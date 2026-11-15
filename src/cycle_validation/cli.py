@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated
@@ -17,6 +18,7 @@ from cycle_validation.errors import CycleValidationError
 from cycle_validation.evaluation.draft import draft_case
 from cycle_validation.evaluation.leaderboard import build_leaderboard, render_leaderboard
 from cycle_validation.evaluation.metrics import measure
+from cycle_validation.evaluation.mutations import mutate_cases
 from cycle_validation.evaluation.run import load_suites, run_variant
 from cycle_validation.evaluation.snapshot import snapshot_version, take_snapshot
 from cycle_validation.evaluation.variant import load_variant
@@ -258,9 +260,6 @@ def eval_run(
     typer.echo(summary)
 
 
-CLASSIFICA = Path("eval/risultati/classifica.md")
-
-
 def _write_leaderboard(results_dir: Path, out: Path) -> str:
     text = render_leaderboard(build_leaderboard(results_dir))
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -273,11 +272,16 @@ def eval_leaderboard(
     risultati: Annotated[Path, typer.Option(help="Cartella dei risultati.")] = Path(
         "eval/risultati"
     ),
-    out: Annotated[Path, typer.Option(help="File della classifica.")] = CLASSIFICA,
+    out: Annotated[
+        Path | None,
+        typer.Option(
+            help="File della classifica. Vuoto = classifica.md nella cartella dei risultati."
+        ),
+    ] = None,
 ) -> None:
-    """Mette in classifica le varianti, per ambiente, e scrive eval/risultati/classifica.md."""
+    """Mette in classifica le varianti, per ambiente, e scrive classifica.md accanto ai risultati."""
     try:
-        text = _write_leaderboard(risultati, out)
+        text = _write_leaderboard(risultati, out or risultati / "classifica.md")
     except CycleValidationError as error:
         raise _fail(error) from error
     typer.echo(text)
@@ -305,6 +309,27 @@ def eval_snapshot(
     except CycleValidationError as error:
         raise _fail(error) from error
     typer.echo(f"Fotografia in {out}: {count} oggetti ({snapshot_version(out)}).")
+
+
+@eval_app.command("mutazioni")
+def eval_mutations(
+    casi: Annotated[Path, typer.Option(help="Una suite o una cartella di suite.")] = Path(
+        "eval/casi/aziendali"
+    ),
+    out: Annotated[Path, typer.Option(help="Dove scrivere le suite mutate.")] = Path(
+        "eval/casi/mutazioni"
+    ),
+) -> None:
+    """Copie dei casi rivisti con un difetto noto o una modifica innocua, con l'esito atteso."""
+    try:
+        made = mutate_cases(casi, out)
+    except CycleValidationError as error:
+        raise _fail(error) from error
+    kinds = Counter(name.split("__", 1)[1] for name in made)
+    detail = ", ".join(f"{kind} {count}" for kind, count in sorted(kinds.items()))
+    typer.echo(f"{len(made)} mutazioni in {out} ({detail or 'nessuna'}).")
+    if made:
+        typer.echo(f"Per provarle: cycle-validation eval pipeline --casi {out}")
 
 
 @eval_app.command("prepara")

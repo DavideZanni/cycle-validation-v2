@@ -100,3 +100,73 @@ def test_one_reworded_word_in_a_long_description_is_tolerated() -> None:
     cycle = _described("Pulire accuratamente il supporto con solvente tipo A e asciugare")
     text = "Op 0010 Pulire accurata- mente il supporto con solvente tipo A e asciugare"
     assert check_extraction_integrity(cycle, _pdf(text)).unconfirmed == frozenset()
+
+
+ROWS = (
+    "OPERAZIONE 0010 Pulire il supporto.\nTarga TM-1001 Task 72-00-01-110-001\nScheda SP-0101\n"
+    "OPERAZIONE 0020 Rettificare la sede.\nTarga TM-2002 Task 72-00-01-350-003\n"
+    "OPERAZIONE 0030 Ispezionare la superficie.\nTarga TM-3003 Task 72-00-01-220-002\n"
+    "OPERAZIONE 0040 Applicare protettivo.\nTarga - Task 72-00-01-999-009\nScheda SP-0202\n"
+)
+
+
+def _rows(**changes: dict[str, object]) -> Cycle:
+    operations = [
+        {
+            "operation_number": "0010",
+            "operation_description": "Pulire il supporto.",
+            "machine_tag": "TM-1001",
+            "task_codes": ["72-00-01-110-001"],
+            "process_sheet": "SP-0101",
+        },
+        {
+            "operation_number": "0020",
+            "operation_description": "Rettificare la sede.",
+            "machine_tag": "TM-2002",
+            "task_codes": ["72-00-01-350-003"],
+        },
+        {
+            "operation_number": "0030",
+            "operation_description": "Ispezionare la superficie.",
+            "machine_tag": "TM-3003",
+            "task_codes": ["72-00-01-220-002"],
+        },
+        {
+            "operation_number": "0040",
+            "operation_description": "Applicare protettivo.",
+            "task_codes": ["72-00-01-999-009"],
+            "process_sheet": "SP-0202",
+        },
+    ]
+    for number, change in changes.items():
+        operations[int(number[1:])].update(change)
+    return Cycle.model_validate({"operations": operations})
+
+
+def test_rows_read_correctly_are_confirmed() -> None:
+    outcome = check_extraction_integrity(_rows(), _pdf(ROWS))
+    assert outcome.unconfirmed == frozenset()
+
+
+def test_a_value_taken_from_another_row_is_not_confirmed() -> None:
+    # La targa c'è nel PDF, ma su un'altra operazione: l'estrazione ha sbagliato riga.
+    cycle = _rows(o3={"machine_tag": "TM-3003", "process_sheet": "SP-0101"})
+    outcome = check_extraction_integrity(cycle, _pdf(ROWS))
+    assert outcome.unconfirmed == {
+        (CheckName.MACHINE_TAG, TargetKind.OPERATION, 3),
+        (CheckName.PROCESS_SHEET, TargetKind.OPERATION, 3),
+    }
+    (result,) = outcome.results
+    assert result.target.index == 3
+    assert "TM-3003" in result.rationale and "su un'altra operazione" in result.rationale
+
+
+def test_a_layout_by_columns_is_not_judged_by_rows() -> None:
+    # Numeri, poi targhe, poi task in colonne: le righe non si ricostruiscono, non si giudica.
+    columns = (
+        "0010 0020 0030 0040\nPulire il supporto. Rettificare la sede. Ispezionare la superficie."
+        " Applicare protettivo.\nTM-1001 TM-2002 TM-3003 -\n72-00-01-110-001 72-00-01-350-003 "
+        "72-00-01-220-002 72-00-01-999-009\nSP-0101 SP-0202\n"
+    )
+    outcome = check_extraction_integrity(_rows(), _pdf(columns))
+    assert outcome.unconfirmed == frozenset()

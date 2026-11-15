@@ -2,6 +2,9 @@
 
 Prima i paletti: una variante che ne supera uno è scartata, anche se è più veloce. Le ammesse
 si ordinano per tempo mediano per ciclo, poi per costo.
+
+Le prove con guasti simulati non entrano in classifica: verificano una regola sola, un guasto
+dà WARNING e mai ERRATO. Regge se non ha più ERRATO falsi della baseline.
 """
 
 import json
@@ -26,6 +29,7 @@ class Entry:
     metrics: Metrics
     knowledge: dict[str, str] = field(default_factory=dict)
     reasons: list[str] = field(default_factory=list)
+    faults: dict[str, Any] | None = None
 
 
 @dataclass
@@ -34,6 +38,7 @@ class Board:
     reference: Entry | None
     admitted: list[Entry]
     rejected: list[Entry]
+    robustness: list[Entry] = field(default_factory=list)
 
 
 def _load(folder: Path) -> list[tuple[Path, dict[str, Any]]]:
@@ -89,6 +94,21 @@ def _guardrails(entry: Entry, reference: Entry) -> list[str]:
     return reasons
 
 
+def _robustness(entry: Entry, reference: Entry) -> list[str]:
+    m, ref = entry.metrics, reference.metrics
+    if m.cases != ref.cases:
+        return ["casi diversi dalla baseline: non confrontabile"]
+    reasons = []
+    if m.false_errato > ref.false_errato + _EPSILON:
+        reasons.append(
+            f"un guasto è diventato ERRATO ({_num(m.false_errato)} ERRATO falsi contro "
+            f"{_num(ref.false_errato)})"
+        )
+    if m.failures:
+        reasons.append(f"{m.failures} casi non arrivati in fondo")
+    return reasons
+
+
 def build_leaderboard(folder: Path) -> list[Board]:
     latest: dict[tuple[str, str], Entry] = {}
     for path, data in _load(folder):
@@ -99,6 +119,7 @@ def build_leaderboard(folder: Path) -> list[Board]:
             commit=data.get("commit", ""),
             metrics=measure(data),
             knowledge=data.get("conoscenza") or {},
+            faults=data.get("guasti_simulati"),
         )
         key = (data["ambiente"], entry.name)
         if key not in latest or entry.date >= latest[key].date:
@@ -109,13 +130,20 @@ def build_leaderboard(folder: Path) -> list[Board]:
         reference = next((e for e in entries if e.name == BASELINE), None)
         admitted: list[Entry] = []
         rejected: list[Entry] = []
+        robustness: list[Entry] = []
         for entry in entries:
+            if entry.faults:
+                if reference is not None:
+                    entry.reasons = _robustness(entry, reference)
+                robustness.append(entry)
+                continue
             if reference is not None and entry is not reference:
                 entry.reasons = _guardrails(entry, reference)
             (rejected if entry.reasons else admitted).append(entry)
         admitted.sort(key=lambda e: (e.metrics.time_median_ms, e.metrics.cost_per_cycle, e.name))
         rejected.sort(key=lambda e: e.name)
-        boards.append(Board(environment, reference, admitted, rejected))
+        robustness.sort(key=lambda e: e.name)
+        boards.append(Board(environment, reference, admitted, rejected, robustness))
     return boards
 
 
@@ -193,6 +221,24 @@ def _board(board: Board) -> list[str]:
     if board.rejected:
         lines += ["### Scartate", ""]
         lines += [f"- `{e.name}`: {'; '.join(e.reasons)}." for e in board.rejected]
+        lines.append("")
+    if board.robustness:
+        lines += [
+            "### Prove con guasti simulati",
+            "",
+            "Regola: un guasto dà WARNING, mai ERRATO. Gli esiti tecnici dicono quanti guasti sono "
+            "arrivati ai controlli.",
+            "",
+        ]
+        for e in board.robustness:
+            shares = ", ".join(f"{k} {_num(v)}" for k, v in (e.faults or {}).items() if v)
+            outcome = f"NON regge: {'; '.join(e.reasons)}" if e.reasons else "regge"
+            if board.reference is None:
+                outcome = "non giudicabile senza baseline"
+            lines.append(
+                f"- `{e.name}`: {outcome} (guasti: {shares}; esiti tecnici "
+                f"{_num(e.metrics.technical)}, ERRATO falsi {_num(e.metrics.false_errato)})."
+            )
         lines.append("")
     everyone = board.admitted + board.rejected
     checks = sorted({name for e in everyone for name in e.metrics.by_check})

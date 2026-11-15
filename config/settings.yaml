@@ -5,6 +5,8 @@ agent:
   model: haiku
   # low | medium | high. Vuoto = valore predefinito del modello.
   effort:
+  # Lo stesso, solo per la lettura del PDF. Vuoto = come effort.
+  extraction_effort:
   use_bedrock: true
   # Regione Bedrock. Vuoto = quella dell'ambiente (AWS_REGION).
   aws_region:

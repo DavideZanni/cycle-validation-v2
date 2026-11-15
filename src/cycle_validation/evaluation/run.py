@@ -25,6 +25,7 @@ from cycle_validation.domain.check import Reason
 from cycle_validation.domain.cycle import Cycle
 from cycle_validation.domain.report import Report
 from cycle_validation.errors import ConfigError, CycleValidationError
+from cycle_validation.evaluation.faults import FaultyKnowledge, FaultySession
 from cycle_validation.evaluation.snapshot import snapshot_version
 from cycle_validation.evaluation.variant import Variant
 from cycle_validation.extract.base import CycleExtractor
@@ -355,11 +356,15 @@ async def run_variant(
             began = time.perf_counter()
             try:
                 session = session_factory(settings.agent, work / "transcripts")
+                kb: KnowledgeBase = knowledge[suite.name]
+                if variant.faults is not None:
+                    session = FaultySession(session, variant.faults, repetition)
+                    kb = FaultyKnowledge(kb, variant.faults, repetition)
                 deps = case_dependencies(
                     variant,
                     suite,
                     case,
-                    knowledge[suite.name],
+                    kb,
                     session,
                     prompts,
                     from_pdf=from_pdf,
@@ -388,6 +393,7 @@ async def run_variant(
         "casi": cases_label,
         "conoscenza": {name: kb.version for name, kb in knowledge.items()},
         "saltati": skipped,
+        "guasti_simulati": variant.faults.model_dump() if variant.faults else None,
         "impostazioni": settings.model_dump(mode="json"),
         "prompt_version": prompt_version(prompts.system, ""),
         "tool_version": __version__,

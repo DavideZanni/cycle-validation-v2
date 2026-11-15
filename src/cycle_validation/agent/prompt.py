@@ -72,13 +72,21 @@ def prompt_version(*texts: str) -> str:
     return digest.hexdigest()[:12]
 
 
-def _header(cycle: Cycle, operation: Operation, facts: Sequence[str]) -> list[str]:
+def _header(
+    cycle: Cycle, operation: Operation, facts: Sequence[str], missing_tasks: Sequence[str]
+) -> list[str]:
     lines = [
         f"Operazione {operation.operation_number}",
         f"Descrizione nel ciclo: {operation.operation_description}",
     ]
     if operation.task_codes:
         lines.append(f"Task code citati: {', '.join(operation.task_codes)}")
+    if missing_tasks:
+        lines.append(
+            f"I task code citati ({', '.join(missing_tasks)}) non sono nel manuale. Il testo di "
+            "riferimento qui sotto è quello dei task delle fonti del ciclo: giudica la "
+            "descrizione su questo testo, la differenza di codice è già segnalata a parte."
+        )
     if cycle.engine_model:
         lines.append(f"Motore: {cycle.engine_model}")
     if facts:
@@ -100,8 +108,9 @@ def build_operation_prompt(
     *,
     inline: bool,
     settings: AgentSettings,
+    missing_tasks: Sequence[str] = (),
 ) -> str:
-    lines = _header(cycle, operation, facts)
+    lines = _header(cycle, operation, facts, missing_tasks)
     lines.append("")
     if inline:
         lines.append("Testo di riferimento, con il numero di riga di ciascun file:")
