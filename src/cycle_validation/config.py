@@ -76,9 +76,15 @@ class ModuleCheckSettings(_Strict):
     military_projects: list[str] = Field(default_factory=lambda: ["EJ200"])
     civil_projects: list[str] = Field(default_factory=lambda: ["GENX", "LEAP"])
     # Espressioni regolari che, in testata, identificano un ciclo DR. Vuoto = MOS e DR
-    # non vengono distinti. ASSUNZIONE da confermare su una stampa DR reale.
+    # non vengono distinti. Sull'unica stampa DR reale vista (16/11/2026) la testata non dice
+    # "DR": lo distingue il numero di segnalazione difetti in NOTE (`Saa/nnnnn-...`), dove
+    # un MOS porta il task del manuale. Da riconfermare su altri DR.
     dr_markers: list[str] = Field(
-        default_factory=lambda: [r"\bDR\b", r"DEPARTURE\s+RECOMMENDATION"]
+        default_factory=lambda: [
+            r"\bDR\b",
+            r"DEPARTURE\s+RECOMMENDATION",
+            r"\bS\d{2}/\d{4,6}\b",
+        ]
     )
 
     @field_validator("dr_markers")

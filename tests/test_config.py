@@ -78,9 +78,9 @@ def test_blocking_check_must_be_active(tmp_path: Path) -> None:
         load_profile("x", tmp_path)
 
 
-def test_mos_and_ej200_profiles_use_the_pvrm320_layout_parser() -> None:
+def test_mos_dr_and_ej200_profiles_use_the_pvrm320_layout_parser() -> None:
+    # la stampa DR reale (vista il 16/11/2026) è lo stesso modulo PVRM320 dei MOS
     from kb_fixtures import PROFILES_DIR
 
-    assert load_profile("ej200", PROFILES_DIR).layout_extractor == "pvrm320"
-    assert load_profile("mos", PROFILES_DIR).layout_extractor == "pvrm320"
-    assert load_profile("dr", PROFILES_DIR).layout_extractor == "none"
+    for name in ("ej200", "mos", "dr"):
+        assert load_profile(name, PROFILES_DIR).layout_extractor == "pvrm320"

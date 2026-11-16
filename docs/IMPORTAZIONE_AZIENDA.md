@@ -41,7 +41,15 @@ progetto, al Passo 2. E ogni cartella `docs/Esempio...` è ignorata da git: prim
 `docs/Esempio ciclo DR/` sarebbe finita nel repository.
 
 **Cosa non si è potuto provare qui:** Bedrock, S3, Redshift, l'accesso aziendale, la lettura
-di foto e scansioni, un ciclo DR vero. Sono i passi 5, 6 e 8 di questa guida.
+di foto e scansioni, il controllo col modello su un ciclo DR vero. Sono i passi 5, 6 e 8 di
+questa guida.
+
+**Un ciclo DR vero, senza modello (16 novembre 2026).** Sulla stampa DR di esempio
+(cartella ignorata `docs/Esempio ciclo DR/`) erano sbagliate due cose, ora corrette: la testata non scrive
+"DR", quindi il ciclo veniva rifiutato come MOS (il DR si riconosce dal numero di segnalazione
+in NOTE, forma `Saa/nnnnn-...`); il profilo DR non usava il lettore della stampa PVRM320. Con le
+correzioni il ciclo si legge (9 operazioni, targhe, schede) e i controlli senza modello danno
+gli esiti attesi. La testata va riconfermata su altri DR (Passo 8).
 
 ---
 
@@ -124,7 +132,7 @@ nel repository.
 | `docs/doc_lavoro/` | documenti di lavoro |
 | `docs/Esempio ciclo mos/` | stampe MOS di esempio |
 | `docs/Esempio EJ200/` | stampe EJ200 di esempio |
-| `docs/Esempio ciclo DR/` | stampe DR di esempio (quando le avrai). Ogni cartella `docs/Esempio...` è ignorata |
+| `docs/Esempio ciclo DR/` | stampa DR di esempio con trascrizione. Ogni cartella `docs/Esempio...` è ignorata |
 | `data/` | conoscenza scaricata (manuali, targhe, schede) |
 | `runs/` | risultati delle validazioni |
 | `.env` | variabili d'ambiente, se le tieni in un file |
@@ -290,7 +298,7 @@ vero.
 | Cosa | Dove si corregge | Come ti accorgi che è sbagliata |
 |---|---|---|
 | Id del modello Haiku | `agent.model` | tutte le operazioni escono "errore tecnico" |
-| Come si riconosce un DR dalla testata | `module_check.dr_markers` | i cicli DR veri vengono rifiutati come "ciclo civile MOS" |
+| Come si riconosce un DR dalla testata (visto su un solo DR vero: numero di segnalazione `Saa/nnnnn` in NOTE) | `module_check.dr_markers` | i cicli DR veri vengono rifiutati come "ciclo civile MOS" |
 | Formato della cartella dei manuali su S3 | `src/cycle_validation/kb/snapshot.py` | `preload()` dà errore sul `manifest.json` |
 | Puntatore `current.json` | `src/cycle_validation/kb/pointer.py` | `preload()` dice «Puntatore … non valido» o «non trovato» |
 | Nomi dei campi nei JSON di targhe, schede, DR | `FieldMap` in `src/cycle_validation/kb/structured.py` | `preload()` dà errore con il nome del campo |

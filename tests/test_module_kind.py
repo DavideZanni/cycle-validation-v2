@@ -53,6 +53,8 @@ def page(project: str | None, note: str = MOS_NOTE, number: int = 1) -> str:
         (page("LEAP-1A"), "mos"),
         (page("GENX-1B", DR_NOTE), "dr"),
         (page("LEAP-1B", "DEPARTURE  RECOMMENDATION 45"), "dr"),
+        # come la stampa DR reale: in NOTE c'è solo il numero di segnalazione difetti
+        (page("GENX-1B/GENX-2B", "S99/01234-BLENDING DIFETT"), "dr"),
         (page("EJ200 RICAMBI N", "S00/00001"), "ej200"),
         (page("ej200 ricambi"), "ej200"),
         (page("MOTORE SCONOSCIUTO"), None),

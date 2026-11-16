@@ -17,3 +17,6 @@ reference_mode: task
 excluded_sheet_prefixes: [SWJ, SSS, SPS]
 engine_families: [GENX, LEAP]
 extraction_prompt: extract_cycle.md
+# Stesso modulo PVRM320 di MOS ed EJ200 (verificato su una stampa DR reale il 16/11/2026):
+# parser di layout davanti all'LLM, che resta la riserva se il layout non è riconosciuto.
+layout_extractor: pvrm320

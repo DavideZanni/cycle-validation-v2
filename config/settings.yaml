@@ -52,8 +52,11 @@ module_check:
   military_projects: [EJ200]
   civil_projects: [GENX, LEAP]
   # Espressioni regolari che in testata identificano un ciclo DR.
-  # ASSUNZIONE non verificata su una stampa DR reale: correggere, oppure lasciare la lista
-  # vuota per non distinguere MOS da DR (resta il controllo civile contro militare).
+  # Sull'unica stampa DR reale vista (16/11/2026) la testata non scrive "DR": lo distingue il
+  # numero di segnalazione difetti in NOTE (forma `Saa/nnnnn-<descrizione>`), dove un MOS ha il
+  # task del manuale. Da riconfermare su altri DR; lista vuota = MOS e DR non distinti
+  # (resta il controllo civile contro militare).
   dr_markers:
     - '\bDR\b'
     - 'DEPARTURE\s+RECOMMENDATION'
+    - '\bS\d{2}/\d{4,6}\b'

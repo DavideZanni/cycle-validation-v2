@@ -140,6 +140,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REAL_FOLDERS = (
     ROOT / "docs/Esempio ciclo mos/trascrizione",
     ROOT / "docs/Esempio EJ200/trascrizione",
+    ROOT / "docs/Esempio ciclo DR/trascrizione",
 )
 
 
