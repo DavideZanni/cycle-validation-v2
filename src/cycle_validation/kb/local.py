@@ -44,6 +44,9 @@ class _ManifestDocument(_Row):
     kind: str | None = None
     published: bool = True
     partial: bool = False
+    # Numero di righe del file, scritto da knowledge-index: con 2000 documenti evita di
+    # aprirli tutti all'avvio solo per controllare gli intervalli dei task.
+    lines: int | None = Field(default=None, ge=0)
 
 
 class _Manifest(_Row):
@@ -104,9 +107,13 @@ def _optional[T](adapter: TypeAdapter[list[T]], path: Path) -> list[T]:
     return _parse(adapter, path) if path.is_file() else []
 
 
-def _documents(directory: Path, manifest: _Manifest) -> dict[str, DocumentInfo]:
+def _documents(
+    directory: Path, manifest: _Manifest
+) -> tuple[dict[str, DocumentInfo], dict[str, int]]:
+    """Documenti per chiave e, per quelli che lo dichiarano, il numero di righe."""
     root = directory.resolve()
     documents: dict[str, DocumentInfo] = {}
+    line_counts: dict[str, int] = {}
     for row in manifest.documents:
         if row.key in documents:
             raise KnowledgeError(f"manifest.json: chiave di documento duplicata '{row.key}'.")
@@ -125,10 +132,14 @@ def _documents(directory: Path, manifest: _Manifest) -> dict[str, DocumentInfo]:
             published=row.published,
             partial=row.partial,
         )
-    return documents
+        if row.lines is not None:
+            line_counts[row.key] = row.lines
+    return documents, line_counts
 
 
-def _tasks(rows: list[_TaskRow], documents: dict[str, DocumentInfo]) -> list[TaskLocation]:
+def _tasks(
+    rows: list[_TaskRow], documents: dict[str, DocumentInfo], line_counts: dict[str, int]
+) -> list[TaskLocation]:
     by_name = {normalize_code(key): document for key, document in documents.items()}
     locations: list[TaskLocation] = []
     for row in rows:
@@ -136,7 +147,9 @@ def _tasks(rows: list[_TaskRow], documents: dict[str, DocumentInfo]) -> list[Tas
         where = f"tasks.json: task '{row.task}' di '{row.manual}'"
         if document is None:
             raise KnowledgeError(f"{where}: il manuale non è nel manifest.")
-        n_lines = len(read_lines(document.path))
+        n_lines = line_counts.get(document.key)
+        if n_lines is None:
+            n_lines = line_counts[document.key] = len(read_lines(document.path))
         if row.line_end < row.line_start or row.line_end > n_lines:
             raise KnowledgeError(
                 f"{where}: righe {row.line_start}-{row.line_end} fuori dal file ({n_lines} righe)."
@@ -161,7 +174,7 @@ def load_local_knowledge(directory: Path, *, version: str | None = None) -> Inde
     if not manifest_path.is_file():
         raise KnowledgeError(f"manifest.json non trovato in {directory}")
     manifest = _parse(TypeAdapter(_Manifest), manifest_path)
-    documents = _documents(directory, manifest)
+    documents, line_counts = _documents(directory, manifest)
     task_rows = _optional(TypeAdapter(list[_TaskRow]), directory / "tasks.json")
     tag_rows = _optional(TypeAdapter(list[_TagRow]), directory / "machine_tags.json")
     sheet_rows = _optional(TypeAdapter(list[_SheetRow]), directory / "process_sheets.json")
@@ -170,7 +183,7 @@ def load_local_knowledge(directory: Path, *, version: str | None = None) -> Inde
         version or manifest.version,
         documents=documents.values(),
         aliases={row.key: row.aliases for row in manifest.documents},
-        tasks=_tasks(task_rows, documents),
+        tasks=_tasks(task_rows, documents, line_counts),
         machine_tags=[MachineTagEntry(tag=row.tag, function=row.function) for row in tag_rows],
         process_sheets=[
             ProcessSheetEntry(

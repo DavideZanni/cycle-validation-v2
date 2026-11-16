@@ -169,3 +169,30 @@ def test_lazy_registry_loads_once_and_retries_after_failure() -> None:
     assert registry.is_active("TM-1")
     assert not registry.is_active("TM-2")
     assert len(calls) == 2
+
+
+def test_manifest_line_counts_avoid_reading_the_documents(
+    knowledge: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest = json.loads((knowledge / "manifest.json").read_text(encoding="utf-8"))
+    for row in manifest["documents"]:
+        row["lines"] = len(read_lines(knowledge / row["file"]))
+    _rewrite(knowledge / "manifest.json", manifest)
+
+    def fail(path: Path) -> tuple[str, ...]:
+        raise AssertionError(f"letto {path.name}")
+
+    monkeypatch.setattr("cycle_validation.kb.local.read_lines", fail)
+    kb = load_local_knowledge(knowledge)
+
+    assert kb.stats()["task"] > 0
+
+
+def test_task_range_outside_declared_line_count(knowledge: Path) -> None:
+    manifest = json.loads((knowledge / "manifest.json").read_text(encoding="utf-8"))
+    for row in manifest["documents"]:
+        row["lines"] = 3
+    _rewrite(knowledge / "manifest.json", manifest)
+
+    with pytest.raises(KnowledgeError, match=r"fuori dal file \(3 righe\)"):
+        load_local_knowledge(knowledge)
