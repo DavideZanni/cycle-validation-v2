@@ -8,6 +8,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from cycle_validation.errors import ConfigError
+from cycle_validation.kb.pointer import DEFAULT_CIVIL_POINTER, DEFAULT_EJ200_POINTER
 
 DEFAULT_EJ200_CATALOG_KEY = "Manufacturing AI/exports/ej200_publication/catalog.json"
 _TRUE = {"1", "true", "yes", "on", "si", "sì"}
@@ -23,6 +24,9 @@ class AppConfig:
     include_traceback: bool = True
     ej200_enabled: bool = True
     ej200_catalog_key: str = DEFAULT_EJ200_CATALOG_KEY
+    # `current.json` pubblicati da knowledge-index (None = non usato, chiavi fisse).
+    civil_knowledge_pointer: str | None = DEFAULT_CIVIL_POINTER
+    ej200_knowledge_pointer: str | None = DEFAULT_EJ200_POINTER
     # Validazioni contemporanee (API_MAX_WORKERS); le altre aspettano il loro turno.
     max_workers: int = 6
     # Tetto del file caricato, per ogni rotta: i limiti del profilo (EJ200: 20 MB) valgono
@@ -63,6 +67,14 @@ def _number[T: (int, float)](
         return default
 
 
+def _optional(environ: Mapping[str, str], name: str, default: str) -> str | None:
+    """Assente = valore standard; presente ma vuota = non usata."""
+    raw = environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip() or None
+
+
 def load_app_config(environ: Mapping[str, str]) -> AppConfig:
     """Raccoglie tutti i problemi e li riporta insieme, senza stampare valori di secret."""
     problems = [
@@ -77,6 +89,12 @@ def load_app_config(environ: Mapping[str, str]) -> AppConfig:
         include_traceback=_flag(environ, "API_INCLUDE_TRACEBACK", True, problems),
         ej200_enabled=_flag(environ, "EJ200_VALIDATION_ENABLED", True, problems),
         ej200_catalog_key=environ.get("EJ200_CATALOG_KEY", DEFAULT_EJ200_CATALOG_KEY).strip(),
+        civil_knowledge_pointer=_optional(
+            environ, "CIVIL_KNOWLEDGE_POINTER", DEFAULT_CIVIL_POINTER
+        ),
+        ej200_knowledge_pointer=_optional(
+            environ, "EJ200_KNOWLEDGE_POINTER", DEFAULT_EJ200_POINTER
+        ),
         max_workers=_number(environ, "API_MAX_WORKERS", int, 6, problems),
         max_upload_bytes=_number(environ, "API_MAX_UPLOAD_MB", int, 50, problems) * 1024 * 1024,
         user_header=environ.get("API_USER_HEADER", "").strip() or "X-User",

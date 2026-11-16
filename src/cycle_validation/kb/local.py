@@ -153,7 +153,8 @@ def _tasks(rows: list[_TaskRow], documents: dict[str, DocumentInfo]) -> list[Tas
     return locations
 
 
-def load_local_knowledge(directory: Path) -> IndexedKnowledgeBase:
+def load_local_knowledge(directory: Path, *, version: str | None = None) -> IndexedKnowledgeBase:
+    """`version` sostituisce quella del manifest (conoscenza pubblicata: vale il puntatore)."""
     if not directory.is_dir():
         raise KnowledgeError(f"Cartella della knowledge base non trovata: {directory}")
     manifest_path = directory / "manifest.json"
@@ -166,7 +167,7 @@ def load_local_knowledge(directory: Path) -> IndexedKnowledgeBase:
     sheet_rows = _optional(TypeAdapter(list[_SheetRow]), directory / "process_sheets.json")
     dr_rows = _optional(TypeAdapter(list[_DrRow]), directory / "dr_recommendations.json")
     return IndexedKnowledgeBase(
-        manifest.version,
+        version or manifest.version,
         documents=documents.values(),
         aliases={row.key: row.aliases for row in manifest.documents},
         tasks=_tasks(task_rows, documents),

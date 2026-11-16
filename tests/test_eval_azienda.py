@@ -193,3 +193,26 @@ def test_a_knowledge_folder_that_cannot_be_read_stops_the_run_before_any_model_c
     else:
         raise AssertionError("doveva fermarsi")
     assert session.requests == []
+
+
+def test_a_snapshot_with_a_pointer_reads_the_published_index(tmp_path: Path) -> None:
+    # copia del bucket con l'indice pubblicato da knowledge-index (current.json + v/<versione>/)
+    mirror = tmp_path / "foto"
+    shutil.copytree(EXAMPLE / "knowledge", mirror / "knowledge" / "civil" / "v" / "r1")
+    (mirror / "knowledge" / "civil" / "current.json").write_text(
+        '{"format": 1, "version": "r1", "path": "v/r1/"}', encoding="utf-8"
+    )
+    suite = tmp_path / "aziendali" / "mos"
+    suite.mkdir(parents=True)
+    (suite / "suite.yaml").write_text(
+        f"conoscenza: {mirror.as_posix()}\n"
+        "tipo_conoscenza: fotografia\n"
+        "puntatore: knowledge/civil/current.json\n",
+        encoding="utf-8",
+    )
+
+    kb = load_suites(suite)[0].knowledge(tmp_path / "w")
+
+    assert kb.version == "r1"
+    assert kb.find_task("MD72", "72-00-01-220-002") is not None
+    assert kb.find_machine_tag("TM-1001") is not None

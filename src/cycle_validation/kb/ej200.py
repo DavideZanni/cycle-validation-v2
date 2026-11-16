@@ -4,6 +4,10 @@ I documenti EJ200 non si cercano per similarità: il codice citato (RN, EF, RDR)
 nel catalogo e il testo è un markdown a righe, con marcatori di pagina, all'oggetto
 `<text_prefix><document_id>/<content_hash>.md` dello store. Il catalogo ha un TTL e un errore di lettura non viene
 memorizzato come catalogo valido. Le targhe sono i dati TM condivisi con i profili civili.
+
+Con `pointer_key` il catalogo si legge dalla versione indicata da `current.json`
+(`<versione>/catalog.json`) e ogni voce ricorda il prefisso dei testi della sua versione:
+una validazione che ha già trovato una voce ne legge il testo anche dopo un cambio di versione.
 """
 
 import json
@@ -17,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from cycle_validation.errors import KnowledgeError, SourceUnavailableError
 from cycle_validation.kb.documents import digest, file_name
+from cycle_validation.kb.pointer import read_pointer
 from cycle_validation.kb.port import (
     DocumentInfo,
     DrRecommendation,
@@ -31,6 +36,9 @@ from cycle_validation.text import normalize_code
 DEFAULT_CATALOG_KEY = "Manufacturing AI/exports/ej200_publication/catalog.json"
 DEFAULT_TEXT_PREFIX = "Manufacturing AI/exports/ej200_publication/text/"
 DEFAULT_TTL_S = 300.0
+# Dentro la cartella di una versione pubblicata da knowledge-index.
+POINTER_CATALOG = "catalog.json"
+POINTER_TEXTS = "text/"
 
 
 class CatalogEntry(BaseModel):
@@ -48,6 +56,8 @@ class CatalogEntry(BaseModel):
     published: bool = True
     partial: bool = False
     references: list[str] = Field(default_factory=list)
+    # Lo imposta il catalogo letto da un puntatore, mai il file: dove stanno i testi.
+    text_prefix: str | None = None
 
     @property
     def key(self) -> str:
@@ -59,7 +69,14 @@ def parse_catalog(raw: bytes) -> list[CatalogEntry]:
         loaded = json.loads(raw)
         if isinstance(loaded, dict):
             loaded = loaded.get("publications", loaded.get("documents", []))
-        return [CatalogEntry.model_validate(item) for item in loaded]
+        return [
+            CatalogEntry.model_validate(
+                {k: v for k, v in item.items() if k != "text_prefix"}
+                if isinstance(item, dict)
+                else item
+            )
+            for item in loaded
+        ]
     except (json.JSONDecodeError, ValidationError, TypeError) as exc:
         raise KnowledgeError(f"Catalogo EJ200 non valido: {type(exc).__name__}") from exc
 
@@ -73,8 +90,12 @@ class Ej200Catalog:
         key: str = DEFAULT_CATALOG_KEY,
         ttl_s: float = DEFAULT_TTL_S,
         clock: Callable[[], float] = time.monotonic,
+        *,
+        pointer_key: str | None = None,
     ) -> None:
         self._store, self._key, self._ttl, self._clock = store, key, ttl_s, clock
+        self._pointer_key = pointer_key
+        self._version: str | None = None
         self._entries: list[CatalogEntry] | None = None
         self._by_name: dict[str, list[CatalogEntry]] = {}
         self._loaded_at = 0.0
@@ -84,14 +105,26 @@ class Ej200Catalog:
         """Catalogo valido, ricaricato se scaduto. Da chiamare con il lock preso."""
         fresh = self._entries is not None and self._clock() - self._loaded_at < self._ttl
         if not fresh:
+            key, version, text_prefix = self._key, None, None
+            if self._pointer_key is not None:
+                try:
+                    pointer = read_pointer(self._store, self._pointer_key)
+                except KnowledgeError as exc:
+                    raise SourceUnavailableError(str(exc)) from exc
+                key = pointer.prefix + POINTER_CATALOG
+                version, text_prefix = pointer.version, pointer.prefix + POINTER_TEXTS
             try:
-                raw = self._store.get_bytes(self._key)
+                raw = self._store.get_bytes(key)
             except ObjectNotFoundError as exc:
-                raise SourceUnavailableError(f"Catalogo EJ200 non trovato: {self._key}") from exc
+                raise SourceUnavailableError(f"Catalogo EJ200 non trovato: {key}") from exc
             try:
                 entries = parse_catalog(raw)
             except KnowledgeError as exc:
                 raise SourceUnavailableError(str(exc)) from exc
+            if text_prefix is not None:
+                entries = [
+                    entry.model_copy(update={"text_prefix": text_prefix}) for entry in entries
+                ]
             # Indice per nome (codice e riferimenti), nell'ordine del catalogo: una ricerca
             # non riscorre tutte le voci. Si ricostruisce solo a ogni ricarica.
             by_name: dict[str, list[CatalogEntry]] = {}
@@ -99,10 +132,19 @@ class Ej200Catalog:
                 names = {normalize_code(entry.code), *map(normalize_code, entry.references)}
                 for name in names:
                     by_name.setdefault(name, []).append(entry)
-            self._entries, self._by_name = entries, by_name
+            self._entries, self._by_name, self._version = entries, by_name, version
             self._loaded_at = self._clock()
         assert self._entries is not None
         return self._entries
+
+    @property
+    def version(self) -> str | None:
+        """Versione del puntatore del catalogo in uso; None senza puntatore."""
+        if self._pointer_key is None:
+            return None
+        with self._lock:
+            self._current()
+            return self._version
 
     def entries(self) -> list[CatalogEntry]:
         with self._lock:
@@ -124,6 +166,7 @@ class Ej200KnowledgeBase:
         layout: StructuredLayout | None = None,
         *,
         text_prefix: str = DEFAULT_TEXT_PREFIX,
+        tags: Callable[[], Sequence[MachineTagEntry]] | None = None,
     ) -> None:
         self._version = version
         self._catalog = catalog
@@ -131,6 +174,7 @@ class Ej200KnowledgeBase:
         self._store = store
         self._layout = layout or StructuredLayout(sp=None, dr=None)
         self._text_prefix = text_prefix
+        self._tag_source = tags  # targhe da un'altra conoscenza (quella civile pubblicata)
         self._lock = threading.Lock()
         self._documents: dict[str, DocumentInfo] = {}
         self._building: dict[str, threading.Lock] = {}
@@ -139,7 +183,7 @@ class Ej200KnowledgeBase:
 
     @property
     def version(self) -> str:
-        return self._version
+        return self._catalog.version or self._version
 
     def preload(self) -> None:
         """Verifica che catalogo e dati TM siano leggibili: altrimenti il run non parte."""
@@ -147,6 +191,12 @@ class Ej200KnowledgeBase:
             self._catalog.entries()
         except SourceUnavailableError as exc:
             raise KnowledgeError(str(exc)) from exc
+        if self._tag_source is not None:
+            try:
+                self._tag_source()
+            except SourceUnavailableError as exc:
+                raise KnowledgeError(str(exc)) from exc
+            return
         with self._lock:
             self._structured()
 
@@ -199,7 +249,8 @@ class Ej200KnowledgeBase:
         )
 
     def _read_text(self, entry: CatalogEntry) -> str:
-        key = f"{self._text_prefix}{entry.document_id}/{entry.content_hash}.md"
+        prefix = entry.text_prefix or self._text_prefix
+        key = f"{prefix}{entry.document_id}/{entry.content_hash}.md"
         try:
             return self._store.get_bytes(key).decode("utf-8").rstrip("\n")
         except ObjectNotFoundError:
@@ -224,6 +275,11 @@ class Ej200KnowledgeBase:
         return next((t for t in self._tags() if normalize_code(t.tag) == wanted), None)
 
     def _tags(self) -> Sequence[MachineTagEntry]:
+        if self._tag_source is not None:
+            try:
+                return self._tag_source()
+            except KnowledgeError as exc:
+                raise SourceUnavailableError(str(exc)) from exc
         with self._lock:
             try:
                 return self._structured().machine_tags

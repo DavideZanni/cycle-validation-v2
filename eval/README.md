@@ -87,6 +87,9 @@ estrazione: ciclo_json         # ciclo_json | dal_pdf
   produzione. Servono i prefissi `manuali`, `targhe`, `schede`, `dr` (vedi
   `modelli/aziendali/`).
 - `ej200`: la stessa struttura delle chiavi S3 delle pubblicazioni EJ200 (`catalogo`, `testi`).
+- `puntatore: knowledge/civil/current.json` (con `fotografia` o `ej200`): la conoscenza si legge
+  dall'indice pubblicato da knowledge-index, come in produzione. Con `fotografia` non servono
+  `manuali`, `targhe`, `schede`, `dr`; con `ej200` non servono `catalogo` e `testi`.
 - `dal_pdf`: il ciclo si legge dal PDF a ogni prova, e la colonna "Estrazione" misura quanto la
   lettura somiglia a `ciclo.json`.
 

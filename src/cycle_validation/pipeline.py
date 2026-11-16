@@ -3,7 +3,7 @@
 import asyncio
 import uuid
 from collections.abc import Callable, Collection
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from time import perf_counter
@@ -126,6 +126,11 @@ async def arun_validation(
             f"Il profilo {profile.name} non è attivo: {profile.disabled_reason or 'disabilitato'}."
         )
     _check_selectors(profile, request.selectors)
+    # Conoscenza che si aggiorna da sola (puntatore): la versione si fissa qui e vale per
+    # tutta la validazione, anche se a metà ne viene pubblicata una nuova.
+    current = getattr(type(deps.kb), "current", None)
+    if callable(current):
+        deps = replace(deps, kb=await asyncio.to_thread(deps.kb.current))  # type: ignore[attr-defined]
 
     mark = perf_counter()
     pdf, ingest_usage = await asyncio.to_thread(

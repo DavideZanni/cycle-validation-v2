@@ -168,7 +168,9 @@ Facoltative:
 |---|---|---|
 | `API_MAX_UPLOAD_MB` | 50 | dimensione massima del file caricato |
 | `EJ200_VALIDATION_ENABLED` | attivo | accende o spegne i cicli militari |
-| `EJ200_CATALOG_KEY` | percorso standard | dove sta il catalogo EJ200 su S3 |
+| `EJ200_CATALOG_KEY` | percorso standard | dove sta il catalogo EJ200 su S3, se non usi il puntatore |
+| `CIVIL_KNOWLEDGE_POINTER` | `Manufacturing AI/cv3/knowledge/civil/current.json` | puntatore della conoscenza civile |
+| `EJ200_KNOWLEDGE_POINTER` | `Manufacturing AI/cv3/knowledge/ej200/current.json` | puntatore EJ200; vuota = catalogo a chiave fissa |
 | `API_INCLUDE_TRACEBACK` | attivo | **in produzione spegnilo** (`false`) |
 | `SECRET_NAME` | vuoto | secret da cui leggere le variabili |
 | `API_USER_HEADER` | `X-User` | header in cui il frontend mette l'utente già verificato |
@@ -233,14 +235,22 @@ funzione `build_services` di `src/cycle_validation/api/main.py`. Deve costruire 
 | Cosa | Con che cosa | Classe già pronta |
 |---|---|---|
 | Archivio dei file (sessioni, feedback) | client `s3` di boto3 | `S3ObjectStore(client, bucket)` |
-| Testo dei manuali civili | la cartella di markdown e JSON pubblicata su S3 dalla tua ingestion | `SnapshotManualSource(store, prefisso, cartella_di_lavoro)` |
-| Targhe, schede, recommendation DR | i JSON su S3 | `RemoteKnowledgeBase(versione, store, manuali)` |
-| Catalogo e testi EJ200 | catalogo su S3 | `Ej200Catalog` e `Ej200KnowledgeBase` |
+| Conoscenza civile (manuali, task, targhe, schede, DR) | l'indice pubblicato da knowledge-index con `current.json` | `PublishedKnowledgeBase(store, config.civil_knowledge_pointer, cartella_di_lavoro)` |
+| Catalogo e testi EJ200 | l'indice EJ200 con il suo `current.json` | `Ej200KnowledgeBase(..., Ej200Catalog(store, pointer_key=config.ej200_knowledge_pointer), tags=civile.machine_tags)` |
 | Macchine attive | Redshift, oppure un file JSON | `redshift_machine_registry(connect)` oppure `load_machine_registry(file)` |
 | Accesso degli utenti | il frontend | niente da montare: il frontend manda gli header `X-User` e `X-Services` (vedi Passo 5) |
 | Costo su CloudWatch (facoltativo) | client `cloudwatch` | `CloudWatchMetrics(client)` |
 
-Le classi esistono e sono provate con dati finti: vanno solo create con i client veri. Come
+Le classi esistono e sono provate con dati finti: vanno solo create con i client veri.
+
+**La conoscenza si aggiorna da sola.** `PublishedKnowledgeBase` rilegge `current.json` ogni 5
+minuti: se l'ingestion ha pubblicato una versione nuova la scarica (in parallelo) in
+`cartella_di_lavoro/<versione>` e la usa solo se è valida; altrimenti resta sulla precedente e lo
+scrive nel log. Una validazione già partita finisce con la versione con cui è partita, e il
+report dice quale (`knowledge_version`). Su disco restano le ultime 3 versioni: dai a
+`cartella_di_lavoro` una cartella tutta sua. Le targhe di EJ200 vengono dalla stessa conoscenza
+civile, quindi seguono anche loro il puntatore. Le vecchie classi (`SnapshotManualSource`,
+`RemoteKnowledgeBase`, catalogo a chiave fissa) funzionano ancora, se serve tornare indietro. Come
 esempio di montaggio guarda `tests/api_support.py`, che fa la stessa cosa con pezzi finti.
 
 All'avvio fai scaricare la conoscenza: in `ApiServices` metti
@@ -282,6 +292,7 @@ vero.
 | Id del modello Haiku | `agent.model` | tutte le operazioni escono "errore tecnico" |
 | Come si riconosce un DR dalla testata | `module_check.dr_markers` | i cicli DR veri vengono rifiutati come "ciclo civile MOS" |
 | Formato della cartella dei manuali su S3 | `src/cycle_validation/kb/snapshot.py` | `preload()` dà errore sul `manifest.json` |
+| Puntatore `current.json` | `src/cycle_validation/kb/pointer.py` | `preload()` dice «Puntatore … non valido» o «non trovato» |
 | Nomi dei campi nei JSON di targhe, schede, DR | `FieldMap` in `src/cycle_validation/kb/structured.py` | `preload()` dà errore con il nome del campo |
 | Percorso dei testi EJ200 su S3 | `DEFAULT_TEXT_PREFIX` in `src/cycle_validation/kb/ej200.py` | i documenti EJ200 risultano "nessun testo su S3" |
 | Elenco delle macchine attive | la query Redshift | targhe giuste segnate "non attiva" (ERRATO) |

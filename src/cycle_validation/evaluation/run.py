@@ -41,6 +41,7 @@ from cycle_validation.kb.ej200 import (
 )
 from cycle_validation.kb.local import load_local_knowledge
 from cycle_validation.kb.port import KnowledgeBase
+from cycle_validation.kb.published import PublishedKnowledgeBase
 from cycle_validation.kb.remote import RemoteKnowledgeBase
 from cycle_validation.kb.snapshot import SnapshotManualSource
 from cycle_validation.kb.stores import LocalDirObjectStore
@@ -77,6 +78,10 @@ class SuiteConfig(BaseModel):
     # ej200: chiavi del catalogo e dei testi.
     catalogo: str = DEFAULT_CATALOG_KEY
     testi: str = DEFAULT_TEXT_PREFIX
+    # Chiave di `current.json` pubblicato da knowledge-index. Con fotografia la conoscenza
+    # civile intera (manuali, task, TM, SP, DR) viene dalla versione indicata e `manuali`,
+    # `targhe`, `schede`, `dr` non servono; con ej200 il catalogo e i testi vengono da lì.
+    puntatore: str | None = None
 
 
 @dataclass(frozen=True)
@@ -100,16 +105,18 @@ class Suite:
             if not folder.is_dir():
                 raise ConfigError(f"cartella non trovata: {folder}")
             store = LocalDirObjectStore(folder)
-            kb: Ej200KnowledgeBase | RemoteKnowledgeBase
+            kb: Ej200KnowledgeBase | RemoteKnowledgeBase | PublishedKnowledgeBase
             if cfg.tipo_conoscenza == "ej200":
                 kb = Ej200KnowledgeBase(
                     version,
-                    Ej200Catalog(store, cfg.catalogo),
+                    Ej200Catalog(store, cfg.catalogo, pointer_key=cfg.puntatore),
                     workdir / "ej200",
                     store,
                     StructuredLayout(tm=cfg.targhe, sp=None, dr=None),
                     text_prefix=cfg.testi,
                 )
+            elif cfg.puntatore:
+                kb = PublishedKnowledgeBase(store, cfg.puntatore, workdir / "pubblicata")
             else:
                 kb = RemoteKnowledgeBase(
                     version,

@@ -62,6 +62,10 @@ class IndexedKnowledgeBase:
     def find_machine_tag(self, tag: str) -> MachineTagEntry | None:
         return self._tags.get(normalize_code(tag))
 
+    def machine_tags(self) -> list[MachineTagEntry]:
+        """Tutte le targhe: EJ200 le prende dalla conoscenza civile."""
+        return list(self._tags.values())
+
     def find_process_sheet(self, code: str) -> ProcessSheetEntry | None:
         return self._sheets.get(normalize_code(code))
 

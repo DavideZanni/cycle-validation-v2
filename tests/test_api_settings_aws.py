@@ -6,6 +6,7 @@ import pytest
 from cycle_validation.api.aws import CloudWatchMetrics, bootstrap_environment
 from cycle_validation.api.settings import load_app_config
 from cycle_validation.errors import ConfigError
+from cycle_validation.kb.pointer import DEFAULT_CIVIL_POINTER, DEFAULT_EJ200_POINTER
 
 ENV = {"BUCKETNAME": "b", "REGION_NAME": "eu-south-1", "FRONTEND_URL": "https://fe.example"}
 
@@ -126,3 +127,15 @@ def test_the_identity_headers_can_be_renamed() -> None:
     assert (config.user_header, config.services_header) == ("X-User", "X-Services")
     config = load_app_config({**ENV, "API_USER_HEADER": "X-Utente", "API_SERVICES_HEADER": "X-G"})
     assert (config.user_header, config.services_header) == ("X-Utente", "X-G")
+
+
+def test_knowledge_pointers_have_standard_keys_and_can_be_turned_off() -> None:
+    config = load_app_config(ENV)
+    assert config.civil_knowledge_pointer == DEFAULT_CIVIL_POINTER
+    assert config.ej200_knowledge_pointer == DEFAULT_EJ200_POINTER
+
+    changed = load_app_config(
+        ENV | {"CIVIL_KNOWLEDGE_POINTER": " altro/current.json ", "EJ200_KNOWLEDGE_POINTER": ""}
+    )
+    assert changed.civil_knowledge_pointer == "altro/current.json"
+    assert changed.ej200_knowledge_pointer is None  # vuoto = catalogo a chiave fissa
