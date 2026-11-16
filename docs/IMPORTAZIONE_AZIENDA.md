@@ -41,15 +41,19 @@ progetto, al Passo 2. E ogni cartella `docs/Esempio...` è ignorata da git: prim
 `docs/Esempio ciclo DR/` sarebbe finita nel repository.
 
 **Cosa non si è potuto provare qui:** Bedrock, S3, Redshift, l'accesso aziendale, la lettura
-di foto e scansioni, il controllo col modello su un ciclo DR vero. Sono i passi 5, 6 e 8 di
+di foto e scansioni, un ciclo DR vero contro la conoscenza vera. Sono i passi 5, 6 e 8 di
 questa guida.
 
-**Un ciclo DR vero, senza modello (16 novembre 2026).** Sulla stampa DR di esempio
-(cartella ignorata `docs/Esempio ciclo DR/`) erano sbagliate due cose, ora corrette: la testata non scrive
-"DR", quindi il ciclo veniva rifiutato come MOS (il DR si riconosce dal numero di segnalazione
-in NOTE, forma `Saa/nnnnn-...`); il profilo DR non usava il lettore della stampa PVRM320. Con le
-correzioni il ciclo si legge (9 operazioni, targhe, schede) e i controlli senza modello danno
-gli esiti attesi. La testata va riconfermata su altri DR (Passo 8).
+**Un ciclo DR vero (16 novembre 2026).** Sulla stampa DR di esempio (cartella ignorata
+`docs/Esempio ciclo DR/`) erano sbagliate due cose, ora corrette: la testata non scrive "DR",
+quindi il ciclo veniva rifiutato come MOS (il DR si riconosce dal numero di segnalazione in
+NOTE, forma `Saa/nnnnn-...`); il profilo DR non usava il lettore della stampa PVRM320. Con le
+correzioni il ciclo si legge (9 operazioni, targhe, schede) e la pipeline completa, con il
+modello e una conoscenza DR **inventata**, dà: ciclo pulito 0 errati (3 warning su operazioni
+di officina che il D.R. non descrive: presa in carico, preservazione, collaudo finale); stesso
+ciclo con la profondità massima raddoppiata, un solo ERRATO, sull'operazione giusta e citando la
+riga giusta. Il formato vero di D.R. e recommendation e la testata vanno riconfermati in azienda
+(Passo 8).
 
 ---
 
