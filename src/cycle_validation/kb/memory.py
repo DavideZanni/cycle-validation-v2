@@ -72,6 +72,16 @@ class IndexedKnowledgeBase:
     def find_dr_recommendations(self, serial_number: str) -> list[DrRecommendation]:
         return list(self._dr.get(normalize_code(serial_number), ()))
 
+    def uncertain_counts(self) -> dict[str, int]:
+        """Voci con almeno un motivo di incertezza dall'indice (per `kb-check`)."""
+        return {
+            "targhe_incerte": sum(1 for entry in self._tags.values() if entry.uncertain),
+            "schede_incerte": sum(1 for entry in self._sheets.values() if entry.uncertain),
+            "recommendation_dr_incerte": sum(
+                1 for items in self._dr.values() for entry in items if entry.uncertain
+            ),
+        }
+
     def stats(self) -> dict[str, int]:
         return {
             "documenti": len(self._documents),

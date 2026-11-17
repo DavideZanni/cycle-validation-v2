@@ -248,15 +248,49 @@ def test_uncertainty_of_a_dr_matches_serial_conditions_and_procedure(knowledge: 
     assert by_condition[(2,)].uncertain == ()
 
 
-def test_uncertainty_for_an_unknown_entry_is_rejected(knowledge: Path) -> None:
-    _uncertainty(knowledge, process_sheets={"SP-9999": ["valori_alternativi"]})
-
-    with pytest.raises(KnowledgeError, match=r"uncertainty.json.*SP-9999"):
-        load_local_knowledge(knowledge)
+# Un file accessorio difettoso non deve fermare il servizio: a runtime si ignora la parte che
+# non torna (con un avviso), `kb-check` invece lo segnala e fallisce.
 
 
-def test_uncertainty_with_an_unknown_format_is_rejected(knowledge: Path) -> None:
+def test_uncertainty_for_an_unknown_entry_is_ignored_and_reported(knowledge: Path) -> None:
+    _uncertainty(
+        knowledge,
+        machine_tags={"TM-1001": ["da_record_parziale"]},
+        process_sheets={"SP-9999": ["valori_alternativi"]},
+    )
+    problems: list[str] = []
+    kb = load_local_knowledge(knowledge, problems=problems)
+
+    assert kb.find_machine_tag("TM-1001").uncertain == ("da_record_parziale",)  # type: ignore[union-attr]
+    assert len(problems) == 1
+    assert "uncertainty.json" in problems[0] and "SP-9999" in problems[0]
+
+
+def test_uncertainty_for_an_unknown_dr_is_ignored_and_reported(knowledge: Path) -> None:
+    _uncertainty(
+        knowledge,
+        dr_recommendations=[
+            {"serial_number": "SN-X", "conditions": [1], "procedure": "Repair", "reasons": ["x"]}
+        ],
+    )
+    problems: list[str] = []
+    load_local_knowledge(knowledge, problems=problems)
+    assert len(problems) == 1 and "SN-X" in problems[0]
+
+
+@pytest.mark.parametrize("content", [{"format": 2}, ["non", "un", "oggetto"]])
+def test_unreadable_uncertainty_is_ignored_and_reported(knowledge: Path, content: object) -> None:
+    _rewrite(knowledge / "uncertainty.json", content)
+    problems: list[str] = []
+    kb = load_local_knowledge(knowledge, problems=problems)
+
+    assert kb.find_process_sheet("SP-0101").uncertain == ()  # type: ignore[union-attr]
+    assert len(problems) == 1 and "uncertainty.json" in problems[0]
+
+
+def test_uncertainty_problems_are_logged_without_a_list(
+    knowledge: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     _rewrite(knowledge / "uncertainty.json", {"format": 2})
-
-    with pytest.raises(KnowledgeError, match=r"uncertainty.json"):
-        load_local_knowledge(knowledge)
+    load_local_knowledge(knowledge)
+    assert "uncertainty.json" in caplog.text

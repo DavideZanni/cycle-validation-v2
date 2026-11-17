@@ -430,7 +430,9 @@ def test_ej200_doubts_are_never_read_from_the_catalog_file() -> None:
     assert all(entry.uncertain == () for entry in Ej200Catalog(store, key="cat.json").entries())
 
 
-def test_ej200_doubt_for_an_entry_not_in_the_catalog_is_rejected() -> None:
+def test_ej200_doubt_for_an_entry_not_in_the_catalog_is_ignored(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     store = InMemoryObjectStore()
     publish_ej200(store, "r1", catalog_entries())
     _ej200_doubts(
@@ -442,8 +444,30 @@ def test_ej200_doubt_for_an_entry_not_in_the_catalog_is_rejected() -> None:
                 "issue": "1",
                 "document_id": "x",
                 "reasons": ["copie_diverse_per_tipo"],
-            }
+            },
+            {
+                "code": "EF-200",
+                "issue": "1",
+                "document_id": "ef200-1",
+                "reasons": ["copie_diverse_per_contenuto"],
+            },
         ],
     )
-    with pytest.raises(SourceUnavailableError, match=r"uncertainty\.json.*RN-999"):
-        Ej200Catalog(store, pointer_key=EJ200 + "current.json").entries()
+    entries = Ej200Catalog(store, pointer_key=EJ200 + "current.json").entries()
+
+    assert len(entries) == len(catalog_entries())
+    doubts = {entry.code: entry.uncertain for entry in entries if entry.uncertain}
+    assert doubts == {"EF-200": ("copie_diverse_per_contenuto",)}
+    assert "RN-999" in caplog.text
+
+
+def test_ej200_unreadable_doubts_leave_the_catalog_usable(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    store = InMemoryObjectStore()
+    publish_ej200(store, "r1", catalog_entries())
+    store.put(f"{EJ200}v/r1/uncertainty.json", {"format": 2})
+    entries = Ej200Catalog(store, pointer_key=EJ200 + "current.json").entries()
+
+    assert entries and all(entry.uncertain == () for entry in entries)
+    assert "uncertainty.json" in caplog.text

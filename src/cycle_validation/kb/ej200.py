@@ -9,11 +9,12 @@ Con `pointer_key` il catalogo si legge dalla versione indicata da `current.json`
 (`<versione>/catalog.json`) e ogni voce ricorda il prefisso dei testi della sua versione:
 una validazione che ha già trovato una voce ne legge il testo anche dopo un cambio di versione.
 Accanto c'è `uncertainty.json` (facoltativo): le voci scelte tra copie diverse con lo stesso
-codice e issue, con il motivo. Una voce citata lì e assente dal catalogo rende la versione
-non valida, come un catalogo illeggibile.
+codice e issue, con il motivo. È un'aggiunta: se non si legge, o cita una voce assente dal
+catalogo, quella parte si ignora con un avviso nel log e il catalogo resta usabile.
 """
 
 import json
+import logging
 import re
 import threading
 import time
@@ -36,6 +37,8 @@ from cycle_validation.kb.port import (
 from cycle_validation.kb.stores import ObjectNotFoundError, ObjectStore
 from cycle_validation.kb.structured import StructuredData, StructuredLayout, load_structured
 from cycle_validation.text import normalize_code
+
+log = logging.getLogger(__name__)
 
 DEFAULT_CATALOG_KEY = "Manufacturing AI/exports/ej200_publication/catalog.json"
 DEFAULT_TEXT_PREFIX = "Manufacturing AI/exports/ej200_publication/text/"
@@ -111,21 +114,26 @@ def _entry_key(code: str, issue: str | None, document_id: str) -> tuple[str, str
 
 
 def with_uncertainty(entries: list[CatalogEntry], raw: bytes) -> list[CatalogEntry]:
-    """Le voci con i motivi di `uncertainty.json`. File non valido o voce assente dal
-    catalogo: KnowledgeError."""
+    """Le voci con i motivi di `uncertainty.json`. File non valido: voci invariate; voce
+    assente dal catalogo: saltata. In entrambi i casi un avviso nel log."""
     try:
         doubts = _Uncertainty.model_validate_json(raw)
     except ValidationError as exc:
-        raise KnowledgeError(f"{POINTER_UNCERTAINTY} EJ200 non valido") from exc
+        log.warning("%s EJ200 ignorato: %s", POINTER_UNCERTAINTY, type(exc).__name__)
+        return entries
     known = {_entry_key(e.code, e.issue, e.document_id) for e in entries}
     reasons: dict[tuple[str, str, str], set[str]] = {}
     for item in doubts.catalog:
         key = _entry_key(item.code, item.issue, item.document_id)
         if key not in known:
-            raise KnowledgeError(
-                f"{POINTER_UNCERTAINTY}: la voce {item.code} issue {item.issue or 'n/d'} "
-                f"({item.document_id}) non è nel catalogo."
+            log.warning(
+                "%s: la voce %s issue %s (%s) non è nel catalogo, ignorata.",
+                POINTER_UNCERTAINTY,
+                item.code,
+                item.issue or "n/d",
+                item.document_id,
             )
+            continue
         reasons.setdefault(key, set()).update(item.reasons)
     return [
         entry.model_copy(update={"uncertain": tuple(sorted(found))})
