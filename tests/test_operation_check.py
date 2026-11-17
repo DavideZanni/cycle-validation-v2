@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from fakes import ONE_CALL, ScriptedSession
-from kb_fixtures import BrokenKnowledge, memory_knowledge, profile
+from kb_fixtures import DOC_72, BrokenKnowledge, memory_knowledge, profile
 
 from cycle_validation.agent.prompt import (
     build_operation_prompt,
@@ -304,3 +304,42 @@ def test_the_model_is_still_called_for_a_missing_task_by_default() -> None:
     assert AgentSettings().skip_missing_task is False
     jobs, immediate = plan_operation_checks(ctx([op(codes=["72-00-01-999-009"])]), SETTINGS, "s")
     assert len(jobs) == 1 and immediate == []
+
+
+def _kb_with_sheet(treatment: str) -> Any:
+    from cycle_validation.kb.memory import IndexedKnowledgeBase
+    from cycle_validation.kb.port import ProcessSheetEntry
+
+    base = memory_knowledge()
+    sheet = ProcessSheetEntry(code="SP-0101", treatment=treatment, engine_families=("GENX", "LEAP"))
+    return IndexedKnowledgeBase(
+        base.version,
+        documents=[DOC_72],
+        tasks=[base.find_task("MAN-DEMO-72", "72-00-01-110-001")],  # type: ignore[list-item]
+        machine_tags=base.machine_tags(),
+        process_sheets=[sheet],
+    )
+
+
+def _prompt_with_sheet(treatment: str, engine_model: str = "GENX-1B") -> str:
+    operation = Operation.model_validate({**op().model_dump(), "process_sheet": "SP-0101"})
+    context = ctx([operation], _kb_with_sheet(treatment))
+    context = CheckContext(
+        context.cycle.model_copy(update={"engine_model": engine_model}),
+        context.kb,
+        context.machines,
+        context.profile,
+    )
+    jobs, _ = plan_operation_checks(context, SETTINGS, "sistema")
+    return jobs[0].request.prompt
+
+
+def test_the_agent_sees_only_the_treatment_of_the_cycle_engine() -> None:
+    prompt = _prompt_with_sheet("Lavaggio con solvente [GENX]; Lavaggio ad acqua [LEAP]")
+    assert "Scheda SP-0101: Lavaggio con solvente" in prompt
+    assert "Lavaggio ad acqua" not in prompt
+
+
+def test_the_treatment_keeps_every_value_when_the_engine_is_unknown() -> None:
+    prompt = _prompt_with_sheet("Lavaggio con solvente [GENX]; Lavaggio ad acqua [LEAP]", "XYZ")
+    assert "Lavaggio con solvente [GENX]; Lavaggio ad acqua [LEAP]" in prompt

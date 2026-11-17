@@ -4,6 +4,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from cycle_validation.checks.uncertainty import describe, is_doubtful
 from cycle_validation.domain.check import Reason
 from cycle_validation.domain.cycle import Cycle, Operation, Source
 from cycle_validation.kb.documents import read_lines
@@ -73,6 +74,12 @@ def resolve_document(name: str, kb: KnowledgeBase, issue: str | None = None) -> 
                 Reason.VERSIONE_DIVERSA,
                 f"Il ciclo cita la issue {issue} di {name}; quella disponibile è {chosen.version}.",
             )
+    if is_doubtful(chosen.uncertain):
+        return DocumentResolution(
+            chosen,
+            Reason.DATO_INCERTO,
+            f"Il documento {chosen.key} è disponibile.{describe(chosen.uncertain)}",
+        )
     return DocumentResolution(chosen)
 
 
@@ -154,19 +161,29 @@ def context_locations(
     operation: Operation,
     kb: KnowledgeBase,
     *,
-    extra_tasks: Sequence[tuple[str, str]] = (),
+    extra_tasks: Sequence[tuple[str | None, str]] = (),
 ) -> tuple[TaskLocation, ...]:
     """Testo con cui confrontare l'operazione: i suoi task; se non ne ha di risolti,
-    i task delle fonti collegate; infine quelli aggiunti dal profilo (per DR)."""
+    i task delle fonti collegate; infine quelli aggiunti dal profilo (per DR).
+
+    Una fonte senza task può essere un documento che è tutto un task (LEAP): l'indice gli
+    dà come codice del task il codice del documento, quindi si prova quello (e la chiave).
+    Un task DR senza manuale si cerca nei manuali citati dal ciclo per l'operazione."""
     found = resolve_operation(cycle, operation, kb).found
     if found:
         return _dedupe(found)
-    pairs = [
-        (source.manual, source.task)
-        for source in linked_sources(cycle, operation)
-        if source.task is not None
-    ]
-    locations = [
-        hit for manual, task in [*pairs, *extra_tasks] if (hit := kb.find_task(manual, task))
-    ]
+    sources = linked_sources(cycle, operation)
+    pairs: list[tuple[str, str]] = []
+    for source in sources:
+        if source.task is not None:
+            pairs.append((source.manual, source.task))
+            continue
+        document = resolve_document(source.manual, kb).document
+        if document is not None:
+            names = _unique([name for name in (document.code, document.key) if name])
+            pairs += [(source.manual, name) for name in names]
+    manuals = _unique([source.manual for source in sources])
+    for manual, task in extra_tasks:
+        pairs += [(manual, task)] if manual is not None else [(name, task) for name in manuals]
+    locations = [hit for manual, task in pairs if (hit := kb.find_task(manual, task))]
     return _dedupe(locations)

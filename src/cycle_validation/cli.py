@@ -53,14 +53,22 @@ def _fail(error: Exception) -> typer.Exit:
 def kb_check(
     directory: Annotated[Path, typer.Argument(help="Cartella della knowledge base.")],
 ) -> None:
-    """Carica una knowledge base locale e stampa i conteggi."""
+    """Carica una knowledge base locale e stampa i conteggi, voci incerte comprese.
+    Fallisce anche per un `uncertainty.json` incoerente, che il servizio tollererebbe."""
+    problems: list[str] = []
     try:
-        kb = load_local_knowledge(directory)
+        kb = load_local_knowledge(directory, problems=problems)
     except CycleValidationError as error:
         raise _fail(error) from error
     typer.echo(f"Knowledge base {kb.version}")
     for name, count in kb.stats().items():
         typer.echo(f"  {name}: {count}")
+    for name, count in kb.uncertain_counts().items():
+        typer.echo(f"  {name}: {count}")
+    if problems:
+        for problem in problems:
+            typer.echo(f"Errore: {problem}")
+        raise typer.Exit(code=1)
 
 
 @app.command()

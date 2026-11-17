@@ -1,4 +1,5 @@
 import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -44,6 +45,38 @@ def test_kb_check_prints_counts() -> None:
     assert result.exit_code == 0, result.output
     assert "documenti" in result.output
     assert "sintetico-2026-11" in result.output
+
+
+def _knowledge_with_doubts(tmp_path: Path, doubts: object) -> Path:
+    target = tmp_path / "knowledge"
+    shutil.copytree(EXAMPLE_KB, target)
+    (target / "uncertainty.json").write_text(json.dumps(doubts), encoding="utf-8")
+    return target
+
+
+def test_kb_check_counts_the_doubtful_entries(tmp_path: Path) -> None:
+    knowledge = _knowledge_with_doubts(
+        tmp_path,
+        {
+            "format": 1,
+            "machine_tags": {"TM-1001": ["valori_alternativi"]},
+            "process_sheets": {"SP-0101": ["da_record_parziale"], "SP-0202": ["x"]},
+        },
+    )
+    result = runner.invoke(cli.app, ["kb-check", str(knowledge)])
+    assert result.exit_code == 0, result.output
+    assert "targhe_incerte: 1" in result.output
+    assert "schede_incerte: 2" in result.output
+    assert "recommendation_dr_incerte: 0" in result.output
+
+
+def test_kb_check_fails_on_an_inconsistent_uncertainty_file(tmp_path: Path) -> None:
+    knowledge = _knowledge_with_doubts(
+        tmp_path, {"format": 1, "process_sheets": {"SP-9999": ["valori_alternativi"]}}
+    )
+    result = runner.invoke(cli.app, ["kb-check", str(knowledge)])
+    assert result.exit_code == 1
+    assert "SP-9999" in result.output
 
 
 def test_kb_check_reports_a_broken_knowledge_base(tmp_path: Path) -> None:

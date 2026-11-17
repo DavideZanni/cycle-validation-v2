@@ -23,8 +23,7 @@ vanno eseguiti dove ci sono le credenziali.
 
 Documenti:
 
-- `docs/IMPORTAZIONE_AZIENDA.md`: come portare il progetto sul computer aziendale, passo per passo;
-- `docs/ESPERIMENTI_AZIENDA.md`: come misurare il programma e le varianti sui cicli veri, in azienda;
-- `docs/MIGLIORIE.md`: migliorie di affidabilità, velocità e costo, le misure e il registro degli esperimenti;
-- `docs/GUIDA_VALIDAZIONE_SEMPLICE.md`: come funziona la validazione, spiegato semplice;
-- `docs/superpowers/`: design e resoconto dei moduli.
+- `docs/AZIENDA.md`: importare e collegare il progetto sul computer aziendale, lanciare gli
+  esperimenti sui cicli veri, cosa fare se qualcosa non va;
+- `docs/MIGLIORIE.md`: come è fatto in breve, cosa resta da fare e in che ordine, il registro
+  degli esperimenti.

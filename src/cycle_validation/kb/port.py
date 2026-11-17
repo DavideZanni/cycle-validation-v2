@@ -30,6 +30,8 @@ class DocumentInfo(_Entry):
     kind: str | None = None
     published: bool = True
     partial: bool = False
+    # Motivi di incertezza dall'indice (EJ200: copie diverse con lo stesso codice e issue).
+    uncertain: tuple[str, ...] = ()
 
 
 class TaskLocation(_Entry):
@@ -46,9 +48,14 @@ class TaskLocation(_Entry):
         return self.line_end - self.line_start + 1
 
 
+# `uncertain`: motivi per cui l'indice considera incerta la voce (da `uncertainty.json` di
+# knowledge-index, per esempio `valori_alternativi`, `da_record_parziale`). Vuoto = certa.
+
+
 class MachineTagEntry(_Entry):
     tag: str
     function: str | None = None
+    uncertain: tuple[str, ...] = ()
 
 
 class ProcessSheetEntry(_Entry):
@@ -56,6 +63,7 @@ class ProcessSheetEntry(_Entry):
     edition: str | None = None
     treatment: str | None = None
     engine_families: tuple[str, ...] = ()
+    uncertain: tuple[str, ...] = ()
 
 
 class DrRecommendation(_Entry):
@@ -65,6 +73,7 @@ class DrRecommendation(_Entry):
     reference: str | None = None
     manual: str | None = None
     tasks: tuple[str, ...] = ()
+    uncertain: tuple[str, ...] = ()
 
 
 class KnowledgeBase(Protocol):

@@ -383,3 +383,91 @@ def test_ej200_machine_tags_follow_the_published_civil_knowledge(tmp_path: Path)
     publish_example(store, "r2", extra_tag="TM-9999")
     clock.now = 10
     assert ej.find_machine_tag("TM-9999") is not None
+
+
+# --- incertezze del catalogo EJ200 (uncertainty.json accanto a catalog.json) ----------
+
+
+def _ej200_doubts(store: InMemoryObjectStore, version: str, rows: list[dict[str, Any]]) -> None:
+    store.put(f"{EJ200}v/{version}/uncertainty.json", {"format": 1, "catalog": rows})
+
+
+def test_ej200_catalog_entries_carry_the_doubts_of_their_version(tmp_path: Path) -> None:
+    store = InMemoryObjectStore()
+    publish_ej200(store, "r1", catalog_entries())
+    _ej200_doubts(
+        store,
+        "r1",
+        [
+            {
+                "code": "rn-100",
+                "issue": "2",
+                "document_id": "rn100-2",
+                "reasons": ["copie_diverse_per_contenuto"],
+            }
+        ],
+    )
+    catalog = Ej200Catalog(store, pointer_key=EJ200 + "current.json")
+    by_issue = {entry.issue: entry for entry in catalog.find("RN-100")}
+    assert by_issue["2"].uncertain == ("copie_diverse_per_contenuto",)
+    assert by_issue["1"].uncertain == ()
+
+    kb = Ej200KnowledgeBase("fisso", catalog, tmp_path, store, tags=lambda: [])
+    latest = next(d for d in kb.find_manuals("RN-100") if d.version == "2")
+    assert latest.uncertain == ("copie_diverse_per_contenuto",)
+
+
+def test_ej200_without_doubts_every_entry_is_certain() -> None:
+    store = InMemoryObjectStore()
+    publish_ej200(store, "r1", catalog_entries())
+    catalog = Ej200Catalog(store, pointer_key=EJ200 + "current.json")
+    assert all(entry.uncertain == () for entry in catalog.entries())
+
+
+def test_ej200_doubts_are_never_read_from_the_catalog_file() -> None:
+    entries = [dict(entry, uncertain=["inventato"]) for entry in catalog_entries()]
+    store = InMemoryObjectStore({"cat.json": entries})
+    assert all(entry.uncertain == () for entry in Ej200Catalog(store, key="cat.json").entries())
+
+
+def test_ej200_doubt_for_an_entry_not_in_the_catalog_is_ignored(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    store = InMemoryObjectStore()
+    publish_ej200(store, "r1", catalog_entries())
+    _ej200_doubts(
+        store,
+        "r1",
+        [
+            {
+                "code": "RN-999",
+                "issue": "1",
+                "document_id": "x",
+                "reasons": ["copie_diverse_per_tipo"],
+            },
+            {
+                "code": "EF-200",
+                "issue": "1",
+                "document_id": "ef200-1",
+                "reasons": ["copie_diverse_per_contenuto"],
+            },
+        ],
+    )
+    entries = Ej200Catalog(store, pointer_key=EJ200 + "current.json").entries()
+
+    assert len(entries) == len(catalog_entries())
+    doubts = {entry.code: entry.uncertain for entry in entries if entry.uncertain}
+    assert doubts == {"EF-200": ("copie_diverse_per_contenuto",)}
+    assert "RN-999" in caplog.text
+
+
+def test_ej200_unreadable_doubts_leave_the_catalog_usable(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    store = InMemoryObjectStore()
+    publish_ej200(store, "r1", catalog_entries())
+    store.put(f"{EJ200}v/r1/uncertainty.json", {"format": 2})
+    entries = Ej200Catalog(store, pointer_key=EJ200 + "current.json").entries()
+
+    assert entries and all(entry.uncertain == () for entry in entries)
+    assert "uncertainty.json" in caplog.text

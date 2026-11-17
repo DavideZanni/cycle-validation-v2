@@ -4,6 +4,7 @@
 """
 
 from cycle_validation.checks.base import CheckContext, guarded, make_result
+from cycle_validation.checks.uncertainty import describe
 from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reason, Target
 from cycle_validation.kb.port import DrRecommendation, KnowledgeBase
 from cycle_validation.resolve.dr import DrSelectors, is_not_applicable, match_recommendations
@@ -26,12 +27,13 @@ def applicable_recommendations(
     return [] if any(is_not_applicable(item) for item in matched) else matched
 
 
-def dr_tasks(kb: KnowledgeBase, selectors: DrSelectors | None) -> list[tuple[str, str]]:
-    """Coppie (manuale, task) indicate dalle recommendation: contesto per le operazioni."""
+def dr_tasks(kb: KnowledgeBase, selectors: DrSelectors | None) -> list[tuple[str | None, str]]:
+    """Coppie (manuale, task) indicate dalle recommendation: contesto per le operazioni.
+    Manuale `None` quando la DR non ne ha uno affidabile (l'indice toglie quello
+    contraddetto dai task): il task si cerca allora nei manuali citati dal ciclo."""
     return [
         (item.manual, task)
         for item in applicable_recommendations(kb, selectors)
-        if item.manual is not None
         for task in item.tasks
     ]
 
@@ -78,11 +80,14 @@ def _check(ctx: CheckContext, target: Target) -> CheckResult:
             evidence=evidence,
         )
     names = ", ".join(_label(item) for item in matched)
+    # Controllo bloccante: un dubbio sui dati dell'indice non ferma il ciclo, si scrive.
+    doubts = sorted({reason for item in matched for reason in item.uncertain})
     return make_result(
         CHECK,
         target,
         Reason.VERIFICATO,
-        f"Recommendation applicabile per il serial number {selectors.serial_number}: {names}.",
+        f"Recommendation applicabile per il serial number {selectors.serial_number}: {names}."
+        + describe(doubts),
         evidence=evidence,
     )
 

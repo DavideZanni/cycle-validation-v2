@@ -82,6 +82,9 @@ class SuiteConfig(BaseModel):
     # civile intera (manuali, task, TM, SP, DR) viene dalla versione indicata e `manuali`,
     # `targhe`, `schede`, `dr` non servono; con ej200 il catalogo e i testi vengono da lì.
     puntatore: str | None = None
+    # ej200: `current.json` della conoscenza civile, da cui leggere le targhe come nel
+    # servizio. Senza, le targhe vengono dal prefisso `targhe` della fotografia.
+    puntatore_civile: str | None = None
 
 
 @dataclass(frozen=True)
@@ -107,6 +110,11 @@ class Suite:
             store = LocalDirObjectStore(folder)
             kb: Ej200KnowledgeBase | RemoteKnowledgeBase | PublishedKnowledgeBase
             if cfg.tipo_conoscenza == "ej200":
+                civil = (
+                    PublishedKnowledgeBase(store, cfg.puntatore_civile, workdir / "civile")
+                    if cfg.puntatore_civile
+                    else None
+                )
                 kb = Ej200KnowledgeBase(
                     version,
                     Ej200Catalog(store, cfg.catalogo, pointer_key=cfg.puntatore),
@@ -114,6 +122,7 @@ class Suite:
                     store,
                     StructuredLayout(tm=cfg.targhe, sp=None, dr=None),
                     text_prefix=cfg.testi,
+                    tags=civil.machine_tags if civil else None,
                 )
             elif cfg.puntatore:
                 kb = PublishedKnowledgeBase(store, cfg.puntatore, workdir / "pubblicata")

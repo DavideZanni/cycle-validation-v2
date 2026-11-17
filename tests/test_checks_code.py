@@ -1,12 +1,16 @@
 from pathlib import Path
 
 import pytest
-from kb_fixtures import EXAMPLE_DIR, BrokenKnowledge, memory_knowledge, profile
+from kb_fixtures import DOC_72, DOC_75, EXAMPLE_DIR, BrokenKnowledge, memory_knowledge, profile
 
 from cycle_validation.checks.base import CheckContext
 from cycle_validation.checks.dr_recommendation import check_dr_recommendation, dr_tasks
 from cycle_validation.checks.machine_tag import check_machine_tags
-from cycle_validation.checks.process_sheet import check_process_sheets, engine_family
+from cycle_validation.checks.process_sheet import (
+    check_process_sheets,
+    engine_family,
+    treatment_for_family,
+)
 from cycle_validation.checks.source import check_sources
 from cycle_validation.checks.task_code import check_task_codes
 from cycle_validation.domain.check import CheckResult, Reason, Verdict
@@ -214,6 +218,8 @@ def _publications(tmp_path: Path) -> IndexedKnowledgeBase:
             doc("RDR-9A", kind="RDR", version="001"),
             doc("RDR-9B", kind="RDR", version="001"),
             doc("RN-2", kind="RN"),
+            doc("RN-3", kind="RN", uncertain=("copie_diverse_per_contenuto",)),
+            doc("RN-4", kind="RN", uncertain=("copie_diverse_per_tipo",)),
         ],
         aliases={"RDR-9A": ["RDR-9"], "RDR-9B": ["RDR-9"]},
     )
@@ -234,14 +240,23 @@ def _source_cycle(manual: str, issue: str | None = None) -> Cycle:
         ("RDR-5", None, Reason.FONTE_ASSENTE),
         ("RDR-9", None, Reason.RIFERIMENTO_AMBIGUO),
         ("XX-0", None, Reason.FONTE_ASSENTE),
+        ("RN-3", None, Reason.DATO_INCERTO),
+        ("RN-4", None, Reason.VERIFICATO),
     ],
 )
 def test_publication_states(tmp_path: Path, manual: str, issue: str | None, reason: Reason) -> None:
     ctx = _ctx(_source_cycle(manual, issue), kb=_publications(tmp_path), profile_name="ej200")
     result = check_sources(ctx)[0]
     assert result.reason is reason
-    if reason is Reason.VERIFICATO:
+    if reason is Reason.VERIFICATO and manual == "RN-1":
         assert result.evidence[0].document_key == "RN-1_i3"
+
+
+def test_doubts_on_a_publication_are_written_in_the_rationale(tmp_path: Path) -> None:
+    kb = _publications(tmp_path)
+    for manual, words in (("RN-3", "contenuto diverso"), ("RN-4", "tipo diverso")):
+        ctx = _ctx(_source_cycle(manual), kb=kb, profile_name="ej200")
+        assert words in check_sources(ctx)[0].rationale
 
 
 def test_codes_in_cited_documents(tmp_path: Path) -> None:
@@ -390,3 +405,102 @@ def test_dr_tasks_feed_the_context() -> None:
     assert dr_tasks(kb, DrSelectors("SN-DEMO-001", (1,))) == [("MAN-DEMO-72", "72-00-01-350-003")]
     assert dr_tasks(kb, DrSelectors("SN-DEMO-001", (2,))) == []
     assert dr_tasks(kb, None) == []
+
+
+# --- voci incerte nell'indice (uncertainty.json di knowledge-index) -------------------
+
+
+def _doubtful(
+    *,
+    tags: dict[str, tuple[str, ...]] | None = None,
+    sheets: dict[str, tuple[str, ...]] | None = None,
+    dr: dict[tuple[str, tuple[int, ...]], tuple[str, ...]] | None = None,
+) -> IndexedKnowledgeBase:
+    """La knowledge base dell'esempio con alcuni motivi di incertezza sulle voci."""
+    base = memory_knowledge()
+    tags, sheets, dr = tags or {}, sheets or {}, dr or {}
+    return IndexedKnowledgeBase(
+        base.version,
+        documents=[DOC_72, DOC_75],
+        tasks=[base.find_task("MAN-DEMO-72", "72-00-01-350-003")],  # type: ignore[list-item]
+        machine_tags=[
+            item.model_copy(update={"uncertain": tags.get(item.tag, ())})
+            for item in base.machine_tags()
+        ],
+        process_sheets=[
+            item.model_copy(update={"uncertain": sheets.get(code, ())})
+            for code in ("SP-0101", "SP-0202")
+            if (item := base.find_process_sheet(code)) is not None
+        ],
+        dr_recommendations=[
+            item.model_copy(update={"uncertain": dr.get((serial, item.conditions), ())})
+            for serial in ("SN-DEMO-001", "SN-DEMO-002")
+            for item in base.find_dr_recommendations(serial)
+        ],
+    )
+
+
+def test_tag_from_a_partial_record_is_a_warning() -> None:
+    kb = _doubtful(tags={"TM-1001": ("da_record_parziale",)})
+    result = check_machine_tags(_ctx(kb=kb))[0]
+    assert result.reason is Reason.DATO_INCERTO
+    assert result.verdict is Verdict.WARNING
+    assert "letto solo in parte" in result.rationale
+
+
+def test_tag_with_alternative_functions_exists_but_says_so() -> None:
+    kb = _doubtful(tags={"TM-1001": ("valori_alternativi",)})
+    result = check_machine_tags(_ctx(kb=kb))[0]
+    assert result.reason is Reason.VERIFICATO
+    assert "valori alternativi" in result.rationale
+
+
+def test_sheet_from_a_previous_edition_is_a_warning() -> None:
+    kb = _doubtful(sheets={"SP-0101": ("edizione_precedente_per_blocco",)})
+    result = check_process_sheets(_ctx(kb=kb))[0]
+    assert result.reason is Reason.DATO_INCERTO
+    assert "edizione precedente" in result.rationale
+
+
+def test_sheet_with_alternative_values_is_verified_with_a_note() -> None:
+    kb = _doubtful(sheets={"SP-0101": ("valori_alternativi",)})
+    result = check_process_sheets(_ctx(kb=kb))[0]
+    assert result.reason is Reason.VERIFICATO
+    assert "valori alternativi" in result.rationale
+
+
+def test_unknown_doubt_is_treated_as_a_warning() -> None:
+    kb = _doubtful(sheets={"SP-0101": ("motivo_nuovo",)})
+    result = check_process_sheets(_ctx(kb=kb))[0]
+    assert result.reason is Reason.DATO_INCERTO
+    assert "motivo_nuovo" in result.rationale
+
+
+def test_inapplicable_sheet_stays_inapplicable_even_if_doubtful() -> None:
+    kb = _doubtful(sheets={"SP-0202": ("da_record_parziale",)})
+    assert check_process_sheets(_ctx(kb=kb))[3].reason is Reason.EVIDENZA_NON_TROVATA
+
+
+def test_doubtful_dr_does_not_block_the_cycle_but_says_so() -> None:
+    kb = _doubtful(dr={("SN-DEMO-001", (1,)): ("da_record_parziale", "manuale_parziale")})
+    result = _dr("SN-DEMO-001", 1, kb=kb)
+    assert result.reason is Reason.VERIFICATO
+    assert "letto solo in parte" in result.rationale
+    assert "manuale collegato" in result.rationale
+
+
+@pytest.mark.parametrize(
+    ("treatment", "family", "expected"),
+    [
+        ("A [GENX]; B [LEAP]", "GENX", "A"),
+        ("A [GENX, LEAP]; B [LEAP]", "genx", "A"),
+        ("A [GENX] (ed. 2); B [LEAP] (ed. 1)", "LEAP", "B (ed. 1)"),
+        ("A [GENX]; B [GENX]; C [LEAP]", "GENX", "A; B"),
+        ("A [GENX]; B [LEAP]", None, "A [GENX]; B [LEAP]"),
+        ("A [GENX]; B [LEAP]", "CFM56", "A [GENX]; B [LEAP]"),
+        ("A; B", "GENX", "A; B"),
+        ("Lavaggio [fase 2]", "GENX", "Lavaggio [fase 2]"),
+    ],
+)
+def test_treatment_for_family(treatment: str, family: str | None, expected: str) -> None:
+    assert treatment_for_family(treatment, family) == expected

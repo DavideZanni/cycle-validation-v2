@@ -1,8 +1,10 @@
 """Controllo `process_sheet`: la scheda esiste ed è applicabile alla famiglia del motore."""
 
+import re
 from functools import partial
 
 from cycle_validation.checks.base import CheckContext, guarded, make_result
+from cycle_validation.checks.uncertainty import describe, is_doubtful
 from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reason, Target
 from cycle_validation.domain.cycle import Operation
 from cycle_validation.text import normalize_code
@@ -16,6 +18,30 @@ def engine_family(engine_model: str | None, families: list[str]) -> str | None:
         return None
     model = normalize_code(engine_model)
     return next((family for family in families if normalize_code(family) in model), None)
+
+
+# Una parte del trattamento scritto da knowledge-index quando le righe con lo stesso codice
+# hanno motori diversi: `testo [GENX, LEAP]`, con l'eventuale ` (ed. X)` dopo.
+_ENGINE_PART = re.compile(r"^(?P<text>.*?)\s*\[(?P<families>[^\[\]]*)\](?P<rest>.*)$")
+_SEPARATOR = "; "
+
+
+def treatment_for_family(treatment: str | None, family: str | None) -> str | None:
+    """Le sole parti del trattamento legate alla famiglia del motore (`A [GENX]; B [LEAP]`
+    con GENX dà `A`). Senza famiglia, o se nessuna parte la nomina, il trattamento intero:
+    meglio tutti i valori che nessuno."""
+    if family is None or not treatment:
+        return treatment
+    wanted = normalize_code(family)
+    kept: list[str] = []
+    for part in treatment.split(_SEPARATOR):
+        match = _ENGINE_PART.match(part)
+        if match is None:
+            continue
+        families = {normalize_code(item) for item in match["families"].split(",")}
+        if wanted in families:
+            kept.append(f"{match['text']}{match['rest']}".strip())
+    return _SEPARATOR.join(kept) if kept else treatment
 
 
 def _check_one(ctx: CheckContext, target: Target, operation: Operation) -> CheckResult:
@@ -73,8 +99,8 @@ def _check_one(ctx: CheckContext, target: Target, operation: Operation) -> Check
     return make_result(
         CHECK,
         target,
-        Reason.VERIFICATO,
-        f"La scheda {entry.code}{edition} {applicability}.",
+        Reason.DATO_INCERTO if is_doubtful(entry.uncertain) else Reason.VERIFICATO,
+        f"La scheda {entry.code}{edition} {applicability}." + describe(entry.uncertain),
         evidence=[Evidence(document_key="SP", quote=f"{entry.code}: {entry.treatment or ''}")],
     )
 

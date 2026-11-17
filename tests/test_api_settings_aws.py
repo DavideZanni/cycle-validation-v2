@@ -92,13 +92,13 @@ def test_bootstrap_errors_do_not_leak_content() -> None:
         bootstrap_environment(NotObject(), "s", {})
 
 
-def test_app_from_env_validates_first_then_needs_a_factory() -> None:
+def test_app_from_env_validates_first_then_needs_the_machines_source() -> None:
     from cycle_validation.api.main import create_app_from_env
 
     with pytest.raises(ConfigError, match="BUCKETNAME"):
         create_app_from_env({})
-    with pytest.raises(ConfigError, match="cablaggio"):
-        create_app_from_env(ENV)
+    with pytest.raises(ConfigError, match="MACHINES_FILE"):
+        create_app_from_env(dict(ENV))
 
 
 def test_app_from_env_uses_the_given_factory(tmp_path: Any) -> None:

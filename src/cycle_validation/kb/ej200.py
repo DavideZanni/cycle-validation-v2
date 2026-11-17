@@ -8,14 +8,19 @@ memorizzato come catalogo valido. Le targhe sono i dati TM condivisi con i profi
 Con `pointer_key` il catalogo si legge dalla versione indicata da `current.json`
 (`<versione>/catalog.json`) e ogni voce ricorda il prefisso dei testi della sua versione:
 una validazione che ha già trovato una voce ne legge il testo anche dopo un cambio di versione.
+Accanto c'è `uncertainty.json` (facoltativo): le voci scelte tra copie diverse con lo stesso
+codice e issue, con il motivo. È un'aggiunta: se non si legge, o cita una voce assente dal
+catalogo, quella parte si ignora con un avviso nel log e il catalogo resta usabile.
 """
 
 import json
+import logging
 import re
 import threading
 import time
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -33,12 +38,17 @@ from cycle_validation.kb.stores import ObjectNotFoundError, ObjectStore
 from cycle_validation.kb.structured import StructuredData, StructuredLayout, load_structured
 from cycle_validation.text import normalize_code
 
+log = logging.getLogger(__name__)
+
 DEFAULT_CATALOG_KEY = "Manufacturing AI/exports/ej200_publication/catalog.json"
 DEFAULT_TEXT_PREFIX = "Manufacturing AI/exports/ej200_publication/text/"
 DEFAULT_TTL_S = 300.0
 # Dentro la cartella di una versione pubblicata da knowledge-index.
 POINTER_CATALOG = "catalog.json"
 POINTER_TEXTS = "text/"
+POINTER_UNCERTAINTY = "uncertainty.json"
+# Campi che imposta questo codice, mai il file del catalogo.
+_DERIVED = frozenset({"text_prefix", "uncertain"})
 
 
 class CatalogEntry(BaseModel):
@@ -58,6 +68,8 @@ class CatalogEntry(BaseModel):
     references: list[str] = Field(default_factory=list)
     # Lo imposta il catalogo letto da un puntatore, mai il file: dove stanno i testi.
     text_prefix: str | None = None
+    # Da `uncertainty.json` della stessa versione, mai dal file del catalogo.
+    uncertain: tuple[str, ...] = ()
 
     @property
     def key(self) -> str:
@@ -71,7 +83,7 @@ def parse_catalog(raw: bytes) -> list[CatalogEntry]:
             loaded = loaded.get("publications", loaded.get("documents", []))
         return [
             CatalogEntry.model_validate(
-                {k: v for k, v in item.items() if k != "text_prefix"}
+                {k: v for k, v in item.items() if k not in _DERIVED}
                 if isinstance(item, dict)
                 else item
             )
@@ -79,6 +91,56 @@ def parse_catalog(raw: bytes) -> list[CatalogEntry]:
         ]
     except (json.JSONDecodeError, ValidationError, TypeError) as exc:
         raise KnowledgeError(f"Catalogo EJ200 non valido: {type(exc).__name__}") from exc
+
+
+class _UncertainEntry(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    code: str
+    issue: str | None = None
+    document_id: str
+    reasons: list[str] = Field(min_length=1)
+
+
+class _Uncertainty(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    format: Literal[1]
+    catalog: list[_UncertainEntry] = Field(default_factory=list)
+
+
+def _entry_key(code: str, issue: str | None, document_id: str) -> tuple[str, str, str]:
+    return normalize_code(code), issue or "", document_id
+
+
+def with_uncertainty(entries: list[CatalogEntry], raw: bytes) -> list[CatalogEntry]:
+    """Le voci con i motivi di `uncertainty.json`. File non valido: voci invariate; voce
+    assente dal catalogo: saltata. In entrambi i casi un avviso nel log."""
+    try:
+        doubts = _Uncertainty.model_validate_json(raw)
+    except ValidationError as exc:
+        log.warning("%s EJ200 ignorato: %s", POINTER_UNCERTAINTY, type(exc).__name__)
+        return entries
+    known = {_entry_key(e.code, e.issue, e.document_id) for e in entries}
+    reasons: dict[tuple[str, str, str], set[str]] = {}
+    for item in doubts.catalog:
+        key = _entry_key(item.code, item.issue, item.document_id)
+        if key not in known:
+            log.warning(
+                "%s: la voce %s issue %s (%s) non è nel catalogo, ignorata.",
+                POINTER_UNCERTAINTY,
+                item.code,
+                item.issue or "n/d",
+                item.document_id,
+            )
+            continue
+        reasons.setdefault(key, set()).update(item.reasons)
+    return [
+        entry.model_copy(update={"uncertain": tuple(sorted(found))})
+        if (found := reasons.get(_entry_key(entry.code, entry.issue, entry.document_id)))
+        else entry
+        for entry in entries
+    ]
 
 
 class Ej200Catalog:
@@ -105,7 +167,7 @@ class Ej200Catalog:
         """Catalogo valido, ricaricato se scaduto. Da chiamare con il lock preso."""
         fresh = self._entries is not None and self._clock() - self._loaded_at < self._ttl
         if not fresh:
-            key, version, text_prefix = self._key, None, None
+            key, version, text_prefix, doubts_key = self._key, None, None, None
             if self._pointer_key is not None:
                 try:
                     pointer = read_pointer(self._store, self._pointer_key)
@@ -113,12 +175,15 @@ class Ej200Catalog:
                     raise SourceUnavailableError(str(exc)) from exc
                 key = pointer.prefix + POINTER_CATALOG
                 version, text_prefix = pointer.version, pointer.prefix + POINTER_TEXTS
+                doubts_key = pointer.prefix + POINTER_UNCERTAINTY
             try:
                 raw = self._store.get_bytes(key)
             except ObjectNotFoundError as exc:
                 raise SourceUnavailableError(f"Catalogo EJ200 non trovato: {key}") from exc
             try:
                 entries = parse_catalog(raw)
+                if doubts_key is not None:
+                    entries = self._with_doubts(entries, doubts_key)
             except KnowledgeError as exc:
                 raise SourceUnavailableError(str(exc)) from exc
             if text_prefix is not None:
@@ -136,6 +201,13 @@ class Ej200Catalog:
             self._loaded_at = self._clock()
         assert self._entries is not None
         return self._entries
+
+    def _with_doubts(self, entries: list[CatalogEntry], key: str) -> list[CatalogEntry]:
+        try:
+            raw = self._store.get_bytes(key)
+        except ObjectNotFoundError:
+            return entries  # versione senza incertezze (o scritta prima che esistessero)
+        return with_uncertainty(entries, raw)
 
     @property
     def version(self) -> str | None:
@@ -246,6 +318,7 @@ class Ej200KnowledgeBase:
             kind=entry.kind,
             published=entry.published,
             partial=entry.partial,
+            uncertain=entry.uncertain,
         )
 
     def _read_text(self, entry: CatalogEntry) -> str:
