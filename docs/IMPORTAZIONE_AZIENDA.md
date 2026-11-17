@@ -114,7 +114,7 @@ uv run cycle-validation kb-check examples/sintetico/knowledge
 
 Devi vedere:
 
-1. `723 passed, 1 skipped` (quello saltato è la prova `live`, che chiede il modello vero);
+1. `742 passed, 1 skipped` (quello saltato è la prova `live`, che chiede il modello vero);
 2. `All checks passed!`;
 3. un elenco che finisce con `recommendation_dr_incerte: 0`.
 
@@ -241,38 +241,55 @@ controlla credenziali, regione e `agent.model`. Il motivo preciso sta nei file i
 
 ## Passo 7. Collegare i servizi aziendali
 
-È l'unico pezzo di codice da scrivere in azienda, perché servono i client aziendali. Va nella
-funzione `build_services` di `src/cycle_validation/api/main.py`. Deve costruire queste cose:
+Non c'è codice da scrivere: `build_services` in `src/cycle_validation/api/main.py` monta tutto
+dalle variabili d'ambiente con i client boto3 (`src/cycle_validation/api/production.py`). Oltre a
+quelle del Passo 5.2 servono queste:
 
-| Cosa | Con che cosa | Classe già pronta |
+| Variabile | Obbligatoria | Cosa mettere |
 |---|---|---|
-| Archivio dei file (sessioni, feedback) | client `s3` di boto3 | `S3ObjectStore(client, bucket)` |
-| Conoscenza civile (manuali, task, targhe, schede, DR) | l'indice pubblicato da knowledge-index con `current.json` | `PublishedKnowledgeBase(store, config.civil_knowledge_pointer, cartella_di_lavoro)` |
-| Catalogo e testi EJ200 | l'indice EJ200 con il suo `current.json` | `Ej200KnowledgeBase(..., Ej200Catalog(store, pointer_key=config.ej200_knowledge_pointer), tags=civile.machine_tags)` |
-| Macchine attive | Redshift, oppure un file JSON | `redshift_machine_registry(connect)` oppure `load_machine_registry(file)` |
-| Accesso degli utenti | il frontend | niente da montare: il frontend manda gli header `X-User` e `X-Services` (vedi Passo 5) |
-| Costo su CloudWatch (facoltativo) | client `cloudwatch` | `CloudWatchMetrics(client)` |
+| `MACHINES_FILE` | una delle due | JSON delle macchine attive: lista di targhe o `{"active": [...]}` |
+| `REDSHIFT_DATABASE` | una delle due | il database Redshift da cui leggere le macchine attive |
+| `REDSHIFT_WORKGROUP` | con Redshift Serverless | il workgroup |
+| `REDSHIFT_CLUSTER_ID` | con un cluster | il cluster, più `REDSHIFT_DB_USER` (credenziali IAM) oppure `REDSHIFT_SECRET_ARN` |
+| `MACHINES_QUERY` | no | la query, prima colonna = targa. Predefinita: `work_center_usage_cd = 'TO'` su `work_centers`, **da confermare** |
+| `MACHINES_TTL_S` | no | ogni quanti secondi si rilegge Redshift (900) |
+| `CYCLE_VALIDATION_CONFIG` | no | il file delle impostazioni (`config/settings.yaml`) |
+| `KNOWLEDGE_WORKDIR` | no | cartella tutta sua dove scaricare la conoscenza (predefinita: nella cartella temporanea) |
+| `CLOUDWATCH_METRICS` | no | `false` per non pubblicare il costo su CloudWatch (attivo) |
 
-Le classi esistono e sono provate con dati finti: vanno solo create con i client veri.
+Redshift si legge con la **Data API** (client `redshift-data` di boto3): nessun driver da
+installare, le credenziali vengono dal ruolo AWS come per S3. Il ruolo deve poter usare
+`redshift-data:ExecuteStatement`, `DescribeStatement` e `GetStatementResult` (più
+`redshift:GetClusterCredentials` per un cluster con `REDSHIFT_DB_USER`). Se all'inizio Redshift
+non è pronto, parti con `MACHINES_FILE`.
+
+Cosa monta, da solo:
+
+| Cosa | Da dove |
+|---|---|
+| Archivio dei file (sessioni, feedback) | S3, bucket `BUCKETNAME` |
+| Conoscenza civile (MOS e DR) | `CIVIL_KNOWLEDGE_POINTER`, obbligatorio: il servizio legge solo la conoscenza pubblicata |
+| Catalogo e testi EJ200 | `EJ200_KNOWLEDGE_POINTER` (vuota = catalogo a chiave fissa `EJ200_CATALOG_KEY`); non montato se `EJ200_VALIDATION_ENABLED=false` |
+| Targhe di EJ200 | la stessa conoscenza civile |
+| Macchine attive | `MACHINES_FILE` oppure Redshift |
+| Costo | CloudWatch, metrica `Chatbot/CV` `llmInvokationCost` |
+| Variabili | da `SECRET_NAME` (Secrets Manager), se impostata: solo quelle che mancano nell'ambiente |
+
+Prima di creare i client controlla tutte le variabili e, se qualcosa non va, le elenca tutte
+insieme con il nome. Poi, all'avvio, scarica la conoscenza: se un file pubblicato non è valido
+il servizio non parte e l'errore dice quale file. Le dipendenze di ogni profilo si costruiscono
+una volta sola e si riusano.
 
 **La conoscenza si aggiorna da sola.** `PublishedKnowledgeBase` rilegge `current.json` ogni 5
 minuti: se l'ingestion ha pubblicato una versione nuova la scarica (in parallelo) in
-`cartella_di_lavoro/<versione>` e la usa solo se è valida; altrimenti resta sulla precedente e lo
-scrive nel log. Una validazione già partita finisce con la versione con cui è partita, e il
-report dice quale (`knowledge_version`). Su disco restano le ultime 3 versioni: dai a
-`cartella_di_lavoro` una cartella tutta sua. Le targhe di EJ200 vengono dalla stessa conoscenza
-civile, quindi seguono anche loro il puntatore. Le vecchie classi (`SnapshotManualSource`,
-`RemoteKnowledgeBase`, catalogo a chiave fissa) funzionano ancora, se serve tornare indietro. Come
-esempio di montaggio guarda `tests/api_support.py`, che fa la stessa cosa con pezzi finti.
+`KNOWLEDGE_WORKDIR/civil/<versione>` e la usa solo se è valida; altrimenti resta sulla
+precedente e lo scrive nel log. Una validazione già partita finisce con la versione con cui è
+partita, e il report dice quale (`knowledge_version`). Su disco restano le ultime 3 versioni.
 
-All'avvio fai scaricare la conoscenza: in `ApiServices` metti
-`warmup=lambda: runner.preload(["mos", "dr", "ej200"])`. Il servizio la carica prima di accettare
-richieste, così la prima validazione non aspetta S3; se un file su S3 ha una forma diversa da
-quella attesa, il servizio non parte e l'errore dice quale file e quale campo. La `deps_for` del
-runner deve riusare le dipendenze già costruite (un dizionario per profilo basta).
-
-Questo passo lo possiamo scrivere insieme in azienda: bastano i nomi dei prefissi S3 e la query
-Redshift.
+Per un montaggio diverso (per esempio Redshift con un driver invece della Data API) si passa
+un'altra `factory` a `create_app_from_env`: le classi sono tutte in `src/cycle_validation/kb/` e
+`src/cycle_validation/services/`, e `tests/test_production.py` mostra il montaggio con client
+finti.
 
 ## Passo 8. Prima prova con un ciclo vero
 
@@ -374,7 +391,9 @@ comando (`eval pipeline`) che verifica il codice, fa girare tutto e scrive la cl
 
 | Cosa vedi | Causa probabile | Cosa fare |
 |---|---|---|
-| `Il cablaggio di produzione non è configurato` | manca il Passo 7 | scrivere `build_services` |
+| `Configurazione di produzione non valida` | manca la sorgente delle macchine o una variabile Redshift | Passo 7 |
+| `boto3 non è installato` | installato senza `--extra aws` | Passo 2 |
+| molte targhe WARNING "Registro macchine non raggiungibile" | Redshift non risponde o la query è sbagliata | permessi `redshift-data`, `MACHINES_QUERY`; intanto `MACHINES_FILE` |
 | il servizio non parte e nomina una variabile | manca una variabile | Passo 5.2 |
 | tutte le operazioni "errore tecnico" | Bedrock non risponde | credenziali, regione, `agent.model`; leggere `runs/ultimo/transcripts/` |
 | "meno di 100 caratteri di testo (è una scansione?)" | il PDF è una foto | impostare `agent.transcribe_model` |
