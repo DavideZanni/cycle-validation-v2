@@ -7,6 +7,7 @@ Il registro delle macchine attive è la sorgente autorevole: una macchina non at
 from functools import partial
 
 from cycle_validation.checks.base import CheckContext, guarded, make_result
+from cycle_validation.checks.uncertainty import describe, is_doubtful
 from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reason, Target
 from cycle_validation.domain.cycle import Operation
 
@@ -36,8 +37,9 @@ def _check_one(ctx: CheckContext, target: Target, operation: Operation) -> Check
     return make_result(
         CHECK,
         target,
-        Reason.VERIFICATO,
-        f"La macchina {tag}{function} è attiva e presente nei dati delle targhe.",
+        Reason.DATO_INCERTO if is_doubtful(entry.uncertain) else Reason.VERIFICATO,
+        f"La macchina {tag}{function} è attiva e presente nei dati delle targhe."
+        + describe(entry.uncertain),
         evidence=[Evidence(document_key="TM", quote=f"{entry.tag}: {entry.function or ''}")],
     )
 

@@ -4,6 +4,7 @@
 """
 
 from cycle_validation.checks.base import CheckContext, guarded, make_result
+from cycle_validation.checks.uncertainty import describe
 from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reason, Target
 from cycle_validation.kb.port import DrRecommendation, KnowledgeBase
 from cycle_validation.resolve.dr import DrSelectors, is_not_applicable, match_recommendations
@@ -78,11 +79,14 @@ def _check(ctx: CheckContext, target: Target) -> CheckResult:
             evidence=evidence,
         )
     names = ", ".join(_label(item) for item in matched)
+    # Controllo bloccante: un dubbio sui dati dell'indice non ferma il ciclo, si scrive.
+    doubts = sorted({reason for item in matched for reason in item.uncertain})
     return make_result(
         CHECK,
         target,
         Reason.VERIFICATO,
-        f"Recommendation applicabile per il serial number {selectors.serial_number}: {names}.",
+        f"Recommendation applicabile per il serial number {selectors.serial_number}: {names}."
+        + describe(doubts),
         evidence=evidence,
     )
 

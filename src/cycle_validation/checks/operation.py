@@ -27,6 +27,7 @@ from cycle_validation.agent.session import (
 )
 from cycle_validation.checks.base import CheckContext, make_result
 from cycle_validation.checks.dr_recommendation import dr_tasks
+from cycle_validation.checks.process_sheet import engine_family, treatment_for_family
 from cycle_validation.config import AgentSettings
 from cycle_validation.domain.check import (
     CheckName,
@@ -78,8 +79,10 @@ def _facts(ctx: CheckContext, operation: Operation) -> list[str]:
                 facts.append(f"Macchina {tag.tag}: {tag.function}")
         if operation.process_sheet is not None:
             sheet = ctx.kb.find_process_sheet(operation.process_sheet.code)
-            if sheet is not None and sheet.treatment:
-                facts.append(f"Scheda {sheet.code}: {sheet.treatment}")
+            family = engine_family(ctx.cycle.engine_model, ctx.profile.engine_families)
+            treatment = treatment_for_family(sheet.treatment, family) if sheet else None
+            if sheet is not None and treatment:
+                facts.append(f"Scheda {sheet.code}: {treatment}")
     except SourceUnavailableError:
         return facts
     return facts

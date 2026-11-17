@@ -196,3 +196,67 @@ def test_task_range_outside_declared_line_count(knowledge: Path) -> None:
 
     with pytest.raises(KnowledgeError, match=r"fuori dal file \(3 righe\)"):
         load_local_knowledge(knowledge)
+
+
+# ---------------------------------------------------------------- uncertainty.json
+# Scritto da knowledge-index accanto ai file dell'indice: voci incerte e perché.
+
+
+def _uncertainty(knowledge: Path, **content: object) -> None:
+    _rewrite(knowledge / "uncertainty.json", {"format": 1, **content})
+
+
+def test_without_uncertainty_every_entry_is_certain(knowledge: Path) -> None:
+    kb = load_local_knowledge(knowledge)
+
+    assert kb.find_machine_tag("TM-1001").uncertain == ()  # type: ignore[union-attr]
+    assert kb.find_process_sheet("SP-0101").uncertain == ()  # type: ignore[union-attr]
+    assert all(item.uncertain == () for item in kb.find_dr_recommendations("SN-DEMO-001"))
+
+
+def test_uncertainty_is_attached_to_tags_and_sheets_by_code(knowledge: Path) -> None:
+    _uncertainty(
+        knowledge,
+        machine_tags={"tm-1001": ["valori_alternativi"]},
+        process_sheets={"SP-0101": ["da_record_parziale", "valori_alternativi"]},
+    )
+    kb = load_local_knowledge(knowledge)
+
+    assert kb.find_machine_tag("TM-1001").uncertain == ("valori_alternativi",)  # type: ignore[union-attr]
+    assert kb.find_machine_tag("TM-2002").uncertain == ()  # type: ignore[union-attr]
+    sheet = kb.find_process_sheet("SP-0101")
+    assert sheet is not None
+    assert sheet.uncertain == ("da_record_parziale", "valori_alternativi")
+
+
+def test_uncertainty_of_a_dr_matches_serial_conditions_and_procedure(knowledge: Path) -> None:
+    _uncertainty(
+        knowledge,
+        dr_recommendations=[
+            {
+                "serial_number": "SN-DEMO-001",
+                "conditions": [1],
+                "procedure": "Repair",
+                "reasons": ["manuale_parziale"],
+            }
+        ],
+    )
+    kb = load_local_knowledge(knowledge)
+
+    by_condition = {item.conditions: item for item in kb.find_dr_recommendations("SN-DEMO-001")}
+    assert by_condition[(1,)].uncertain == ("manuale_parziale",)
+    assert by_condition[(2,)].uncertain == ()
+
+
+def test_uncertainty_for_an_unknown_entry_is_rejected(knowledge: Path) -> None:
+    _uncertainty(knowledge, process_sheets={"SP-9999": ["valori_alternativi"]})
+
+    with pytest.raises(KnowledgeError, match=r"uncertainty.json.*SP-9999"):
+        load_local_knowledge(knowledge)
+
+
+def test_uncertainty_with_an_unknown_format_is_rejected(knowledge: Path) -> None:
+    _rewrite(knowledge / "uncertainty.json", {"format": 2})
+
+    with pytest.raises(KnowledgeError, match=r"uncertainty.json"):
+        load_local_knowledge(knowledge)

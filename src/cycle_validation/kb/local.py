@@ -6,7 +6,12 @@
     ├── tasks.json               manuale, task → righe          (facoltativo)
     ├── machine_tags.json        targhe e funzione              (facoltativo)
     ├── process_sheets.json      schede di processo             (facoltativo)
-    └── dr_recommendations.json  recommendation per S/N         (facoltativo)
+    ├── dr_recommendations.json  recommendation per S/N         (facoltativo)
+    └── uncertainty.json         voci incerte e perché          (facoltativo)
+
+`uncertainty.json` lo scrive knowledge-index: per targhe e schede i motivi per codice, per
+le recommendation DR per serial number, condition e procedura. I motivi finiscono nel campo
+`uncertain` della voce; una voce citata che non esiste è un errore (indice incoerente).
 
 Ogni difetto produce un KnowledgeError che dice in quale file e in quale voce.
 """
@@ -81,6 +86,56 @@ class _DrRow(_Row):
     reference: str | None = None
     manual: str | None = None
     tasks: list[str] = Field(default_factory=list)
+
+
+class _UncertainDr(_Row):
+    serial_number: str
+    conditions: list[int]
+    procedure: str
+    reasons: list[str] = Field(min_length=1)
+
+
+class _Uncertainty(_Row):
+    format: Literal[1]
+    machine_tags: dict[str, list[str]] = Field(default_factory=dict)
+    process_sheets: dict[str, list[str]] = Field(default_factory=dict)
+    dr_recommendations: list[_UncertainDr] = Field(default_factory=list)
+
+
+_UNCERTAINTY = "uncertainty.json"
+
+
+def _by_code(
+    items: dict[str, list[str]], known: set[str], label: str
+) -> dict[str, tuple[str, ...]]:
+    """Motivi per codice normalizzato. Un codice che l'indice non contiene è un errore."""
+    out: dict[str, tuple[str, ...]] = {}
+    for code, reasons in items.items():
+        name = normalize_code(code)
+        if name not in known:
+            raise KnowledgeError(f"{_UNCERTAINTY}: {label} '{code}' non è nell'indice.")
+        out[name] = tuple(sorted({*out.get(name, ()), *reasons}))
+    return out
+
+
+def _dr_key(serial: str, conditions: list[int], procedure: str) -> tuple[str, tuple[int, ...], str]:
+    return normalize_code(serial), tuple(sorted(conditions)), procedure.strip().casefold()
+
+
+def _uncertain_dr(
+    items: list[_UncertainDr], rows: list[_DrRow]
+) -> dict[tuple[str, tuple[int, ...], str], tuple[str, ...]]:
+    known = {_dr_key(row.serial_number, row.conditions, row.procedure) for row in rows}
+    out: dict[tuple[str, tuple[int, ...], str], tuple[str, ...]] = {}
+    for item in items:
+        key = _dr_key(item.serial_number, item.conditions, item.procedure)
+        if key not in known:
+            raise KnowledgeError(
+                f"{_UNCERTAINTY}: recommendation DR '{item.serial_number}' {item.conditions} "
+                f"'{item.procedure}' non è nell'indice."
+            )
+        out[key] = tuple(sorted({*out.get(key, ()), *item.reasons}))
+    return out
 
 
 def _load_json(path: Path) -> Any:
@@ -179,18 +234,39 @@ def load_local_knowledge(directory: Path, *, version: str | None = None) -> Inde
     tag_rows = _optional(TypeAdapter(list[_TagRow]), directory / "machine_tags.json")
     sheet_rows = _optional(TypeAdapter(list[_SheetRow]), directory / "process_sheets.json")
     dr_rows = _optional(TypeAdapter(list[_DrRow]), directory / "dr_recommendations.json")
+    uncertainty_path = directory / _UNCERTAINTY
+    uncertainty = (
+        _parse(TypeAdapter(_Uncertainty), uncertainty_path)
+        if uncertainty_path.is_file()
+        else _Uncertainty(format=1)
+    )
+    tag_doubts = _by_code(
+        uncertainty.machine_tags, {normalize_code(row.tag) for row in tag_rows}, "targa"
+    )
+    sheet_doubts = _by_code(
+        uncertainty.process_sheets, {normalize_code(row.code) for row in sheet_rows}, "scheda"
+    )
+    dr_doubts = _uncertain_dr(uncertainty.dr_recommendations, dr_rows)
     return IndexedKnowledgeBase(
         version or manifest.version,
         documents=documents.values(),
         aliases={row.key: row.aliases for row in manifest.documents},
         tasks=_tasks(task_rows, documents, line_counts),
-        machine_tags=[MachineTagEntry(tag=row.tag, function=row.function) for row in tag_rows],
+        machine_tags=[
+            MachineTagEntry(
+                tag=row.tag,
+                function=row.function,
+                uncertain=tag_doubts.get(normalize_code(row.tag), ()),
+            )
+            for row in tag_rows
+        ],
         process_sheets=[
             ProcessSheetEntry(
                 code=row.code,
                 edition=row.edition,
                 treatment=row.treatment,
                 engine_families=tuple(row.engine_families),
+                uncertain=sheet_doubts.get(normalize_code(row.code), ()),
             )
             for row in sheet_rows
         ],
@@ -202,6 +278,9 @@ def load_local_knowledge(directory: Path, *, version: str | None = None) -> Inde
                 reference=row.reference,
                 manual=row.manual,
                 tasks=tuple(row.tasks),
+                uncertain=dr_doubts.get(
+                    _dr_key(row.serial_number, row.conditions, row.procedure), ()
+                ),
             )
             for row in dr_rows
         ],
