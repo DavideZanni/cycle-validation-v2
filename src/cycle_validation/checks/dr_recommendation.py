@@ -27,12 +27,13 @@ def applicable_recommendations(
     return [] if any(is_not_applicable(item) for item in matched) else matched
 
 
-def dr_tasks(kb: KnowledgeBase, selectors: DrSelectors | None) -> list[tuple[str, str]]:
-    """Coppie (manuale, task) indicate dalle recommendation: contesto per le operazioni."""
+def dr_tasks(kb: KnowledgeBase, selectors: DrSelectors | None) -> list[tuple[str | None, str]]:
+    """Coppie (manuale, task) indicate dalle recommendation: contesto per le operazioni.
+    Manuale `None` quando la DR non ne ha uno affidabile (l'indice toglie quello
+    contraddetto dai task): il task si cerca allora nei manuali citati dal ciclo."""
     return [
         (item.manual, task)
         for item in applicable_recommendations(kb, selectors)
-        if item.manual is not None
         for task in item.tasks
     ]
 
