@@ -4,6 +4,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from cycle_validation.checks.uncertainty import describe, is_doubtful
 from cycle_validation.domain.check import Reason
 from cycle_validation.domain.cycle import Cycle, Operation, Source
 from cycle_validation.kb.documents import read_lines
@@ -73,6 +74,12 @@ def resolve_document(name: str, kb: KnowledgeBase, issue: str | None = None) -> 
                 Reason.VERSIONE_DIVERSA,
                 f"Il ciclo cita la issue {issue} di {name}; quella disponibile è {chosen.version}.",
             )
+    if is_doubtful(chosen.uncertain):
+        return DocumentResolution(
+            chosen,
+            Reason.DATO_INCERTO,
+            f"Il documento {chosen.key} è disponibile.{describe(chosen.uncertain)}",
+        )
     return DocumentResolution(chosen)
 
 

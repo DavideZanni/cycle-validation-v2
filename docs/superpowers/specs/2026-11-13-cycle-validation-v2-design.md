@@ -113,7 +113,7 @@ Aggiungo `NON_APPLICABILE` ai tre esiti concordati: il sistema attuale lo usa gi
 |---|---|
 | `CORRETTO` | `VERIFICATO` |
 | `ERRATO` | `CONTRADDIZIONE` (agente, con citazione), `MACCHINA_NON_ATTIVA` (Redshift), `DR_NON_APPLICABILE` (`Accept as is` o `Reject`), `DR_NESSUNA_CORRISPONDENZA` |
-| `WARNING` | `EVIDENZA_NON_TROVATA`, `FONTE_ASSENTE`, `VERSIONE_DIVERSA`, `PUBBLICAZIONE_PARZIALE`, `DATO_INCERTO` (targa o scheda che `uncertainty.json` dell'indice dà per dubbia: record letto in parte, edizione precedente, motivo sconosciuto), `RIFERIMENTO_AMBIGUO`, `CITAZIONE_NON_VERIFICATA`, `ESTRAZIONE_NON_CONFERMATA`, `BUDGET_ESAURITO`, `ERRORE_TECNICO`, `BLOCCATO_A_MONTE` |
+| `WARNING` | `EVIDENZA_NON_TROVATA`, `FONTE_ASSENTE`, `VERSIONE_DIVERSA`, `PUBBLICAZIONE_PARZIALE`, `DATO_INCERTO` (targa, scheda o pubblicazione EJ200 che `uncertainty.json` dell'indice dà per dubbia: record letto in parte, edizione precedente, copie con contenuto diverso, motivo sconosciuto), `RIFERIMENTO_AMBIGUO`, `CITAZIONE_NON_VERIFICATA`, `ESTRAZIONE_NON_CONFERMATA`, `BUDGET_ESAURITO`, `ERRORE_TECNICO`, `BLOCCATO_A_MONTE` |
 | `NON_APPLICABILE` | `CAMPO_ASSENTE`, `ESCLUSO_DA_REGOLA` (schede `SWJ`, `SSS`, `SPS`), `NON_VERIFICATO_PER_PROFILO` (schede EJ200) |
 
 ### 5.3 Report

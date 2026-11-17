@@ -3,6 +3,7 @@
 from functools import partial
 
 from cycle_validation.checks.base import CheckContext, evidence_at, guarded, make_result
+from cycle_validation.checks.uncertainty import describe
 from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reason, Target
 from cycle_validation.domain.cycle import Source
 from cycle_validation.resolve.civil import resolve_document
@@ -23,7 +24,7 @@ def _check_one(ctx: CheckContext, target: Target, source: Source) -> CheckResult
             CHECK,
             target,
             Reason.VERIFICATO,
-            f"Il documento {document.key} è disponibile.",
+            f"Il documento {document.key} è disponibile.{describe(document.uncertain)}",
             evidence=[evidence],
         )
     assert source.task is not None
@@ -39,7 +40,8 @@ def _check_one(ctx: CheckContext, target: Target, source: Source) -> CheckResult
         CHECK,
         target,
         Reason.VERIFICATO,
-        f"Il task {source.task} è presente nel manuale {document.key}.",
+        f"Il task {source.task} è presente nel manuale {document.key}."
+        + describe(document.uncertain),
         evidence=[evidence_at(location.document, location.line_start)],
     )
 

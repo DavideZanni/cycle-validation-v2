@@ -218,6 +218,8 @@ def _publications(tmp_path: Path) -> IndexedKnowledgeBase:
             doc("RDR-9A", kind="RDR", version="001"),
             doc("RDR-9B", kind="RDR", version="001"),
             doc("RN-2", kind="RN"),
+            doc("RN-3", kind="RN", uncertain=("copie_diverse_per_contenuto",)),
+            doc("RN-4", kind="RN", uncertain=("copie_diverse_per_tipo",)),
         ],
         aliases={"RDR-9A": ["RDR-9"], "RDR-9B": ["RDR-9"]},
     )
@@ -238,14 +240,23 @@ def _source_cycle(manual: str, issue: str | None = None) -> Cycle:
         ("RDR-5", None, Reason.FONTE_ASSENTE),
         ("RDR-9", None, Reason.RIFERIMENTO_AMBIGUO),
         ("XX-0", None, Reason.FONTE_ASSENTE),
+        ("RN-3", None, Reason.DATO_INCERTO),
+        ("RN-4", None, Reason.VERIFICATO),
     ],
 )
 def test_publication_states(tmp_path: Path, manual: str, issue: str | None, reason: Reason) -> None:
     ctx = _ctx(_source_cycle(manual, issue), kb=_publications(tmp_path), profile_name="ej200")
     result = check_sources(ctx)[0]
     assert result.reason is reason
-    if reason is Reason.VERIFICATO:
+    if reason is Reason.VERIFICATO and manual == "RN-1":
         assert result.evidence[0].document_key == "RN-1_i3"
+
+
+def test_doubts_on_a_publication_are_written_in_the_rationale(tmp_path: Path) -> None:
+    kb = _publications(tmp_path)
+    for manual, words in (("RN-3", "contenuto diverso"), ("RN-4", "tipo diverso")):
+        ctx = _ctx(_source_cycle(manual), kb=kb, profile_name="ej200")
+        assert words in check_sources(ctx)[0].rationale
 
 
 def test_codes_in_cited_documents(tmp_path: Path) -> None:

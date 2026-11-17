@@ -22,6 +22,10 @@ _LABELS = {
     "manuale_indicato_non_pubblicato": "manuale indicato dalla fonte non pubblicato",
     "manuale_indicato_assente": "manuale indicato dalla fonte assente dall'indice",
     "task_non_nel_manuale_indicato": "task non trovati nel manuale indicato dalla fonte",
+    "copie_diverse_per_contenuto": "copie con contenuto diverso per lo stesso codice e issue",
+    "copie_diverse_per_tipo": "copie con tipo diverso (tenuta quella con il tipo confermato)",
+    "copie_diverse_per_pubblicazione": "copie con stato diverso (tenuta quella pubblicata)",
+    "copie_diverse_per_completezza": "copie con completezza diversa (tenuta quella completa)",
 }
 
 # Motivi che non mettono in dubbio presenza e valore del dato verificato.
@@ -33,6 +37,9 @@ NOTE_ONLY = frozenset(
         "manuale_indicato_non_pubblicato",
         "manuale_indicato_assente",
         "task_non_nel_manuale_indicato",
+        "copie_diverse_per_tipo",
+        "copie_diverse_per_pubblicazione",
+        "copie_diverse_per_completezza",
     }
 )
 

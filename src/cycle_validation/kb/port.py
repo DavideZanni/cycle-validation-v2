@@ -30,6 +30,8 @@ class DocumentInfo(_Entry):
     kind: str | None = None
     published: bool = True
     partial: bool = False
+    # Motivi di incertezza dall'indice (EJ200: copie diverse con lo stesso codice e issue).
+    uncertain: tuple[str, ...] = ()
 
 
 class TaskLocation(_Entry):
