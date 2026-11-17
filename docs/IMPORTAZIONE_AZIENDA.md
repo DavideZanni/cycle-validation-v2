@@ -114,11 +114,11 @@ uv run cycle-validation kb-check examples/sintetico/knowledge
 
 Devi vedere:
 
-1. `558 passed`;
+1. `723 passed, 1 skipped` (quello saltato è la prova `live`, che chiede il modello vero);
 2. `All checks passed!`;
-3. un elenco che finisce con `recommendation_dr: 3`.
+3. un elenco che finisce con `recommendation_dr_incerte: 0`.
 
-Poi prova `mypy`, che sul computer personale non parte:
+Poi prova `mypy` (sul computer personale ora gira, 0 errori):
 
 ```bash
 uv run mypy
@@ -281,6 +281,10 @@ Prima scarica la conoscenza in una cartella locale (stesso formato che c'è su S
 ```bash
 uv run cycle-validation kb-check data/<cartella della conoscenza>
 ```
+
+Stampa anche quante targhe, schede e DR l'indice segna come incerte. Se `uncertainty.json`
+cita voci che non ci sono, `kb-check` fallisce: il servizio partirebbe lo stesso (ignora quella
+parte e lo scrive nel log), ma l'indice va corretto.
 
 Poi un ciclo vero da terminale:
 

@@ -1,7 +1,7 @@
 # Migliorie possibili
 
-Elenco delle migliorie, divise in cinque gruppi: affidabilità, velocità, costo, pulizia,
-esperimenti. Ognuna
+Elenco delle migliorie, divise in sei gruppi: affidabilità, velocità, costo, pulizia,
+esperimenti, conoscenza dall'indice. Ognuna
 dice cosa cambia, quanto rende (con la misura, quando c'è), quanto costa farla e se va provata
 prima in azienda.
 
@@ -361,6 +361,56 @@ passi 3 e 4 piccoli. Nessuna modifica a `src/cycle_validation/agent/` né al ser
 
 ---
 
+## F. Conoscenza dall'indice
+
+Usano ciò che knowledge-index scrive dal 17 novembre 2026, senza cambiare knowledge-index.
+Ramo `feat/incertezze-indice`, PR #1.
+
+### F1. Voci incerte da `uncertainty.json`. **Fatto**
+
+L'indice segnala le voci di cui non è sicuro e il perché. Prima v2 le dava per certe: una
+scheda nata da un record letto a metà risultava `VERIFICATO` come le altre. Ora:
+
+| Motivo | Esito |
+|---|---|
+| `da_record_parziale`, `edizione_precedente_per_blocco`, `copie_diverse_per_contenuto` (EJ200), motivo sconosciuto | warning `DATO_INCERTO` sul controllo di targa, scheda o fonte |
+| `valori_alternativi`, dubbi sul manuale collegato a un DR, copie EJ200 diverse solo per tipo, pubblicazione o completezza | esito invariato, il motivo va nella motivazione |
+
+Il controllo DR non si declassa mai: è bloccante e fermerebbe tutto il ciclo; il dubbio si
+scrive nella motivazione. I motivi e le etichette stanno in
+`src/cycle_validation/checks/uncertainty.py`: un motivo nuovo dell'indice si aggiunge lì.
+
+Il file è un'aggiunta: se manca vale come prima; se non si legge o cita voci che non ci sono,
+il servizio parte lo stesso e lo segnala nel log. `kb-check` invece stampa quante voci sono
+incerte e fallisce se il file è incoerente: va lanciato prima di pubblicare.
+
+### F2. Trattamento della scheda per motore. **Fatto**
+
+Una scheda con righe diverse per motore arriva come `A [GENX]; B [LEAP]`. Al modello va solo il
+trattamento della famiglia del ciclo; se la famiglia non si riconosce, o nessuna parte la nomina,
+tutti i valori. Meno testo da confrontare e nessun trattamento dell'altro motore.
+
+### F3. Task DR senza manuale. **Fatto**
+
+L'indice toglie il manuale a un DR quando i task stanno in un altro manuale. Prima quei task si
+perdevano; ora si cercano nei manuali che il ciclo cita per l'operazione, e solo lì.
+
+### F4. Documenti LEAP a documento intero. **Fatto, da verificare su un ciclo vero**
+
+L'indice indicizza un documento LEAP come un solo task con il codice del documento. Una fonte
+citata senza task prova quel codice (e la chiave): il documento intero diventa il contesto.
+Provato solo su dati inventati: se i cicli veri citano il documento in un'altra forma, la
+forma va in `aliases.json`.
+
+### F5. Dire al modello che un fatto è incerto. **Proposta**
+
+Oggi il prompt riporta `Macchina TM-90: Banco A; Banco B` senza dire che sono valori
+alternativi, o che il dato viene da un record letto in parte. Proposta: aggiungere il motivo
+accanto al fatto, come variante spenta di default (come A2 e B6). Cambia il prompt, quindi va
+misurata sui casi veri prima di accenderla. Costo: piccolo, in `checks/operation.py`.
+
+---
+
 ## Ordine consigliato
 
 Fatte: A1, A4, A5, B3, B7; pronte da misurare: A2 (`prompt_task_mancante`) e B6
@@ -375,6 +425,8 @@ Fatte: A1, A4, A5, B3, B7; pronte da misurare: A2 (`prompt_task_mancante`) e B6
 5. **B4** (`agent.concurrency`), dopo B1.
 6. **A3**, **A6/B5**: quando ci sono i dati veri (Redshift, stampa DR).
 7. **D**, rotte storiche: quando il frontend nuovo usa solo `validation/upload`.
+   **F4**: al primo ciclo LEAP vero, controllare che il contesto sia il documento giusto.
+   **F5**: insieme a A2 e B6, sugli stessi casi veri.
 8. **E1** (`eval proponi`): dopo i casi aziendali rivisti e la decisione sulla semplificazione.
 
 ---
