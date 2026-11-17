@@ -1,12 +1,15 @@
-# Modello per i cicli EJ200 veri. Copiare la cartella in eval/casi/aziendali/ej200/ (ignorata).
+# Modello per i cicli EJ200 veri. Copiare la cartella in eval/casi/aziendali/ej200/ (ignorata da git).
 # Percorsi relativi a questa cartella.
 
+# La fotografia della conoscenza fatta con `cycle-validation eval fotografia`.
 conoscenza: ../conoscenza/foto-AAAAMMGG
 tipo_conoscenza: ej200
-# Chiavi del catalogo e dei testi delle pubblicazioni dentro la fotografia. DA CONFERMARE.
-catalogo: "Manufacturing AI/exports/ej200_publication/catalog.json"
-testi: "Manufacturing AI/exports/ej200_publication/text/"
-targhe: structured/TM/
+# Catalogo e testi EJ200 dal loro puntatore (EJ200_KNOWLEDGE_POINTER), targhe dalla
+# conoscenza civile (CIVIL_KNOWLEDGE_POINTER), come nel servizio.
+puntatore: "Manufacturing AI/cv3/knowledge/ej200/current.json"
+puntatore_civile: "Manufacturing AI/cv3/knowledge/civil/current.json"
+# Elenco delle targhe attive (lista JSON di stringhe), esportato dal sistema delle macchine.
 macchine: ../macchine_attive.json
+# dal_pdf: il ciclo si estrae da ciclo.pdf come in produzione (si prova anche l'estrazione).
 estrazione: dal_pdf
 profilo: ej200

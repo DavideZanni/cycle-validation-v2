@@ -216,3 +216,41 @@ def test_a_snapshot_with_a_pointer_reads_the_published_index(tmp_path: Path) -> 
     assert kb.version == "r1"
     assert kb.find_task("MD72", "72-00-01-220-002") is not None
     assert kb.find_machine_tag("TM-1001") is not None
+
+
+def test_ej200_suite_takes_the_tags_from_the_civil_pointer(tmp_path: Path) -> None:
+    # come nel servizio: catalogo EJ200 dal suo puntatore, targhe dalla conoscenza civile
+    from ej200_fixtures import catalog_entries, text_objects
+
+    from cycle_validation.kb.ej200 import DEFAULT_TEXT_PREFIX
+
+    mirror = tmp_path / "foto"
+    shutil.copytree(EXAMPLE / "knowledge", mirror / "knowledge" / "civil" / "v" / "r1")
+    (mirror / "knowledge" / "civil" / "current.json").write_text(
+        '{"format": 1, "version": "r1", "path": "v/r1/"}', encoding="utf-8"
+    )
+    ej200 = mirror / "knowledge" / "ej200"
+    (ej200 / "v" / "e1").mkdir(parents=True)
+    (ej200 / "v" / "e1" / "catalog.json").write_text(json.dumps(catalog_entries()), "utf-8")
+    for key, text in text_objects().items():
+        target = ej200 / "v" / "e1" / "text" / key.removeprefix(DEFAULT_TEXT_PREFIX)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8")
+    (ej200 / "current.json").write_text(
+        '{"format": 1, "version": "e1", "path": "v/e1/"}', encoding="utf-8"
+    )
+    suite = tmp_path / "aziendali" / "ej200"
+    suite.mkdir(parents=True)
+    (suite / "suite.yaml").write_text(
+        f"conoscenza: {mirror.as_posix()}\n"
+        "tipo_conoscenza: ej200\n"
+        "puntatore: knowledge/ej200/current.json\n"
+        "puntatore_civile: knowledge/civil/current.json\n",
+        encoding="utf-8",
+    )
+
+    kb = load_suites(suite)[0].knowledge(tmp_path / "w")
+
+    assert kb.version == "e1"
+    assert kb.find_machine_tag("TM-1001") is not None
+    assert kb.find_machine_tag("TM-9999") is None
