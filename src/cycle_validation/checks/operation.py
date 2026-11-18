@@ -26,7 +26,7 @@ from cycle_validation.agent.session import (
     SessionStatus,
 )
 from cycle_validation.checks.base import CheckContext, make_result
-from cycle_validation.checks.dr_recommendation import dr_tasks
+from cycle_validation.checks.dr_recommendation import dr_documents, dr_tasks
 from cycle_validation.checks.process_sheet import engine_family, treatment_for_family
 from cycle_validation.config import AgentSettings
 from cycle_validation.domain.check import (
@@ -93,7 +93,11 @@ def _locations(ctx: CheckContext, operation: Operation) -> tuple[TaskLocation, .
         documents = cited_documents(ctx.cycle, ctx.kb, ctx.profile.document_order)
         return tuple(whole_document(document) for document in documents)
     return context_locations(
-        ctx.cycle, operation, ctx.kb, extra_tasks=dr_tasks(ctx.kb, ctx.selectors)
+        ctx.cycle,
+        operation,
+        ctx.kb,
+        extra_tasks=dr_tasks(ctx.kb, ctx.selectors),
+        extra_documents=dr_documents(ctx.kb, ctx.selectors),
     )
 
 

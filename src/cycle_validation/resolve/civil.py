@@ -162,9 +162,11 @@ def context_locations(
     kb: KnowledgeBase,
     *,
     extra_tasks: Sequence[tuple[str | None, str]] = (),
+    extra_documents: Sequence[DocumentInfo] = (),
 ) -> tuple[TaskLocation, ...]:
     """Testo con cui confrontare l'operazione: i suoi task; se non ne ha di risolti,
-    i task delle fonti collegate; infine quelli aggiunti dal profilo (per DR).
+    i task delle fonti collegate; infine quelli aggiunti dal profilo (per DR). Se nessuno
+    di questi si trova, i documenti interi di `extra_documents` (la procedura DR).
 
     Una fonte senza task può essere un documento che è tutto un task (LEAP): l'indice gli
     dà come codice del task il codice del documento, quindi si prova quello (e la chiave).
@@ -186,4 +188,6 @@ def context_locations(
     for manual, task in extra_tasks:
         pairs += [(manual, task)] if manual is not None else [(name, task) for name in manuals]
     locations = [hit for manual, task in pairs if (hit := kb.find_task(manual, task))]
+    if not locations:
+        locations = [whole_document(document) for document in extra_documents]
     return _dedupe(locations)

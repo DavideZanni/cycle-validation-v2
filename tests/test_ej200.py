@@ -38,6 +38,7 @@ from cycle_validation.kb.ej200 import (
     parse_catalog,
 )
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
+from cycle_validation.resolve.civil import resolve_document
 from cycle_validation.services.machines import StaticMachineRegistry
 from cycle_validation.testing.pdf import build_pdf
 
@@ -446,3 +447,15 @@ def test_unreadable_machine_data_during_a_check_is_a_source_failure(tmp_path: Pa
     with pytest.raises(SourceUnavailableError):
         kb.find_machine_tag("TM-1001")
     assert kb.find_dr_recommendations("SN-1") == []
+
+
+def test_a_reference_with_the_issue_attached_finds_that_issue(tmp_path: Path) -> None:
+    # Il catalogo ha codice e issue separati (RN-100, issue 1 e 2): il ciclo può citare
+    # `RN-100-1`, oppure `RN-100-01`.
+    kb, _ = make_kb(tmp_path)
+    for name in ("RN-100-1", "rn-100-01", "RN-100 - 1"):
+        assert [d.key for d in kb.find_manuals(name)] == ["RN-100-1"], name
+    assert kb.find_manuals("RN-100-9") == []  # issue che non c'è: niente
+    assert kb.find_manuals("RN-999-1") == []
+    resolution = resolve_document("RN-100-1", kb)
+    assert resolution.document is not None and resolution.document.version == "1"

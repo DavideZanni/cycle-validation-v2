@@ -17,7 +17,7 @@ from cycle_validation.domain.check import CheckResult, Reason, Verdict
 from cycle_validation.domain.cycle import Cycle
 from cycle_validation.extract.from_file import load_cycle
 from cycle_validation.kb.memory import IndexedKnowledgeBase
-from cycle_validation.kb.port import DocumentInfo, KnowledgeBase
+from cycle_validation.kb.port import DocumentInfo, KnowledgeBase, TaskLocation
 from cycle_validation.resolve.dr import (
     DrSelectors,
     SelectorError,
@@ -75,6 +75,27 @@ def test_source_task_missing_in_existing_manual() -> None:
     result = check_sources(_ctx(cycle))[0]
     assert result.reason is Reason.FONTE_ASSENTE
     assert "MAN-DEMO-75" in result.rationale
+
+
+def test_source_names_the_chapter_that_holds_the_task(tmp_path: Path) -> None:
+    # Manuale diviso in capitoli: stesso codice, la versione è il capitolo (dati inventati).
+    def chapter(name: str, text: str) -> DocumentInfo:
+        path = tmp_path / f"{name}.md"
+        path.write_text(text, "utf-8")
+        return DocumentInfo(key=f"MAN_X_{name}", path=path, code="MAN-X", version=name)
+
+    first = chapter("ch10", "<!-- page 1 -->\nTASK 10-00-00-100-001\n1. a\n")
+    other = chapter("ch20", "<!-- page 1 -->\naltro\n")
+    task = TaskLocation(
+        manual_key=first.key, task="10-00-00-100-001", document=first, line_start=2, line_end=3
+    )
+    kb = IndexedKnowledgeBase("v", documents=[first, other], tasks=[task])
+    cycle = Cycle.model_validate(
+        {"sources": [{"manual": "MAN-X", "task": "10-00-00-100-001"}], "operations": []}
+    )
+    result = check_sources(_ctx(cycle, kb=kb))[0]
+    assert result.reason is Reason.VERIFICATO
+    assert "MAN_X_ch10" in result.rationale
 
 
 def test_source_without_task_checks_only_the_manual() -> None:

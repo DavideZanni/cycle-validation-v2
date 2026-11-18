@@ -330,7 +330,7 @@ class Ej200KnowledgeBase:
             return ""
 
     def find_manuals(self, manual: str) -> list[DocumentInfo]:
-        entries = self._catalog.find(manual)
+        entries = self._catalog.find(manual) or self._by_code_and_issue(manual)
         latest: dict[str, CatalogEntry] = {}
         for entry in entries:
             if entry.published and (
@@ -339,6 +339,20 @@ class Ej200KnowledgeBase:
             ):
                 latest[entry.code] = entry
         return [self._materialize(entry, full=latest.get(entry.code) is entry) for entry in entries]
+
+    def _by_code_and_issue(self, manual: str) -> list[CatalogEntry]:
+        """Il ciclo può citare una pubblicazione con la issue attaccata al codice
+        (`<codice>-01`) mentre il catalogo ha codice e issue separati: se il nome intero non
+        c'è, si prova codice + issue. Solo le voci di quella issue, nessuna supposizione."""
+        match = _CODE_AND_ISSUE.fullmatch(manual.strip())
+        if match is None:
+            return []
+        issue = match.group("issue")
+        return [
+            entry
+            for entry in self._catalog.find(match.group("code"))
+            if entry.issue is not None and _same_issue(entry.issue, issue)
+        ]
 
     def find_task(self, manual: str, task: str) -> TaskLocation | None:
         return None  # EJ200: i riferimenti sono pubblicazioni intere, non task
@@ -372,6 +386,17 @@ class Ej200KnowledgeBase:
             "issue": len(entries),
             "targhe": len(self._tags()),
         }
+
+
+# `<codice>-<issue>`: la issue è l'ultimo pezzo dopo un trattino, corto (01, 2, A).
+_CODE_AND_ISSUE = re.compile(r"(?P<code>.+?)\s*[-\u2010-\u2015]\s*(?P<issue>[0-9A-Za-z]{1,3})")
+
+
+def _same_issue(left: str, right: str) -> bool:
+    """`01` e `1` sono la stessa issue; le lettere si confrontano come codici."""
+    if left.strip().isdigit() and right.strip().isdigit():
+        return int(left) == int(right)
+    return normalize_code(left) == normalize_code(right)
 
 
 def _issue_key(issue: str | None) -> tuple[int, ...]:

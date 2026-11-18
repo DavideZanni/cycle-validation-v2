@@ -40,8 +40,10 @@ def _check_one(ctx: CheckContext, target: Target, source: Source) -> CheckResult
         CHECK,
         target,
         Reason.VERIFICATO,
-        f"Il task {source.task} è presente nel manuale {document.key}."
-        + describe(document.uncertain),
+        # Il documento del task, non quello scelto come più recente: un manuale diviso in
+        # capitoli ha lo stesso codice in più documenti.
+        f"Il task {source.task} è presente nel manuale {location.document.key}."
+        + describe(location.document.uncertain),
         evidence=[evidence_at(location.document, location.line_start)],
     )
 

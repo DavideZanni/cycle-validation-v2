@@ -3,6 +3,7 @@ e dai test; un adattatore su sorgenti remote può riusarla dopo aver scaricato i
 
 from collections.abc import Iterable, Mapping
 
+from cycle_validation.kb.documents import read_lines
 from cycle_validation.kb.port import (
     DocumentInfo,
     DrRecommendation,
@@ -10,6 +11,7 @@ from cycle_validation.kb.port import (
     ProcessSheetEntry,
     TaskLocation,
 )
+from cycle_validation.kb.task_text import find_task_in_text
 from cycle_validation.text import normalize_code
 
 
@@ -37,6 +39,8 @@ class IndexedKnowledgeBase:
         self._tasks = {
             (location.document.key, normalize_code(location.task)): location for location in tasks
         }
+        # Task trovati nel testo perché l'indice non li ha (anche i mancati: None).
+        self._from_text: dict[tuple[str, str], TaskLocation | None] = {}
         self._tags = {normalize_code(entry.tag): entry for entry in machine_tags}
         self._sheets = {normalize_code(entry.code): entry for entry in process_sheets}
         self._dr: dict[str, list[DrRecommendation]] = {}
@@ -53,11 +57,37 @@ class IndexedKnowledgeBase:
 
     def find_task(self, manual: str, task: str) -> TaskLocation | None:
         wanted = normalize_code(task)
-        for document in self.find_manuals(manual):
+        documents = self.find_manuals(manual)
+        for document in documents:
             location = self._tasks.get((document.key, wanted))
             if location is not None:
                 return location
+        # L'indice non ha il task (titolo in una forma che non riconosce): si cerca il titolo
+        # nel testo dei documenti, con la stessa regola dell'indice.
+        for document in documents:
+            location = self._task_from_text(document, task, wanted)
+            if location is not None:
+                return location
         return None
+
+    def _task_from_text(
+        self, document: DocumentInfo, task: str, wanted: str
+    ) -> TaskLocation | None:
+        key = (document.key, wanted)
+        if key not in self._from_text:
+            found = find_task_in_text(read_lines(document.path), task)
+            self._from_text[key] = (
+                None
+                if found is None
+                else TaskLocation(
+                    manual_key=document.key,
+                    task=task.strip(),
+                    document=document,
+                    line_start=found[0],
+                    line_end=found[1],
+                )
+            )
+        return self._from_text[key]
 
     def find_machine_tag(self, tag: str) -> MachineTagEntry | None:
         return self._tags.get(normalize_code(tag))

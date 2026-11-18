@@ -6,7 +6,8 @@
 from cycle_validation.checks.base import CheckContext, guarded, make_result
 from cycle_validation.checks.uncertainty import describe
 from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reason, Target
-from cycle_validation.kb.port import DrRecommendation, KnowledgeBase
+from cycle_validation.kb.port import DocumentInfo, DrRecommendation, KnowledgeBase
+from cycle_validation.resolve.civil import resolve_document
 from cycle_validation.resolve.dr import DrSelectors, is_not_applicable, match_recommendations
 
 CHECK = CheckName.DR_RECOMMENDATION
@@ -36,6 +37,28 @@ def dr_tasks(kb: KnowledgeBase, selectors: DrSelectors | None) -> list[tuple[str
         for item in applicable_recommendations(kb, selectors)
         for task in item.tasks
     ]
+
+
+# Tipo del documento della procedura DR nel manifest dell'indice.
+DR_PROCEDURE_KIND = "DR_PROC"
+
+
+def dr_documents(kb: KnowledgeBase, selectors: DrSelectors | None) -> list[DocumentInfo]:
+    """Procedure DR indicate dalle recommendation applicabili, intere: il contesto quando
+    nessun task si trova (la procedura spesso non ha task con codice). La procedura si cerca
+    con il manuale della recommendation e, se manca, con il codice del DR (`reference`):
+    l'indice lascia il manuale vuoto quando i task non lo indicano. Solo documenti di tipo
+    procedura DR: un manuale intero sarebbe troppo grande e poco mirato."""
+    out: dict[str, DocumentInfo] = {}
+    for item in applicable_recommendations(kb, selectors):
+        for name in (item.manual, item.reference):
+            if not name or not name.strip():
+                continue
+            document = resolve_document(name, kb).document
+            if document is not None and (document.kind or "").upper() == DR_PROCEDURE_KIND:
+                out.setdefault(document.key, document)
+                break
+    return list(out.values())
 
 
 def _check(ctx: CheckContext, target: Target) -> CheckResult:
