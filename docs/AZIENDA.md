@@ -41,7 +41,7 @@ uv run mypy
 uv run cycle-validation kb-check examples/sintetico/knowledge
 ```
 
-Devi vedere: `757 passed, 2 skipped` (saltati: la prova con il modello vero e quella sulle
+Devi vedere: `758 passed, 2 skipped` (saltati: la prova con il modello vero e quella sulle
 stampe di esempio in `docs/Esempio*/`, che parte solo se le cartelle ci sono),
 `All checks passed!`, `Success: no issues found` e un elenco che finisce con
 `recommendation_dr_incerte: 0`. Qui non serve né la rete né una credenziale.

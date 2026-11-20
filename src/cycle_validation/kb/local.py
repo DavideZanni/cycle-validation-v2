@@ -76,6 +76,8 @@ class _TaskRow(_Row):
 class _TagRow(_Row):
     tag: str
     function: str | None = None
+    # knowledge-index segna così le voci lette con dubbi: vale come un motivo di incertezza
+    needs_review: bool = False
 
 
 class _SheetRow(_Row):
@@ -83,6 +85,7 @@ class _SheetRow(_Row):
     edition: str | None = None
     treatment: str | None = None
     engine_families: list[str] = Field(default_factory=list)
+    needs_review: bool = False
 
 
 class _DrRow(_Row):
@@ -92,6 +95,7 @@ class _DrRow(_Row):
     reference: str | None = None
     manual: str | None = None
     tasks: list[str] = Field(default_factory=list)
+    needs_review: bool = False
 
 
 class _UncertainDr(_Row):
@@ -240,6 +244,16 @@ def _tasks(
     return locations
 
 
+NEEDS_REVIEW = "da_rivedere"
+
+
+def _with_review(reasons: tuple[str, ...], row: _TagRow | _SheetRow | _DrRow) -> tuple[str, ...]:
+    """I motivi di `uncertainty.json` più quello della voce stessa (`needs_review`)."""
+    if row.needs_review and NEEDS_REVIEW not in reasons:
+        return (*reasons, NEEDS_REVIEW)
+    return reasons
+
+
 def load_local_knowledge(
     directory: Path, *, version: str | None = None, problems: list[str] | None = None
 ) -> IndexedKnowledgeBase:
@@ -282,7 +296,7 @@ def load_local_knowledge(
             MachineTagEntry(
                 tag=row.tag,
                 function=row.function,
-                uncertain=tag_doubts.get(normalize_code(row.tag), ()),
+                uncertain=_with_review(tag_doubts.get(normalize_code(row.tag), ()), row),
             )
             for row in tag_rows
         ],
@@ -292,7 +306,7 @@ def load_local_knowledge(
                 edition=row.edition,
                 treatment=row.treatment,
                 engine_families=tuple(row.engine_families),
-                uncertain=sheet_doubts.get(normalize_code(row.code), ()),
+                uncertain=_with_review(sheet_doubts.get(normalize_code(row.code), ()), row),
             )
             for row in sheet_rows
         ],
@@ -304,8 +318,9 @@ def load_local_knowledge(
                 reference=row.reference,
                 manual=row.manual,
                 tasks=tuple(row.tasks),
-                uncertain=dr_doubts.get(
-                    _dr_key(row.serial_number, row.conditions, row.procedure), ()
+                uncertain=_with_review(
+                    dr_doubts.get(_dr_key(row.serial_number, row.conditions, row.procedure), ()),
+                    row,
                 ),
             )
             for row in dr_rows
