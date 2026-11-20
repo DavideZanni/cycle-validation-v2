@@ -53,7 +53,7 @@ _TOOLING_CODE = re.compile(r"^[A-Z]\d{7}\s+\S")
 _FILL_IN = re.compile(r"\.{5,}")
 _SHEET = re.compile(r"^SCHEDA\s*:\s*(?P<code>.*)$", re.IGNORECASE)
 # la riga SCHEDA in fondo al blocco è più larga della colonna TARGA e non ha asterischi:
-# "SCHEDA : PG 300        SP.ORIG. E2A70200001A653AD     SP.FIAT"
+# "SCHEDA : PG 900        SP.ORIG. X1Y22300001Z999ZZ     SP.XXXX"
 _SHEET_LINE = re.compile(
     r"^\s*SCHEDA\s*:\s*(?P<code>.*?)\s*(?:SP\.ORIG\.\s+(?P<sp>\S+).*)?$", re.IGNORECASE
 )

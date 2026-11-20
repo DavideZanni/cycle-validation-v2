@@ -53,8 +53,8 @@ _DERIVED = frozenset({"text_prefix", "uncertain"})
 
 def base_code(code: str, issue: str | None) -> str:
     """Il codice della pubblicazione senza la issue: il catalogo pubblicato scrive
-    `"code": "EJ23093L-02", "issue": "02"`, ma le issue della stessa pubblicazione devono
-    avere lo stesso codice (`EJ23093L`), altrimenti diventano pubblicazioni diverse."""
+    `"code": "EJ00000X-02", "issue": "02"`, ma le issue della stessa pubblicazione devono
+    avere lo stesso codice (`EJ00000X`), altrimenti diventano pubblicazioni diverse."""
     if issue:
         suffix = f"-{normalize_code(issue)}"
         if normalize_code(code).endswith(suffix) and len(code.strip()) > len(suffix):
