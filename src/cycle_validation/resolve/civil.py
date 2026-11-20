@@ -29,7 +29,7 @@ class OperationRefs:
     missing: tuple[str, ...]
 
 
-def _version_key(document: DocumentInfo) -> tuple[tuple[int, ...], str]:
+def version_key(document: DocumentInfo) -> tuple[tuple[int, ...], str]:
     version = document.version or ""
     return tuple(int(number) for number in _NUMBERS.findall(version)), version
 
@@ -54,7 +54,7 @@ def resolve_document(name: str, kb: KnowledgeBase, issue: str | None = None) -> 
         return DocumentResolution(
             None, Reason.FONTE_ASSENTE, f"Il documento {name} risulta non pubblicato."
         )
-    chosen = max(published, key=_version_key)
+    chosen = max(published, key=version_key)
     if chosen.partial:
         return DocumentResolution(
             chosen,

@@ -18,6 +18,12 @@ def normalize_code(value: str) -> str:
     return _WHITESPACE.sub("", _fold(value)).upper()
 
 
+def sheet_key(value: str) -> str:
+    """Codice di una scheda di processo per il confronto: come `normalize_code` e senza
+    trattini, come nel servizio precedente (`CPEC522-BR` = `CPEC522BR`)."""
+    return normalize_code(value).replace("-", "")
+
+
 def squash(value: str) -> str:
     """Testo senza spazi e senza maiuscole, per cercare un valore dentro un testo impaginato."""
     return _WHITESPACE.sub("", _fold(value)).casefold()

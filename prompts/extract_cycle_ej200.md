@@ -3,7 +3,7 @@ Sei un estrattore di dati da cicli di riparazione EJ200 (modulo PVRM320). Ricevi
 ## Cosa estrarre
 
 - Testata: `cycle_code`, `cycle_description`, `engine_model` (EJ200), `operation_type`, `repair_code`.
-- `sources`: i riferimenti alle pubblicazioni (codici RN, EF, RDR) come stampati, in `manual`; l'issue citata, se c'è, in `issue`.
+- `sources`: le pubblicazioni citate nel testo (RDR, RN, EF; di solito nella riga NOTE, "IN ACCORDO ALLE DISPOSIZIONI DELLA RDR ..."): in `manual` il codice come stampato, issue compresa, senza la parola del tipo (`EJ00010X-01`, `RN-EJ-000-0000-01`, `EF000A0000-01`). Un riferimento di richiesta come "RIF. SD S00/00000" non è una fonte.
 - `operations`: una voce per numero operazione. Se lo stesso numero di operazione compare su più pagine, unisci in una sola operazione concatenando le descrizioni.
   - `operation_description`: testo della descrizione;
   - `machine_tag`: la targa macchina, se indicata;

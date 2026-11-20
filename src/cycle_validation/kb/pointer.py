@@ -6,7 +6,8 @@ Lo scrive il repo knowledge-index (o l'ingestion che lo usa) dopo aver caricato 
     knowledge/civil/v/r7/          manifest.json, documents/, tasks.json, ...
 
 `path` è relativo alla cartella del puntatore e non può uscirne. Gli altri campi del
-puntatore (impronta, conteggi, storico) qui non servono e si ignorano.
+puntatore (impronta, conteggi, storico delle ultime versioni) qui non servono e si ignorano;
+`format` può mancare.
 """
 
 import json
@@ -39,7 +40,8 @@ def read_pointer(store: ObjectStore, key: str) -> Pointer:
         loaded = json.loads(raw)
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise KnowledgeError(f"Puntatore {key} non è JSON valido.") from exc
-    if not isinstance(loaded, dict) or loaded.get("format") != POINTER_FORMAT:
+    # `format` può mancare (si legge come la forma 1); se c'è, deve essere quella nota.
+    if not isinstance(loaded, dict) or loaded.get("format", POINTER_FORMAT) != POINTER_FORMAT:
         raise KnowledgeError(f"Puntatore {key}: atteso un oggetto con format {POINTER_FORMAT}.")
     version, path = loaded.get("version"), loaded.get("path")
     if not isinstance(version, str) or not _VERSION.match(version) or version in {".", ".."}:

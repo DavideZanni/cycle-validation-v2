@@ -82,6 +82,20 @@ def test_missing_pointer_is_an_unavailable_source() -> None:
         read_pointer(InMemoryObjectStore(), POINTER)
 
 
+def test_a_pointer_without_format_is_read_as_the_known_format() -> None:
+    # il puntatore pubblicato ha versione, path, impronta, conteggi e storico
+    content = {
+        "version": "20260101T090000Z",
+        "path": "v/20260101T090000Z/",
+        "fingerprint": "abc",
+        "counts": {"documents": 10},
+        "history": [],
+    }
+    pointer = read_pointer(InMemoryObjectStore({POINTER: content}), POINTER)
+    assert pointer.version == "20260101T090000Z"
+    assert pointer.prefix.endswith("/v/20260101T090000Z/")
+
+
 @pytest.mark.parametrize(
     "content",
     [

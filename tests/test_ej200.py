@@ -518,3 +518,27 @@ def test_uncertainty_written_with_the_issue_inside_the_code_still_matches() -> N
     }
     (entry,) = with_uncertainty(entries, json.dumps(doubts).encode())
     assert (entry.code, entry.key, entry.uncertain) == ("EJ00001L", "EJ00001L-02", ("x",))
+
+
+def test_citing_an_older_issue_is_a_warning_and_the_cited_issue_is_kept(tmp_path: Path) -> None:
+    # Il catalogo ha RN-100 issue 1 e 2. Chi cita la 1 riceve un avviso; il confronto resta
+    # sulla issue citata. Chi cita la più recente, o il codice senza issue, nessun avviso.
+    from cycle_validation.checks.base import CheckContext
+    from cycle_validation.checks.source import check_sources
+
+    kb, _ = make_kb(tmp_path)
+    cycle = Cycle(
+        engine_model="EJ200",
+        sources=[Source(manual="RN-100-1"), Source(manual="RN-100-2"), Source(manual="RN-100")],
+    )
+    ctx = CheckContext(
+        cycle=cycle,
+        kb=kb,
+        machines=StaticMachineRegistry(["TM-1001"]),
+        profile=load_profile("ej200", PROFILES_DIR),
+    )
+    old, latest, bare = check_sources(ctx)
+    assert (old.reason, old.verdict) == (Reason.VERSIONE_DIVERSA, Verdict.WARNING)
+    assert "issue 1 di RN-100" in old.rationale and "issue 2, più recente" in old.rationale
+    assert old.evidence[0].document_key == "RN-100-1"
+    assert (latest.reason, bare.reason) == (Reason.VERIFICATO, Reason.VERIFICATO)

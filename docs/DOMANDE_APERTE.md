@@ -2,101 +2,108 @@
 
 Decisioni e dati che servono da chi conosce i cicli e l'indice. Per rispondere basta scrivere
 sotto ogni domanda. I valori negli esempi sono inventati (il repository è pubblico).
-Aggiornato il 20-11-2026.
+Aggiornato il 20-11-2026, con le risposte ricavate dal servizio precedente e da ingestion_v2.
 
-## Da cui dipende il funzionamento
+## Ancora aperte
 
-### 1. Targhe della stampa e targhe dell'indice
+### 1. Targhe della stampa e targhe di `machine_tags.json`
 
-Nella stampa PVRM320 la colonna TARGA ha due righe per operazione: sopra valori come `XX/123`,
-`PREC01`, `IM0001`, sotto valori come `AVM700` (centro responsabile). In `machine_tags.json`
-le targhe hanno un'altra forma: `A01000`, `500010`, `1200`, `A 0100`.
+Chiarito: la targa è la riga sopra della colonna TARGA (`XX/123`, `PREC01`); la riga sotto
+(`AVM700`) è il centro responsabile e non si controlla. Non esiste una tabella di
+corrispondenza. Il servizio precedente confrontava la targa stampata con Redshift
+(`work_center_cd`) in modo esatto: il programma fa lo stesso (ERRATO se non è attiva), ma senza
+badare a spazi e maiuscole.
 
-- Sono la stessa cosa scritta in due modi, o due codici diversi?
-- La targa da verificare è la riga sopra (oggi si usa questa) o quella sotto?
-- Se sono codici diversi, esiste una tabella di corrispondenza?
-
-Perché conta: oggi una targa della stampa che non si trova nel registro delle macchine attive
-dà **ERRATO**. Se le due forme non coincidono, rischiano di uscire ERRATO quasi tutte le righe.
-
-Risposta:
-
-### 2. Registro delle macchine attive
-
-La query predefinita su Redshift legge `work_centers` con `work_center_usage_cd = 'TO'`, scelta
-senza dati veri. È la tabella giusta? In che forma scrive le targhe (come la stampa o come
-`machine_tags.json`)?
+Resta da vedere sui dati veri: le targhe di `machine_tags.json` hanno forme come `A0100` o
+`500010`. Se le targhe stampate non ci sono, ogni operazione riceve un WARNING "targa non
+presente nell'indice" (non un ERRATO). Basta contare, su un ciclo vero, quante targhe stampate
+si trovano in `machine_tags.json` e quante su Redshift.
 
 Risposta:
 
-### 3. Schede dei cicli MOS
+### 3. Schede `PG 300` / `300`
 
-La stampa scrive le schede come `PG 300`, `PG 100`, `16`. In `process_sheets.json` i codici sono
-`10`, `16`, `6`, `CPEC 100-BR`, e nelle foto viste non c'è nessun `PG …`. Una scheda stampata
-`PG 300` nell'indice è `PG 300` o `300`? Se è `300`, oggi risulta "non presente" (WARNING).
-Per EJ200 non conta, perché lì le schede non si verificano.
-
-Risposta:
-
-### 4. `current.json`
-
-Tutti gli altri file sono stati visti e vanno bene. Manca la conferma che `current.json` esista
-in `knowledge/civil/` e in `knowledge/ej200/`: senza, il servizio non trova la conoscenza.
-Basta lanciare `kb-check` sulla fotografia (guida, 6.1).
-
-Risposta:
-
-## Regole da confermare
-
-### 5. Fonti EJ200
-
-Oggi le fonti di un ciclo EJ200 sono solo i codici RDR citati nel testo (`... DELLA RDR
-EJ00010X-01`). RN ed EF non vengono cercati nel testo. Va bene così, o i cicli citano anche
-RN/EF da confrontare?
+Chiarito: nessun codice toglie il prefisso `PG`. Il servizio precedente ignorava i trattini
+(`CPEC522-BR` = `CPEC522BR`): ora il programma fa lo stesso, oltre a ignorare spazi e
+maiuscole (`PG 300` = `PG300`). Resta da decidere se `PG 300` è la scheda `300`
+dell'indice. Per EJ200 non conta: le schede non si verificano.
 
 Risposta:
 
 ### 6. DR con `conditions: []`
 
-Se un serial number ha una sola recommendation, questa vale per qualunque condition. Se ne ha
-più di una e una di queste ha `conditions: []`, quella non viene mai scelta. Una lista vuota
-vuol dire "vale per tutte le condition" o "condition non indicata"?
+Chiarito: la lista vuota non vuol dire né "tutte" né "mancante"; il prompt di ingestion dà
+`condition_no = null` quando il DR non numera le condition. Il programma si comporta come il
+servizio precedente: se il serial number ha una sola recommendation la usa per qualunque
+condition; se ne ha più di una, quella con `[]` non viene mai scelta. Resta da decidere se debba
+valere per tutte.
 
 Risposta:
 
-### 7. Voci strane nell'indice
+### 7. Targa `90` in `machine_tags.json`
 
-In `machine_tags.json` c'è una voce con targa `90` e come funzione una frase che sembra una nota
-rimasta da un documento ("In questo caso la descrizione breve può essere scelta..."). È un
-errore dell'indice da correggere lato knowledge-index?
+Ingestion_v2 scarta solo righe annullate o senza targa e non guarda il contenuto; il campo
+`needs_review` lo hanno quasi tutte le targhe. Per capire se è un errore dell'indice: aprire il
+record TM di quella riga e guardare `page_number`, `row_index`, `status`, `cell_refs`. Non
+cambia niente nel programma.
 
 Risposta:
+
+### 11. `SP.FIAT`
+
+Il vecchio prompt prendeva come codici data-module sia lo `SP.ORIG.` sia lo `SP.FIAT` della
+riga SCHEDA. Il programma legge solo lo `SP.ORIG.` e lo mostra sotto la scheda, senza
+verificarlo. Lo `SP.FIAT` va letto e mostrato? Questi codici vanno verificati (per esempio nel
+catalogo EJ200) o sono solo informativi?
+
+Risposta:
+
+### 12. Paragrafo della fonte citato
+
+Il vecchio prompt estraeva anche il punto citato della fonte (`PAR. 1.1`; un riferimento di
+richiesta come `RIF. SD S00/00000` non è un paragrafo). Oggi l'agente riceve tutta la
+pubblicazione e trova il punto da solo. Serve estrarre il paragrafo, per indicarlo all'agente e
+controllare che esista?
+
+Risposta:
+
+## Risposte date (20-11-2026)
+
+### 2. Registro delle macchine attive
+
+La tabella giusta è quella del vecchio `verify_active_TM`: filtro
+`work_center_usage_cd = 'TO'`, targa nella colonna `work_center_cd`. Il nome della tabella va
+messo in `MACHINES_QUERY` sul server (non è scritto nel repository, che è pubblico). Differenza
+voluta: il vecchio servizio, se la query falliva, saltava il controllo fino al riavvio; qui la
+targa esce WARNING "registro non raggiungibile" e la richiesta dopo riprova.
+
+### 4. `current.json`
+
+Esiste: è il puntatore scritto da `publish.py`, con versione, `path`, impronta, conteggi e lo
+storico delle ultime tre versioni. Il programma usa solo `version` e `path` e ora accetta il
+puntatore anche senza il campo `format`. Nella versione civile ci sono `manifest.json`,
+`tasks.json`, `machine_tags.json`, `process_sheets.json`, `dr_recommendations.json` e
+`documents/`; in quella EJ200 `catalog.json` e `text/`. Da provare comunque con `kb-check`.
+
+### 5. Fonti EJ200
+
+Anche RN ed EF, con priorità RDR, EF, RN (gli RI nell'indice diventano EF). Il programma ora le
+trova nel testo sia con la parola davanti (`DELLA RN RN-EJ-000-0000-01`) sia da sole, perché i
+codici cominciano con il tipo (`RN-EJ-…`, `EF000A0000-01`).
 
 ### 8. Issue vecchia citata dal ciclo
 
-Se il ciclo cita una RDR con una issue precisa (`EJ00020L-01`) e nel catalogo c'è anche una
-issue più recente (`-02`), oggi il confronto si fa sulla issue citata e la fonte risulta
-corretta, senza avvisi. Va bene così, o deve uscire un WARNING ("esiste una issue più
-recente")?
-
-Risposta:
-
-## Repository
+WARNING. Il ciclo che cita `EJ00020L-01` quando c'è la `-02` riceve sulla fonte "è disponibile
+la issue 02, più recente"; il confronto delle operazioni resta sulla issue citata. (Il servizio
+precedente confrontava con la più recente: se si preferisce così, è una modifica piccola.)
 
 ### 9. Visibilità
 
-Il repository `cycle-validation-v2` è pubblico. Lo rendiamo privato (GitHub, Settings →
-General → Danger Zone → Change visibility)?
+Il repository diventa privato (lo fa il proprietario da GitHub).
 
-Risposta:
+### 10. Codice vero in un messaggio di commit
 
-### 10. Un codice vero in un messaggio di commit
-
-Il messaggio di un commit già pubblicato su `main` contiene un codice RDR vero. Toglierlo
-richiede di riscrivere la storia di `main` con un push forzato. Lo facciamo, oppure basta
-rendere privato il repository?
-
-Risposta:
+Si lascia così: nessuna riscrittura della storia.
 
 ## Già decise (per memoria)
 
@@ -104,6 +111,7 @@ Risposta:
 - Op. `005` (riga NOTE): resta in tabella.
 - RC dell'operazione: la `RIPARAZIONE :` della testata della pagina.
 - Feedback EJ200: esiti reali; la Scheda è sempre N/A.
+- Targa: la riga sopra della colonna TARGA; la riga sotto (centro responsabile) non si verifica.
 - `needs_review`: promemoria per chi cura l'indice, ignorato dal programma.
 - Il frontend (badge, «-» sotto la scheda, minuscole) lo gestisce un collega.
 - Si lavora direttamente su `main`.

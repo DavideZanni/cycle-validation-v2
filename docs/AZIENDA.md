@@ -41,7 +41,7 @@ uv run mypy
 uv run cycle-validation kb-check examples/sintetico/knowledge
 ```
 
-Devi vedere: `762 passed, 2 skipped` (saltati: la prova con il modello vero e quella sulle
+Devi vedere: `766 passed, 2 skipped` (saltati: la prova con il modello vero e quella sulle
 stampe di esempio in `docs/Esempio*/`, che parte solo se le cartelle ci sono),
 `All checks passed!`, `Success: no issues found` e un elenco che finisce con
 `recommendation_dr_incerte: 0`. Qui non serve né la rete né una credenziale.
@@ -87,7 +87,7 @@ e, se qualcosa non va, le elenca insieme con il nome.
 | `REDSHIFT_DATABASE` | questa o il file | macchine attive da Redshift, con la Data API (nessun driver) |
 | `REDSHIFT_WORKGROUP` | con Redshift Serverless | il workgroup |
 | `REDSHIFT_CLUSTER_ID` | con un cluster | più `REDSHIFT_DB_USER` (credenziali IAM) oppure `REDSHIFT_SECRET_ARN` |
-| `MACHINES_QUERY` | no | prima colonna = targa. Predefinita: `work_centers` con `work_center_usage_cd = 'TO'`, **da confermare** |
+| `MACHINES_QUERY` | **sì** | prima colonna = targa. La tabella è quella del vecchio `verify_active_TM`: `SELECT DISTINCT work_center_cd FROM <schema>.<tabella> WHERE work_center_usage_cd = 'TO'`. La predefinita (`work_centers`) è solo un segnaposto |
 | `MACHINES_TTL_S` | no | ogni quanti secondi si rilegge Redshift (900) |
 | `CIVIL_KNOWLEDGE_POINTER` | no | `current.json` della conoscenza civile (predefinito `Manufacturing AI/cv3/knowledge/civil/current.json`) |
 | `EJ200_KNOWLEDGE_POINTER` | no | `current.json` di EJ200 (predefinito `.../knowledge/ej200/current.json`); vuota = catalogo a chiave fissa `EJ200_CATALOG_KEY` |

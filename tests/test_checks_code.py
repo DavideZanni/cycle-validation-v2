@@ -17,7 +17,7 @@ from cycle_validation.domain.check import CheckResult, Reason, Verdict
 from cycle_validation.domain.cycle import Cycle
 from cycle_validation.extract.from_file import load_cycle
 from cycle_validation.kb.memory import IndexedKnowledgeBase
-from cycle_validation.kb.port import DocumentInfo, KnowledgeBase, TaskLocation
+from cycle_validation.kb.port import DocumentInfo, KnowledgeBase, ProcessSheetEntry, TaskLocation
 from cycle_validation.resolve.dr import (
     DrSelectors,
     SelectorError,
@@ -175,6 +175,16 @@ def test_process_sheet_unknown() -> None:
         {"operations": [{"operation_number": "1", "process_sheet": "SP-9999"}]}
     )
     assert _reasons(check_process_sheets(_ctx(cycle))) == [Reason.FONTE_ASSENTE]
+
+
+def test_a_sheet_is_found_without_hyphens_and_spaces() -> None:
+    # come nel servizio precedente: CPEC522-BR = CPEC522BR (e gli spazi non contano)
+    kb = IndexedKnowledgeBase(
+        "t", process_sheets=[ProcessSheetEntry(code="CPEC 522-BR", edition="1", treatment="X")]
+    )
+    for code in ("CPEC522BR", "CPEC 522-BR", "cpec522-br"):
+        assert kb.find_process_sheet(code) is not None, code
+    assert kb.find_process_sheet("CPEC523BR") is None
 
 
 def test_process_sheet_without_engine_model_checks_presence_only() -> None:

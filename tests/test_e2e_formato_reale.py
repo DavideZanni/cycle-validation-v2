@@ -474,9 +474,12 @@ def test_ej200_from_the_print_to_the_frontend_payload(tmp_path: Path) -> None:
     assert ops[5]["operationDescription"].startswith("COLLAUDO VISIVO")  # la data non entra
     assert {op["taskCodeCited"] for op in ops} == {None}
 
-    # fonte: la RDR citata con la issue 01, anche se nel catalogo c'è la 02
+    # fonte: la RDR citata con la issue 01; nel catalogo c'è la 02, quindi un avviso. Il
+    # confronto delle operazioni si fa comunque sulla issue citata (op 020 sotto).
     assert [s["manual"] for s in payload["sources"]] == ["EJ00020L-01"]
-    assert [s["sourceFeedback"] for s in payload["sources"]] == ["No errors found."]
+    [feedback] = [s["sourceFeedback"] for s in payload["sources"]]
+    assert feedback.startswith("Warning:")
+    assert "issue 02, più recente" in feedback
 
     # esiti
     assert [op["operationFeedback"][:5] for op in ops] == [

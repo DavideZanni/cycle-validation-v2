@@ -263,6 +263,26 @@ def test_the_word_after_rdr_is_a_source_only_if_it_looks_like_a_code() -> None:
     assert [s.manual for s in cycle.sources] == ["EJ000001R-01"]
 
 
+def test_rn_and_ef_are_sources_with_or_without_the_word_before_the_code() -> None:
+    body = block(
+        ["QQ/901"],
+        "010",
+        [
+            "IN ACCORDO ALLA RDR EJ000001R-01, ALLA RN",
+            "RN-EJ-000-0000-01 E ALLA EF EF000A0000-02;",
+            "VEDI ANCHE RN-EJ-000-0000-01 ED EF000B0000-01.",
+            "RETURN THE PART; EF FINISHED; RIF. SD S00/00000",
+        ],
+    )
+    cycle = one_page(body, ["RIP: A3 OEM: AA/BB/CCC"])
+    assert [s.manual for s in cycle.sources] == [
+        "EJ000001R-01",
+        "RN-EJ-000-0000-01",
+        "EF000A0000-02",
+        "EF000B0000-01",
+    ]
+
+
 def test_the_repair_code_of_an_operation_is_the_one_in_the_header_of_its_page() -> None:
     first = [row("ZC/001", "010", "PRELIEVO DEL PEZZO DI PROVA."), SEP]
     second = [row("ZC/002", "020", "LAVORO DI PROVA."), SEP]

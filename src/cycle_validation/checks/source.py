@@ -6,7 +6,8 @@ from cycle_validation.checks.base import CheckContext, evidence_at, guarded, mak
 from cycle_validation.checks.uncertainty import describe
 from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reason, Target
 from cycle_validation.domain.cycle import Source
-from cycle_validation.resolve.civil import resolve_document
+from cycle_validation.kb.port import DocumentInfo
+from cycle_validation.resolve.civil import resolve_document, version_key
 
 CHECK = CheckName.SOURCE
 
@@ -20,6 +21,16 @@ def _check_one(ctx: CheckContext, target: Target, source: Source) -> CheckResult
     by_task = ctx.profile.reference_mode == "task" and source.task is not None
     if not by_task:
         evidence = Evidence(document_key=document.key, version=document.version)
+        newer = _newer_issue(ctx, document) if ctx.profile.reference_mode == "document" else None
+        if newer is not None:
+            return make_result(
+                CHECK,
+                target,
+                Reason.VERSIONE_DIVERSA,
+                f"Il ciclo cita la issue {document.version} di {document.code}; è disponibile "
+                f"la issue {newer.version}, più recente. Il confronto si fa sulla issue citata.",
+                evidence=[evidence],
+            )
         return make_result(
             CHECK,
             target,
@@ -46,6 +57,22 @@ def _check_one(ctx: CheckContext, target: Target, source: Source) -> CheckResult
         + describe(location.document.uncertain),
         evidence=[evidence_at(location.document, location.line_start)],
     )
+
+
+def _newer_issue(ctx: CheckContext, document: DocumentInfo) -> DocumentInfo | None:
+    """La issue pubblicata più recente della stessa pubblicazione, se è dopo quella citata.
+    Solo per pubblicazioni intere (EJ200): nei manuali civili `version` è il capitolo."""
+    if not document.code or document.version is None:
+        return None
+    issues = [
+        other
+        for other in ctx.kb.find_manuals(document.code)
+        if other.published and other.code == document.code and other.version is not None
+    ]
+    latest = max(issues, key=version_key, default=None)
+    if latest is None or version_key(latest) <= version_key(document):
+        return None
+    return latest
 
 
 def check_sources(ctx: CheckContext) -> list[CheckResult]:

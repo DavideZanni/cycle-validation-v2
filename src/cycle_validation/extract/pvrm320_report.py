@@ -23,7 +23,7 @@ Cosa si assume (da confermare sui PDF veri): la colonna TARGA è la targa macchi
 estrae (la targa si legge solo sulla riga che porta il numero), il codice di riparazione
 dell'operazione è la `RIPARAZIONE :` della testata della pagina dove l'operazione compare,
 la riga `SCHEDA :` in fondo al blocco può non avere gli asterischi di colonna, il manuale di un ciclo civile è l'OEM del piè e il task sta in `NOTE`, i riferimenti
-EJ200 sono le `RDR` citate nel testo. I glifi d'asterisco ammessi sono in `_STAR_GLYPHS`.
+EJ200 sono le RDR, RN ed EF citate nel testo. I glifi d'asterisco ammessi sono in `_STAR_GLYPHS`.
 """
 
 import re
@@ -60,8 +60,11 @@ _SHEET_LINE = re.compile(
 # riparazione nella testata ripetuta a ogni pagina: vale per le operazioni di quella pagina
 _PAGE_REPAIR = re.compile(r"^\s*RIPARAZIONE\s*:\s*(?P<repair>\S+)", re.IGNORECASE | re.MULTILINE)
 _TASK = re.compile(r"\bTASK\s+(\d{2}-\d{2}-\d{2}(?:\s+REPAIR\s+\d+)?)", re.IGNORECASE)
-# un codice RDR contiene almeno una cifra: "RDR ALLEGATA" non è un riferimento
-_RDR = re.compile(r"\bRDR\s+((?=[A-Z0-9-]*\d)[A-Z0-9]+(?:-[A-Z0-9]+)*)")
+# Fonti EJ200: il codice dopo la parola RDR, RN o EF ("DELLA RDR EJ00010X-01"); i codici RN
+# ed EF si riconoscono anche da soli, perché cominciano con il tipo ("RN-EJ-000-0000-01",
+# "EF000A0000-01"). Un codice contiene almeno una cifra: "RDR ALLEGATA" non è un riferimento.
+_CODE = r"(?=[A-Z0-9-]*\d)[A-Z0-9]+(?:-[A-Z0-9]+)*"
+_REFERENCE = re.compile(rf"\b(?:RDR|RN|EF)\s+({_CODE})|\b(RN-{_CODE}|EF\d[A-Z0-9]*(?:-[A-Z0-9]+)*)")
 _FOOTER = re.compile(r"^\s*RIP\s*:\s*(?P<repair>\S+)\s+OEM\s*:\s*(?P<oem>\S+)", re.IGNORECASE)
 _TASK_NOTE = re.compile(r"^\d{2}-\d{2}-\d{2}\b")
 _SECTION = "\x00"
@@ -270,7 +273,8 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
             )
         )
     text = " ".join(op.operation_description for op in built)
-    sources.extend(Source(manual=code) for code in dict.fromkeys(_RDR.findall(text)))
+    codes = (after_word or alone for after_word, alone in _REFERENCE.findall(text))
+    sources.extend(Source(manual=code) for code in dict.fromkeys(codes))
     return Cycle(
         cycle_code=head.get("cycle_code"),
         cycle_description=head.get("cycle_description"),

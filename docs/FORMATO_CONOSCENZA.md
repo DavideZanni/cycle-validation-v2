@@ -11,7 +11,7 @@ con una conoscenza in questi formati.
 ## Dove sta
 
 ```
-<prefisso>/knowledge/civil/current.json   {"format": 1, "version": "<versione>", "path": "v/<versione>/"}
+<prefisso>/knowledge/civil/current.json   {"version": "<versione>", "path": "v/<versione>/", ...}
 <prefisso>/knowledge/civil/v/<versione>/  manifest.json, documents/*.md, tasks.json,
                                           machine_tags.json, process_sheets.json,
                                           dr_recommendations.json, uncertainty.json (facoltativo)
@@ -34,7 +34,7 @@ Esito della verifica, file per file:
 | `dr_recommendations.json` | sì | va bene |
 | `machine_tags.json` | sì | il formato va bene; vedi la domanda sulle targhe |
 | `tasks.json` | sì | va bene: `manual` è la `key` del documento e le righe stanno nel file |
-| `current.json` | no | da vedere con `kb-check` |
+| `current.json` | descritto (versione, `path`, impronta, conteggi, storico) | va bene; `format` può mancare. Da provare con `kb-check` |
 
 ## Civile
 
@@ -107,9 +107,9 @@ c'è, l'esito è WARNING.
 
 ### `process_sheets.json`
 
-I codici si confrontano senza spazi né maiuscole (`CPEC 100-BR` = `CPEC100-BR`). Con
-`engine_families` vuoto la scheda risulta presente, ma l'applicabilità al motore non viene
-verificata.
+I codici si confrontano senza spazi, trattini né maiuscole (`CPEC 100-BR` = `CPEC100BR`),
+come nel servizio precedente. Con `engine_families` vuoto la scheda risulta presente, ma
+l'applicabilità al motore non viene verificata.
 
 ```json
 [
@@ -153,6 +153,12 @@ Una voce per issue. Il testo sta in `<document_id>/<content_hash>.md`.
 Il `code` contiene già la issue (`EJ00020L-02` con `issue: "02"`). Il programma la toglie in
 lettura, così le issue della stessa pubblicazione restano una sola pubblicazione. Un ciclo può
 citare `EJ00020L-01` (quella issue), oppure `EJ00020L` o `EJ00020` (la issue più recente, la 02).
+Se cita una issue che non è la più recente, la fonte riceve un WARNING ("è disponibile la issue
+02, più recente") e le operazioni si confrontano comunque con la issue citata.
+
+Le fonti di un ciclo EJ200 sono le RDR, RN ed EF citate nel testo: il codice dopo la parola
+(`DELLA RDR EJ00010X-01`), oppure un codice RN o EF da solo (`RN-EJ-000-0000-01`,
+`EF000A0000-01`). Se ce n'è più d'una, all'agente arrivano nell'ordine RDR, EF, RN.
 
 ## `needs_review`
 

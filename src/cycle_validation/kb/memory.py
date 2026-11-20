@@ -12,7 +12,7 @@ from cycle_validation.kb.port import (
     TaskLocation,
 )
 from cycle_validation.kb.task_text import find_task_in_text
-from cycle_validation.text import normalize_code
+from cycle_validation.text import normalize_code, sheet_key
 
 
 class IndexedKnowledgeBase:
@@ -42,7 +42,7 @@ class IndexedKnowledgeBase:
         # Task trovati nel testo perché l'indice non li ha (anche i mancati: None).
         self._from_text: dict[tuple[str, str], TaskLocation | None] = {}
         self._tags = {normalize_code(entry.tag): entry for entry in machine_tags}
-        self._sheets = {normalize_code(entry.code): entry for entry in process_sheets}
+        self._sheets = {sheet_key(entry.code): entry for entry in process_sheets}
         self._dr: dict[str, list[DrRecommendation]] = {}
         for recommendation in dr_recommendations:
             key = normalize_code(recommendation.serial_number)
@@ -97,7 +97,7 @@ class IndexedKnowledgeBase:
         return list(self._tags.values())
 
     def find_process_sheet(self, code: str) -> ProcessSheetEntry | None:
-        return self._sheets.get(normalize_code(code))
+        return self._sheets.get(sheet_key(code))
 
     def find_dr_recommendations(self, serial_number: str) -> list[DrRecommendation]:
         return list(self._dr.get(normalize_code(serial_number), ()))

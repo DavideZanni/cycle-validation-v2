@@ -15,7 +15,7 @@ from cycle_validation.kb.port import (
 from cycle_validation.kb.snapshot import ManualSource
 from cycle_validation.kb.stores import ObjectStore
 from cycle_validation.kb.structured import StructuredData, StructuredLayout, load_structured
-from cycle_validation.text import normalize_code
+from cycle_validation.text import normalize_code, sheet_key
 
 
 class RemoteKnowledgeBase:
@@ -53,7 +53,7 @@ class RemoteKnowledgeBase:
         if self._data is None:
             data = load_structured(self._store, self._layout)
             self._tags = {normalize_code(item.tag): item for item in data.machine_tags}
-            self._sheets = {normalize_code(item.code): item for item in data.process_sheets}
+            self._sheets = {sheet_key(item.code): item for item in data.process_sheets}
             self._dr = {}
             for item in data.dr_recommendations:
                 self._dr.setdefault(normalize_code(item.serial_number), []).append(item)
@@ -80,7 +80,7 @@ class RemoteKnowledgeBase:
 
     def find_process_sheet(self, code: str) -> ProcessSheetEntry | None:
         self._ensure()
-        return self._sheets.get(normalize_code(code))
+        return self._sheets.get(sheet_key(code))
 
     def find_dr_recommendations(self, serial_number: str) -> list[DrRecommendation]:
         self._ensure()
