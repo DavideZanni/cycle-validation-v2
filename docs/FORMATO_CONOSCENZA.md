@@ -4,7 +4,9 @@ Com'è fatta la conoscenza che knowledge-index pubblica su S3 e come la legge Cy
 Confrontato il 20-11-2026 con i file veri della versione di prova (manifest, catalogo EJ200,
 schede di processo, recommendation DR, targhe, task). **I valori qui sotto sono inventati**, ma hanno
 la stessa forma di quelli veri: il repository è pubblico, i file veri restano in azienda.
-Le domande ancora aperte sono in `docs/DOMANDE_APERTE.md`.
+Le domande ancora aperte sono in `docs/DOMANDE_APERTE.md`. Il test
+`tests/test_e2e_formato_reale.py` fa girare tutto il percorso (dal PDF al payload del frontend)
+con una conoscenza in questi formati.
 
 ## Dove sta
 

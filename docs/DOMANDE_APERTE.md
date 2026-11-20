@@ -72,16 +72,25 @@ errore dell'indice da correggere lato knowledge-index?
 
 Risposta:
 
+### 8. Issue vecchia citata dal ciclo
+
+Se il ciclo cita una RDR con una issue precisa (`EJ00020L-01`) e nel catalogo c'è anche una
+issue più recente (`-02`), oggi il confronto si fa sulla issue citata e la fonte risulta
+corretta, senza avvisi. Va bene così, o deve uscire un WARNING ("esiste una issue più
+recente")?
+
+Risposta:
+
 ## Repository
 
-### 8. Visibilità
+### 9. Visibilità
 
 Il repository `cycle-validation-v2` è pubblico. Lo rendiamo privato (GitHub, Settings →
 General → Danger Zone → Change visibility)?
 
 Risposta:
 
-### 9. Un codice vero in un messaggio di commit
+### 10. Un codice vero in un messaggio di commit
 
 Il messaggio di un commit già pubblicato su `main` contiene un codice RDR vero. Toglierlo
 richiede di riscrivere la storia di `main` con un push forzato. Lo facciamo, oppure basta
