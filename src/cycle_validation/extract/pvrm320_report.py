@@ -124,14 +124,103 @@ def _no_orphan(pending: _Op) -> None:
         )
 
 
-def _description(op: _Op) -> str:
+_WORD = re.compile(r"[^\W\d_]+")
+# Parole brevi che stanno da sole: "SUPERFICI / E" non è "SUPERFICIE", "DA / TE" non è "DATE".
+_FUNCTION_WORDS = frozenset(
+    [
+        "a",
+        "ad",
+        "al",
+        "alla",
+        "alle",
+        "agli",
+        "ai",
+        "che",
+        "con",
+        "col",
+        "da",
+        "dal",
+        "dalla",
+        "dalle",
+        "dai",
+        "degli",
+        "dei",
+        "del",
+        "della",
+        "delle",
+        "di",
+        "e",
+        "ed",
+        "gli",
+        "i",
+        "il",
+        "in",
+        "la",
+        "le",
+        "lo",
+        "nel",
+        "nella",
+        "nelle",
+        "negli",
+        "nei",
+        "non",
+        "o",
+        "per",
+        "su",
+        "sul",
+        "sulla",
+        "sulle",
+        "tra",
+        "fra",
+        "un",
+        "uno",
+        "una",
+    ]
+)
+
+
+def _vocabulary(ops: list[_Op]) -> frozenset[str]:
+    """Parole intere del ciclo: quelle dentro una riga. In testa e in coda a una riga
+    potrebbe esserci il pezzo di una parola andata a capo, e non conta."""
+    words: set[str] = set()
+    for op in ops:
+        for line in op.text:
+            words.update(
+                m[0].casefold()
+                for m in _WORD.finditer(line)
+                if m.start() > 0 and m.end() < len(line)
+            )
+    return frozenset(words)
+
+
+def _join_lines(lines: list[str], vocabulary: frozenset[str]) -> str:
+    """Unisce le righe; una parola spezzata a capo senza trattino ("QUANTITÀ MI" / "NIMA DI")
+    si ricuce se la parola intera compare altrove nel ciclo."""
+    text = ""
+    for line in lines:
+        head = re.match(r"[^\W\d_]+", line)
+        tail = re.search(r"[^\W\d_]+$", text)
+        if head and tail:
+            left, right = tail[0].casefold(), head[0].casefold()
+            if (
+                left + right in vocabulary
+                and left not in _FUNCTION_WORDS
+                and right not in _FUNCTION_WORDS
+            ):
+                text += line
+                continue
+        text = f"{text} {line}" if text else line
+    return text
+
+
+def _description(op: _Op, vocabulary: frozenset[str] = frozenset()) -> str:
     sections: list[list[str]] = [[]]
     for item in op.text:
         if item == _SECTION:
             sections.append([])
         else:
             sections[-1].append(item)
-    return " / ".join(" ".join(lines) for lines in sections if lines)
+    return " / ".join(_join_lines(lines, vocabulary) for lines in sections if lines)
 
 
 def _body(page_text: str) -> tuple[list[str], str | None]:
@@ -238,8 +327,9 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
 
     head = _header_fields(pdf)
     built: list[Operation] = []
+    vocabulary = _vocabulary(list(operations.values()))
     for op in operations.values():
-        description = _description(op)
+        description = _description(op, vocabulary)
         tag = op.tag if op.tag and op.tag.upper() != "NOTE" else None
         process_sheet: ProcessSheet | None = None
         if op.sheet:

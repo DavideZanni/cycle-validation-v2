@@ -297,3 +297,25 @@ def test_a_bare_date_above_the_block_is_not_part_of_the_description() -> None:
     body = [row(text="13-10-26".rjust(58)), row("TG0001", "060", "CONTROLLO DI PROVA."), SEP]
     by_number = ops(parse_pvrm320_report(as_document([page(1, body)])))
     assert by_number["060"].operation_description == "CONTROLLO DI PROVA."
+
+
+def test_a_word_broken_across_lines_is_rejoined_when_the_cycle_has_it_whole() -> None:
+    body = [
+        row("TG0001", "020", "RIMUOVERE LA QUANTITÀ MI"),
+        row("", "", "NIMA DI MATERIALE E LE SUPERFICI"),
+        row("", "", "E I BORDI. ELIMINA"),
+        row("", "", "RE IL DIFETTO DA"),
+        row("", "", "TE PROVE."),
+        SEP,
+        row("TG0002", "030", "DISTANZA MINIMA DI 1 MM; SUPERFICIE PULITA."),
+        row("", "", "IN DATE DIVERSE."),
+        SEP,
+    ]
+    for pages in ([page(1, body)], squeeze([page(1, body)])):
+        by_number = ops(parse_pvrm320_report(as_document(pages)))
+        # MINIMA compare intera nella 030; ELIMINARE no, e resta com'è; SUPERFICI / E e DA / TE
+        # sono parole distinte anche se SUPERFICIE e DATE compaiono nel ciclo
+        assert by_number["020"].operation_description == (
+            "RIMUOVERE LA QUANTITÀ MINIMA DI MATERIALE E LE SUPERFICI E I BORDI. ELIMINA "
+            "RE IL DIFETTO DA TE PROVE."
+        )
