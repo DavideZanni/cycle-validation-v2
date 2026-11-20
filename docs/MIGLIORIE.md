@@ -65,6 +65,9 @@ aziendale.
 | F1 | voci incerte di `uncertainty.json`: `DATO_INCERTO` su targa, scheda o fonte (mai sul DR, che è bloccante); file incoerente = log nel servizio, errore in `kb-check` |
 | F2 | trattamento della scheda solo per la famiglia del motore del ciclo |
 | F3 | task di un DR senza manuale cercati nei manuali citati dall'operazione |
+| B6 | task citato che il manuale non ha: WARNING `FONTE_ASSENTE` subito, senza modello (scelto il 20-11-2026 al posto di A2, che resta nella variante `prompt_task_mancante`) |
+| A3 | targa che non c'è da nessuna parte (né dati TM né attive): WARNING `TARGA_SCONOSCIUTA`; ERRATO solo se è nei dati TM e non è attiva (20-11-2026) |
+| B2 | ragionamento `low` nei controlli e `high` nella lettura del PDF, acceso di default (20-11-2026; da confermare su Bedrock) |
 | F4 | documento LEAP intero come contesto quando la fonte non ha task. **Da verificare su un ciclo LEAP vero** |
 | — | servizio montato dalle variabili d'ambiente, Redshift con la Data API, secret all'avvio |
 
@@ -72,19 +75,12 @@ aziendale.
 
 ## Da fare
 
-### Pronte da misurare (variante già scritta, spenta di default)
+### Da confermare su Bedrock
 
-- **A2, `prompt_task_mancante`.** Se il task citato non è nel manuale, il prompt lo dice al
-  modello invece di mandargli il testo delle altre fonti senza spiegazione. Oggi il caso
-  `fonte_e_codice_assenti` cambia esito tra un giro e l'altro. Si tiene se è ammessa e quella riga
-  diventa stabile. Interruttore: `agent.missing_task_note`.
-- **B6, `salta_task_mancante`.** Stesso caso, WARNING `FONTE_ASSENTE` subito, senza sessione.
-  Sui sintetici è scartata (lì l'atteso è CORRETTO). Si tiene solo se chi conosce i cicli dice
-  che l'esito giusto è WARNING, e allora va cambiato anche `expected.json`. Interruttore:
-  `agent.skip_missing_task`. **Si sceglie una tra A2 e B6.**
-- **B2, `effort_low` / `effort_low_controlli`.** Meno ragionamento: -22/-33% di costo, stessa
-  concordanza sui sintetici. `effort_low_controlli` tiene pieno il ragionamento nella lettura del
-  PDF, che con `low` leggeva peggio. Da confrontare su Bedrock con casi veri.
+- **B2, ragionamento ridotto (acceso dal 20-11-2026).** `effort: low` nei controlli,
+  `extraction_effort: high` nella lettura del PDF: -31% di costo, stessa concordanza sui
+  sintetici. La prima `eval pipeline` in azienda lancia anche `effort_pieno`: se la baseline
+  concorda meno, si torna indietro lasciando vuoti i due campi in `config/settings.yaml`.
 
 ### Da costruire
 
@@ -92,7 +88,6 @@ aziendale.
 |---|---|---|---|
 | B1 | chiamata diretta a Bedrock (`converse`) per le sessioni in linea; l'agente resta solo per i testi lunghi | toglie l'avvio di 4 s per operazione: circa metà del tempo. Il guadagno più grande | medio: secondo adattatore dietro `AgentSession` |
 | B4 | `agent.concurrency` sopra 6 | 40 operazioni: 21 s con 6, 12 s con 12. Limite: quote Bedrock | una riga, ma dopo B1 (sui sintetici `concorrenza_12` è stata scartata) |
-| A3 | targa assente da tutto = WARNING "sconosciuta"; ERRATO solo se è nei dati TM e non è attiva | targhe scritte diverse o elenco incompleto danno ERRATO falsi | piccolo, `checks/machine_tag.py`; decidere con i dati Redshift |
 | F5 | dire nel prompt che un fatto è incerto (valori alternativi, record parziale) | oggi il modello non lo sa | piccolo, `checks/operation.py`; variante spenta, da misurare con A2/B6 |
 | B8 | `golden` e i casi degli esperimenti in parallelo | esperimenti più rapidi, il servizio non cambia | piccolo |
 | D | togliere le rotte storiche (`/upload`, `/ej200/upload`, `/conversation`) | pulizia | medio; quando il frontend usa solo `validation/upload` |
@@ -127,10 +122,10 @@ ha gli esiti attesi; il modello fa solo **la proposta**.
 
 1. Casi veri nella suite (`eval prepara` e revisione): senza, le misure valgono solo sui dati
    inventati. Poi la baseline aziendale.
-2. B2: una riga, guadagno già misurato.
-3. A2 contro B6, insieme a F5, con 3 ripetizioni, e la scelta con chi conosce i cicli.
+2. B2 su Bedrock: baseline contro `effort_pieno`.
+3. F5, con 3 ripetizioni.
 4. B1, poi B4.
-5. A3 e F4: quando ci sono i dati veri (Redshift, ciclo LEAP).
+5. F4: quando c'è un ciclo LEAP vero.
 6. D, rotte storiche, quando il frontend è pronto.
 7. E1, dopo i casi aziendali rivisti.
 

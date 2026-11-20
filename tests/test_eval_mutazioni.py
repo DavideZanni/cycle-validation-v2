@@ -26,10 +26,10 @@ def test_every_mutation_of_the_synthetic_cases_has_the_right_expected_outcome(
     assert m.failures == 0
 
 
-def test_a_wrong_machine_is_an_expected_errato(tmp_path: Path) -> None:
+def test_an_unknown_machine_is_an_expected_warning(tmp_path: Path) -> None:
     out = tmp_path / "mutazioni"
     mutate_cases(SINTETICI / "mos", out)
-    case = out / "mos" / "pulito__targa_non_attiva"
+    case = out / "mos" / "pulito__targa_sconosciuta"
     cycle = json.loads((case / "ciclo.json").read_text(encoding="utf-8"))
     expected = json.loads((case / "expected.json").read_text(encoding="utf-8"))
     info = json.loads((case / "mutazione.json").read_text(encoding="utf-8"))
@@ -43,8 +43,8 @@ def test_a_wrong_machine_is_an_expected_errato(tmp_path: Path) -> None:
             "check": "machine_tag",
             "kind": "operation",
             "index": operation,
-            "verdict": "ERRATO",
-            "reason": "MACCHINA_NON_ATTIVA",
+            "verdict": "WARNING",
+            "reason": "TARGA_SCONOSCIUTA",
         }
     ]
     assert expected["rivisto"] is True and "status" not in expected

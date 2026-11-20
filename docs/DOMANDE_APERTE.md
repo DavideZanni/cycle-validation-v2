@@ -2,7 +2,8 @@
 
 Decisioni e dati che servono da chi conosce i cicli e l'indice. Per rispondere basta scrivere
 sotto ogni domanda. I valori negli esempi sono inventati (il repository è pubblico).
-Aggiornato il 20-11-2026, con le risposte ricavate dal servizio precedente e da ingestion_v2.
+Aggiornato il 20-11-2026, con le risposte ricavate dal servizio precedente e da ingestion_v2
+e con le scelte su task mancante, targa sconosciuta e ragionamento ridotto.
 
 ## Ancora aperte
 
@@ -20,9 +21,49 @@ knowledge-index:
 Perché conta: la funzione della targa arriva all'agente come informazione sull'operazione
 ("Macchina 90: …"). Una frase sbagliata lì può confonderlo. Il programma non cambia.
 
+Come si corregge in knowledge-index, in ordine:
+
+1. **Guardare la fonte.** Aprire il PDF TM alle pagine 14, 17 e 18 e vedere cosa c'è davvero
+   nella colonna della funzione per la `90`. Se la frase «la descrizione breve…» è una nota
+   a piè di tabella, il parser della tabella la sta prendendo per una riga.
+2. **Togliere la nota.** Scartare le righe la cui "funzione" è una frase (molte parole,
+   verbi, punto finale) invece di una lavorazione in maiuscolo. Meglio ancora fermare la
+   lettura della tabella dove finisce la griglia.
+3. **Sistemare gli accenti.** Leggere il testo nella codifica giusta (di solito il PDF dà
+   UTF-8 e qualcuno lo rilegge come Latin-1, da cui `Ã¨` al posto di `è`). Un controllo
+   semplice: nessun `Ã` o `â€` nei file pubblicati.
+4. **Unire le righe ripetute.** Con la stessa targa su più righe, non tenere solo la prima:
+   un solo record con le funzioni unite da `; ` senza doppioni
+   (`{"tag": "90", "function": "AGGIUSTAGGIO; LAVAGGIO; COLLAUDO DIMENSIONALE"}`). È già la
+   forma che il programma legge per le altre targhe.
+5. **Se non si fa in tempo.** In `uncertainty.json` della stessa versione:
+   `{"format": 1, "machine_tags": {"90": ["da_record_parziale"]}}`. La targa esce WARNING
+   `DATO_INCERTO` invece di CORRETTO, finché l'indice non è corretto.
+6. **Pubblicare e provare.** Nuova versione con `publish.py`, poi `kb-check` da questo
+   programma: deve passare senza avvisi su `uncertainty.json`.
+
 Risposta:
 
 ## Risposte date (20-11-2026)
+
+### 13. Task citato che il manuale non ha
+
+WARNING `FONTE_ASSENTE` subito, senza chiamare il modello: "I task citati (…) non sono nel
+manuale: descrizione non confrontata". Prima il modello confrontava la descrizione con il testo
+delle altre fonti del ciclo e l'esito cambiava da un giro all'altro. Interruttore:
+`agent.skip_missing_task` (acceso). Per i cicli EJ200, che citano documenti e non task, non
+cambia niente.
+
+### 14. Targa che non c'è da nessuna parte
+
+WARNING `TARGA_SCONOSCIUTA` ("va controllato come è scritta"), non più ERRATO. ERRATO resta
+per una targa dei dati TM che non è tra le macchine attive.
+
+### 15. Ragionamento ridotto
+
+Acceso: `effort: low` nei controlli, `high` nella lettura del PDF (circa -30% di costo sui
+casi di prova). Da confermare su Bedrock con la variante `effort_pieno`; per tornare indietro
+basta lasciare vuoti i due campi in `config/settings.yaml`.
 
 ### 1. Targhe
 

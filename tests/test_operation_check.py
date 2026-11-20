@@ -163,10 +163,12 @@ def test_check_operations_end_to_end_with_scripted_session() -> None:
     session = ScriptedSession(
         lambda r, a: answer("coerente" if "-000-" in r.session_id else "contraddetto", [QUOTE_OK])
     )
-    results, errors = asyncio.run(check_operations(ctx(operations), session, SETTINGS, "s"))
+    # Con il salto del task mancante spento, l'operazione 3 non risolve il suo task code e
+    # ripiega sul task della fonte collegata.
+    settings = SETTINGS.model_copy(update={"skip_missing_task": False})
+    results, errors = asyncio.run(check_operations(ctx(operations), session, settings, "s"))
     assert errors == []
     assert [r.target.index for r in results] == [0, 1, 2, 3]
-    # L'operazione 3 non risolve il suo task code, ma ripiega sul task della fonte collegata.
     assert [r.reason for r in results] == [
         Reason.VERIFICATO,
         Reason.CONTRADDIZIONE,
@@ -264,7 +266,7 @@ def test_the_model_is_told_when_the_cited_task_does_not_exist() -> None:
     # MIGLIORIE A2: il task citato non c'è, il testo è quello delle fonti del ciclo. Detto
     # esplicitamente, il modello non scambia la differenza di codice per un dubbio sul testo.
     missing = op(codes=["72-00-01-999-009"])
-    settings = AgentSettings(retry_backoff_s=0, missing_task_note=True)
+    settings = AgentSettings(retry_backoff_s=0, missing_task_note=True, skip_missing_task=False)
     request = job_for(missing, settings).request
     assert "72-00-01-999-009" in request.prompt
     assert "non sono nel manuale" in request.prompt
@@ -272,8 +274,11 @@ def test_the_model_is_told_when_the_cited_task_does_not_exist() -> None:
 
 
 def test_the_missing_task_note_is_off_by_default_and_absent_when_the_task_exists() -> None:
-    assert "non sono nel manuale" not in job_for(op(codes=["72-00-01-999-009"])).request.prompt
-    settings = AgentSettings(retry_backoff_s=0, missing_task_note=True)
+    judged = AgentSettings(retry_backoff_s=0, skip_missing_task=False)
+    assert (
+        "non sono nel manuale" not in job_for(op(codes=["72-00-01-999-009"]), judged).request.prompt
+    )
+    settings = AgentSettings(retry_backoff_s=0, missing_task_note=True, skip_missing_task=False)
     assert "non sono nel manuale" not in job_for(op(), settings).request.prompt
 
 
@@ -300,9 +305,13 @@ def test_a_missing_task_can_skip_the_model_with_a_direct_warning() -> None:
     assert "72-00-01-999-009" in immediate[0].rationale
 
 
-def test_the_model_is_still_called_for_a_missing_task_by_default() -> None:
-    assert AgentSettings().skip_missing_task is False
-    jobs, immediate = plan_operation_checks(ctx([op(codes=["72-00-01-999-009"])]), SETTINGS, "s")
+def test_a_missing_task_skips_the_model_by_default() -> None:
+    assert AgentSettings().skip_missing_task is True
+
+
+def test_the_model_can_still_judge_a_missing_task_when_asked() -> None:
+    settings = AgentSettings(retry_backoff_s=0, skip_missing_task=False)
+    jobs, immediate = plan_operation_checks(ctx([op(codes=["72-00-01-999-009"])]), settings, "s")
     assert len(jobs) == 1 and immediate == []
 
 

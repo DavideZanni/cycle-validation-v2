@@ -319,6 +319,6 @@ def test_eval_mutazioni_writes_the_mutated_suites(tmp_path: Path) -> None:
         ["eval", "mutazioni", "--casi", str(root / "eval/casi/sintetici/mos"), "--out", str(out)],
     )
     assert result.exit_code == 0, result.output
-    assert "targa_non_attiva" in result.output
+    assert "targa_sconosciuta" in result.output
     assert (out / "mos" / "suite.yaml").is_file()
     assert f"eval pipeline --casi {out}" in result.output

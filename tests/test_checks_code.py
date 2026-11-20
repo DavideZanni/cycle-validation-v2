@@ -158,6 +158,13 @@ def test_machine_active_but_unknown_to_tm() -> None:
     assert _reasons(check_machine_tags(ctx)) == [Reason.FONTE_ASSENTE]
 
 
+def test_a_machine_found_nowhere_is_an_unknown_tag_warning() -> None:
+    cycle = Cycle.model_validate({"operations": [{"operation_number": "1", "machine_tag": "X-9"}]})
+    (result,) = check_machine_tags(_ctx(cycle, machines=StaticMachineRegistry(["TM-1001"])))
+    assert (result.reason, result.verdict) == (Reason.TARGA_SCONOSCIUTA, Verdict.WARNING)
+    assert "Targa sconosciuta" in result.rationale and "X-9" in result.rationale
+
+
 def test_machine_registry_unavailable_is_a_warning() -> None:
     results = check_machine_tags(_ctx(machines=UnavailableMachineRegistry("Redshift giù")))
     assert results[0].reason is Reason.ERRORE_TECNICO

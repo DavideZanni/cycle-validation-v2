@@ -29,9 +29,9 @@ def test_mos_end_to_end(pdf: Path, tmp_path: Path) -> None:
         Reason.VERIFICATO,  # 0010 coerente
         Reason.CONTRADDIZIONE,  # 0020 46,00 mm contro 45,00 mm
         Reason.VERIFICATO,  # 0030
-        Reason.VERIFICATO,  # 0040 ripiega sul task della fonte
+        Reason.FONTE_ASSENTE,  # 0040 il task citato non è nel manuale: WARNING, niente modello
     ]
-    assert all(r.evidence for r in ops)
+    assert all(r.evidence for r in ops[:3])
 
     machines = by(report, CheckName.MACHINE_TAG)
     assert [r.reason for r in machines] == [
@@ -60,9 +60,9 @@ def test_mos_end_to_end(pdf: Path, tmp_path: Path) -> None:
     assert report.status.value == "completo"
     assert report.meta.knowledge_version == "sintetico-2026-11"
     assert report.meta.profile == "mos"
-    assert len(session.requests) == 4
-    assert report.session_modes == {"inline": 4, "search": 0}
-    assert report.usage.sessions == 4
+    assert len(session.requests) == 3  # la 0040 non chiama il modello
+    assert report.session_modes == {"inline": 3, "search": 0}
+    assert report.usage.sessions == 3
     assert set(report.timings_ms) >= {"ingest", "extract", "checks", "total"}
 
     payload = json.loads((run_dir / "payload.json").read_text(encoding="utf-8"))
@@ -107,8 +107,9 @@ def test_technical_failure_does_not_become_a_content_error(pdf: Path) -> None:
     deps, _ = make_deps(script=lambda r, a: RuntimeError("boom"))
     report = run_validation(RunRequest(pdf_path=pdf), deps)
     ops = by(report, CheckName.OPERATION_DESCRIPTION)
-    assert {r.reason for r in ops} == {Reason.ERRORE_TECNICO}
-    assert len(report.pipeline_errors) == 4
+    # la 0040 cita un task che non c'è: WARNING senza modello, quindi niente errore tecnico
+    assert [r.reason for r in ops] == [Reason.ERRORE_TECNICO] * 3 + [Reason.FONTE_ASSENTE]
+    assert len(report.pipeline_errors) == 3
     assert report.status.value == "parziale"
     assert report.counts.errato == 1  # solo la macchina non attiva
 

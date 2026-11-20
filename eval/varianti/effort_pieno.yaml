@@ -1,0 +1,6 @@
+nome: effort_pieno
+descrizione: ragionamento predefinito del modello ovunque, per confrontare il low dei controlli (MIGLIORIE B2)
+base: baseline
+agent:
+  effort: null
+  extraction_effort: null

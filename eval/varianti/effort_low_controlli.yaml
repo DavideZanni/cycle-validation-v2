@@ -1,6 +1,0 @@
-nome: effort_low_controlli
-descrizione: meno ragionamento nei controlli, ragionamento pieno nella lettura del PDF
-base: baseline
-agent:
-  effort: low
-  extraction_effort: high

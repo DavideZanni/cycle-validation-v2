@@ -157,8 +157,12 @@ def test_extraction_can_reason_more_than_the_checks() -> None:
     settings = AgentSettings(retry_backoff_s=0, effort="low", extraction_effort="high")
     asyncio.run(LlmCycleExtractor(session, settings, "sistema").extract(PDF))
     assert session.requests[0].effort == "high"
-    asyncio.run(LlmCycleExtractor(session, SETTINGS, "sistema").extract(PDF))
+    plain = AgentSettings(retry_backoff_s=0, effort=None, extraction_effort=None)
+    asyncio.run(LlmCycleExtractor(session, plain, "sistema").extract(PDF))
     assert session.requests[1].effort is None
+    # predefinito: low nei controlli, high nella lettura del PDF (MIGLIORIE B2)
+    asyncio.run(LlmCycleExtractor(session, SETTINGS, "sistema").extract(PDF))
+    assert session.requests[2].effort == "high"
 
 
 class _Stuck:

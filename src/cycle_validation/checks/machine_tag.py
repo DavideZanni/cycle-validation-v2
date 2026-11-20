@@ -1,7 +1,9 @@
 """Controllo `machine_tag`: la targa esiste nei dati TM e la macchina è attiva.
 
-Il registro delle macchine attive è la sorgente autorevole: una macchina non attiva
-è un errore; una targa assente dai dati TM è solo un warning.
+Il registro delle macchine attive è la sorgente autorevole: una macchina dei dati TM che non è
+attiva è un errore. Una targa che non c'è da nessuna parte (né nei dati TM né tra le attive) è
+un warning "targa sconosciuta": di solito è scritta in un altro modo o l'elenco è incompleto.
+Una targa attiva ma assente dai dati TM è anch'essa un warning.
 """
 
 from functools import partial
@@ -18,14 +20,23 @@ def _check_one(ctx: CheckContext, target: Target, operation: Operation) -> Check
     tag = operation.machine_tag
     if tag is None:
         return make_result(CHECK, target, Reason.CAMPO_ASSENTE, "Nessuna targa macchina indicata.")
-    if not ctx.machines.is_active(tag):
+    entry = ctx.kb.find_machine_tag(tag)
+    active = ctx.machines.is_active(tag)
+    if not active and entry is None:
+        return make_result(
+            CHECK,
+            target,
+            Reason.TARGA_SCONOSCIUTA,
+            f"Targa sconosciuta: {tag} non è nei dati delle targhe né tra le macchine attive. "
+            "Va controllato come è scritta.",
+        )
+    if not active:
         return make_result(
             CHECK,
             target,
             Reason.MACCHINA_NON_ATTIVA,
             f"La macchina {tag} non risulta attiva nel registro delle macchine.",
         )
-    entry = ctx.kb.find_machine_tag(tag)
     if entry is None:
         return make_result(
             CHECK,

@@ -26,8 +26,8 @@
       "check": "operation_description",
       "kind": "operation",
       "index": 0,
-      "verdict": "CORRETTO",
-      "reason": "VERIFICATO"
+      "verdict": "WARNING",
+      "reason": "FONTE_ASSENTE"
     }
   ]
 }

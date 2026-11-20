@@ -1,5 +1,6 @@
 nome: prompt_task_mancante
-descrizione: dire al modello quando il task citato non è nel manuale (MIGLIORIE A2)
+descrizione: task citato non nel manuale = il modello giudica, sapendo che il task manca (MIGLIORIE A2)
 base: baseline
 agent:
+  skip_missing_task: false
   missing_task_note: true

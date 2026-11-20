@@ -1,5 +1,6 @@
 nome: effort_low
-descrizione: meno ragionamento del modello (effort low)
+descrizione: meno ragionamento anche nella lettura del PDF (effort low ovunque)
 base: baseline
 agent:
   effort: low
+  extraction_effort: low

@@ -110,10 +110,10 @@ def _lowercase_tags(
 
 
 MUTATIONS: dict[str, Mutation] = {
-    "targa_non_attiva": Mutation(
+    "targa_sconosciuta": Mutation(
         "difetto",
-        "la targa di un'operazione diventa una macchina che non esiste: atteso ERRATO",
-        _defect("machine_tag", "machine_tag", "ERRATO", "MACCHINA_NON_ATTIVA"),
+        "la targa di un'operazione diventa una macchina che non esiste: atteso WARNING",
+        _defect("machine_tag", "machine_tag", "WARNING", "TARGA_SCONOSCIUTA"),
     ),
     "task_inesistente": Mutation(
         "difetto",

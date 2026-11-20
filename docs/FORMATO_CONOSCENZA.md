@@ -101,9 +101,15 @@ maiuscole (`A 0100` = `A0100`). Anche qui `needs_review` è un promemoria e si i
 ]
 ```
 
-Il controllo della targa usa due sorgenti. Prima il registro delle macchine attive (Redshift
-o `MACHINES_FILE`): se la targa non c'è, l'esito è ERRATO. Poi questo file: se la targa non
-c'è, l'esito è WARNING.
+Il controllo della targa usa due sorgenti: il registro delle macchine attive (Redshift o
+`MACHINES_FILE`) e questo file.
+
+| Nei dati TM | Tra le attive | Esito |
+|---|---|---|
+| sì | sì | CORRETTO |
+| sì | no | ERRATO `MACCHINA_NON_ATTIVA` |
+| no | sì | WARNING `FONTE_ASSENTE` |
+| no | no | WARNING `TARGA_SCONOSCIUTA` (di solito scritta in un altro modo o elenco incompleto) |
 
 ### `process_sheets.json`
 

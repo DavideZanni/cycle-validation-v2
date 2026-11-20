@@ -4,9 +4,12 @@ agent:
   # In azienda: impostare l'id abilitato nell'account (vedi docs/AZIENDA.md).
   model: haiku
   # low | medium | high. Vuoto = valore predefinito del modello.
-  effort:
+  # low nei controlli: circa -30% di costo a parità di esiti sui casi di prova (MIGLIORIE B2).
+  # Da confermare su Bedrock con cicli veri; per tornare indietro basta lasciarlo vuoto.
+  effort: low
   # Lo stesso, solo per la lettura del PDF. Vuoto = come effort.
-  extraction_effort:
+  # high: con low la lettura del PDF era peggiore (un "-" preso per targa).
+  extraction_effort: high
   use_bedrock: true
   # Regione Bedrock. Vuoto = quella dell'ambiente (AWS_REGION).
   aws_region:
@@ -33,6 +36,9 @@ agent:
   inline_max_lines: 150
   # Tolleranza in righe tra la riga citata dall'agente e quella reale.
   citation_window: 3
+  # Task citato che il manuale non ha: WARNING FONTE_ASSENTE subito, senza chiamare il modello
+  # (MIGLIORIE B6, deciso il 20-11-2026).
+  skip_missing_task: true
   # Testo delle sessioni su disco (runs/): contiene cicli e manuali. Acceso negli esperimenti.
   save_transcripts: false
 

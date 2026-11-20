@@ -19,9 +19,12 @@ class AgentSettings(_Strict):
     """Sessioni dell'agente. `model` è un alias o l'id completo del profilo di inferenza."""
 
     model: str = "haiku"
-    effort: Literal["low", "medium", "high"] | None = None
-    # Ragionamento per la lettura del PDF. None = come `effort`.
-    extraction_effort: Literal["low", "medium", "high"] | None = None
+    # Ragionamento dei controlli. None = predefinito del modello. low: circa -30% di costo a
+    # parità di esiti sui casi di prova (MIGLIORIE B2, da confermare su Bedrock).
+    effort: Literal["low", "medium", "high"] | None = "low"
+    # Ragionamento per la lettura del PDF. None = come `effort`. high: con low la lettura era
+    # peggiore.
+    extraction_effort: Literal["low", "medium", "high"] | None = "high"
     use_bedrock: bool = True
     aws_region: str | None = None
     # Modello Bedrock che trascrive immagini e PDF senza testo. None = disattivato.
@@ -47,12 +50,12 @@ class AgentSettings(_Strict):
     inline_max_lines: int = Field(default=150, ge=0, le=2000)
     citation_window: int = Field(default=3, ge=0, le=20)
     # Dire al modello che i task citati non sono nel manuale e che il testo è quello delle
-    # fonti del ciclo (MIGLIORIE A2). Da provare con la variante `prompt_task_mancante`.
+    # fonti del ciclo (MIGLIORIE A2). Vale solo con `skip_missing_task` spento: variante
+    # `prompt_task_mancante`.
     missing_task_note: bool = False
     # Task citato che il manuale non ha: WARNING subito, senza chiamare il modello (MIGLIORIE
-    # B6, strada 2 di A2). Una sessione in meno, ma niente confronto con le fonti del ciclo.
-    # Da provare con la variante `salta_task_mancante`.
-    skip_missing_task: bool = False
+    # B6, scelta il 20-11-2026 al posto di A2). Una sessione in meno.
+    skip_missing_task: bool = True
     # Testo delle sessioni su disco: contiene cicli e manuali. Spento nel servizio, acceso
     # negli esperimenti (eval/varianti/baseline.yaml).
     save_transcripts: bool = False

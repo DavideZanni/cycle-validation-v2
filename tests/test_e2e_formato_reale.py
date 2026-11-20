@@ -83,8 +83,13 @@ def civil_knowledge(directory: Path) -> Path:
             {"manual": CHAPTER_10, "task": "70-10-00-340-001", "line_start": 3, "line_end": 4},
         ],
         "machine_tags.json": [
-            {"tag": tag, "function": "LAVORAZIONE DI PROVA; ALTRA", "needs_review": True}
-            for tag in ACTIVE
+            *(
+                {"tag": tag, "function": "LAVORAZIONE DI PROVA; ALTRA", "needs_review": True}
+                for tag in ACTIVE
+            ),
+            # nei dati TM ma non tra le attive: ERRATO (una targa che non c'è da nessuna parte
+            # sarebbe solo un WARNING "targa sconosciuta")
+            {"tag": "QQ/999", "function": "MACCHINA DISMESSA"},
         ],
         "process_sheets.json": [
             {"code": "16", "edition": "13", "treatment": "LEV.3", "engine_families": ["GENX"]},
@@ -206,7 +211,7 @@ MOS = Cycle(
             operation_number="030",
             operation_description="CONTROLLO VISIVO CON LENTE 10X DELLE AREE RIPARATE.",
             repair_code="B1",
-            machine_tag="QQ/999",  # non nel registro delle macchine attive
+            machine_tag="QQ/999",  # nei dati TM, non nel registro delle macchine attive
             task_codes=["70-10-00-340-001"],  # in un altro capitolo dello stesso manuale
         ),
     ],

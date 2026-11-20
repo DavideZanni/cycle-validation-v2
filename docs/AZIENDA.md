@@ -41,7 +41,7 @@ uv run mypy
 uv run cycle-validation kb-check examples/sintetico/knowledge
 ```
 
-Devi vedere: `769 passed, 2 skipped` (saltati: la prova con il modello vero e quella sulle
+Devi vedere: `771 passed, 2 skipped` (saltati: la prova con il modello vero e quella sulle
 stampe di esempio in `docs/Esempio*/`, che parte solo se le cartelle ci sono),
 `All checks passed!`, `Success: no issues found` e un elenco che finisce con
 `recommendation_dr_incerte: 0`. Qui non serve né la rete né una credenziale.
@@ -167,9 +167,10 @@ Devi vedere `Ciclo completo: ...` e in `runs/ultimo` i file `report.json`, `repo
 | La colonna TARGA della stampa è la targa da verificare | `src/cycle_validation/extract/pvrm320_report.py` | esiti sulla macchina sbagliata |
 | Nomi con cui i cicli citano manuali e documenti (LEAP compresi) | `aliases.json` accanto a `current.json`, lato knowledge-index | fonti valide segnate "non trovate" |
 
-**Attenzione alle targhe.** Una targa che non è nell'elenco delle macchine attive dà ERRATO. Se
-l'elenco è incompleto o scrive le targhe in un altro modo (`AB/123` contro `AB123`) escono molti
-ERRATO falsi: controlla i primi risultati a mano.
+**Attenzione alle targhe.** Una targa dei dati TM che non è nell'elenco delle macchine attive dà
+ERRATO; una targa che non c'è da nessuna parte dà solo WARNING "targa sconosciuta". Se l'elenco
+delle attive è incompleto escono ERRATO falsi sulle targhe dei dati TM: controlla i primi
+risultati a mano.
 
 ## 7. Avviare il servizio
 
@@ -261,7 +262,7 @@ esperimenti saltano il caso. Se di una riga conta solo l'esito, togli `reason`.
 |---|---|
 | `CORRETTO` | `VERIFICATO` |
 | `ERRATO` | `CONTRADDIZIONE`, `MACCHINA_NON_ATTIVA`, `DR_NON_APPLICABILE`, `DR_NESSUNA_CORRISPONDENZA` |
-| `WARNING` | `FONTE_ASSENTE`, `EVIDENZA_NON_TROVATA`, `VERSIONE_DIVERSA`, `PUBBLICAZIONE_PARZIALE`, `DATO_INCERTO`, `RIFERIMENTO_AMBIGUO`, `CITAZIONE_NON_VERIFICATA`, `ESTRAZIONE_NON_CONFERMATA`, `BUDGET_ESAURITO`, `ERRORE_TECNICO`, `BLOCCATO_A_MONTE` |
+| `WARNING` | `FONTE_ASSENTE`, `TARGA_SCONOSCIUTA`, `EVIDENZA_NON_TROVATA`, `VERSIONE_DIVERSA`, `PUBBLICAZIONE_PARZIALE`, `DATO_INCERTO`, `RIFERIMENTO_AMBIGUO`, `CITAZIONE_NON_VERIFICATA`, `ESTRAZIONE_NON_CONFERMATA`, `BUDGET_ESAURITO`, `ERRORE_TECNICO`, `BLOCCATO_A_MONTE` |
 | `NON_APPLICABILE` | `CAMPO_ASSENTE`, `ESCLUSO_DA_REGOLA`, `NON_VERIFICATO_PER_PROFILO` |
 
 **Quanti casi.** Pochi ma vari: 5-10 MOS, 3-5 DR, 5 EJ200, con qualche ERRATO vero (macchina
@@ -314,7 +315,7 @@ uv run cycle-validation eval pipeline --casi eval/casi/mutazioni --salta-verific
 ```
 
 Il primo scrive in `eval/casi/mutazioni/` copie dei casi con un difetto di esito noto: targa che
-non esiste (ERRATO `MACCHINA_NON_ATTIVA`), task o scheda che non esistono (WARNING), più copie
+non esiste (WARNING `TARGA_SCONOSCIUTA`), task o scheda che non esistono (WARNING), più copie
 innocue (spazi doppi, targhe minuscole) che non devono cambiare niente. Un difetto non trovato
 conta come errore mancato.
 
@@ -337,10 +338,9 @@ tre prompt e `paths: {prompts_dir: ...}`.
 
 | Variante | Cosa prova |
 |---|---|
-| `effort_low` | meno ragionamento ovunque |
-| `effort_low_controlli` | meno ragionamento nei controlli, pieno nella lettura del PDF |
-| `prompt_task_mancante` | dire al modello che il task citato non è nel manuale (MIGLIORIE A2) |
-| `salta_task_mancante` | task citato non nel manuale: WARNING subito, senza modello (MIGLIORIE B6) |
+| `effort_pieno` | ragionamento predefinito del modello ovunque, da confrontare con la baseline (low nei controlli, high nel PDF) |
+| `effort_low` | low anche nella lettura del PDF |
+| `prompt_task_mancante` | task citato non nel manuale: giudica il modello, sapendo che manca (MIGLIORIE A2; la baseline dà WARNING subito) |
 | `concorrenza_12`, `sonnet` | 12 operazioni insieme; modello più grande |
 | `guasti` | robustezza, giudicata a parte |
 
