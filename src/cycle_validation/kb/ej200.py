@@ -22,7 +22,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from cycle_validation.errors import KnowledgeError, SourceUnavailableError
 from cycle_validation.kb.documents import digest, file_name
@@ -51,6 +51,17 @@ POINTER_UNCERTAINTY = "uncertainty.json"
 _DERIVED = frozenset({"text_prefix", "uncertain"})
 
 
+def base_code(code: str, issue: str | None) -> str:
+    """Il codice della pubblicazione senza la issue: il catalogo pubblicato scrive
+    `"code": "EJ23093L-02", "issue": "02"`, ma le issue della stessa pubblicazione devono
+    avere lo stesso codice (`EJ23093L`), altrimenti diventano pubblicazioni diverse."""
+    if issue:
+        suffix = f"-{normalize_code(issue)}"
+        if normalize_code(code).endswith(suffix) and len(code.strip()) > len(suffix):
+            return code.strip()[: -len(suffix)].rstrip(" -")
+    return code
+
+
 class CatalogEntry(BaseModel):
     """Una issue di una pubblicazione. `code` raggruppa le issue; `references` sono i nomi
     con cui i cicli la citano (più codici per lo stesso nome = riferimento ambiguo)."""
@@ -70,6 +81,11 @@ class CatalogEntry(BaseModel):
     text_prefix: str | None = None
     # Da `uncertainty.json` della stessa versione, mai dal file del catalogo.
     uncertain: tuple[str, ...] = ()
+
+    @model_validator(mode="after")
+    def _code_without_issue(self) -> "CatalogEntry":
+        self.code = base_code(self.code, self.issue)
+        return self
 
     @property
     def key(self) -> str:
@@ -110,7 +126,7 @@ class _Uncertainty(BaseModel):
 
 
 def _entry_key(code: str, issue: str | None, document_id: str) -> tuple[str, str, str]:
-    return normalize_code(code), issue or "", document_id
+    return normalize_code(base_code(code, issue)), issue or "", document_id
 
 
 def with_uncertainty(entries: list[CatalogEntry], raw: bytes) -> list[CatalogEntry]:

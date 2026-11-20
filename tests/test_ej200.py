@@ -459,3 +459,62 @@ def test_a_reference_with_the_issue_attached_finds_that_issue(tmp_path: Path) ->
     assert kb.find_manuals("RN-999-1") == []
     resolution = resolve_document("RN-100-1", kb)
     assert resolution.document is not None and resolution.document.version == "1"
+
+
+def _published_entry(code: str, issue: str, document_id: str, references: list[str]) -> dict:
+    """Voce come la scrive il catalogo pubblicato: la issue è anche dentro `code`."""
+    return {
+        "code": code,
+        "kind": "RDR",
+        "issue": issue,
+        "document_id": document_id,
+        "content_hash": f"h-{document_id}",
+        "title": code,
+        "published": True,
+        "partial": False,
+        "references": references,
+    }
+
+
+def test_the_issues_of_a_publication_written_inside_the_code_are_one_publication(
+    tmp_path: Path,
+) -> None:
+    entries = [
+        _published_entry("EJ00001L-01", "01", "doc-l-01", ["EJ00001"]),
+        _published_entry("EJ00001L-02", "02", "doc-l-02", ["EJ00001"]),
+        _published_entry("EJ00002R-01", "01", "doc-r-01", ["EJ00002"]),
+    ]
+    store = make_store(entries)
+    for item in entries:
+        store.put_bytes(
+            f"{DEFAULT_TEXT_PREFIX}{item['document_id']}/{item['content_hash']}.md",
+            b"<!-- page 1 -->\nTesto di prova.\n",
+        )
+    kb, _ = make_kb(tmp_path, store=store)
+    # con o senza issue, con o senza la lettera: la stessa pubblicazione, la issue più recente
+    for name in ("EJ00001", "EJ00001L", "EJ00001L-02"):
+        resolution = resolve_document(name, kb)
+        assert resolution.document is not None, name
+        assert (resolution.document.key, resolution.problem) == ("EJ00001L-02", None), name
+    cited = resolve_document("EJ00001L-01", kb)
+    assert cited.document is not None and cited.document.key == "EJ00001L-01"
+    assert resolve_document("EJ00002R-01", kb).document is not None
+    assert resolve_document("EJ00002R", kb).document is not None
+
+
+def test_uncertainty_written_with_the_issue_inside_the_code_still_matches() -> None:
+    import json
+
+    from cycle_validation.kb.ej200 import with_uncertainty
+
+    entries = parse_catalog(
+        json.dumps([_published_entry("EJ00001L-02", "02", "doc-l-02", [])]).encode()
+    )
+    doubts = {
+        "format": 1,
+        "catalog": [
+            {"code": "EJ00001L-02", "issue": "02", "document_id": "doc-l-02", "reasons": ["x"]}
+        ],
+    }
+    (entry,) = with_uncertainty(entries, json.dumps(doubts).encode())
+    assert (entry.code, entry.key, entry.uncertain) == ("EJ00001L", "EJ00001L-02", ("x",))
