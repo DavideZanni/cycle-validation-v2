@@ -261,3 +261,26 @@ def test_the_word_after_rdr_is_a_source_only_if_it_looks_like_a_code() -> None:
     )
     cycle = one_page(body, ["RIP: A3 OEM: AA/BB/CCC"])
     assert [s.manual for s in cycle.sources] == ["EJ000001R-01"]
+
+
+def test_each_operation_reads_its_own_repair_code_and_does_not_inherit_the_header() -> None:
+    body = [
+        row("ZC/457", "010", "PRELIEVO ED IDENTIFICAZIONE DEL PARTICOLARE."),
+        row("RSP001", "", "RC: A3"),
+        SEP,
+        row("PREC01", "015", "PRESA IN CARICO DA PERIZIA."),
+        row("RC : B1"),
+        SEP,
+        row("BA/766", "020", "RIMUOVERE I DIFETTI."),
+        SEP,
+    ]
+    cycle = parse_pvrm320_report(as_document([page(1, body, repair="A3")]))
+    by_number = ops(cycle)
+    assert {n: op.repair_code for n, op in by_number.items()} == {
+        "010": "A3",
+        "015": "B1",
+        "020": None,
+    }
+    # la riga RC non finisce nella descrizione e non è presa per la targa
+    assert by_number["010"].operation_description == "PRELIEVO ED IDENTIFICAZIONE DEL PARTICOLARE."
+    assert by_number["015"].machine_tag == "PREC01"

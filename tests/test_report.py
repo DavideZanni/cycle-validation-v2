@@ -179,3 +179,43 @@ def test_write_outputs_and_report_json_roundtrip(tmp_path: Path) -> None:
     assert again == built
     payload = json.loads((tmp_path / "payload.json").read_text(encoding="utf-8"))
     assert payload["cycle_errors_count"] == 2
+
+
+def test_ej200_payload_has_the_columns_of_the_results_table() -> None:
+    """Op #, Description + RC, Targa C.Resp, Task Code, Scheda (codice + SP.ORIG.), 4 feedback."""
+    from cycle_validation.domain.check import TargetKind, Verdict
+
+    cycle = Cycle(
+        engine_model="EJ200",
+        repair_code="A3",
+        operations=[
+            Operation(
+                operation_number="030",
+                operation_description="LAVAGGIO DEL COMPONENTE SECONDO SCHEDA PROCESSO.",
+                repair_code="A3",
+                machine_tag="IM0294",
+                process_sheet=ProcessSheet(code="PG 300", sp_orig="X1Y22300001Z999ZZ"),
+            )
+        ],
+    )
+    sheet = CheckResult(
+        check=CheckName.PROCESS_SHEET,
+        target=Target(kind=TargetKind.OPERATION, index=0, label="030"),
+        verdict=Verdict.NON_APPLICABILE,
+        reason=Reason.NON_VERIFICATO_PER_PROFILO,
+        rationale="Schede EJ200 non verificate.",
+    )
+    built = report().model_copy(update={"cycle": cycle, "results": [sheet]})
+    (operation,) = build_legacy_payload(built)["operations"]
+    assert operation == {
+        "operationNumber": "030",
+        "repairCode": "A3",
+        "operationDescription": "LAVAGGIO DEL COMPONENTE SECONDO SCHEDA PROCESSO.",
+        "targaCResp": "IM0294",
+        "taskCodeCited": None,
+        "scheda": {"code": "PG 300", "sp_orig": "X1Y22300001Z999ZZ"},
+        "operationFeedback": "N/A",
+        "targaCRespFeedback": "N/A",
+        "taskCodeFeedback": "N/A",
+        "schedaFeedback": "N/A - Schede EJ200 non verificate.",
+    }
