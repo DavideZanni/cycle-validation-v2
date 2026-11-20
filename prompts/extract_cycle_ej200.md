@@ -7,9 +7,9 @@ Sei un estrattore di dati da cicli di riparazione EJ200 (modulo PVRM320). Ricevi
 - `operations`: una voce per numero operazione. Se lo stesso numero di operazione compare su più pagine, unisci in una sola operazione concatenando le descrizioni.
   - `operation_description`: testo della descrizione;
   - `machine_tag`: la targa macchina, se indicata;
-  - `repair_code`: il codice di riparazione dell'operazione (riga `RC: <codice>` nel blocco), solo se stampato nell'operazione; non copiarlo dalla testata;
+  - `repair_code`: il codice `RIPARAZIONE :` stampato nella testata della pagina dove compare l'operazione;
+  - `process_sheet`: la riga `SCHEDA : <codice>` in fondo al blocco (anche senza asterischi di colonna), con lo `SP.ORIG.` della stessa riga in `sp_orig`;
   - `task_codes`: i codici data-module citati, come stampati;
-  - `process_sheet`: null (le schede EJ200 non si verificano) salvo che il modulo riporti una scheda.
 
 ## Regole
 

@@ -263,24 +263,37 @@ def test_the_word_after_rdr_is_a_source_only_if_it_looks_like_a_code() -> None:
     assert [s.manual for s in cycle.sources] == ["EJ000001R-01"]
 
 
-def test_each_operation_reads_its_own_repair_code_and_does_not_inherit_the_header() -> None:
+def test_the_repair_code_of_an_operation_is_the_one_in_the_header_of_its_page() -> None:
+    first = [row("ZC/001", "010", "PRELIEVO DEL PEZZO DI PROVA."), SEP]
+    second = [row("ZC/002", "020", "LAVORO DI PROVA."), SEP]
+    cycle = parse_pvrm320_report(
+        as_document([page(1, first, repair="A3"), page(2, second, repair="B7")])
+    )
+    assert {n: op.repair_code for n, op in ops(cycle).items()} == {"010": "A3", "020": "B7"}
+
+
+def test_a_sheet_line_without_column_stars_still_gives_the_sheet_and_its_sp_orig() -> None:
+    """Stampa vera: «SCHEDA : PG 300» è più larga della colonna TARGA e la riga non ha `*`."""
     body = [
-        row("ZC/457", "010", "PRELIEVO ED IDENTIFICAZIONE DEL PARTICOLARE."),
-        row("RSP001", "", "RC: A3"),
+        row("TG0001", "030", ""),
+        row("RSP004", "", "LAVAGGIO DI PROVA SECONDO SCHEDA."),
+        f"{'SCHEDA : PG 900':<24}SP.ORIG. X1Y22300001Z999ZZ     SP.XXXX",
         SEP,
-        row("PREC01", "015", "PRESA IN CARICO DA PERIZIA."),
-        row("RC : B1"),
-        SEP,
-        row("BA/766", "020", "RIMUOVERE I DIFETTI."),
+        row("TG0002", "040", "CONTROLLO DI PROVA."),
+        f"{'':<24}SP.ORIG. X1Y22300002Z999ZZ     SP.XXXX",
         SEP,
     ]
-    cycle = parse_pvrm320_report(as_document([page(1, body, repair="A3")]))
-    by_number = ops(cycle)
-    assert {n: op.repair_code for n, op in by_number.items()} == {
-        "010": "A3",
-        "015": "B1",
-        "020": None,
-    }
-    # la riga RC non finisce nella descrizione e non è presa per la targa
-    assert by_number["010"].operation_description == "PRELIEVO ED IDENTIFICAZIONE DEL PARTICOLARE."
-    assert by_number["015"].machine_tag == "PREC01"
+    for pages in ([page(1, body)], squeeze([page(1, body)])):
+        by_number = ops(parse_pvrm320_report(as_document(pages)))
+        sheet = by_number["030"].process_sheet
+        assert sheet is not None
+        assert sheet.model_dump() == {"code": "PG 900", "sp_orig": "X1Y22300001Z999ZZ"}
+        assert by_number["030"].operation_description == "LAVAGGIO DI PROVA SECONDO SCHEDA."
+        # SP.ORIG. senza SCHEDA non fa una scheda
+        assert by_number["040"].process_sheet is None
+
+
+def test_a_bare_date_above_the_block_is_not_part_of_the_description() -> None:
+    body = [row(text="13-10-26".rjust(58)), row("TG0001", "060", "CONTROLLO DI PROVA."), SEP]
+    by_number = ops(parse_pvrm320_report(as_document([page(1, body)])))
+    assert by_number["060"].operation_description == "CONTROLLO DI PROVA."

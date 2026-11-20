@@ -21,8 +21,8 @@ dell'ultima pagina riporta `RIP: <riparazione> OEM: <manuale>`.
 Cosa si assume (da confermare sui PDF veri): la colonna TARGA è la targa macchina (la riga
 `NOTE` non ne ha una), la seconda riga della colonna (centro responsabile) non si
 estrae (la targa si legge solo sulla riga che porta il numero), il codice di riparazione
-dell'operazione è una riga `RC: <codice>` nel blocco (in colonna di sinistra o nel testo) e non
-si eredita dalla testata, il manuale di un ciclo civile è l'OEM del piè e il task sta in `NOTE`, i riferimenti
+dell'operazione è la `RIPARAZIONE :` della testata della pagina dove l'operazione compare,
+la riga `SCHEDA :` in fondo al blocco può non avere gli asterischi di colonna, il manuale di un ciclo civile è l'OEM del piè e il task sta in `NOTE`, i riferimenti
 EJ200 sono le `RDR` citate nel testo. I glifi d'asterisco ammessi sono in `_STAR_GLYPHS`.
 """
 
@@ -45,14 +45,20 @@ _CONTINUED_FROM = re.compile(r"CONTINUAZIONE DALLA PAGINA PRECEDENTE", re.IGNORE
 _CONTINUES_ON = re.compile(
     r"CONTINUA ALLA PAGINA SEGUENTE|C\s*O\s*N\s*T\s*I\s*N\s*U\s*A\s*\*", re.IGNORECASE
 )
-_DT = re.compile(r"^D\.T\.\s+\d{2}-\d{2}-\d{2}$")
+# data di modifica sopra il blocco, con o senza "D.T."
+_DT = re.compile(r"^(?:D\.T\.\s+)?\d{2}-\d{2}-\d{2}$")
 _SP_ORIG = re.compile(r"^SP\.ORIG\.\s+(?P<code>\S+)")
 _TOOLING_HEADER = re.compile(r"^\*?\s*ATTREZZATURA PREVISTA", re.IGNORECASE)
 _TOOLING_CODE = re.compile(r"^[A-Z]\d{7}\s+\S")
 _FILL_IN = re.compile(r"\.{5,}")
 _SHEET = re.compile(r"^SCHEDA\s*:\s*(?P<code>.*)$", re.IGNORECASE)
-# codice di riparazione dell'operazione, su una riga sua dentro il blocco: "RC: A3", "R.C. : A3"
-_RC = re.compile(r"^R\.?\s?C\.?\s*:\s*(?P<code>[A-Z0-9]{1,6})$", re.IGNORECASE)
+# la riga SCHEDA in fondo al blocco è più larga della colonna TARGA e non ha asterischi:
+# "SCHEDA : PG 300        SP.ORIG. E2A70200001A653AD     SP.FIAT"
+_SHEET_LINE = re.compile(
+    r"^\s*SCHEDA\s*:\s*(?P<code>.*?)\s*(?:SP\.ORIG\.\s+(?P<sp>\S+).*)?$", re.IGNORECASE
+)
+# riparazione nella testata ripetuta a ogni pagina: vale per le operazioni di quella pagina
+_PAGE_REPAIR = re.compile(r"^\s*RIPARAZIONE\s*:\s*(?P<repair>\S+)", re.IGNORECASE | re.MULTILINE)
 _TASK = re.compile(r"\bTASK\s+(\d{2}-\d{2}-\d{2}(?:\s+REPAIR\s+\d+)?)", re.IGNORECASE)
 # un codice RDR contiene almeno una cifra: "RDR ALLEGATA" non è un riferimento
 _RDR = re.compile(r"\bRDR\s+((?=[A-Z0-9-]*\d)[A-Z0-9]+(?:-[A-Z0-9]+)*)")
@@ -106,16 +112,13 @@ def _add_text(op: _Op, text: str) -> None:
     if (match := _SP_ORIG.match(text)) is not None:
         op.sp_orig = op.sp_orig or match["code"]
         return
-    if (match := _RC.match(text)) is not None:
-        op.repair = op.repair or match["code"].upper()
-        return
     op.text.append(text)
 
 
 def _no_orphan(pending: _Op) -> None:
     """Testo o scheda senza un numero di operazione a cui attaccarli: il layout non è quello
     atteso. Meglio fermarsi (e lasciare il passo all'estrattore di riserva) che perdere righe."""
-    if pending.text or pending.sheet or pending.repair:
+    if pending.text or pending.sheet:
         raise ExtractionError(
             f"Stampa PVRM320, pagina {pending.page}: blocco senza numero di operazione."
         )
@@ -189,6 +192,7 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
             oem = oem or m["oem"]
         current = carry
         pending = _Op("", page.number)
+        page_repair = m["repair"] if (m := _PAGE_REPAIR.search(page.text)) else None
         for raw in body:
             line = raw.rstrip()
             if not line.strip() or _EQUALS.match(line):
@@ -199,6 +203,12 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
                 continue
             match = _ROW.match(line)
             if match is None:
+                if (sheet := _SHEET_LINE.match(line)) is not None:
+                    target = current if current is not None else pending
+                    target.sheet = target.sheet or sheet["code"] or None
+                    target.sp_orig = target.sp_orig or sheet["sp"]
+                elif current is not None and (sp := _SP_ORIG.match(line.strip())) is not None:
+                    current.sp_orig = current.sp_orig or sp["code"]
                 continue
             left = match["left"].strip()
             text = _right(match["right"])
@@ -206,17 +216,16 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
                 continue
             if match["num"]:
                 number = match["num"]
-                current = operations.setdefault(number, _Op(number, page.number))
+                current = operations.setdefault(
+                    number, _Op(number, page.number, repair=page_repair)
+                )
                 current.text.extend(pending.text)
                 current.sp_orig = current.sp_orig or pending.sp_orig
                 current.sheet = current.sheet or pending.sheet
-                current.repair = current.repair or pending.repair
                 pending = _Op("", page.number)
             target = current if current is not None else pending
             if (sheet := _SHEET.match(left)) is not None:
                 target.sheet = target.sheet or sheet["code"].strip() or None
-            elif (rc := _RC.match(left)) is not None:
-                target.repair = target.repair or rc["code"].upper()
             elif left and match["num"]:
                 # la targa sta sulla riga del numero; sotto c'è il centro responsabile, che non è
                 # una macchina e non deve mai finire nel controllo delle macchine attive
@@ -242,7 +251,7 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
             Operation(
                 operation_number=op.number,
                 operation_description=description,
-                repair_code=op.repair,
+                repair_code=op.repair or head.get("repair_code"),
                 machine_tag=tag,
                 task_codes=tasks,
                 process_sheet=process_sheet,
