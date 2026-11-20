@@ -26,7 +26,6 @@ _LABELS = {
     "copie_diverse_per_tipo": "copie con tipo diverso (tenuta quella con il tipo confermato)",
     "copie_diverse_per_pubblicazione": "copie con stato diverso (tenuta quella pubblicata)",
     "copie_diverse_per_completezza": "copie con completezza diversa (tenuta quella completa)",
-    "da_rivedere": "voce segnata da rivedere (needs_review)",
 }
 
 # Motivi che non mettono in dubbio presenza e valore del dato verificato.

@@ -296,29 +296,38 @@ def test_uncertainty_problems_are_logged_without_a_list(
     assert "uncertainty.json" in caplog.text
 
 
-def test_needs_review_is_accepted_and_makes_the_entry_uncertain(knowledge: Path) -> None:
-    """Formato di knowledge-index: `needs_review` sulle voci di schede, targhe e DR."""
+def test_needs_review_is_accepted_and_changes_nothing(knowledge: Path) -> None:
+    """`needs_review` è un promemoria di chi cura l'indice: la voce vale come le altre."""
     _rewrite(
         knowledge / "process_sheets.json",
         [
-            {"code": "10", "edition": "13", "treatment": "LEV.2", "engine_families": ["GENX"]},
             {
                 "code": "CPEC 332-BR",
                 "edition": "51",
                 "treatment": "ATTACCO LOCALE",
                 "engine_families": [],
                 "needs_review": True,
-            },
+            }
         ],
     )
+    _rewrite(knowledge / "machine_tags.json", [{"tag": "TM-2", "needs_review": True}])
     _rewrite(
-        knowledge / "machine_tags.json",
-        [{"tag": "TM-1", "function": "Banco"}, {"tag": "TM-2", "needs_review": True}],
+        knowledge / "dr_recommendations.json",
+        [
+            {
+                "serial_number": "SN-0001",
+                "conditions": [],
+                "procedure": "Repair",
+                "reference": "00000001",
+                "manual": None,
+                "tasks": ["72-00-00-200-001"],
+                "needs_review": True,
+            }
+        ],
     )
     kb = load_local_knowledge(knowledge)
-    sheet, reviewed = kb.find_process_sheet("10"), kb.find_process_sheet("CPEC332-BR")
+    sheet, tag = kb.find_process_sheet("CPEC332-BR"), kb.find_machine_tag("TM-2")
     assert sheet is not None and sheet.uncertain == ()
-    assert reviewed is not None and reviewed.uncertain == ("da_rivedere",)
-    tag, reviewed_tag = kb.find_machine_tag("TM-1"), kb.find_machine_tag("TM-2")
     assert tag is not None and tag.uncertain == ()
-    assert reviewed_tag is not None and reviewed_tag.uncertain == ("da_rivedere",)
+    (recommendation,) = kb.find_dr_recommendations("SN-0001")
+    assert recommendation.uncertain == () and recommendation.conditions == ()

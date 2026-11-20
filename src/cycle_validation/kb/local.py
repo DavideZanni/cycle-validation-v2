@@ -76,7 +76,8 @@ class _TaskRow(_Row):
 class _TagRow(_Row):
     tag: str
     function: str | None = None
-    # knowledge-index segna così le voci lette con dubbi: vale come un motivo di incertezza
+    # Promemoria di chi cura l'indice ("da ricontrollare a mano"): si accetta e si ignora,
+    # non cambia nessun esito. Vale anche per schede e recommendation DR.
     needs_review: bool = False
 
 
@@ -244,16 +245,6 @@ def _tasks(
     return locations
 
 
-NEEDS_REVIEW = "da_rivedere"
-
-
-def _with_review(reasons: tuple[str, ...], row: _TagRow | _SheetRow | _DrRow) -> tuple[str, ...]:
-    """I motivi di `uncertainty.json` più quello della voce stessa (`needs_review`)."""
-    if row.needs_review and NEEDS_REVIEW not in reasons:
-        return (*reasons, NEEDS_REVIEW)
-    return reasons
-
-
 def load_local_knowledge(
     directory: Path, *, version: str | None = None, problems: list[str] | None = None
 ) -> IndexedKnowledgeBase:
@@ -296,7 +287,7 @@ def load_local_knowledge(
             MachineTagEntry(
                 tag=row.tag,
                 function=row.function,
-                uncertain=_with_review(tag_doubts.get(normalize_code(row.tag), ()), row),
+                uncertain=tag_doubts.get(normalize_code(row.tag), ()),
             )
             for row in tag_rows
         ],
@@ -306,7 +297,7 @@ def load_local_knowledge(
                 edition=row.edition,
                 treatment=row.treatment,
                 engine_families=tuple(row.engine_families),
-                uncertain=_with_review(sheet_doubts.get(normalize_code(row.code), ()), row),
+                uncertain=sheet_doubts.get(normalize_code(row.code), ()),
             )
             for row in sheet_rows
         ],
@@ -318,9 +309,8 @@ def load_local_knowledge(
                 reference=row.reference,
                 manual=row.manual,
                 tasks=tuple(row.tasks),
-                uncertain=_with_review(
-                    dr_doubts.get(_dr_key(row.serial_number, row.conditions, row.procedure), ()),
-                    row,
+                uncertain=dr_doubts.get(
+                    _dr_key(row.serial_number, row.conditions, row.procedure), ()
                 ),
             )
             for row in dr_rows
