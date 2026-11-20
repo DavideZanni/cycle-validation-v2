@@ -8,7 +8,12 @@ from cycle_validation.checks.uncertainty import describe
 from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reason, Target
 from cycle_validation.kb.port import DocumentInfo, DrRecommendation, KnowledgeBase
 from cycle_validation.resolve.civil import resolve_document
-from cycle_validation.resolve.dr import DrSelectors, is_not_applicable, match_recommendations
+from cycle_validation.resolve.dr import (
+    DrSelectors,
+    is_not_applicable,
+    match_recommendations,
+    without_conditions,
+)
 
 CHECK = CheckName.DR_RECOMMENDATION
 
@@ -24,6 +29,8 @@ def applicable_recommendations(
     if selectors is None:
         return []
     found = kb.find_dr_recommendations(selectors.serial_number)
+    if without_conditions(found):
+        return []
     matched = match_recommendations(found, selectors.conditions)
     return [] if any(is_not_applicable(item) for item in matched) else matched
 
@@ -78,6 +85,21 @@ def _check(ctx: CheckContext, target: Target) -> CheckResult:
             target,
             Reason.DR_NESSUNA_CORRISPONDENZA,
             f"Nessuna recommendation per il serial number {selectors.serial_number}.",
+        )
+    unclear = without_conditions(found)
+    if unclear:
+        names = ", ".join(_label(item) for item in unclear)
+        return make_result(
+            CHECK,
+            target,
+            Reason.RIFERIMENTO_AMBIGUO,
+            f"Il serial number {selectors.serial_number} ha {len(found)} recommendation e "
+            f"{names} non indica le repair condition: non si può scegliere quella giusta, "
+            "va controllato a mano.",
+            evidence=[
+                Evidence(document_key=_label(item), quote=f"{item.procedure} (condition [])")
+                for item in unclear
+            ],
         )
     matched = match_recommendations(found, selectors.conditions)
     if not matched:

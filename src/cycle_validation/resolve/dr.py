@@ -85,5 +85,13 @@ def match_recommendations(
     return [item for item in recommendations if wanted & set(item.conditions)]
 
 
+def without_conditions(recommendations: Sequence[DrRecommendation]) -> list[DrRecommendation]:
+    """Le recommendation senza condition quando il serial number ne ha più di una: il caso è
+    ambiguo (la lista vuota non dice né "tutte" né "nessuna") e va controllato a mano."""
+    if len(recommendations) <= 1:
+        return []
+    return [item for item in recommendations if not item.conditions]
+
+
 def is_not_applicable(recommendation: DrRecommendation) -> bool:
     return normalize_quote(recommendation.procedure) in NOT_APPLICABLE_PROCEDURES

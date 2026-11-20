@@ -124,7 +124,8 @@ l'applicabilità al motore non viene verificata.
 
 Con `manual: null` i task si cercano nei manuali citati dal ciclo. Se un serial number ha una
 sola recommendation, questa vale per qualunque condition, anche con `conditions: []`. Se ne ha
-più di una, valgono quelle con una condition in comune con quelle richieste. `Accept as is` e
+più di una, valgono quelle con una condition in comune con quelle richieste; se una di queste ha
+`conditions: []`, il caso è ambiguo e il ciclo si ferma con un WARNING. `Accept as is` e
 `Reject` danno ERRATO (la riparazione non va fatta).
 
 ```json

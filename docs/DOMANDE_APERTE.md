@@ -6,46 +6,19 @@ Aggiornato il 20-11-2026, con le risposte ricavate dal servizio precedente e da 
 
 ## Ancora aperte
 
-### 1. Targhe della stampa e targhe di `machine_tags.json`
+### 7. Targa `90` in `machine_tags.json` (da correggere nell'indice)
 
-Chiarito: la targa è la riga sopra della colonna TARGA (`XX/123`, `PREC01`); la riga sotto
-(`AVM700`) è il centro responsabile e non si controlla. Non esiste una tabella di
-corrispondenza. Il servizio precedente confrontava la targa stampata con Redshift
-(`work_center_cd`) in modo esatto: il programma fa lo stesso (ERRATO se non è attiva), ma senza
-badare a spazi e maiuscole.
+Nell'indice la targa `90` ha come funzione una frase rimasta dal documento («la descrizione
+breve può essere scelta…»), con le lettere accentate rovinate. Nel record TM della stessa
+ingestion `90` compare in tre righe (pagine 14, 17, 18) con funzioni AGGIUSTAGGIO, LAVAGGIO,
+COLLAUDO DIMENSIONALE: sembrano due esecuzioni diverse. Due cose da vedere lato
+knowledge-index:
 
-Resta da vedere sui dati veri: le targhe di `machine_tags.json` hanno forme come `A0100` o
-`500010`. Se le targhe stampate non ci sono, ogni operazione riceve un WARNING "targa non
-presente nell'indice" (non un ERRATO). Basta contare, su un ciclo vero, quante targhe stampate
-si trovano in `machine_tags.json` e quante su Redshift.
+- aprire il PDF TM alle pagine 14, 17 e 18 e il record TM su S3 che ha prodotto il file;
+- con una targa ripetuta l'ingestion tiene solo la prima riga: le altre funzioni si perdono.
 
-Risposta:
-
-### 3. Schede `PG 300` / `300`
-
-Chiarito: nessun codice toglie il prefisso `PG`. Il servizio precedente ignorava i trattini
-(`CPEC522-BR` = `CPEC522BR`): ora il programma fa lo stesso, oltre a ignorare spazi e
-maiuscole (`PG 300` = `PG300`). Resta da decidere se `PG 300` è la scheda `300`
-dell'indice. Per EJ200 non conta: le schede non si verificano.
-
-Risposta:
-
-### 6. DR con `conditions: []`
-
-Chiarito: la lista vuota non vuol dire né "tutte" né "mancante"; il prompt di ingestion dà
-`condition_no = null` quando il DR non numera le condition. Il programma si comporta come il
-servizio precedente: se il serial number ha una sola recommendation la usa per qualunque
-condition; se ne ha più di una, quella con `[]` non viene mai scelta. Resta da decidere se debba
-valere per tutte.
-
-Risposta:
-
-### 7. Targa `90` in `machine_tags.json`
-
-Ingestion_v2 scarta solo righe annullate o senza targa e non guarda il contenuto; il campo
-`needs_review` lo hanno quasi tutte le targhe. Per capire se è un errore dell'indice: aprire il
-record TM di quella riga e guardare `page_number`, `row_index`, `status`, `cell_refs`. Non
-cambia niente nel programma.
+Perché conta: la funzione della targa arriva all'agente come informazione sull'operazione
+("Macchina 90: …"). Una frase sbagliata lì può confonderlo. Il programma non cambia.
 
 Risposta:
 
@@ -68,6 +41,27 @@ controllare che esista?
 Risposta:
 
 ## Risposte date (20-11-2026)
+
+### 1. Targhe
+
+La targa è la riga sopra della colonna TARGA; la riga sotto (`AVM700`) è il centro
+responsabile e non si controlla. Su un ciclo EJ200 vero le 10 targhe distinte (13 operazioni)
+sono tutte in `machine_tags.json` (104 targhe), con corrispondenza esatta: nessun WARNING
+atteso. Il registro attivo è Redshift (domanda 2): una targa non attiva dà ERRATO.
+
+### 3. Schede `PG 300`
+
+`PG 300` è un codice a sé: in `process_sheets.json` c'è `PG 300`, non `300` né `PG300`. I
+codici solo numerici (`6`, `10`, `16`, …) sono altre schede. Nessun prefisso da togliere: il
+programma resta così (spazi, trattini e maiuscole non contano).
+
+### 6. DR con `conditions: []`
+
+Se il serial number ha più recommendation e almeno una ha la lista vuota, il ciclo si ferma
+con un WARNING di ambiguità ("va controllato a mano"): né scelta a caso né applicata a tutte.
+Una recommendation unica con lista vuota vale per qualunque condition, come prima. Nei dati di
+prova (23 righe, 17 serial number, 5 con più recommendation) il caso non c'è: le due righe a
+lista vuota sono le uniche del loro serial number.
 
 ### 2. Registro delle macchine attive
 

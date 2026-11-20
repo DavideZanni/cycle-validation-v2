@@ -17,7 +17,13 @@ from cycle_validation.domain.check import CheckResult, Reason, Verdict
 from cycle_validation.domain.cycle import Cycle
 from cycle_validation.extract.from_file import load_cycle
 from cycle_validation.kb.memory import IndexedKnowledgeBase
-from cycle_validation.kb.port import DocumentInfo, KnowledgeBase, ProcessSheetEntry, TaskLocation
+from cycle_validation.kb.port import (
+    DocumentInfo,
+    DrRecommendation,
+    KnowledgeBase,
+    ProcessSheetEntry,
+    TaskLocation,
+)
 from cycle_validation.resolve.dr import (
     DrSelectors,
     SelectorError,
@@ -420,6 +426,30 @@ def test_dr_no_recommendation_for_condition() -> None:
     result = _dr("SN-DEMO-001", 7)
     assert result.reason is Reason.DR_NESSUNA_CORRISPONDENZA
     assert "2 recommendation" in result.rationale
+
+
+def test_dr_with_an_empty_condition_list_among_several_is_ambiguous_and_stops() -> None:
+    kb = IndexedKnowledgeBase(
+        "t",
+        dr_recommendations=[
+            DrRecommendation(serial_number="SN-X", conditions=(1,), procedure="Repair"),
+            DrRecommendation(
+                serial_number="SN-X", conditions=(), procedure="Repair", reference="DR-VUOTA"
+            ),
+        ],
+    )
+    result = _dr("SN-X", 1, kb=kb)
+    assert (result.reason, result.verdict) == (Reason.RIFERIMENTO_AMBIGUO, Verdict.WARNING)
+    assert "DR-VUOTA" in result.rationale
+    assert dr_tasks(kb, DrSelectors("SN-X", (1,))) == []
+    # da sola, la recommendation senza condition vale per qualunque condition
+    alone = IndexedKnowledgeBase(
+        "t",
+        dr_recommendations=[
+            DrRecommendation(serial_number="SN-Y", conditions=(), procedure="Repair")
+        ],
+    )
+    assert _dr("SN-Y", 3, kb=alone).reason is Reason.VERIFICATO
 
 
 def test_dr_data_unavailable_is_a_warning() -> None:
