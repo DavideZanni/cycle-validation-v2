@@ -331,7 +331,7 @@ def ej200_pages() -> list[str]:
             _r("999999", "", "IL PRESENTE CICLO FORNISCE LE ISTRUZIONI PER"),
             _r("", "", "RIPARARE UNA INTACCA. RIPARAZIONE IN ACCORDO"),
             _r("", "", "ALLE DISPOSIZIONI DELLA RDR"),
-            _r("", "", "EJ00020L-01 (RIF. SD S26/00001)."),
+            _r("", "", "EJ00020L-01 PAR. 2.1 (RIF. SD S26/00001)."),
             DASH,
             _r("XX/457", "010"),
             _r("AVM700", "", "PRELIEVO ED IDENTIFICAZIONE DEL PARTICOLARE."),
@@ -356,17 +356,17 @@ def ej200_pages() -> list[str]:
         + _TABLE
         + [
             _r("", "", CONT_FROM),
-            _plain("", "SP.ORIG. X1Y00000001Z000ZZ     SP.XXXX"),
+            _plain("", "SP.ORIG. X1Y00000001Z000ZZ     SP.FIAT X1Y00000009Z000ZZ"),
             DASH,
             _r("IM0001", "030"),
             _r("AVM703", "", "LAVAGGIO DEL COMPONENTE SECONDO SCHEDA PROCESSO."),
-            _plain("SCHEDA : PG 900", "SP.ORIG. X1Y00000002Z000ZZ     SP.XXXX"),
+            _plain("SCHEDA : PG 900", "SP.ORIG. X1Y00000002Z000ZZ     SP.FIAT"),
             DASH,
             _r("", "", "01-01-30"),
             _r("ZZ/095", "040"),
             _r("AVM704", "", "COLLAUDO VISIVO CON LENTE 10X DELLE AREE"),
             _r("", "", "RIPARATE SECONDO DT."),
-            _plain("SCHEDA : 16", "SP.ORIG. X1Y00000003Z000ZZ     SP.XXXX"),
+            _plain("SCHEDA : 16", "SP.ORIG. X1Y00000003Z000ZZ     SP.FIAT"),
             DASH,
             _r("QQ/999", "050"),
             _r("AVM705", "", "CONTROLLO VISIVO FINALE DEL PARTICOLARE."),
@@ -384,7 +384,7 @@ RDR_TEXT = "\n".join(
         "RDR EJ00020L - Housing",
         "Rimuovere i difetti mediante raccordatura manuale locale.",
         "Profondita' massima di raccordatura 0.31 mm; raggio minimo 6 mm.",
-        "Lavare il componente secondo scheda processo.",
+        "Lavare il componente secondo scheda processo (data module X1Y00000002Z000ZZ).",
         "Controllo visivo con lente 10x delle aree riparate.",
     ]
 )
@@ -472,11 +472,31 @@ def test_ej200_from_the_print_to_the_frontend_payload(tmp_path: Path) -> None:
     ]
     assert ops[3]["operationDescription"].endswith("RACCORDATURA 0.50MM;")
     assert ops[5]["operationDescription"].startswith("COLLAUDO VISIVO")  # la data non entra
-    assert {op["taskCodeCited"] for op in ops} == {None}
+    # i codici dopo SP.ORIG. e SP.FIAT sono i task code dell'operazione (SP.FIAT vuoto: niente)
+    assert [op["taskCodeCited"] for op in ops] == [
+        None,
+        None,
+        None,
+        "X1Y00000001Z000ZZ, X1Y00000009Z000ZZ",
+        "X1Y00000002Z000ZZ",
+        "X1Y00000003Z000ZZ",
+        None,
+    ]
+    # si cercano nel testo della RDR citata: trovato solo quello della 030
+    assert [op["taskCodeFeedback"][:5] for op in ops] == [
+        "N/A -",
+        "N/A -",
+        "N/A -",
+        "Warni",
+        "No er",
+        "Warni",
+        "N/A -",
+    ]
 
     # fonte: la RDR citata con la issue 01; nel catalogo c'è la 02, quindi un avviso. Il
     # confronto delle operazioni si fa comunque sulla issue citata (op 020 sotto).
     assert [s["manual"] for s in payload["sources"]] == ["EJ00020L-01"]
+    assert [s["section"] for s in payload["sources"]] == ["PAR. 2.1"]
     [feedback] = [s["sourceFeedback"] for s in payload["sources"]]
     assert feedback.startswith("Warning:")
     assert "issue 02, più recente" in feedback

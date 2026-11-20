@@ -41,7 +41,7 @@ uv run mypy
 uv run cycle-validation kb-check examples/sintetico/knowledge
 ```
 
-Devi vedere: `767 passed, 2 skipped` (saltati: la prova con il modello vero e quella sulle
+Devi vedere: `769 passed, 2 skipped` (saltati: la prova con il modello vero e quella sulle
 stampe di esempio in `docs/Esempio*/`, che parte solo se le cartelle ci sono),
 `All checks passed!`, `Success: no issues found` e un elenco che finisce con
 `recommendation_dr_incerte: 0`. Qui non serve né la rete né una credenziale.
@@ -381,9 +381,10 @@ e mai ERRATO.
 | DR: nessuna recommendation trovata = ERRATO | dati DR incompleti danno ERRATO invece di WARNING |
 | Scheda presente ma famiglia del motore non riconosciuta = CORRETTO, con nota | passa una scheda di un'altra famiglia |
 | MOS: la fonte è l'OEM del piè di pagina più il task letto dalle NOTE | note scritte in altro modo danno fonti mancanti |
-| EJ200: le fonti sono solo i codici RDR nel testo | RN ed EF non vengono confrontati |
+| EJ200: le fonti sono i codici RDR, RN ed EF nel testo (dopo la sigla, o RN/EF da soli) | una fonte scritta in un altro modo non viene trovata |
 | Stesso numero di operazione = stessa operazione, anche su pagine diverse | due operazioni distinte diventano una |
-| Si verificano solo la prima SCHEDA e il primo SP.ORIG di ogni operazione | le successive non vengono controllate |
+| Si leggono solo la prima SCHEDA e il primo SP.ORIG / SP.FIAT di ogni operazione | le successive non vengono controllate |
+| EJ200: il paragrafo citato si legge solo accanto al codice (`PAR.`, `FIG.`, `TAB.`, `STEP`…) | un paragrafo scritto altrove non viene mostrato |
 | PDF misto testo e scansione: si legge solo il testo | le operazioni delle pagine scansionate mancano, senza avviso |
 | Oltre il 20% di parole della descrizione assenti dal PDF: niente modello, WARNING | soglia da tarare sui PDF veri |
 | Chi ha solo `cv_ej200` può usare anche le rotte civili | accesso più largo del voluto |

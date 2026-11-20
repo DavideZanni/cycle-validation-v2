@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 from cycle_validation.domain.cycle import Cycle, Operation, ProcessSheet, Source
 from cycle_validation.errors import ExtractionError
 from cycle_validation.ingest.pdf import PdfDocument
+from cycle_validation.text import normalize_code
 
 # Glifi che l'estrazione dal PDF o una trascrizione possono restituire al posto di `*`:
 # si riportano tutti all'asterisco prima di leggere le righe.
@@ -47,7 +48,11 @@ _CONTINUES_ON = re.compile(
 )
 # data di modifica sopra il blocco, con o senza "D.T."
 _DT = re.compile(r"^(?:D\.T\.\s+)?\d{2}-\d{2}-\d{2}$")
-_SP_ORIG = re.compile(r"^SP\.ORIG\.\s+(?P<code>\S+)")
+# Riga con i codici del data-module dell'operazione: "SP.ORIG. <codice>   SP.FIAT [<codice>]".
+# Lo SP.FIAT è quasi sempre vuoto. Un codice contiene almeno una cifra, così una sigla vuota
+# non prende come codice la sigla che segue.
+_SP_LINE = re.compile(r"^\s*SP\.(?:ORIG|FIAT)\b")
+_SP_CODE = re.compile(r"\bSP\.(?P<kind>ORIG|FIAT)\.?\s+(?P<code>(?!SP\.)(?=\S*\d)\S+)")
 _TOOLING_HEADER = re.compile(r"^\*?\s*ATTREZZATURA PREVISTA", re.IGNORECASE)
 _TOOLING_CODE = re.compile(r"^[A-Z]\d{7}\s+\S")
 _FILL_IN = re.compile(r"\.{5,}")
@@ -55,7 +60,7 @@ _SHEET = re.compile(r"^SCHEDA\s*:\s*(?P<code>.*)$", re.IGNORECASE)
 # la riga SCHEDA in fondo al blocco è più larga della colonna TARGA e non ha asterischi:
 # "SCHEDA : PG 900        SP.ORIG. X1Y22300001Z999ZZ     SP.XXXX"
 _SHEET_LINE = re.compile(
-    r"^\s*SCHEDA\s*:\s*(?P<code>.*?)\s*(?:SP\.ORIG\.\s+(?P<sp>\S+).*)?$", re.IGNORECASE
+    r"^\s*SCHEDA\s*:\s*(?P<code>.*?)\s*(?:\bSP\.(?:ORIG|FIAT)\b.*)?$", re.IGNORECASE
 )
 # riparazione nella testata ripetuta a ogni pagina: vale per le operazioni di quella pagina
 _PAGE_REPAIR = re.compile(r"^\s*RIPARAZIONE\s*:\s*(?P<repair>\S+)", re.IGNORECASE | re.MULTILINE)
@@ -65,6 +70,16 @@ _TASK = re.compile(r"\bTASK\s+(\d{2}-\d{2}-\d{2}(?:\s+REPAIR\s+\d+)?)", re.IGNOR
 # "EF000A0000-01"). Un codice contiene almeno una cifra: "RDR ALLEGATA" non è un riferimento.
 _CODE = r"(?=[A-Z0-9-]*\d)[A-Z0-9]+(?:-[A-Z0-9]+)*"
 _REFERENCE = re.compile(rf"\b(?:RDR|RN|EF)\s+({_CODE})|\b(RN-{_CODE}|EF\d[A-Z0-9]*(?:-[A-Z0-9]+)*)")
+# Punto della fonte citato accanto al codice: "RDR EJ00010X-01 PAR. 1.1" oppure
+# "AL PAR. 1.1 DELLA RDR EJ00010X-01". "RIF. SD S00/00000" è un riferimento di richiesta, non un punto.
+_SECTION = (
+    r"(?:PAR(?:AGRAFO|A)?|FIG(?:URA)?|TAB(?:ELLA)?|SEZ(?:IONE)?|STEP|PUNTO)\.?\s*"
+    r"\d+(?:\.\d+)*[A-Z]?\b"
+)
+_SECTION_AFTER = re.compile(rf"^[\s,;:(]*(?:(?:AL|ALLA|DEL|DELLA)\s+)?({_SECTION})")
+_SECTION_BEFORE = re.compile(
+    rf"({_SECTION})[\s,]*(?:(?:DEL|DELLA|DELLE|DELL')\s*)?(?:(?:RDR|RN|EF)\s+)?$"
+)
 _FOOTER = re.compile(r"^\s*RIP\s*:\s*(?P<repair>\S+)\s+OEM\s*:\s*(?P<oem>\S+)", re.IGNORECASE)
 _TASK_NOTE = re.compile(r"^\d{2}-\d{2}-\d{2}\b")
 _SECTION = "\x00"
@@ -78,7 +93,28 @@ class _Op:
     text: list[str] = field(default_factory=list)
     sheet: str | None = None
     sp_orig: str | None = None
+    sp_fiat: str | None = None
     repair: str | None = None
+
+    def take_codes(self, line: str) -> None:
+        """Codici SP.ORIG. e SP.FIAT della riga, se ci sono (il primo trovato resta)."""
+        for match in _SP_CODE.finditer(line):
+            if match["kind"] == "ORIG":
+                self.sp_orig = self.sp_orig or match["code"]
+            else:
+                self.sp_fiat = self.sp_fiat or match["code"]
+
+    def merge_codes(self, other: "_Op") -> None:
+        self.sp_orig = self.sp_orig or other.sp_orig
+        self.sp_fiat = self.sp_fiat or other.sp_fiat
+
+
+def _section_near(text: str, start: int, end: int) -> str | None:
+    """Il punto citato subito dopo il codice o subito prima della sua sigla, se c'è."""
+    found = _SECTION_AFTER.match(text[end : end + 40]) or _SECTION_BEFORE.search(
+        text[max(start - 40, 0) : start]
+    )
+    return " ".join(found[1].split()) if found else None
 
 
 def is_pvrm320_report(pdf: PdfDocument) -> bool:
@@ -112,8 +148,8 @@ def _add_text(op: _Op, text: str) -> None:
         or _TOOLING_CODE.match(text)
     ):
         return
-    if (match := _SP_ORIG.match(text)) is not None:
-        op.sp_orig = op.sp_orig or match["code"]
+    if _SP_LINE.match(text):
+        op.take_codes(text)
         return
     op.text.append(text)
 
@@ -150,8 +186,9 @@ def _body(page_text: str) -> tuple[list[str], str | None]:
             footer = line
             break
         body.append(line)
-    # la riga tratteggiata subito dopo l'intestazione della tabella non chiude nessuna operazione
-    while body and (not body[0].strip() or _DASHES.match(body[0])):
+    # la riga vuota della tabella (solo asterischi) e il tratteggio subito dopo l'intestazione
+    # non chiudono nessuna operazione: quella che continua dalla pagina prima resta aperta
+    while body and (not body[0].strip("* \t") or _DASHES.match(body[0])):
         body.pop(0)
     return body, footer
 
@@ -195,6 +232,9 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
             oem = oem or m["oem"]
         current = carry
         pending = _Op("", page.number)
+        # operazione che la pagina dichiara di continuare ("CONTINUA ALLA PAGINA SEGUENTE"):
+        # resta aperta anche se dopo c'è il tratteggio di fine pagina
+        continuing: _Op | None = None
         page_repair = m["repair"] if (m := _PAGE_REPAIR.search(page.text)) else None
         for raw in body:
             line = raw.rstrip()
@@ -209,21 +249,23 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
                 if (sheet := _SHEET_LINE.match(line)) is not None:
                     target = current if current is not None else pending
                     target.sheet = target.sheet or sheet["code"] or None
-                    target.sp_orig = target.sp_orig or sheet["sp"]
-                elif current is not None and (sp := _SP_ORIG.match(line.strip())) is not None:
-                    current.sp_orig = current.sp_orig or sp["code"]
+                    target.take_codes(line)
+                elif current is not None and _SP_LINE.match(line):
+                    current.take_codes(line)
                 continue
             left = match["left"].strip()
             text = _right(match["right"])
             if _CONTINUED_FROM.search(text):
                 continue
+            if _CONTINUES_ON.search(text) and current is not None:
+                continuing = current
             if match["num"]:
                 number = match["num"]
                 current = operations.setdefault(
                     number, _Op(number, page.number, repair=page_repair)
                 )
                 current.text.extend(pending.text)
-                current.sp_orig = current.sp_orig or pending.sp_orig
+                current.merge_codes(pending)
                 current.sheet = current.sheet or pending.sheet
                 pending = _Op("", page.number)
             target = current if current is not None else pending
@@ -235,11 +277,12 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
                 target.tag = target.tag or left
             _add_text(target, text)
         _no_orphan(pending)
-        carry = current
+        carry = current if current is not None else continuing
     if not operations:
         raise ExtractionError("Nessuna operazione trovata nella stampa PVRM320.")
 
     head = _header_fields(pdf)
+    ej200 = "EJ200" in normalize_code(head.get("engine_model") or "")
     built: list[Operation] = []
     for op in operations.values():
         description = _description(op)
@@ -249,7 +292,12 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
             process_sheet = ProcessSheet.model_validate(
                 {"code": op.sheet, **({"sp_orig": op.sp_orig} if op.sp_orig else {})}
             )
-        tasks = list(dict.fromkeys(" ".join(t.upper().split()) for t in _TASK.findall(description)))
+        tasks = [" ".join(t.upper().split()) for t in _TASK.findall(description)]
+        if ej200:
+            # EJ200: i codici del data-module (SP.ORIG., SP.FIAT) si verificano come i task
+            # code, come nel servizio precedente. Nei cicli civili il task sta nel testo.
+            tasks += [code for code in (op.sp_orig, op.sp_fiat) if code]
+        tasks = list(dict.fromkeys(tasks))
         built.append(
             Operation(
                 operation_number=op.number,
@@ -273,8 +321,11 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
             )
         )
     text = " ".join(op.operation_description for op in built)
-    codes = (after_word or alone for after_word, alone in _REFERENCE.findall(text))
-    sources.extend(Source(manual=code) for code in dict.fromkeys(codes))
+    cited: dict[str, str | None] = {}
+    for match in _REFERENCE.finditer(text):
+        code = match[1] or match[2]
+        cited[code] = cited.get(code) or _section_near(text, match.start(), match.end())
+    sources.extend(Source(manual=code, section=section) for code, section in cited.items())
     return Cycle(
         cycle_code=head.get("cycle_code"),
         cycle_description=head.get("cycle_description"),

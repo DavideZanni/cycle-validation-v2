@@ -22,24 +22,6 @@ Perché conta: la funzione della targa arriva all'agente come informazione sull'
 
 Risposta:
 
-### 11. `SP.FIAT`
-
-Il vecchio prompt prendeva come codici data-module sia lo `SP.ORIG.` sia lo `SP.FIAT` della
-riga SCHEDA. Il programma legge solo lo `SP.ORIG.` e lo mostra sotto la scheda, senza
-verificarlo. Lo `SP.FIAT` va letto e mostrato? Questi codici vanno verificati (per esempio nel
-catalogo EJ200) o sono solo informativi?
-
-Risposta:
-
-### 12. Paragrafo della fonte citato
-
-Il vecchio prompt estraeva anche il punto citato della fonte (`PAR. 1.1`; un riferimento di
-richiesta come `RIF. SD S00/00000` non è un paragrafo). Oggi l'agente riceve tutta la
-pubblicazione e trova il punto da solo. Serve estrarre il paragrafo, per indicarlo all'agente e
-controllare che esista?
-
-Risposta:
-
 ## Risposte date (20-11-2026)
 
 ### 1. Targhe
@@ -88,8 +70,25 @@ codici cominciano con il tipo (`RN-EJ-…`, `EF000A0000-01`).
 ### 8. Issue vecchia citata dal ciclo
 
 WARNING. Il ciclo che cita `EJ00020L-01` quando c'è la `-02` riceve sulla fonte "è disponibile
-la issue 02, più recente"; il confronto delle operazioni resta sulla issue citata. (Il servizio
-precedente confrontava con la più recente: se si preferisce così, è una modifica piccola.)
+la issue 02, più recente"; il confronto delle operazioni resta sulla issue citata, quella su
+cui la riparazione è stata approvata. Il servizio precedente confrontava con la più recente:
+scelta cambiata di proposito.
+
+### 11. `SP.ORIG.` e `SP.FIAT`
+
+Come nel servizio precedente: nei cicli EJ200 i codici dopo `SP.ORIG.` e `SP.FIAT` sono i
+codici data-module dell'operazione e si verificano come i task code. Si cercano nel testo
+delle fonti citate: se mancano, WARNING. Lo SP.FIAT è quasi sempre vuoto; lo SP.ORIG. resta
+anche sotto la scheda. Nei cicli civili il task sta nel testo e lo SP.ORIG. non si verifica.
+Corretto anche un difetto trovato sulla stampa vera: lo SP.ORIG. in cima alla pagina dopo
+"CONTINUA" si perdeva.
+
+### 12. Paragrafo della fonte citato
+
+Si mostra: il punto citato accanto al codice (`EJ00010X-01 PAR. 2.1` oppure
+`AL PAR. 2.1 DELLA RDR …`) va nel campo `section` della fonte, nel payload, e arriva all'agente
+come informazione ("Il ciclo cita EJ00010X-01, PAR. 2.1."). Non si verifica che il paragrafo
+esista.
 
 ### 9. Visibilità
 

@@ -34,6 +34,7 @@ def cycle_schema() -> dict[str, Any]:
             "task": _nullable("string"),
             "repair_code": _nullable("string"),
             "issue": _nullable("string"),
+            "section": _nullable("string"),
         }
     )
     sheet = {

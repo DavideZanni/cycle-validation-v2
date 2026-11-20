@@ -283,6 +283,29 @@ def test_rn_and_ef_are_sources_with_or_without_the_word_before_the_code() -> Non
     ]
 
 
+def test_the_cited_paragraph_is_read_after_the_code_or_before_its_type() -> None:
+    body = block(
+        ["QQ/901"],
+        "010",
+        [
+            "IN ACCORDO ALLA RDR EJ000001R-01 PAR. 2.1 (RIF. SD S00/00000)",
+            "E AL PAR. 3.4 DELLA RN RN-EJ-000-0000-01; EF EF000A0000-01.",
+        ],
+    )
+    cycle = one_page(body, ["RIP: A3 OEM: AA/BB/CCC"])
+    assert [(s.manual, s.section) for s in cycle.sources] == [
+        ("EJ000001R-01", "PAR. 2.1"),
+        ("RN-EJ-000-0000-01", "PAR. 3.4"),
+        ("EF000A0000-01", None),
+    ]
+
+
+def test_sp_orig_is_not_a_task_code_in_a_civil_cycle() -> None:
+    # nei cicli civili il task sta nel testo; SP.ORIG. resta solo sotto la scheda
+    operation = ops(civil())["040"]
+    assert "11-22-33-444-555" not in operation.task_codes
+
+
 def test_the_repair_code_of_an_operation_is_the_one_in_the_header_of_its_page() -> None:
     first = [row("ZC/001", "010", "PRELIEVO DEL PEZZO DI PROVA."), SEP]
     second = [row("ZC/002", "020", "LAVORO DI PROVA."), SEP]

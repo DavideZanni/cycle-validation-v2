@@ -37,6 +37,7 @@ def build_legacy_payload(report: Report) -> dict[str, Any]:
             "repairCode": source.repair_code,
             "manual": source.manual,
             "task": source.task,
+            "section": source.section,
             "sourceFeedback": feedback(CheckName.SOURCE, TargetKind.SOURCE, index),
         }
         for index, source in enumerate(cycle.sources)

@@ -71,7 +71,11 @@ class OperationJob:
 
 def _facts(ctx: CheckContext, operation: Operation) -> list[str]:
     """Fatti che il codice ha già risolto e che l'agente non deve cercare."""
-    facts: list[str] = []
+    facts: list[str] = [
+        f"Il ciclo cita {source.manual}, {source.section}."
+        for source in ctx.cycle.sources
+        if source.section
+    ]
     try:
         if operation.machine_tag is not None:
             tag = ctx.kb.find_machine_tag(operation.machine_tag)

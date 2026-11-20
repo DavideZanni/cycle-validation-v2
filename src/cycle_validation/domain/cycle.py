@@ -76,6 +76,8 @@ class Source(_Strict):
     task: OptionalCode = None
     repair_code: OptionalCode = None
     issue: OptionalText = None
+    # punto della fonte citato insieme al codice ("PAR. 1.1"), se il ciclo lo indica
+    section: OptionalText = None
     page: int | None = None
 
 
