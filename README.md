@@ -26,5 +26,6 @@ Documenti:
 - `docs/AZIENDA.md`: importare e collegare il progetto sul computer aziendale, lanciare gli
   esperimenti sui cicli veri, cosa fare se qualcosa non va;
 - `docs/FORMATO_CONOSCENZA.md`: com'è fatta la conoscenza pubblicata su S3 (con valori inventati);
+- `docs/DOMANDE_APERTE.md`: le domande ancora aperte, con lo spazio per la risposta;
 - `docs/MIGLIORIE.md`: come è fatto in breve, cosa resta da fare e in che ordine, il registro
   degli esperimenti.
