@@ -38,11 +38,11 @@ Per EJ200 non conta, perché lì le schede non si verificano.
 
 Risposta:
 
-### 4. File non ancora visti
+### 4. `current.json`
 
-Servono `tasks.json` (il campo `manual` deve essere la `key` del documento, non il codice del
-manuale) e la presenza di `current.json` in `knowledge/civil/` e `knowledge/ej200/`. Basta
-lanciare `kb-check` sulla fotografia (guida, 6.1).
+Tutti gli altri file sono stati visti e vanno bene. Manca la conferma che `current.json` esista
+in `knowledge/civil/` e in `knowledge/ej200/`: senza, il servizio non trova la conoscenza.
+Basta lanciare `kb-check` sulla fotografia (guida, 6.1).
 
 Risposta:
 

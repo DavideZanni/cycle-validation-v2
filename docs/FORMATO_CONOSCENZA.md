@@ -2,7 +2,7 @@
 
 Com'è fatta la conoscenza che knowledge-index pubblica su S3 e come la legge Cycle Validation.
 Confrontato il 20-11-2026 con i file veri della versione di prova (manifest, catalogo EJ200,
-schede di processo, recommendation DR, targhe). **I valori qui sotto sono inventati**, ma hanno
+schede di processo, recommendation DR, targhe, task). **I valori qui sotto sono inventati**, ma hanno
 la stessa forma di quelli veri: il repository è pubblico, i file veri restano in azienda.
 Le domande ancora aperte sono in `docs/DOMANDE_APERTE.md`.
 
@@ -31,7 +31,8 @@ Esito della verifica, file per file:
 | `process_sheets.json` | sì | va bene; `needs_review` prima bloccava il caricamento, ora si ignora |
 | `dr_recommendations.json` | sì | va bene |
 | `machine_tags.json` | sì | il formato va bene; vedi la domanda sulle targhe |
-| `tasks.json`, `current.json` | no | da vedere con `kb-check` |
+| `tasks.json` | sì | va bene: `manual` è la `key` del documento e le righe stanno nel file |
+| `current.json` | no | da vedere con `kb-check` |
 
 ## Civile
 
@@ -70,11 +71,15 @@ manuale: un ciclo che cita il manuale per codice trova il task nel capitolo gius
 ### `tasks.json`
 
 `manual` deve essere la `key` di un documento del manifest, non il `code`, altrimenti la
-conoscenza non si carica ("il manuale non è nel manifest"). *Non ancora visto sui file veri.*
+conoscenza non si carica ("il manuale non è nel manifest"). `line_end` non può superare
+`lines` del documento. Un documento può contenere più task.
 
 ```json
 [
-  {"manual": "SPM_GEK0000_pb70-21-00-010_ch1", "task": "70-21-00-200-001", "line_start": 12, "line_end": 40}
+  {"manual": "SPM_GEK0000_pb70-21-00-010_ch1", "task": "70-21-00-110-030", "line_start": 14, "line_end": 45},
+  {"manual": "SPM_GEK0000_pb70-21-00-010_ch1", "task": "70-21-00-110-031", "line_start": 46, "line_end": 214},
+  {"manual": "SPM_GEK0000_spm-all-em-ic-70-10-00-010-100_ch1", "task": "70-10-00-340-001", "line_start": 24, "line_end": 243},
+  {"manual": "SPM_GEK0000_spm-all-em-ic-70-10-00-010-100_ch1", "task": "70-71-04-700-005", "line_start": 244, "line_end": 388}
 ]
 ```
 
