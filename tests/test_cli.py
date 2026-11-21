@@ -352,3 +352,25 @@ def test_leggi_prints_the_requested_page(tmp_path: Path) -> None:
     result = runner.invoke(cli.app, ["leggi", str(printed), "--pagina", "2"])
     assert result.exit_code == 0, result.output
     assert any("|" in line and "C.RESP" in line for line in result.output.splitlines())
+
+
+def test_leggi_prints_the_dr_case_and_serial_written_in_the_print(tmp_path: Path) -> None:
+    from pvrm320_report_fixtures import FOOTER, block, page
+
+    from cycle_validation.testing.pdf import build_pdf
+
+    body = block(
+        ["NOTE", "999999"],
+        "005",
+        [
+            "REGISTRARE P/N E S/N DEL PARTICOLARE.",
+            "P/N: S/N:",
+            "IN D.R. CASE #01000002.",
+            "APPLY ON S/N AAAA1CCC",
+        ],
+    )
+    printed = tmp_path / "dr.pdf"
+    printed.write_bytes(build_pdf([page(1, body, FOOTER)]))
+    result = runner.invoke(cli.app, ["leggi", str(printed), "--profile", "dr"])
+    assert result.exit_code == 0, result.output
+    assert "  dr: caso 01000002 · S/N AAAA1CCC" in result.output.splitlines()

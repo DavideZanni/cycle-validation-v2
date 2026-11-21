@@ -3,6 +3,7 @@
 
 import asyncio
 import json
+import re
 from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
@@ -199,6 +200,12 @@ def run(
     typer.echo(f"Risultati in {out}")
 
 
+# Riferimenti DR scritti nel testo della stampa: "D.R. CASE #00000000", "APPLY ON S/N XXXX0000".
+# Un serial number ha almeno 6 caratteri: "S/N DEL PARTICOLARE" e "S/N:" vuoto non contano.
+_DR_CASE = re.compile(r"D\.\s*R\.\s*CASE\s*#?\s*(\d{6,})", re.IGNORECASE)
+_SERIAL = re.compile(r"\bS/N\s*:?\s+(?=[A-Z0-9]*\d)([A-Z0-9]{6,})\b")
+
+
 @app.command("leggi")
 def read_cycles(
     pdfs: Annotated[list[Path], typer.Argument(help="PDF dei cicli.")],
@@ -236,6 +243,10 @@ def read_cycles(
             f"operazioni: {len(cycle.operations)}"
         )
         typer.echo(f"  task: {', '.join(tasks) or '-'}")
+        cases = list(dict.fromkeys(_DR_CASE.findall(pdf.text)))
+        serials = list(dict.fromkeys(_SERIAL.findall(pdf.text)))
+        if cases or serials:
+            typer.echo(f"  dr: caso {', '.join(cases) or '-'} · S/N {', '.join(serials) or '-'}")
 
 
 def _session_for(name: str) -> Callable[[AgentSettings, Path | None], AgentSession]:

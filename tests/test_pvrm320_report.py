@@ -7,6 +7,7 @@ import pytest
 from pvrm320_report_fixtures import (
     CONT,
     FOOTER,
+    NEXT,
     SEP,
     STARS,
     as_document,
@@ -357,3 +358,37 @@ def test_a_bare_date_above_the_block_is_not_part_of_the_description() -> None:
     body = [row(text="13-10-26".rjust(58)), row("TG0001", "060", "CONTROLLO DI PROVA."), SEP]
     by_number = ops(parse_pvrm320_report(as_document([page(1, body)])))
     assert by_number["060"].operation_description == "CONTROLLO DI PROVA."
+
+
+def _note_page_with_tail(tail: list[str], with_note: bool = True) -> object:
+    """Stampa DR vera (21-11-2026), valori inventati: la riga NOTE si ferma a metà frase e il
+    seguito sta dopo il banner di fine pagina, senza numero di operazione."""
+    note = block(["NOTE", "999999"], "005", ["QUESTA PROCEDURA FORNISCE LE"]) if with_note else []
+    body = [
+        *note,
+        *block(["QQ/901", "RSP001"], "010", ["PRELIEVO DEL PEZZO", NEXT]),
+        "*** C O N T I N U A ***",
+        *tail,
+    ]
+    second = [row(text=CONT), *block(["QQ/902"], "020", ["LAVORO DI PROVA"])]
+    return parse_pvrm320_report(as_document([page(1, body), page(2, second, FOOTER)]))
+
+
+def test_the_block_after_the_page_end_banner_continues_the_note() -> None:
+    tail = [
+        row(text="ISTRUZIONI DI PROVA PER LA RACCORDATURA."),
+        row(text="* * * * * * * * * * * * * *"),
+        row(text="THIS TEST PROCEDURE PROVIDES INSTRUCTIONS."),
+    ]
+    by_number = ops(_note_page_with_tail(tail))
+    assert by_number["005"].operation_description == (
+        "QUESTA PROCEDURA FORNISCE LE ISTRUZIONI DI PROVA PER LA RACCORDATURA."
+        " / THIS TEST PROCEDURE PROVIDES INSTRUCTIONS."
+    )
+    assert by_number["010"].operation_description == "PRELIEVO DEL PEZZO"
+    assert by_number["020"].operation_description == "LAVORO DI PROVA"
+
+
+def test_without_a_note_row_the_block_after_the_banner_is_still_an_error() -> None:
+    with pytest.raises(ExtractionError, match="senza numero"):
+        _note_page_with_tail([row(text="TESTO DI CUI NON SI SA IL PADRONE")], with_note=False)

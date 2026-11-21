@@ -15,7 +15,9 @@ colonne separate da asterischi:
 Le operazioni che proseguono sulla pagina dopo (`*** CONTINUAZIONE DALLA PAGINA PRECEDENTE ***`)
 si uniscono per numero; le righe senza numero in cima a una pagina restano all'operazione
 rimasta aperta alla fine della pagina prima. Un blocco di testo senza numero che non continua
-nulla è un errore di estrazione (mai righe perse in silenzio). Il piè
+nulla è un errore di estrazione (mai righe perse in silenzio), tranne il blocco dopo il banner
+di fine pagina `*** C O N T I N U A ***`, che nelle stampe DR vere è il seguito del testo
+della riga NOTE (troncato a metà frase nella tabella) e va a quella. Il piè
 dell'ultima pagina riporta `RIP: <riparazione> OEM: <manuale>`.
 
 Cosa si assume (da confermare sui PDF veri): la colonna TARGA è la targa macchina (la riga
@@ -42,6 +44,9 @@ _TRAILING_STAR = re.compile(r"\s*\*(?:\s+PRE)?\s*$")
 _STAR_RULE = re.compile(r"^(?:\*\s*){5,}$")
 _DASHES = re.compile(r"^\s*-{10,}\s*$")
 _EQUALS = re.compile(r"^\s*={10,}\s*$")
+# Banner di fine pagina a lettere spaziate. Nelle stampe DR vere (21-11-2026) dopo il banner
+# c'è il seguito del testo della riga NOTE, che nella tabella si ferma a metà frase.
+_PAGE_END_BANNER = re.compile(r"C\s+O\s+N\s+T\s+I\s+N\s+U\s+A\b")
 _CONTINUED_FROM = re.compile(r"CONTINUAZIONE DALLA PAGINA PRECEDENTE", re.IGNORECASE)
 _CONTINUES_ON = re.compile(
     r"CONTINUA ALLA PAGINA SEGUENTE|C\s*O\s*N\s*T\s*I\s*N\s*U\s*A\s*\*", re.IGNORECASE
@@ -171,6 +176,10 @@ def _no_orphan(pending: _Op) -> None:
         )
 
 
+def _note_operation(operations: dict[str, _Op]) -> _Op | None:
+    return next((op for op in operations.values() if (op.tag or "").upper() == "NOTE"), None)
+
+
 def _description(op: _Op) -> str:
     sections: list[list[str]] = [[]]
     for item in op.text:
@@ -243,6 +252,7 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
         # operazione che la pagina dichiara di continuare ("CONTINUA ALLA PAGINA SEGUENTE"):
         # resta aperta anche se dopo c'è il tratteggio di fine pagina
         continuing: _Op | None = None
+        after_banner = False
         page_repair = m["repair"] if (m := _PAGE_REPAIR.search(page.text)) else None
         for raw in body:
             line = raw.rstrip()
@@ -251,6 +261,10 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
             if _DASHES.match(line):
                 _no_orphan(pending)
                 current, pending = None, _Op("", page.number)
+                continue
+            if _PAGE_END_BANNER.search(line):
+                _no_orphan(pending)
+                pending, after_banner = _Op("", page.number), True
                 continue
             match = _ROW.match(line)
             if match is None:
@@ -284,7 +298,12 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
                 # una macchina e non deve mai finire nel controllo delle macchine attive
                 target.tag = target.tag or left
             _add_text(target, text)
-        _no_orphan(pending)
+        note_op = _note_operation(operations)
+        if after_banner and current is None and pending.text and not pending.sheet and note_op:
+            # dopo il banner di fine pagina: il seguito del testo della riga NOTE
+            note_op.text.extend(pending.text)
+        else:
+            _no_orphan(pending)
         carry = current if current is not None else continuing
     if not operations:
         raise ExtractionError("Nessuna operazione trovata nella stampa PVRM320.")
