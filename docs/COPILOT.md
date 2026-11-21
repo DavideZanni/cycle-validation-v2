@@ -33,7 +33,7 @@ i cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git le ignora).
 
 ## Aggiornare il codice sul PC
 
-Da lanciare **ogni volta che Claude dice di aver corretto il codice**, e prima del messaggio 9.
+Da lanciare **ogni volta che Claude dice di aver corretto il codice**.
 Copia nella cartella della v2 codice, test e documenti nuovi dal repository personale (clone
 temporaneo, poi cancellato) e lancia i test.
 
@@ -53,85 +53,55 @@ uv run pytest -q
 
 ---
 
-## Messaggio 9: stampe DR e terzo ciclo MOS (fatto)
+## Fatto finora (21-11-2026)
 
-Fatto il 21-11-2026. Terzo ciclo MOS: `7 corretti, 16 warning, 0 errati, 14 non applicabili`,
-3 sessioni, 0,0058 USD. I task delle operazioni 005, 030 e 040 sono tutti nell'SPM
-(CORRETTO); descrizioni 005 e 030 CORRETTO, 040 WARNING `EVIDENZA_NON_TROVATA` (il modello
-non ha trovato nel testo la conferma); le altre FONTE_ASSENTE (manuale del motore assente).
-Le due stampe DR: dopo il banner di fine pagina `*** C O N T I N U A ***` c'è il seguito del
-testo della riga NOTE; il parser ora lo attacca alla NOTE. Una delle due stampe scrive il caso
-DR e il serial number del pezzo: `leggi` ora li stampa.
-
----
-
-## Messaggio 10: il ciclo DR con il serial number della stampa (fatto)
-
-Fatto il 21-11-2026 sulla stampa `CON sn` (serial number letto dal PDF), con il ciclo letto
-dal modello perché il parser si fermava ancora a pagina 5:
+- **Cicli MOS**: terzo ciclo `7 corretti, 16 warning, 0 errati, 14 non applicabili`, 0,0058 USD.
+  Le righe che dipendono dal manuale del motore escono FONTE_ASSENTE (giusto).
+- **Ciclo DR `CON sn`, letto dal parser** (messaggio 11), serial number preso dalla stampa:
 
 | Condition | Recommendation | Esito | Costo |
 |---|---|---|---|
-| 1 | Repair | `dr_recommendation` CORRETTO; 3 corretti, 29 warning, 0 errati | 0,0368 USD, 8 sessioni |
-| 2 | Accept as is | `dr_recommendation` ERRATO (`DR_NON_APPLICABILE`), il resto bloccato: giusto | 0,0099 USD, 1 sessione |
-| 3 | Repair | `dr_recommendation` CORRETTO; 4 corretti, 20 warning, **1 errato** (descrizione 060, `CONTRADDIZIONE`) | 0,0226 USD, 10 sessioni |
+| 1 | Repair | `5 corretti, 15 warning, 0 errati`; `extraction_integrity` e `dr_recommendation` CORRETTO | 0,0097 USD, 9 sessioni |
+| 2 | Accept as is | `dr_recommendation` ERRATO (`DR_NON_APPLICABILE`), il resto bloccato: giusto | 0 USD |
+| 3 | Repair | identico alla condition 1 | 0,0057 USD, 9 sessioni |
 
-Il modello legge il ciclo ogni volta in modo un po' diverso (fonti e task cambiano da un run
-all'altro): per questo i run 1 e 3 non sono confrontabili. Corretto nel codice: la procedura
-DR citata come «D.R. CASE #…» ora si trova nel sottoinsieme, e la scheda dell'op. 050 (dopo il
-banner) non è più segnalata come «fuori riga».
+  Descrizioni: 005, 040, 050, 060 CORRETTO; 010, 020, 030, 080, 090 `EVIDENZA_NON_TROVATA`.
+  Restano WARNING le targhe (registro macchine non collegato), la scheda dell'op. 050 (non è
+  tra le 94 schede) e il manuale del motore. Con il ciclo letto dal modello (messaggio 10)
+  l'op. 060 usciva ERRATO `CONTRADDIZIONE`; letta dal parser è CORRETTO.
 
 ---
 
-## Messaggio 11: le stampe DR con il parser e di nuovo il ciclo DR
+## Messaggio 12: la descrizione dell'op. 060 nelle due letture, e cosa è cambiato
 
-Prima il blocco **Aggiornare il codice sul PC** in cima a questo file. Poi questo: rilegge tutti
-i cicli DR (zero token), poi rilancia la stampa `CON sn` per ogni condition, adesso letta dal
-parser (stesso ciclo a ogni run, nessun token per la lettura). Qualche centesimo.
+Zero token, nessun aggiornamento del codice. Rilegge col parser tutte le stampe DR (la foto del
+messaggio 11 non le mostrava), poi stampa la descrizione dell'op. 060 come l'ha letta il
+modello (run `dr-condition-3`) e come l'ha letta il parser (run `dr-parser-condition-3`):
+serve a capire se l'ERRATO veniva da una lettura sbagliata del modello. Infine l'elenco dei
+file cambiati nel repository.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
 uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo dr/*.pdf").FullName --profile dr
-$ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*CON sn.pdf" | Select-Object -First 1).FullName
-$sn = ((uv run cycle-validation leggi $ciclo --profile dr) | Select-String 'S/N (\S+)$').Matches[0].Groups[1].Value
-"serial number letto dalla stampa: $sn"
-$rec = (Get-Content ($v + "dr_recommendations.json") -Raw | ConvertFrom-Json) | Where-Object { $_.serial_number -eq $sn -and $_.conditions.Count -gt 0 }
-foreach ($r in $rec) {
-  $c = $r.conditions -join ','
-  $out = "runs/dr-parser-condition-$($r.conditions -join '-')"
-  "=== condition $c, recommendation $($r.procedure)"
-  uv run cycle-validation run $ciclo --profile dr --serial-number $sn --condition $c --knowledge $v --config data/settings.yaml --out $out
-  Select-String -Path "$out/report.md" -Pattern '^- Costo'
-  Select-String -Path "$out/report.md" -Pattern '^- \*\*(\S+)\*\* \S+ (.+?) \S+ (ERRATO|WARNING|CORRETTO) \((\w+)\)' | ForEach-Object { $g = $_.Matches[0].Groups; "{0,-8} {1,-22} {2,-30} {3}" -f $g[3].Value, $g[1].Value, $g[2].Value, $g[4].Value }
+foreach ($d in "runs/dr-condition-3", "runs/dr-parser-condition-3") {
+  "=== $d"
+  (Get-Content "$d/cycle.json" -Raw | ConvertFrom-Json).operations | Where-Object { $_.operation_number -match '^0?60$' } | ForEach-Object { $_.operation_description }
 }
+git status --short
 ```
 
 **Deve uscire:**
 
-- `leggi`: per ogni PDF di `cicli DR/` le righe `riparazione · fonti · operazioni` e `task`;
-  per `SENZA sn` e `CON sn` niente più `non letto dal parser`;
-- per ogni condition: `extraction_integrity` CORRETTO (nessun `ESTRAZIONE_NON_CONFERMATA`),
-  `dr_recommendation` CORRETTO per Repair ed ERRATO per Accept as is; costo più basso di prima
-  (nessuna sessione per leggere il ciclo).
+- `leggi`: per ogni PDF le righe `riparazione · fonti · operazioni`, nessun
+  `non letto dal parser`;
+- due testi sotto `=== runs/dr-condition-3` e `=== runs/dr-parser-condition-3`: se sono
+  diversi (pezzi mancanti, frasi fuse con l'operazione vicina), l'ERRATO era colpa della
+  lettura del modello;
+- `git status`: solo file sotto `src/`, `tests/` e `docs/` (` M` modificati, `??` nuovi), da
+  salvare con un commit quando la prova è finita.
 
-**Manda a Claude** le foto. E una cosa che puoi giudicare solo tu: apri
-`runs\dr-condition-3\report.md`, cerca `060` nella sezione delle descrizioni e leggi perché il
-modello dice CONTRADDIZIONE, con la citazione della procedura DR. **Dimmi se ha ragione** (non
-mandare il file): è il primo ERRATO su un ciclo vero.
-
----
-
-## Messaggio 12: cosa è cambiato nel repository
-
-```powershell
-git status --short
-```
-
-**Deve uscire:** solo file sotto `src/`, `tests/` e `docs/` (` M` modificati, `??` nuovi):
-sono le correzioni di Claude, da salvare con un commit quando la prova è finita. Se compare
-altro (per esempio `data/`, `runs/`, `eval/`), **manda a Claude** l'elenco.
+**Manda a Claude** le foto. Se in `git status` compare altro (per esempio `data/`, `runs/`,
+`eval/`), dillo.
 
 ---
 
