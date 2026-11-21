@@ -53,22 +53,12 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ---
 
-## Messaggio 4: la conoscenza vera su S3
+## Messaggio 4: la conoscenza vera su S3 (fatto)
 
-Scarica sul tuo PC una copia della conoscenza (in `eval/casi/aziendali/`, che git ignora) e la
-controlla. Solo lettura su S3.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-uv run cycle-validation eval fotografia --bucket (Get-Content data/bucket.txt) --regione eu-south-1 --prefisso "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/" --out eval/casi/aziendali/conoscenza/foto-20261121
-Get-Content ($kb + "current.json")
-uv run cycle-validation kb-check ($kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path)
-```
-
-**Deve uscire:** `Fotografia in ...: N oggetti`, il `current.json` con `version` e `path`, il
-`kb-check` con i conteggi (documenti, task, targhe, schede…) e nessun `Errore:`. Se `kb-check`
-fallisce, **manda a Claude** la foto: dice quale file non va.
+Fatto il 21-11-2026: la copia è in `eval/casi/aziendali/conoscenza/foto-20261121/` (62 oggetti,
+civil ed ej200). `kb-check` della versione civil `20261119T141528Z` senza errori: 10 documenti,
+13 task, 104 targhe, 94 schede, 23 recommendation DR, nessuna incerta; i conteggi coincidono con
+`current.json`. Il blocco è nella storia di git (commit 700e073), se servisse rifarlo.
 
 ---
 
@@ -115,4 +105,4 @@ git status --short
 **Deve uscire:** niente. Se compare un file, **manda a Claude** l'elenco: nessun comando di prova
 doveva toccare file tracciati.
 
-Poi **manda a Claude** le foto dei messaggi 2, 3, 4 e 5.
+Poi **manda a Claude** la foto del messaggio 5.
