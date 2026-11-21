@@ -68,7 +68,7 @@ Queste cartelle sono ignorate da git: non finiscono mai nel repository. Controll
 
 | Voce | Cosa mettere |
 |---|---|
-| `agent.model` | l'id completo (o il profilo di inferenza della regione) di Haiku abilitato su Bedrock. La parola `haiku` da sola può puntare a un modello non abilitato |
+| `agent.model` | l'id del profilo di inferenza `eu.` di Claude Haiku 5.5 abilitato su Bedrock (`aws bedrock list-inference-profiles --region eu-south-1`); se non c'è ancora, Haiku 4.5. La parola `haiku` da sola può puntare a un modello non abilitato |
 | `agent.use_bedrock` | `true` |
 | `agent.aws_region` | la regione di Bedrock, per esempio `eu-south-1`; vuoto = quella dell'ambiente |
 | `agent.transcribe_model` | un modello che vede le immagini (anche lo stesso Haiku), se i cicli arrivano come foto o scansioni. Vuoto: una foto viene rifiutata con "meno di 100 caratteri di testo" |

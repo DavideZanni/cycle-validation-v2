@@ -21,29 +21,43 @@ riporta l'errore; la correzione la fa Claude.
 
 Nel terminale di VS Code, dalla radice del repository aziendale. I comandi scrivono solo in
 `app_cycle_validation_v2/data/`, che git ignora: `config/settings.yaml` non si tocca. Il nome
-del bucket lo prendono dal `.env` della v1 e restano sul tuo PC; il modello lo scelgono da soli
-(Haiku 4.5 se Bedrock a Milano ce l'ha, altrimenti Sonnet 4.5 come la v1).
+del bucket lo prendono dal `.env` della v1 e resta sul tuo PC.
+
+Il modello lo scelgono da soli tra quelli che Bedrock offre a Milano, in quest'ordine:
+**Claude Haiku 5.5** (il più recente), poi Haiku 4.5, poi Sonnet 4.5 (quello della v1). Solo
+profili `eu.`: i dati restano in Europa. Lo stesso modello legge anche foto e scansioni
+(`transcribe_model`), così i cicli scansionati non vengono più rifiutati.
 
 ```powershell
 cd app_cycle_validation_v2
 $env:UV_PYTHON = "3.14"
 New-Item -ItemType Directory -Force data | Out-Null
 (Select-String -Path ..\app_cycle_validation\.env -Pattern '^BUCKETNAME=(.+)$').Matches[0].Groups[1].Value.Trim().Trim('"') | Set-Content data/bucket.txt
-$haiku = 'eu.anthropic.claude-haiku-4-5-20251001-v1:0'; $sonnet = 'eu.anthropic.claude-sonnet-4-5-20250929-v1:0'
-$modello = if ((aws bedrock list-inference-profiles --region eu-south-1 --query "inferenceProfileSummaries[].inferenceProfileId" --output text) -match [regex]::Escape($haiku)) { $haiku } else { $sonnet }
-(Get-Content config/settings.yaml) -replace '^  model: haiku$', "  model: $modello" -replace '^  aws_region:$', '  aws_region: eu-south-1' -replace '^  save_transcripts: false$', '  save_transcripts: true' | Set-Content data/settings.yaml
+$ids = @((aws bedrock list-inference-profiles --region eu-south-1 --query "inferenceProfileSummaries[].inferenceProfileId" --output text) -split '\s+' | Where-Object { $_ })
+$modello = @(($ids -match '^eu\.anthropic\.claude-haiku-5-5') + ($ids -match '^eu\.anthropic\.claude-haiku-4-5') + 'eu.anthropic.claude-sonnet-4-5-20250929-v1:0')[0]
+"Modelli Claude disponibili: $($ids -match 'claude-(haiku|sonnet|opus)')"
+"Modello scelto: $modello"
+(Get-Content config/settings.yaml) -replace '^  model: haiku$', "  model: $modello" -replace '^  transcribe_model:$', "  transcribe_model: $modello" -replace '^  aws_region:$', '  aws_region: eu-south-1' -replace '^  save_transcripts: false$', '  save_transcripts: true' | Set-Content data/settings.yaml
 Test-Path data/bucket.txt
-Select-String -Path data/settings.yaml -Pattern '^  (model|aws_region|save_transcripts|use_bedrock):'
+Select-String -Path data/settings.yaml -Pattern '^  (model|transcribe_model|aws_region|save_transcripts|use_bedrock):'
 git status --short
 ```
 
-**Deve uscire:** `True`; quattro righe con `model: eu.anthropic.claude-haiku-4-5-...` (oppure
-`...sonnet-4-5...`), `aws_region: eu-south-1`, `use_bedrock: true`, `save_transcripts: true`;
-`git status --short` non stampa niente.
+**Deve uscire:**
+- l'elenco dei modelli Claude disponibili e `Modello scelto: eu.anthropic.claude-haiku-5-5...`;
+- `True`;
+- cinque righe: `model:` e `transcribe_model:` con il modello scelto, `aws_region: eu-south-1`,
+  `use_bedrock: true`, `save_transcripts: true`;
+- `git status --short` non stampa niente.
+
+**Se il modello scelto non è Haiku 5.5**, Bedrock a Milano non lo offre ancora al vostro account:
+le prove vanno avanti lo stesso con quello scelto, ma **manda a Claude** la riga "Modelli Claude
+disponibili". Per avere Haiku 5.5 va chiesto a chi gestisce l'account AWS di abilitarlo
+(Bedrock → *Model access*) per `eu-south-1`; poi rilanci questo messaggio da `$ids = ...`.
 
 Se `Select-String` sul `.env` dà errore (`Cannot index into a null array`), nel `.env` non c'è
 `BUCKETNAME`: fermati e dillo a Claude. Se `aws bedrock` dà errore di token: `aws sso login` e
-rilancia da `$modello = ...`.
+rilancia da `$ids = ...`.
 
 `save_transcripts: true` salva in `runs/` il dialogo con il modello, per capire un errore;
 `runs/` è ignorata da git e resta sul tuo PC.
