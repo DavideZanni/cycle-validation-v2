@@ -23,7 +23,7 @@ from cycle_validation.errors import KnowledgeError, SourceUnavailableError
 from cycle_validation.kb.ej200 import DEFAULT_TEXT_PREFIX, Ej200Catalog, Ej200KnowledgeBase
 from cycle_validation.kb.pointer import read_pointer
 from cycle_validation.kb.port import MachineTagEntry
-from cycle_validation.kb.published import PublishedKnowledgeBase
+from cycle_validation.kb.published import PublishedKnowledgeBase, rename_when_free
 from cycle_validation.kb.snapshot import sync_snapshot
 from cycle_validation.kb.stores import InMemoryObjectStore
 from cycle_validation.pipeline import RunRequest, run_validation
@@ -485,3 +485,36 @@ def test_ej200_unreadable_doubts_leave_the_catalog_usable(
 
     assert entries and all(entry.uncertain == () for entry in entries)
     assert "uncertainty.json" in caplog.text
+
+
+def test_rename_waits_for_a_briefly_locked_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source, target = tmp_path / "scarico", tmp_path / "r1"
+    source.mkdir()
+    real_rename = Path.rename
+    failures = iter([True, True, False])
+
+    def flaky(self: Path, other: Path) -> Path:
+        if next(failures):
+            raise PermissionError(5, "Accesso negato")
+        return real_rename(self, other)
+
+    monkeypatch.setattr(Path, "rename", flaky)
+    pauses: list[float] = []
+    rename_when_free(source, target, sleep=pauses.append)
+    assert target.is_dir() and not source.exists()
+    assert pauses == [0.1, 0.2]
+
+
+def test_rename_gives_up_with_the_real_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def locked(self: Path, other: Path) -> Path:
+        raise PermissionError(5, "Accesso negato")
+
+    monkeypatch.setattr(Path, "rename", locked)
+    pauses: list[float] = []
+    with pytest.raises(PermissionError):
+        rename_when_free(tmp_path / "a", tmp_path / "b", attempts=3, sleep=pauses.append)
+    assert pauses == [0.1, 0.2]

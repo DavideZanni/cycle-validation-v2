@@ -39,6 +39,27 @@ COMPLETE = ".completo"
 _DOWNLOADING = ".scarico-"
 
 
+def rename_when_free(
+    source: Path,
+    target: Path,
+    *,
+    attempts: int = 6,
+    pause_s: float = 0.1,
+    sleep: Callable[[float], None] = time.sleep,
+) -> None:
+    """Rinomina una cartella appena scritta. Su Windows l'antivirus o l'indicizzatore possono
+    tenere aperti per un attimo i file nuovi e la rinomina fallisce con "Accesso negato"
+    (WinError 5): si riprova con attese crescenti, poi si rinuncia con l'errore vero."""
+    for attempt in range(attempts):
+        try:
+            source.rename(target)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            sleep(pause_s * 2**attempt)
+
+
 class PublishedKnowledgeBase:
     def __init__(
         self,
@@ -134,7 +155,7 @@ class PublishedKnowledgeBase:
             (staging / COMPLETE).write_text(pointer.version + "\n", encoding="utf-8")
             if folder.exists():
                 shutil.rmtree(folder)  # download interrotto in un giro precedente
-            staging.rename(folder)
+            rename_when_free(staging, folder)
         finally:
             shutil.rmtree(staging, ignore_errors=True)
         return load_local_knowledge(folder, version=pointer.version)
