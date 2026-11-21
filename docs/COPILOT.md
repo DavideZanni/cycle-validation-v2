@@ -17,6 +17,27 @@ bucket: puoi mandare a Claude le foto dell'output.
 
 ---
 
+## Aggiornare il codice sul PC
+
+Quando Claude corregge il codice, lo pubblica sul repository personale. Questo blocco copia
+nella cartella della v2 il codice, i test e i documenti nuovi (clone temporaneo, poi
+cancellato) e lancia i test. Deve uscire: tutti `passed` (qualche `skipped` va bene), nessun
+`failed`.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+$tmp = Join-Path $env:TEMP "cv2-aggiornamento"
+Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+git clone --quiet --depth 1 https://github.com/DavideZanni/cycle-validation-v2.git $tmp
+robocopy "$tmp\src" src /E /XD __pycache__ /NFL /NDL /NJH /NJS /NP
+robocopy "$tmp\tests" tests /E /XD __pycache__ /NFL /NDL /NJH /NJS /NP
+robocopy "$tmp\docs" docs /E /NFL /NDL /NJH /NJS /NP
+Remove-Item -Recurse -Force $tmp
+uv run pytest -q
+```
+
+---
+
 ## Fatto
 
 Messaggio 1 (impostazioni locali): `data/settings.yaml` usa `eu.anthropic.claude-haiku-5-5` per
@@ -97,55 +118,58 @@ conoscenza; in `cicli DR/` ci sono 10 PDF.
 
 ---
 
-## Messaggio 8: portare le correzioni sul PC e rileggere i cicli
+## Messaggio 8: correzioni sul PC e cicli riletti (fatto)
 
-Copia nella cartella della v2 il codice, i test e i documenti nuovi dal repository personale
-(clone temporaneo, poi cancellato), lancia i test, scarica i cicli DR in
-`docs\Esempio ciclo dr\` (git la ignora) e li legge con il parser: **zero token**, nessun
-modello. Alla fine rilancia il ciclo MOS del messaggio 5, che adesso trova i task SPM:
-qualche centesimo.
+Fatto il 21-11-2026: test verdi su Windows. Il ciclo MOS del messaggio 5 adesso trova il task
+SPM: `operation_description` 005 CORRETTO (1 sessione, 0,0023 USD); restano FONTE_ASSENTE le
+righe che dipendono dal manuale del motore, che non è nella conoscenza. `leggi` sui cicli:
+
+- MOS: i tre cicli `A1` hanno i task letti per intero; il terzo cita solo task del capitolo
+  70, tutti in capitoli SPM presenti nella conoscenza;
+- DR: 8 cicli letti, nessuno cita task nel testo (i task di un DR vengono dalla
+  recommendation, cioè da serial number e condition); due stampe non passano dal parser
+  (`blocco senza numero di operazione` a pagina 2).
+
+---
+
+## Messaggio 9: le due stampe DR che il parser non legge e il terzo ciclo MOS
+
+Prima il blocco **Aggiornare il codice sul PC** in cima a questo file (l'errore del parser
+adesso dice con che riga comincia il blocco), poi questo. `leggi` stampa la pagina 2 delle due
+stampe DR come il programma la legge dal PDF (zero token); poi si valida il terzo ciclo MOS
+(qualche centesimo).
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-$tmp = Join-Path $env:TEMP "cv2-aggiornamento"
-Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
-git clone --quiet --depth 1 https://github.com/DavideZanni/cycle-validation-v2.git $tmp
-robocopy "$tmp\src" src /E /XD __pycache__ /NFL /NDL /NJH /NJS /NP
-robocopy "$tmp\tests" tests /E /XD __pycache__ /NFL /NDL /NJH /NJS /NP
-robocopy "$tmp\docs" docs /E /NFL /NDL /NJH /NJS /NP
-Remove-Item -Recurse -Force $tmp
-uv run pytest -q
-aws s3 cp "s3://$(Get-Content data/bucket.txt)/Manufacturing AI/cicli DR/" "docs/Esempio ciclo dr/" --recursive --region eu-south-1 --only-show-errors
-uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo dr/*.pdf").FullName --profile dr
-uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo mos/*.pdf").FullName
+uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo dr/*sn.pdf").FullName --profile dr --pagina 2
 $kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-uv run cycle-validation run (Get-ChildItem "docs/Esempio ciclo mos/*.pdf" | Select-Object -First 1).FullName --profile mos --knowledge ($kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path) --config data/settings.yaml
+uv run cycle-validation run (Get-ChildItem "docs/Esempio ciclo mos/*.pdf" | Select-Object -Last 1).FullName --profile mos --knowledge ($kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path) --config data/settings.yaml
 Select-String -Path runs/ultimo/report.md -Pattern '^- (Stato|Esiti|Costo)'
 Select-String -Path runs/ultimo/report.md -Pattern '^- \*\*(\S+)\*\* \S+ (.+?) \S+ (ERRATO|WARNING|CORRETTO) \((\w+)\)' | ForEach-Object { $g = $_.Matches[0].Groups; "{0,-8} {1,-22} {2,-30} {3}" -f $g[3].Value, $g[1].Value, $g[2].Value, $g[4].Value }
 ```
 
 **Deve uscire:**
 
-- `pytest`: tutti `passed` (qualche `skipped` va bene), nessun `failed`;
-- `leggi`, per ogni PDF: il nome, poi `riparazione · fonti · operazioni` e i `task` letti
-  per intero (cinque gruppi, nella forma `72-xx-xx-xxx-xxx`). Un PDF che non è una stampa
-  PVRM320 dice `non letto dal parser`: va bene;
-- il ciclo MOS: adesso `task_code` dell'operazione 005 trova il task SPM, e
-  `operation_description` 005 è giudicato dal modello (costo sopra zero, 1 sessione). Il
-  manuale del motore resta assente, quindi `source` e l'operazione 010 restano FONTE_ASSENTE.
+- per ciascuna delle due stampe DR: le righe della pagina 2 numerate (`  12 | ...`), poi
+  `non letto dal parser: ... (comincia con «...»)`. **Manda a Claude** le foto di tutte le
+  righe (anche più foto): servono per correggere il parser;
+- il terzo ciclo MOS: `task_code` dell'operazione 005 CORRETTO (entrambi i task sono
+  nell'SPM) e `operation_description` 005 giudicato dal modello. `source` resta
+  FONTE_ASSENTE (il manuale del motore non c'è) e le targhe ERRORE_TECNICO (manca l'elenco
+  delle macchine attive).
 
-**Manda a Claude** le foto: dall'elenco dei task si vede quali cicli DR vanno con quali
-recommendation, e quindi con quale serial number e condition lanciarli.
+**Dimmi anche, se lo sai:** per i cicli DR `rip.A6`…`rip.A9`, quale serial number e quale
+repair condition usare. Senza, un ciclo DR non si può lanciare.
 
 ---
 
-## Messaggio 9: cosa è cambiato nel repository
+## Messaggio 10: cosa è cambiato nel repository
 
 ```powershell
 git status --short
 ```
 
 **Deve uscire:** solo file sotto `src/`, `tests/` e `docs/` (` M` modificati, `??` nuovi, per
-esempio `tests/test_standard_practices.py`): sono le correzioni del messaggio 8, da salvare
-con un commit quando la prova è finita. Se compare altro (per esempio `data/`, `runs/`,
-`eval/`), **manda a Claude** l'elenco.
+esempio `tests/test_standard_practices.py`): sono le correzioni di Claude, da salvare con un
+commit quando la prova è finita. Se compare altro (per esempio `data/`, `runs/`, `eval/`),
+**manda a Claude** l'elenco.
