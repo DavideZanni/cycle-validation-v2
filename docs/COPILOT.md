@@ -25,25 +25,13 @@ Messaggio 1 (impostazioni locali): `data/settings.yaml` usa `eu.anthropic.claude
 
 ---
 
-## Messaggio 2: dov'è la conoscenza della v2?
+## Messaggio 2: dov'è la conoscenza della v2 (fatto)
 
-Fatto il 21-11-2026: sotto `Manufacturing AI/cv3/knowledge/` non c'è niente; sotto
-`Manufacturing AI/` ci sono, tra le altre, `ingestion-v2-test-qa-output/` (probabilmente la
-conoscenza della versione di prova), `retrieval_output/` (quella della v1), `cicli MOS/` e
-`cicli DR/`. Questi comandi guardano dentro, solo in lettura; il terzo può impiegare un minuto:
-
-```powershell
-$b = "s3://$(Get-Content data/bucket.txt)/Manufacturing AI"
-aws s3 ls "$b/ingestion-v2-test-qa-output/" --region eu-south-1
-aws s3 ls "$b/ingestion-v2-test-qa-output/" --recursive --region eu-south-1 | Select-String 'current\.json|manifest\.json|catalog\.json'
-aws s3 ls "$b/cicli MOS/" --region eu-south-1 | Select-Object -First 5
-aws s3 ls "$b/cicli DR/" --region eu-south-1 | Select-Object -First 5
-```
-
-**Deve uscire:** le cartelle sotto `ingestion-v2-test-qa-output/`, poi le righe con i percorsi
-di `current.json`, `manifest.json` e `catalog.json` (per esempio
-`.../knowledge/civil/current.json`), poi i primi file delle due cartelle dei cicli. **Manda a
-Claude** la foto: con i percorsi preparo i messaggi 4 e 5. Intanto fai il messaggio 3.
+Fatto il 21-11-2026. La conoscenza della versione di prova è sotto
+`Manufacturing AI/ingestion-v2-test-qa-output/knowledge/`: `civil/current.json` (versione del
+19-11, con `manifest.json`) ed `ej200/current.json` (con `catalog.json`). I cicli veri sono in
+`Manufacturing AI/cicli MOS/` e `Manufacturing AI/cicli DR/`. I messaggi 4 e 5 usano questi
+percorsi.
 
 ---
 
@@ -87,12 +75,12 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 ## Messaggio 4: la conoscenza vera su S3
 
 Scarica sul tuo PC una copia della conoscenza (in `eval/casi/aziendali/`, che git ignora) e la
-controlla.
+controlla. Solo lettura su S3.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/cv3/knowledge/civil/"
-uv run cycle-validation eval fotografia --bucket (Get-Content data/bucket.txt) --regione eu-south-1 --prefisso "Manufacturing AI/cv3/knowledge/" --out eval/casi/aziendali/conoscenza/foto-20261121
+$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
+uv run cycle-validation eval fotografia --bucket (Get-Content data/bucket.txt) --regione eu-south-1 --prefisso "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/" --out eval/casi/aziendali/conoscenza/foto-20261121
 Get-Content ($kb + "current.json")
 uv run cycle-validation kb-check ($kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path)
 ```
@@ -105,27 +93,35 @@ fallisce, **manda a Claude** la foto: dice quale file non va.
 
 ## Messaggio 5: un ciclo MOS vero
 
-A mano: dentro `app_cycle_validation_v2` crea la cartella `docs\Esempio ciclo mos\` (git la
-ignora) e mettici **un solo** PDF, un ciclo MOS che conosci bene. Poi:
+Scarica da `cicli MOS/` il ciclo che finisce con `A1.pdf` nella cartella
+`docs\Esempio ciclo mos\` (git la ignora), lo valida con la conoscenza del messaggio 4 e
+stampa il riepilogo. Il primo comando svuota prima quella cartella, così dentro c'è un solo
+PDF. Qualche minuto; costo: pochi centesimi.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/cv3/knowledge/civil/"
+$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
+Remove-Item "docs/Esempio ciclo mos/*.pdf" -ErrorAction SilentlyContinue
+aws s3 cp "s3://$(Get-Content data/bucket.txt)/Manufacturing AI/cicli MOS/" "docs/Esempio ciclo mos/" --recursive --exclude "*" --include "*A1.pdf" --region eu-south-1 --only-show-errors
+Get-ChildItem "docs/Esempio ciclo mos/*.pdf" | Select-Object Name
 uv run cycle-validation run (Get-ChildItem "docs/Esempio ciclo mos/*.pdf" | Select-Object -First 1).FullName --profile mos --knowledge ($kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path) --config data/settings.yaml
 Select-String -Path runs/ultimo/report.md -Pattern '^- (Stato|Esiti|Costo)'
 Select-String -Path runs/ultimo/report.md -Pattern '^- \*\*(\S+)\*\* \S+ (.+?) \S+ (ERRATO|WARNING) \((\w+)\)' | ForEach-Object { $g = $_.Matches[0].Groups; "{0,-8} {1,-22} {2,-30} {3}" -f $g[3].Value, $g[1].Value, $g[2].Value, $g[4].Value }
 ```
 
-**Deve uscire:** `Ciclo completo: ...` (o `parziale`), lo stato, gli esiti e il costo, poi una
-riga per ogni ERRATO o WARNING: esito, controllo, operazione o fonte, motivo (per esempio
-`FONTE_ASSENTE`). Senza elenco delle macchine attive le righe sulle targhe escono WARNING: è
-previsto, l'elenco lo colleghiamo dopo.
+**Deve uscire:** il nome del PDF scaricato (uno solo), `Ciclo completo: ...` (o `parziale`), lo
+stato, gli esiti e il costo, poi una riga per ogni ERRATO o WARNING: esito, controllo,
+operazione o fonte, motivo (per esempio `FONTE_ASSENTE`). Senza elenco delle macchine attive le
+righe sulle targhe escono WARNING: è previsto, l'elenco lo colleghiamo dopo.
 
 Il dettaglio completo, con le citazioni dei manuali, è in `runs/ultimo/report.md`: aprilo tu in
 VS Code, ma non mandarlo a Claude.
 
 **Manda a Claude** la foto delle righe e dimmi, per ogni ERRATO e WARNING, se secondo te l'esito è
-giusto: è la prima misura vera.
+giusto: è la prima misura vera. Per provare un altro ciclo cambia `A1.pdf` nel comando
+`aws s3 cp` (per esempio `A3.pdf`) e rilancia il blocco.
+
+I cicli DR vogliono anche il serial number e la repair condition: li proviamo dopo.
 
 ---
 
