@@ -72,7 +72,7 @@ aeronautica il pezzo non si ripara, ma di solito restano le altre operazioni (is
 registrazione del caso, marcatura, eventuali limiti o controlli in più, collaudo finale). Un
 ciclo con quelle operazioni sarebbe giusto. Sarebbe sbagliato solo un ciclo che ripara.
 
-Cosa serve sapere, dai dati veri (messaggio 16 di `docs/COPILOT.md`) e da chi conosce i DR:
+Cosa serve sapere, dai dati veri (messaggio 17 di `docs/COPILOT.md`; il 16 non ha trovato la frase «accept as is» con gli spazi) e da chi conosce i DR:
 
 - le recommendation `Accept as is` hanno task? Se sì, quelli sono il lavoro da fare;
 - cosa dice la procedura DR nel punto «accept as is» (ispezioni, registrazioni, limiti);

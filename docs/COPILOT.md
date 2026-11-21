@@ -62,7 +62,7 @@ uv run pytest -q
 | Condition | Recommendation | Esito | Costo |
 |---|---|---|---|
 | 1 | Repair | `5 corretti, 15 warning, 0 errati`; `extraction_integrity` e `dr_recommendation` CORRETTO | 0,0097 USD, 9 sessioni |
-| 2 | Accept as is | `dr_recommendation` ERRATO (`DR_NON_APPLICABILE`), il resto bloccato: **regola da rivedere** (messaggio 16) | 0 USD |
+| 2 | Accept as is | `dr_recommendation` ERRATO (`DR_NON_APPLICABILE`), il resto bloccato: **regola da rivedere** (messaggio 17) | 0 USD |
 | 3 | Repair | identico alla condition 1 | 0,0057 USD, 9 sessioni |
 
   Descrizioni: 005, 040, 050, 060 CORRETTO; 010, 020, 030, 080, 090 `EVIDENZA_NON_TROVATA`.
@@ -82,47 +82,22 @@ uv run pytest -q
   su 3, con quella del parser 1 su 3: il modello oscilla sull'op. 060. Corretto nel codice: un
   ERRATO della descrizione ora si rifà con 2 sessioni uguali e resta ERRATO solo se lo
   ritrovano tutte; altrimenti WARNING `GIUDIZIO_INSTABILE`, da guardare a mano.
+- **Messaggio 15**: la conferma funziona. Tre run della condition 3: op. 060 CORRETTO,
+  CORRETTO, WARNING `GIUDIZIO_INSTABILE` (la prima sessione ha detto ERRATO, le 2 conferme non
+  l'hanno ritrovato tutte); 0 errati, 9-11 sessioni, 0,007-0,011 USD per run.
+- **Messaggio 16**: le 2 procedure DR della conoscenza hanno 16 righe ciascuna e la frase
+  «accept as is» (con spazi) non c'è mai. Righe probabilmente lunghissime e frase scritta in
+  un altro modo: si riguarda contando sul testo intero (messaggio 17). La parte sulle
+  recommendation non era nella foto.
 
 ---
 
-## Messaggio 15: la conferma degli ERRATO sull'op. 060
-
-Prima il blocco **Aggiornare il codice sul PC** in cima a questo file. Poi questo: rilancia tre
-volte la condition 3 con il ciclo letto dal parser (`--cycle-json`, nessuna lettura nuova).
-Circa 4 centesimi in tutto.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-$ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*CON sn.pdf" | Select-Object -First 1).FullName
-$sn = ((uv run cycle-validation leggi $ciclo --profile dr) | Select-String 'S/N (\S+)$').Matches[0].Groups[1].Value
-foreach ($i in 1..3) {
-  $out = "runs/conferma-060-$i"
-  uv run cycle-validation run $ciclo --profile dr --serial-number $sn --condition 3 --knowledge $v --config data/settings.yaml --cycle-json "runs/dr-parser-condition-3/cycle.json" --out $out | Out-Null
-  $rep = Get-Content "$out/report.json" -Raw | ConvertFrom-Json
-  $r = $rep.results | Where-Object { $_.check -eq 'operation_description' -and $_.target.label -match '^0?60$' }
-  "{0}  {1,-9} {2,-20} errati {3}  conferme {4}  sessioni {5}  costo {6:N4}" -f $i, $r.verdict, $r.reason, $rep.counts.errato, $rep.session_modes.conferma, $rep.usage.sessions, $rep.usage.cost_usd
-}
-```
-
-**Deve uscire:** tre righe. L'op. 060 esce CORRETTO (`VERIFICATO`) oppure WARNING
-(`GIUDIZIO_INSTABILE`); ERRATO solo se la contraddizione è ritrovata tre volte su tre.
-`conferme 2` compare solo nei run in cui la prima sessione ha detto ERRATO.
-
-**Manda a Claude** la foto. Resta la domanda che solo tu puoi decidere: apri
-`runs\dr-condition-3\report.md`, cerca `060` nella sezione delle descrizioni, leggi la
-spiegazione dell'ERRATO e dimmi **se ha ragione** e su quale punto (limite in mm, classe del
-penetrante, ingrandimento, altro). Non mandare il file.
-
----
-
-## Messaggio 16: cosa vuol dire «Accept as is» nei DR veri
+## Messaggio 17: «Accept as is» nei DR veri, sul testo intero
 
 Oggi con `Accept as is` il programma dà ERRATO e blocca tutto, senza guardare le operazioni.
-È una regola da verificare (domanda 17 di `docs/DOMANDE_APERTE.md`). Questo blocco guarda le
-recommendation e le procedure DR della conoscenza. Solo lettura, nessun costo, non stampa
-codici.
+È una regola da verificare (domanda 17 di `docs/DOMANDE_APERTE.md`). Solo lettura, nessun
+costo, non stampa codici. Il messaggio 16 cercava riga per riga, ma le procedure hanno solo 16
+righe: qui si conta sul testo intero e con più modi di scrivere.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -136,48 +111,40 @@ $rec | Group-Object { "$($_.procedure)".Trim().ToLower() } | ForEach-Object {
   $altre = @($sn | Where-Object { $s = $_; @($rec | Where-Object { $_.serial_number -eq $s -and $_.procedure -notmatch 'accept|reject' }).Count -gt 0 }).Count
   "{0,-14} righe {1,2}  con task {2,2}  task in tutto {3,3}  con manuale {4,2}  serial con anche un Repair {5,2}" -f $nome, $g.Count, @($g | Where-Object { ($_.tasks | Measure-Object).Count -gt 0 }).Count, ($g | ForEach-Object { ($_.tasks | Measure-Object).Count } | Measure-Object -Sum).Sum, @($g | Where-Object { $_.manual }).Count, $altre
 }
-"--- procedure DR: dove compare 'accept/use as is' e cosa c'e' vicino"
-$frase = 'accept(ed)?\s+as[\s-]+is|use\s+as[\s-]+is'
+"--- procedure DR: quante volte compaiono le parole"
+$parole = [ordered]@{ 'accept as is' = 'accept(ed)?[\s-]+as[\s-]+is'; 'accept' = 'accept'; 'use as is' = 'use[\s-]+as[\s-]+is'; 'repair' = 'repair'; 'reject' = 'reject'; 'scrap' = 'scrap'; 'condition' = 'condition'; 'disposition' = 'disposition'; 'inspect' = 'inspect'; 'record' = 'record'; 'mark' = 'mark'; 'limit' = 'limit' }
 $proc = @((Get-Content ($v + "manifest.json") -Raw | ConvertFrom-Json).documents | Where-Object { $_.kind -eq 'DR_PROC' })
-"procedure DR nella conoscenza: $($proc.Count)"
 $n = 0
 foreach ($d in $proc) {
-  $n++; $righe = @(Get-Content ($v + $d.file))
-  $occ = @($righe | Select-String -Pattern $frase)
-  $vicino = foreach ($p in 'inspect','record','mark','identif','limit','life','shop visit','penetrant|fpi','dimension','blend','repair','reject') {
-    $k = @($occ | Where-Object { $a = [Math]::Max(0, $_.LineNumber - 8); $b = [Math]::Min($righe.Count - 1, $_.LineNumber + 12); ($righe[$a..$b] -join ' ') -match $p }).Count
-    "$p $k"
-  }
-  "procedura $n : $($righe.Count) righe, 'as is' $($occ.Count) volte | vicino: $($vicino -join ', ')"
+  $n++; $testo = Get-Content ($v + $d.file) -Raw; $righe = @(Get-Content ($v + $d.file))
+  $lunga = ($righe | Measure-Object -Property Length -Maximum).Maximum
+  $conta = foreach ($k in $parole.Keys) { "$k $([regex]::Matches($testo, $parole[$k], 'IgnoreCase').Count)" }
+  "procedura $n : $($righe.Count) righe, $($testo.Length) caratteri, riga piu' lunga $lunga"
+  "   $($conta -join ', ')"
 }
 ```
 
-**Deve uscire:** una riga per tipo di recommendation (`repair`, `accept as is`, `reject`, …),
-poi una riga per ogni procedura DR, con quante volte ogni parola compare vicino ad «accept as
-is». **Manda a Claude** la foto.
+**Deve uscire:** prima una riga per tipo di recommendation (`repair`, `accept as is`,
+`reject`, …), poi per ogni procedura DR due righe: dimensioni e conteggi delle parole.
+**Manda a Claude** la foto, con **tutte e due le parti** (se non stanno in una foto, due foto).
 
-Poi questo, **solo da leggere tu, non mandarlo** (è testo dei documenti): mostra il testo
-attorno ai primi punti «accept as is» di ogni procedura.
+Poi questo apre le procedure DR in VS Code, **solo da leggere tu, non mandarle**:
 
 ```powershell
-$env:UV_PYTHON = "3.14"
 $kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
 $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-$frase = 'accept(ed)?\s+as[\s-]+is|use\s+as[\s-]+is'
-$proc = @((Get-Content ($v + "manifest.json") -Raw | ConvertFrom-Json).documents | Where-Object { $_.kind -eq 'DR_PROC' })
-$n = 0
-foreach ($d in $proc) {
-  $n++
-  Get-Content ($v + $d.file) | Select-String -Pattern $frase -Context 6,12 | Select-Object -First 4 | ForEach-Object { "=== procedura $n, riga $($_.LineNumber)"; $_.Context.PreContext; ">> $($_.Line)"; $_.Context.PostContext }
-}
+(Get-Content ($v + "manifest.json") -Raw | ConvertFrom-Json).documents | Where-Object { $_.kind -eq 'DR_PROC' } | ForEach-Object { code ($v + $_.file) }
 ```
 
-Dimmi a parole:
+Con Ctrl+F cerca `accept`, `reject`, `condition`. Dimmi a parole:
 
 1. con «accept as is» la procedura chiede qualcosa (ispezione, registrazione, marcatura,
    limiti, altro)?
 2. per una condition «accept as is» esiste un ciclo DR? Che operazioni ha di solito?
 3. con «reject» un ciclo di riparazione è sempre sbagliato?
+4. ancora aperta: l'ERRATO dell'op. 060 (in `runs\dr-condition-3\report.md`, sezione delle
+   descrizioni) aveva ragione? Il terzo run del messaggio 15 l'ha messo «da controllare a
+   mano»: serve il tuo giudizio. Non mandare il file.
 
 ---
 
