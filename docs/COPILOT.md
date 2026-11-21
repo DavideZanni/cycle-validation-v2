@@ -98,6 +98,8 @@ uv run pytest -q
   c'è. Stato `parziale` per il registro macchine non collegato, come nelle altre condition.
   Questo ciclo cita il caso DR e le sue operazioni 040-060 seguono la procedura di riparazione:
   è un ciclo di riparazione, e con `Accept as is` il WARNING chiede giustamente di guardarlo.
+- **Salvataggio (21-11-2026)**: tutte le correzioni fin qui sono nel repository aziendale,
+  commit e push su `feature/cycle-validation-v2` riusciti, niente da mandare.
 
 ---
 
@@ -112,8 +114,9 @@ uv run pytest -q
 
 ## Salvare le correzioni nel repository aziendale
 
-Consigliato adesso: le prove finora sono andate bene e i test passano. Prima lancia
-**Aggiornare il codice sul PC**, poi questo. Mette nel commit solo codice, test, documenti e
+Da lanciare quando Claude dice che ci sono correzioni nuove da salvare (per ora è tutto
+salvato). Prima lancia **Aggiornare il codice sul PC**, poi questo; il messaggio del commit lo
+aggiorna Claude. Mette nel commit solo codice, test, documenti e
 casi sintetici della v2; `data/`, `runs/`, `eval/casi/aziendali/` e i PDF restano fuori perché
 git li ignora. Poi fa il push sul branch `feature/cycle-validation-v2`, ma solo se sei su quel
 branch e se nel commit non è entrato niente fuori da quelle cartelle.
@@ -125,7 +128,7 @@ Due blocchi: prima il commit, poi il push. Se il commit è già fatto, lancia so
 ```powershell
 git add src tests docs eval/casi/sintetici
 git status --short
-git commit -m "v2: parser PVRM320 per le stampe DR, task del capitolo 70 nell'SPM, procedura DR citata come caso, conferma degli ERRATO, Accept as is senza blocco, comando leggi"
+git commit -m "v2: correzioni dalle prove sul PC"
 ```
 
 **Deve uscire:** in `git status` solo righe `M ` e `A ` sotto `src/`, `tests/`, `docs/`,
