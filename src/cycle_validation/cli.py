@@ -406,7 +406,13 @@ def run_code_checks(echo: Callable[[str], None]) -> bool:
 
     ok = True
     for name, args in CHECKS:
-        done = subprocess.run([sys.executable, *args], capture_output=True, text=True)
+        done = subprocess.run(
+            [sys.executable, *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
         last = (done.stdout.strip().splitlines() or [""])[-1]
         echo(f"  {name}: {'OK' if done.returncode == 0 else 'FALLITO'} {last}")
         if done.returncode != 0:

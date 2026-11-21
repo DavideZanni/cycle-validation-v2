@@ -4,6 +4,9 @@ Come mettere questo progetto nel repository aziendale `avioaero_datalake_cycle_v
 branch `feature/cycle-validation-v2`, accanto alla versione in produzione. Dopo l'importazione,
 installare e provare la v2 è scritto in `docs/AZIENDA.md`.
 
+**I messaggi pronti da incollare a Copilot, passo per passo, sono in `docs/COPILOT.md`.** Questo
+file spiega le scelte e fa da riferimento.
+
 Su ogni passo: il comando (PowerShell, Windows) e cosa devi vedere. Se vedi altro, fermati e
 riporta l'output a chi ti segue.
 
@@ -16,7 +19,7 @@ avioaero_datalake_cycle_validation/
 ├── .github/workflows/          resta qui: GitHub legge i workflow solo dalla radice
 ├── buildspec.yml               resta qui e continua a costruire la v1
 ├── .gitignore                  quello di oggi, invariato
-├── README.md                   nuovo, breve: dice cosa c'è nelle due cartelle (testo al punto 5)
+├── README.md                   nuovo, breve: dice cosa c'è nelle due cartelle (docs/README_RADICE.md)
 ├── app_cycle_validation/       VERSIONE 1, in produzione: il codice non si tocca
 │   └── docs/                   i quattro .md che oggi stanno in radice
 └── app_cycle_validation_v2/    VERSIONE 2: tutto questo progetto, così com'è
@@ -168,15 +171,18 @@ New-Item -ItemType Directory -Force app_cycle_validation\docs
 git mv README.md DOCUMENTAZIONE_TECNICA.md EJ200_INTEGRATION_PLAN.md REFACTORING_GUIDELINES.md app_cycle_validation\docs\
 ```
 
-Poi crea in radice un `README.md` nuovo con il testo del punto 5 (a mano, copiandolo da qui) e:
+Poi il `README.md` nuovo in radice, il cui testo è in `docs/README_RADICE.md` (punto 5):
 
 ```powershell
+Copy-Item app_cycle_validation_v2\docs\README_RADICE.md README.md
 git add README.md
 git status
 ```
 
-Devi vedere quattro `renamed: ... -> app_cycle_validation/docs/...` e `new file: README.md`.
-Nient'altro: in particolare nessuna riga sotto `app_cycle_validation/` che non sia un `.md`.
+Devi vedere, sotto `Changes to be committed`: `modified: README.md`, tre
+`renamed: ... -> app_cycle_validation/docs/...` e `new file: app_cycle_validation/docs/README.md`
+(il vecchio README risulta "nuovo" perché in radice ce n'è di nuovo uno con lo stesso nome).
+Sotto `Untracked files` solo `app_cycle_validation_v2/`. Nient'altro.
 
 ```powershell
 git commit -m "docs: documentazione della v1 in app_cycle_validation/docs, README di radice per le due versioni"
@@ -189,7 +195,7 @@ git add app_cycle_validation_v2
 (git ls-files app_cycle_validation_v2).Count
 ```
 
-Devi vedere **236**: sono tutti i file del progetto. Se il numero è più basso, il `.gitignore` di
+Devi vedere **238**: sono tutti i file del progetto. Se il numero è più basso, il `.gitignore` di
 radice ne esclude qualcuno: **non fare il commit**, lancia
 
 ```powershell
@@ -198,7 +204,7 @@ git status --short --ignored app_cycle_validation_v2
 
 e riporta le righe che iniziano con `!!`.
 
-Se è 236:
+Se è 238:
 
 ```powershell
 git commit -m "feat: versione 2 di cycle validation in app_cycle_validation_v2"
@@ -212,23 +218,10 @@ Devi vedere i due commit in cima e `working tree clean`.
 
 ## 5. Testo del README di radice
 
-```markdown
-# avioaero_datalake_cycle_validation
-
-Validazione dei cicli di riparazione. Il repository contiene due versioni, una per cartella;
-non condividono codice né dipendenze.
-
-| Cartella | Cosa contiene | Stato |
-|---|---|---|
-| `app_cycle_validation/` | versione 1 | in produzione: la costruisce `buildspec.yml` |
-| `app_cycle_validation_v2/` | versione 2: MOS, DR ed EJ200 in una pipeline sola, esiti decisi dal codice, citazioni verificate, suite di test offline | in prova, non ancora in produzione |
-
-- Versione 1: documentazione in `app_cycle_validation/docs/`.
-- Versione 2: `app_cycle_validation_v2/README.md`; installazione, configurazione ed esperimenti
-  in `app_cycle_validation_v2/docs/AZIENDA.md`.
-
-`buildspec.yml` e `.github/workflows/` restano in radice perché CodeBuild e GitHub li cercano lì.
-```
+È in `docs/README_RADICE.md` (in azienda: `app_cycle_validation_v2/docs/README_RADICE.md`) e al
+punto 4.1 si copia in radice con `Copy-Item`. Una tabella con le due cartelle e il loro stato,
+dove trovare la documentazione di ciascuna, e perché `buildspec.yml` e `.github/workflows/`
+restano in radice.
 
 ---
 
@@ -273,7 +266,7 @@ riporta il messaggio.
 |---|---|
 | `git pull` dice che ci sono conflitti o modifiche locali | fermati e riporta l'output: niente `reset` né `stash` a caso |
 | `git mv` dice `destination exists` | in `app_cycle_validation/docs/` c'è già un file con quel nome: riporta quale |
-| il conteggio al punto 4.2 non è 236 | `.gitignore` di radice: riporta le righe `!!` |
+| il conteggio al punto 4.2 non è 238 | `.gitignore` di radice: riporta le righe `!!` |
 | `Filename too long` | `git config core.longpaths true`, oppure il repository in un percorso più corto (per esempio `C:\repo\`) |
 | `uv` non trovato | `pip install uv`, poi apri un terminale nuovo |
 | i test falliscono dopo lo spostamento | riporta le ultime 30 righe dell'output |
