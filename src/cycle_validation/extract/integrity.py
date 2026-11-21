@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from cycle_validation.checks.base import make_result
 from cycle_validation.domain.check import CheckName, CheckResult, Reason, Target, TargetKind
 from cycle_validation.domain.cycle import Cycle, Operation
+from cycle_validation.extract.pvrm320_report import PAGE_END_BANNER
 from cycle_validation.ingest.pdf import PdfDocument
 from cycle_validation.text import squash
 
@@ -74,6 +75,18 @@ def _row_blocks(cycle: Cycle, pdf: PdfDocument) -> dict[int, str]:
     return blocks
 
 
+def _banner_tails(pdf: PdfDocument) -> dict[int, str]:
+    """Per ogni pagina, il testo dopo il banner di fine pagina `*** C O N T I N U A ***`: nelle
+    stampe vere è il seguito di un'operazione della pagina rimasta a metà, scheda compresa."""
+    tails: dict[int, str] = {}
+    for page in pdf.pages:
+        lines = page.text.splitlines()
+        start = next((i for i, line in enumerate(lines) if PAGE_END_BANNER.search(line)), None)
+        if start is not None:
+            tails[page.number] = squash("\n".join(lines[start + 1 :]))
+    return tails
+
+
 def _misplaced(
     cycle: Cycle, pdf: PdfDocument, haystack: str
 ) -> dict[int, list[tuple[CheckName, str]]]:
@@ -82,6 +95,7 @@ def _misplaced(
     Se sono tanti, non è l'estrazione che sbaglia riga: è il PDF che non è impaginato per righe
     (per esempio a colonne), e allora non si giudica niente."""
     blocks = _row_blocks(cycle, pdf)
+    tails = _banner_tails(pdf)
     found: dict[int, list[tuple[CheckName, str]]] = {}
     checked = 0
     for index, block in blocks.items():
@@ -90,7 +104,9 @@ def _misplaced(
             if code not in haystack:
                 continue  # già segnalato come valore assente
             checked += 1
-            if code not in block:
+            page = cycle.operations[index].page
+            tail = tails.get(page, "") if page is not None else ""
+            if code not in block and code not in tail:
                 found.setdefault(index, []).append((check, f"{label} {value}"))
     wrong = sum(len(items) for items in found.values())
     if not checked or wrong > _MISPLACED_TOLERATED * checked:

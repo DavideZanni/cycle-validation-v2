@@ -79,3 +79,18 @@ def test_a_dr_task_without_manual_is_found_in_the_spm(tmp_path: Path) -> None:
     assert [(hit.manual_key, hit.line_start) for hit in locations] == [
         ("SPM_DEMO_pb70-11-00_ch1", 3)
     ]
+
+
+def test_a_dr_procedure_cited_as_in_the_print_is_found_by_its_number(tmp_path: Path) -> None:
+    from cycle_validation.resolve.civil import resolve_document
+
+    path = tmp_path / "dr.md"
+    path.write_text("# Procedura DR di prova\n", "utf-8")
+    procedure = DocumentInfo(
+        key="DR_01000002_Repair_Procedure", path=path, code="01000002", kind="DR_PROC"
+    )
+    kb = IndexedKnowledgeBase("v", documents=[procedure])
+    for name in ("D.R. CASE #01000002", "D.R. CASE / #01000002", "DR CASE 01000002"):
+        resolution = resolve_document(name, kb)
+        assert resolution.document is procedure, name
+    assert resolve_document("D.R. CASE #09999999", kb).document is None

@@ -170,3 +170,18 @@ def test_a_layout_by_columns_is_not_judged_by_rows() -> None:
     )
     outcome = check_extraction_integrity(_rows(), _pdf(columns))
     assert outcome.unconfirmed == frozenset()
+
+
+BANNER_TAIL = ROWS + "*** C O N T I N U A ***\nSEGUITO DELLA 0030.\nScheda SP-0303\n"
+
+
+def test_a_sheet_after_the_page_end_banner_belongs_to_an_operation_of_that_page() -> None:
+    # Stampe DR vere: il seguito di un'operazione rimasta a metà, scheda compresa, sta dopo il
+    # banner di fine pagina, quindi dopo la riga dell'operazione successiva.
+    on_page = _rows(o2={"process_sheet": "SP-0303", "page": 1})
+    assert check_extraction_integrity(on_page, _pdf(BANNER_TAIL)).unconfirmed == frozenset()
+
+
+def test_without_the_page_a_sheet_after_the_banner_is_still_out_of_row() -> None:
+    outcome = check_extraction_integrity(_rows(o2={"process_sheet": "SP-0303"}), _pdf(BANNER_TAIL))
+    assert outcome.unconfirmed == {(CheckName.PROCESS_SHEET, TargetKind.OPERATION, 2)}

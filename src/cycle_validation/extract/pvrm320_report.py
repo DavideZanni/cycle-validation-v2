@@ -47,7 +47,7 @@ _DASHES = re.compile(r"^\s*-{10,}\s*$")
 _EQUALS = re.compile(r"^\s*={10,}\s*$")
 # Banner di fine pagina a lettere spaziate. Nelle stampe DR vere (21-11-2026) dopo il banner
 # c'è il seguito di un'operazione della pagina che in tabella si ferma a metà frase.
-_PAGE_END_BANNER = re.compile(r"C\s+O\s+N\s+T\s+I\s+N\s+U\s+A\b")
+PAGE_END_BANNER = re.compile(r"C\s+O\s+N\s+T\s+I\s+N\s+U\s+A\b")
 _CONTINUED_FROM = re.compile(r"CONTINUAZIONE DALLA PAGINA PRECEDENTE", re.IGNORECASE)
 _CONTINUES_ON = re.compile(
     r"CONTINUA ALLA PAGINA SEGUENTE|C\s*O\s*N\s*T\s*I\s*N\s*U\s*A\s*\*", re.IGNORECASE
@@ -284,7 +284,7 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
                 _settle(pending, after_banner, _truncated(operations, page.number, continuing))
                 current, pending = None, _Op("", page.number)
                 continue
-            if _PAGE_END_BANNER.search(line):
+            if PAGE_END_BANNER.search(line):
                 _no_orphan(pending)
                 pending, after_banner = _Op("", page.number), True
                 continue

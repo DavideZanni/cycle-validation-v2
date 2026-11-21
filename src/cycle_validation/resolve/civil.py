@@ -18,6 +18,9 @@ _NUMBERS = re.compile(r"\d+")
 # ABC123456 TASK 72-11-31-..."). Il tipo è il `kind` dei documenti nel manifest.
 STANDARD_PRACTICES_KIND = "SPM"
 _STANDARD_PRACTICES_TASK = re.compile(r"70-")
+# Una procedura DR citata come nella stampa ("D.R. CASE #00000000", "DR CASE 00000000"):
+# nella conoscenza il suo codice è il solo numero.
+_DR_CASE_NAME = re.compile(r"^\s*D\.?\s*R\.?\s*(?:CASE)?[\s/#]*(\d{6,})\s*$", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -43,6 +46,8 @@ def version_key(document: DocumentInfo) -> tuple[tuple[int, ...], str]:
 def resolve_document(name: str, kb: KnowledgeBase, issue: str | None = None) -> DocumentResolution:
     """Sceglie la pubblicazione disponibile più recente e segnala ciò che non torna."""
     candidates = kb.find_manuals(name)
+    if not candidates and (case := _DR_CASE_NAME.match(name)) is not None:
+        candidates = kb.find_manuals(case[1])
     if not candidates:
         return DocumentResolution(
             None, Reason.FONTE_ASSENTE, f"Il riferimento {name} non è nella knowledge base."
