@@ -82,32 +82,70 @@ cicli DR di quelle due procedure, quindi la prova vera va fatta su uno di quelli
 
 ---
 
-## Messaggio 7: quale ciclo DR provare
+## Messaggio 7: quale ciclo DR provare (fatto)
 
-Solo lettura, nessun costo. Stampa tre cose: come il ciclo MOS del messaggio 5 scrive i task
-(per controllare che il parser li legga interi), le recommendation DR della conoscenza (serial
-number, condition, procedura, task) e i nomi dei cicli DR su S3.
+Fatto il 21-11-2026. Due cose trovate:
 
-```powershell
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-Select-String -Path runs/ultimo/cycle.json -Pattern 'TASK.{0,40}' -AllMatches | ForEach-Object { $_.Matches.Value }
-(Get-Content ($v + "dr_recommendations.json") -Raw | ConvertFrom-Json) | Select-Object serial_number, @{n='conditions'; e={$_.conditions -join ','}}, procedure, reference, @{n='tasks'; e={$_.tasks -join ', '}} | Format-Table -AutoSize -Wrap
-aws s3 ls "s3://$(Get-Content data/bucket.txt)/Manufacturing AI/cicli DR/" --region eu-south-1 | ForEach-Object { $_.Substring(31) }
-```
+- il parser tagliava i task: il ciclo scrive `TASK 70-xx-xx-xxx-xxx` e ne restavano le prime
+  tre coppie, che non corrispondono a nessun task del manuale. **Corretto**;
+- i task del capitolo 70 (pratiche standard) stanno nel manuale SPM, ma il programma li cercava
+  solo nel manuale del motore citato dal ciclo. **Ora li cerca anche nell'SPM** (domanda 16 in
+  `docs/DOMANDE_APERTE.md`, da confermare).
 
-**Deve uscire:** le righe con `TASK` e il codice com'è scritto nel ciclo, una tabella di 23
-recommendation, l'elenco dei PDF in `cicli DR/`. **Manda a Claude** la foto (anche più di una se
-l'elenco è lungo) e, se lo sai, di quale serial number e condition è ciascun ciclo DR: il nome
-del file da solo non lo dice.
+Le 23 recommendation DR della conoscenza citano cinque procedure DR, di cui due sono nella
+conoscenza; in `cicli DR/` ci sono 10 PDF.
 
 ---
 
-## Messaggio 8: niente è cambiato nel repository
+## Messaggio 8: portare le correzioni sul PC e rileggere i cicli
+
+Copia nella cartella della v2 il codice, i test e i documenti nuovi dal repository personale
+(clone temporaneo, poi cancellato), lancia i test, scarica i cicli DR in
+`docs\Esempio ciclo dr\` (git la ignora) e li legge con il parser: **zero token**, nessun
+modello. Alla fine rilancia il ciclo MOS del messaggio 5, che adesso trova i task SPM:
+qualche centesimo.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+$tmp = Join-Path $env:TEMP "cv2-aggiornamento"
+Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+git clone --quiet --depth 1 https://github.com/DavideZanni/cycle-validation-v2.git $tmp
+robocopy "$tmp\src" src /E /XD __pycache__ /NFL /NDL /NJH /NJS /NP
+robocopy "$tmp\tests" tests /E /XD __pycache__ /NFL /NDL /NJH /NJS /NP
+robocopy "$tmp\docs" docs /E /NFL /NDL /NJH /NJS /NP
+Remove-Item -Recurse -Force $tmp
+uv run pytest -q
+aws s3 cp "s3://$(Get-Content data/bucket.txt)/Manufacturing AI/cicli DR/" "docs/Esempio ciclo dr/" --recursive --region eu-south-1 --only-show-errors
+uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo dr/*.pdf").FullName --profile dr
+uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo mos/*.pdf").FullName
+$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
+uv run cycle-validation run (Get-ChildItem "docs/Esempio ciclo mos/*.pdf" | Select-Object -First 1).FullName --profile mos --knowledge ($kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path) --config data/settings.yaml
+Select-String -Path runs/ultimo/report.md -Pattern '^- (Stato|Esiti|Costo)'
+Select-String -Path runs/ultimo/report.md -Pattern '^- \*\*(\S+)\*\* \S+ (.+?) \S+ (ERRATO|WARNING|CORRETTO) \((\w+)\)' | ForEach-Object { $g = $_.Matches[0].Groups; "{0,-8} {1,-22} {2,-30} {3}" -f $g[3].Value, $g[1].Value, $g[2].Value, $g[4].Value }
+```
+
+**Deve uscire:**
+
+- `pytest`: tutti `passed` (qualche `skipped` va bene), nessun `failed`;
+- `leggi`, per ogni PDF: il nome, poi `riparazione · fonti · operazioni` e i `task` letti
+  per intero (cinque gruppi, nella forma `72-xx-xx-xxx-xxx`). Un PDF che non è una stampa
+  PVRM320 dice `non letto dal parser`: va bene;
+- il ciclo MOS: adesso `task_code` dell'operazione 005 trova il task SPM, e
+  `operation_description` 005 è giudicato dal modello (costo sopra zero, 1 sessione). Il
+  manuale del motore resta assente, quindi `source` e l'operazione 010 restano FONTE_ASSENTE.
+
+**Manda a Claude** le foto: dall'elenco dei task si vede quali cicli DR vanno con quali
+recommendation, e quindi con quale serial number e condition lanciarli.
+
+---
+
+## Messaggio 9: cosa è cambiato nel repository
 
 ```powershell
 git status --short
 ```
 
-**Deve uscire:** niente. Se compare un file, **manda a Claude** l'elenco: nessun comando di prova
-doveva toccare file tracciati.
+**Deve uscire:** solo file sotto `src/`, `tests/` e `docs/` (` M` modificati, `??` nuovi, per
+esempio `tests/test_standard_practices.py`): sono le correzioni del messaggio 8, da salvare
+con un commit quando la prova è finita. Se compare altro (per esempio `data/`, `runs/`,
+`eval/`), **manda a Claude** l'elenco.
