@@ -35,36 +35,17 @@ percorsi.
 
 ---
 
-## Messaggio 3: Bedrock risponde (cicli inventati)
+## Messaggio 3: Bedrock risponde (fatto)
 
-Quattro comandi; il primo impiega qualche minuto. Costo: pochi centesimi.
+Fatto il 21-11-2026 con Claude Haiku 5.5 su Bedrock (`eu-south-1`), senza problemi di
+certificati: `run` sul ciclo inventato `Ciclo completo: 10 corretti, 4 warning, 2 errati, 3 non
+applicabili.`; golden MOS 100,0% (19/19, 0,0033 USD, 22 s); golden DR 100,0% (29/29,
+0,0007 USD, 6 s); `pytest -m live` 1 passed. Il blocco è nella storia di git (commit 4488c1e),
+se servisse rifarlo.
 
-```powershell
-$env:UV_PYTHON = "3.14"
-uv run cycle-validation run examples/sintetico/ciclo.pdf --cycle-json examples/sintetico/ciclo.json --knowledge examples/sintetico/knowledge --machines examples/sintetico/macchine_attive.json --config data/settings.yaml
-uv run cycle-validation golden eval/casi/sintetici/mos --knowledge examples/sintetico/knowledge --machines examples/sintetico/macchine_attive.json --config data/settings.yaml
-uv run cycle-validation golden eval/casi/sintetici/dr --knowledge examples/sintetico/knowledge --machines examples/sintetico/macchine_attive.json --config data/settings.yaml
-$env:CV_LIVE_CONFIG = "data/settings.yaml"; uv run pytest -m live
-```
-
-**Deve uscire:**
-- `run`: `Ciclo completo: 10 corretti, 4 warning, 2 errati, 3 non applicabili.`;
-- `golden` MOS: `concordanza 100,0%` (va bene anche `94,7%` se l'unico caso diverso è
-  `fonte_e_codice_assenti`);
-- `golden` DR: `concordanza 100,0%`;
-- `pytest -m live`: `1 passed`.
-
-**Se il `run` dà esiti molto diversi** (per esempio `Ciclo parziale` con tanti warning), il
-modello non risponde. Non andare avanti: lancia questo, che mostra i primi errori del dialogo
-con il modello con i numeri di account coperti, e manda a Claude la foto:
-
-```powershell
-Get-ChildItem runs/ultimo/transcripts/*.jsonl | Select-String -Pattern 'error|denied|certificate|expired|not found' | Select-Object -First 5 | ForEach-Object { $t = $_.Line -replace '\d{12}', '<omesso>'; $t.Substring(0, [Math]::Min(400, $t.Length)) }
-```
-
-**Se l'errore parla di certificati** (`SELF_SIGNED_CERT_IN_CHAIN`, `unable to get local issuer
-certificate`, `certificate verify failed`): è il proxy aziendale (Zscaler), che la v1 gestisce con
-`zscaler.pem`. Lancia questo e poi rilancia il messaggio 3; vale finché non chiudi il terminale:
+**Se nei messaggi 4 e 5 compare un errore di certificati** (`SELF_SIGNED_CERT_IN_CHAIN`,
+`unable to get local issuer certificate`): lancia questo e rilancia il blocco; vale finché non
+chiudi il terminale:
 
 ```powershell
 $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Path; $env:AWS_CA_BUNDLE = $env:NODE_EXTRA_CA_CERTS
