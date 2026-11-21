@@ -118,28 +118,40 @@ casi sintetici della v2; `data/`, `runs/`, `eval/casi/aziendali/` e i PDF restan
 git li ignora. Poi fa il push sul branch `feature/cycle-validation-v2`, ma solo se sei su quel
 branch e se nel commit non è entrato niente fuori da quelle cartelle.
 
+Due blocchi: prima il commit, poi il push. Se il commit è già fatto, lancia solo il secondo.
+
+**1. Commit**
+
 ```powershell
 git add src tests docs eval/casi/sintetici
 git status --short
 git commit -m "v2: parser PVRM320 per le stampe DR, task del capitolo 70 nell'SPM, procedura DR citata come caso, conferma degli ERRATO, Accept as is senza blocco, comando leggi"
-$branch = git branch --show-current
-$fuori = git show --name-only --format= HEAD | Where-Object { $_ -and $_ -notmatch '^app_cycle_validation_v2/(src|tests|docs|eval/casi/sintetici)/' }
-if ($branch -ne "feature/cycle-validation-v2") { "FERMO: sei sul branch '$branch', non su feature/cycle-validation-v2. Niente push." }
-elseif ($fuori) { "FERMO: nel commit ci sono file fuori dalle cartelle previste. Niente push:"; $fuori }
-else { git push origin feature/cycle-validation-v2; git log --oneline -1; git status -sb | Select-Object -First 1 }
 ```
 
-**Deve uscire:**
+**Deve uscire:** in `git status` solo righe `M ` e `A ` sotto `src/`, `tests/`, `docs/`,
+`eval/casi/sintetici/`; poi il riepilogo del commit (`[feature/cycle-validation-v2 ...]`).
 
-- in `git status` solo righe `M ` e `A ` sotto `src/`, `tests/`, `docs/`, `eval/casi/sintetici/`;
-- il riepilogo del commit;
-- le righe del push (`To https://github.com/...`, `feature/cycle-validation-v2 -> feature/cycle-validation-v2`);
-- l'ultimo commit e `## feature/cycle-validation-v2...origin/feature/cycle-validation-v2`, senza
-  `[ahead ...]`.
+**2. Push**
+
+```powershell
+$branch = git branch --show-current
+$fuori = git show --name-only --format= HEAD | Where-Object { $_ -and $_ -notmatch '^app_cycle_validation_v2/(src|tests|docs|eval/casi/sintetici)/' }
+if ($branch -ne "feature/cycle-validation-v2") {
+  "FERMO: sei sul branch '$branch', non su feature/cycle-validation-v2. Niente push."
+} elseif ($fuori) {
+  "FERMO: nell'ultimo commit ci sono file fuori dalle cartelle previste. Niente push:"; $fuori
+} else {
+  git push origin feature/cycle-validation-v2; git log --oneline -1; git status -sb | Select-Object -First 1
+}
+```
+
+**Deve uscire:** le righe del push (`feature/cycle-validation-v2 -> feature/cycle-validation-v2`),
+l'ultimo commit e `## feature/cycle-validation-v2...origin/feature/cycle-validation-v2` senza
+`[ahead ...]`.
 
 Se esce `FERMO`, oppure il push è rifiutato (`rejected`, `fetch first`), **non insistere e non
 usare `--force`**: manda a Claude la foto. Se il commit dice `nothing to commit`, le correzioni
-erano già salvate: va bene lo stesso, il push manda solo quello che manca.
+erano già salvate: lancia lo stesso il push, manda solo quello che manca.
 
 ---
 
