@@ -90,7 +90,7 @@ e) se c'è già qualcosa che si chiama app_cycle_validation_v2 o cycle_validatio
 |---|---|
 | `buildspec.yml` o un workflow fanno riferimento a file in radice diversi da `app_cycle_validation/` (per esempio i `.md` o "tutta la radice") | il riordino potrebbe toccare la build |
 | uno dei quattro `.md` parla della versione nuova, non di quella in produzione | va in un altro posto |
-| `.gitignore` in radice ha righe come `*.pdf`, `*.json`, `eval/`, `examples/`, `docs/`, `data*` | escluderebbe file della v2 (al punto 4 lo vedi dal conteggio) |
+| `.gitignore` in radice ha righe come `*.pdf`, `*.json`, `eval/`, `examples/`, `docs/`, `data*` | escluderebbe file della v2: il punto 4.2 li aggiunge con `-f` (oggi esclude `*.json` e `*.pdf`) |
 | `app_cycle_validation/` ha già un file con lo stesso nome di uno dei quattro `.md` | lo spostamento lo sovrascriverebbe |
 
 ---
@@ -190,21 +190,20 @@ git commit -m "docs: documentazione della v1 in app_cycle_validation/docs, READM
 
 ### 4.2 La v2
 
-```powershell
-git add app_cycle_validation_v2
-(git ls-files app_cycle_validation_v2).Count
-```
-
-Devi vedere **238**: sono tutti i file del progetto. Se il numero è più basso, il `.gitignore` di
-radice ne esclude qualcuno: **non fare il commit**, lancia
+Il `.gitignore` aziendale in radice esclude `*.json` e `*.pdf`: con un `git add` normale
+resterebbero fuori 50 file della v2 (dati dei test ed esempi). Si aggiunge con `-f`, che è sicuro
+solo perché la cartella è appena estratta dallo zip e non c'è ancora la `.venv`:
 
 ```powershell
-git status --short --ignored app_cycle_validation_v2
+Test-Path .\app_cycle_validation_v2\.venv                          # False
+(Get-ChildItem -Recurse -File -Force .\app_cycle_validation_v2).Count  # 238
+git add -f app_cycle_validation_v2
+(git ls-files app_cycle_validation_v2).Count                         # 238
+(git ls-files app_cycle_validation_v2 | Select-String '\.(json|pdf)$').Count   # 50
 ```
 
-e riporta le righe che iniziano con `!!`.
-
-Se è 238:
+Se un numero è diverso: **non fare il commit**, `git restore --staged app_cycle_validation_v2` e
+riporta i numeri. Se sono giusti:
 
 ```powershell
 git commit -m "feat: versione 2 di cycle validation in app_cycle_validation_v2"
@@ -266,7 +265,7 @@ riporta il messaggio.
 |---|---|
 | `git pull` dice che ci sono conflitti o modifiche locali | fermati e riporta l'output: niente `reset` né `stash` a caso |
 | `git mv` dice `destination exists` | in `app_cycle_validation/docs/` c'è già un file con quel nome: riporta quale |
-| il conteggio al punto 4.2 non è 238 | `.gitignore` di radice: riporta le righe `!!` |
+| un conteggio al punto 4.2 non è quello scritto | `git restore --staged app_cycle_validation_v2` e riporta i numeri |
 | `Filename too long` | `git config core.longpaths true`, oppure il repository in un percorso più corto (per esempio `C:\repo\`) |
 | `uv` non trovato | `pip install uv`, poi apri un terminale nuovo |
 | i test falliscono dopo lo spostamento | riporta le ultime 30 righe dell'output |

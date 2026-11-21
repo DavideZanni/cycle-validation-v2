@@ -208,27 +208,46 @@ Dimmi cosa devo vedere.
 
 ## Messaggio 7: aggiungere la v2 e secondo commit
 
+Il `.gitignore` in radice esclude `*.json` e `*.pdf`: con un `git add` normale resterebbero
+fuori 50 file della v2 (dati dei test, esempi, casi sintetici) e i test fallirebbero altrove.
+Per questo la cartella si aggiunge con `git add -f`, che è sicuro **solo** perché la cartella è
+appena uscita dallo zip e contiene solo i file del repository: niente `.venv`, niente risultati,
+niente dati aziendali. Una volta aggiunti, il `.gitignore` non li tocca più; i `.json` e `.pdf`
+nuovi restano esclusi come oggi.
+
 ```text
-Ora aggiungo la cartella app_cycle_validation_v2. Prima del commit voglio controllare che git
-prenda tutti i file: devono essere 238. Se il .gitignore in radice ne esclude qualcuno, il
-numero è più basso. Questi sono i comandi:
+Il .gitignore in radice esclude *.json e *.pdf: con un git add normale resterebbero fuori 50
+file della v2 (dati dei test ed esempi). La cartella app_cycle_validation_v2 è appena estratta
+da uno zip che contiene solo i file del repository, quindi la aggiungo con git add -f. Prima
+controllo che nella cartella ci siano solo quei 238 file, dopo controllo che git li abbia presi
+tutti. Questi sono i comandi, dalla radice:
 
-git add app_cycle_validation_v2
+Test-Path .\app_cycle_validation_v2\.venv
+(Get-ChildItem -Recurse -File -Force .\app_cycle_validation_v2).Count
+git add -f app_cycle_validation_v2
 (git ls-files app_cycle_validation_v2).Count
-git status --short --ignored app_cycle_validation_v2
+(git ls-files app_cycle_validation_v2 | Select-String '\.(json|pdf)$').Count
+git status --short
 
-Dimmi cosa devo vedere. Se il conteggio non è 238 dimmi di fermarmi.
+Controllali e dimmi cosa devo vedere dopo ciascuno. Se un numero non è quello atteso dimmi di
+fermarmi e di non fare il commit.
 ```
 
-**Deve uscire:** `238`, e `git status --short --ignored` con sole righe che iniziano con `A `
-(nessuna riga che inizia con `!!`).
+**Deve uscire:**
+- `Test-Path`: `False`. Se è `True` hai già lanciato `uv sync`: **fermati** e manda a Claude
+  (con `-f` finirebbe nel commit anche la `.venv`);
+- `Get-ChildItem ... .Count`: `238`. Se è di più, nella cartella c'è altro: **fermati**;
+- `git ls-files ... .Count`: `238`;
+- `Select-String ... .Count`: `50`;
+- `git status --short`: solo righe che iniziano con `A  app_cycle_validation_v2/...`.
 
-**Se non è 238: non fare il commit.** Manda a Claude il numero e le righe che iniziano con `!!`.
+**Se un numero è diverso: non fare il commit.** Manda a Claude i numeri. Per tornare indietro
+senza perdere niente: `git restore --staged app_cycle_validation_v2`.
 
-Se è 238:
+Se è tutto come scritto:
 
 ```text
-Il conteggio è 238 e non ci sono righe con !!. Questi sono i comandi per il secondo commit:
+I conteggi sono 238, 238 e 50. Questi sono i comandi per il secondo commit:
 
 git commit -m "feat: versione 2 di cycle validation in app_cycle_validation_v2"
 git log --oneline -3
@@ -240,6 +259,10 @@ Dimmi cosa devo vedere.
 **Deve uscire:** `238 files changed`; in `git log` i tuoi due commit in cima; `git status` con
 `Your branch is ahead of 'origin/feature/cycle-validation-v2' by 2 commits` e
 `nothing to commit, working tree clean`.
+
+**D'ora in poi**, un file `.json` o `.pdf` *nuovo* nella v2 (per esempio un caso sintetico
+aggiunto ai test) si aggiunge con `git add -f <file>`. Quelli già presenti si modificano e si
+committano normalmente.
 
 ---
 
@@ -280,6 +303,8 @@ sistema: se il mio Python non è la versione scritta in .python-version, dimmi c
 - `kb-check`: un elenco di conteggi che finisce con `recommendation_dr_incerte: 0`;
 - `git status` (dalla radice): ancora `nothing to commit, working tree clean`. La cartella
   `.venv` e le cache non devono comparire: le ignora il `.gitignore` della v2.
+  Se compare solo `modified: app_cycle_validation_v2/uv.lock`, la tua versione di `uv` ha
+  riscritto il file delle dipendenze: non fare commit e manda a Claude `uv --version`.
 
 I test sono stati provati su Linux, non su Windows. Se qualcuno fallisce, **non** correggere
 niente: manda a Claude le ultime 40 righe dell'output di `pytest`.
