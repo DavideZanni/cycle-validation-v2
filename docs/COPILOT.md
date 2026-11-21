@@ -25,18 +25,25 @@ Messaggio 1 (impostazioni locali): `data/settings.yaml` usa `eu.anthropic.claude
 
 ---
 
-## Messaggio 2: la conoscenza della v2 è pubblicata?
+## Messaggio 2: dov'è la conoscenza della v2?
 
-Fatto il 21-11-2026: sotto `Manufacturing AI/cv3/knowledge/` non c'è niente. Questo comando
-mostra cosa c'è sotto `Manufacturing AI/`, per capire dov'è la conoscenza (solo lettura):
+Fatto il 21-11-2026: sotto `Manufacturing AI/cv3/knowledge/` non c'è niente; sotto
+`Manufacturing AI/` ci sono, tra le altre, `ingestion-v2-test-qa-output/` (probabilmente la
+conoscenza della versione di prova), `retrieval_output/` (quella della v1), `cicli MOS/` e
+`cicli DR/`. Questi comandi guardano dentro, solo in lettura; il terzo può impiegare un minuto:
 
 ```powershell
-aws s3 ls "s3://$(Get-Content data/bucket.txt)/Manufacturing AI/" --region eu-south-1
+$b = "s3://$(Get-Content data/bucket.txt)/Manufacturing AI"
+aws s3 ls "$b/ingestion-v2-test-qa-output/" --region eu-south-1
+aws s3 ls "$b/ingestion-v2-test-qa-output/" --recursive --region eu-south-1 | Select-String 'current\.json|manifest\.json|catalog\.json'
+aws s3 ls "$b/cicli MOS/" --region eu-south-1 | Select-Object -First 5
+aws s3 ls "$b/cicli DR/" --region eu-south-1 | Select-Object -First 5
 ```
 
-**Deve uscire:** l'elenco delle cartelle (`PRE ...`). **Manda a Claude** la foto: dice se la
-conoscenza della v2 è pubblicata con un altro nome o se c'è solo quella della v1
-(`retrieval_output/`). Finché non è chiaro, fai il messaggio 3 e salta il 4 e il 5.
+**Deve uscire:** le cartelle sotto `ingestion-v2-test-qa-output/`, poi le righe con i percorsi
+di `current.json`, `manifest.json` e `catalog.json` (per esempio
+`.../knowledge/civil/current.json`), poi i primi file delle due cartelle dei cicli. **Manda a
+Claude** la foto: con i percorsi preparo i messaggi 4 e 5. Intanto fai il messaggio 3.
 
 ---
 
