@@ -103,6 +103,19 @@ uv run pytest -q
 
 ---
 
+## Da fare nei prossimi giorni
+
+1. L'utente manda a Claude il frontend e il formato dell'output che si aspetta. Claude
+   confronta con `payload.json` e `report.json` della v2 e corregge dove non tornano.
+2. Prima prova di un ciclo **EJ200**: non è ancora mai stata fatta con servizi veri. Documenti
+   e output EJ200 devono restare su AWS EU, quindi niente copia della conoscenza EJ200 sul PC e
+   niente report EJ200 in `runs\`. Prima di lanciare, Claude scrive il blocco che legge la
+   conoscenza direttamente da S3, e insieme si decide dove far girare il ciclo e dove scrivere
+   l'output (per esempio l'ambiente SageMaker della guida aziendale).
+3. Rifare le prove dei tre cicli, MOS, DR ed EJ200, con il formato dell'output del frontend.
+
+---
+
 ## Ancora aperte (da chiedere a chi conosce i cicli, quando capita)
 
 - domanda 17 di `docs/DOMANDE_APERTE.md`: con «accept as is» esiste un ciclo DR, e con quali
