@@ -361,8 +361,8 @@ def test_a_bare_date_above_the_block_is_not_part_of_the_description() -> None:
 
 
 def _note_page_with_tail(tail: list[str], with_note: bool = True) -> object:
-    """Stampa DR vera (21-11-2026), valori inventati: la riga NOTE si ferma a metà frase e il
-    seguito sta dopo il banner di fine pagina, senza numero di operazione."""
+    """Stampa DR vera (21-11-2026), pagina 2, valori inventati: la riga NOTE si ferma a metà
+    frase e il seguito sta dopo il banner di fine pagina, senza numero di operazione."""
     note = block(["NOTE", "999999"], "005", ["QUESTA PROCEDURA FORNISCE LE"]) if with_note else []
     body = [
         *note,
@@ -374,7 +374,7 @@ def _note_page_with_tail(tail: list[str], with_note: bool = True) -> object:
     return parse_pvrm320_report(as_document([page(1, body), page(2, second, FOOTER)]))
 
 
-def test_the_block_after_the_page_end_banner_continues_the_note() -> None:
+def test_the_block_after_the_page_end_banner_continues_the_truncated_note() -> None:
     tail = [
         row(text="ISTRUZIONI DI PROVA PER LA RACCORDATURA."),
         row(text="* * * * * * * * * * * * * *"),
@@ -389,6 +389,48 @@ def test_the_block_after_the_page_end_banner_continues_the_note() -> None:
     assert by_number["020"].operation_description == "LAVORO DI PROVA"
 
 
-def test_without_a_note_row_the_block_after_the_banner_is_still_an_error() -> None:
+def test_without_a_truncated_operation_the_block_after_the_banner_is_an_error() -> None:
     with pytest.raises(ExtractionError, match="senza numero"):
         _note_page_with_tail([row(text="TESTO DI CUI NON SI SA IL PADRONE")], with_note=False)
+
+
+def test_the_block_after_the_banner_completes_a_truncated_operation_with_its_sheet() -> None:
+    """Stampa DR vera, pagina 5, valori inventati: l'op. 050 ha solo la prima riga, la 060
+    comincia subito sotto e continua alla pagina dopo; dopo il banner c'è il seguito della 050,
+    con la sua riga SCHEDA, poi il tratteggio."""
+    first = block(["QQ/900"], "040", ["LAVAGGIO DEL PEZZO.", STARS, "WASHING"], closed=False)
+    second = [
+        row(text=CONT),
+        row(text="OF THE PART."),
+        SEP,
+        row(text="D.T. 16-09-30"),
+        row("QQ/901", "050", ""),
+        row("RSP001", "", "ESEGUIRE ATTACCO CHIMICO DI PROVA DELLE"),
+        row(text="D.T. 16-09-30"),
+        row("QQ/902", "060", ""),
+        row("RSP002", "", "ESEGUIRE CONTROLLO DI PROVA DELLE AREE."),
+        row(text=NEXT),
+        SEP,
+        "*** C O N T I N U A ***",
+        row(text="SUPERFICI DI PROVA."),
+        row(text="MATERIALE BASE: PROVA"),
+        row(text="* * * * * * * * * * * * * *"),
+        row(text="SWAB ETCH ALL TEST AREAS."),
+        f"{'SCHEDA : PG 901':<24}SP.ORIG. 11-22-33-444-556     SP.XXXX",
+        SEP,
+    ]
+    third = [row(text=CONT), *block(["QQ/903"], "060", ["CHECK THE TEST AREAS."])]
+    cycle = parse_pvrm320_report(
+        as_document([page(1, first), page(2, second), page(3, third, FOOTER)])
+    )
+    by_number = ops(cycle)
+    assert by_number["050"].operation_description == (
+        "ESEGUIRE ATTACCO CHIMICO DI PROVA DELLE SUPERFICI DI PROVA. MATERIALE BASE: PROVA"
+        " / SWAB ETCH ALL TEST AREAS."
+    )
+    assert by_number["050"].process_sheet is not None
+    assert by_number["050"].process_sheet.code == "PG 901"
+    assert by_number["060"].process_sheet is None
+    assert "CHECK THE TEST AREAS." in by_number["060"].operation_description
+    # la 040 ha già la parte in inglese: non è un'operazione rimasta a metà
+    assert by_number["040"].operation_description == "LAVAGGIO DEL PEZZO. / WASHING OF THE PART."

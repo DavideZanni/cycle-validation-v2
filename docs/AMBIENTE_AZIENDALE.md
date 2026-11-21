@@ -102,8 +102,11 @@ aggiungere è in fondo a `COPILOT.md`, per quando servirà.
 - I task stanno nel testo come `TASK 70-xx-xx-xxx-xxx` e si leggono per intero. I task del
   capitolo 70 si cercano anche nel manuale SPM (scelta da confermare, domanda 16 in
   `DOMANDE_APERTE.md`).
-- DR: la riga NOTE (op. 005) si ferma a metà frase e il seguito sta dopo il banner di fine
-  pagina `*** C O N T I N U A ***`. Una delle stampe scrive nel testo il caso DR e il serial
-  number del pezzo («D.R. CASE #…», «APPLY ON S/N …»); `leggi` li stampa. I cicli DR non citano
-  task: i task vengono dalla recommendation (serial number e condition).
-- Aperto: a pagina 5 delle due stampe DR c'è un altro blocco senza numero di operazione.
+- Stampe DR: un'operazione può avere in tabella solo la prima riga, a metà frase (la NOTE
+  op. 005 a pagina 2, l'op. 050 a pagina 5); il seguito, con l'inglese ed eventualmente la riga
+  `SCHEDA`, sta dopo il banner di fine pagina `*** C O N T I N U A ***`. Il parser lo attacca
+  all'unica operazione della pagina rimasta a metà; se non è una sola, si ferma (e `run` passa
+  al modello).
+- Una delle stampe DR scrive nel testo il caso DR e il serial number del pezzo («D.R. CASE #…»,
+  «APPLY ON S/N …»); `leggi` li stampa. I cicli DR non citano task: i task vengono dalla
+  recommendation (serial number e condition).

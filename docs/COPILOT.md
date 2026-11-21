@@ -117,7 +117,26 @@ per intero in `runs\dr-condition-...\report.md`, con la citazione della procedur
 
 ---
 
-## Messaggio 11: cosa è cambiato nel repository
+## Messaggio 11: le due stampe DR rilette dopo la correzione
+
+Dopo i run del messaggio 10. La pagina 5 aveva lo stesso schema della pagina 2: l'op. 050 si
+ferma a metà frase e il seguito (scheda compresa) sta dopo il banner `*** C O N T I N U A ***`.
+Il parser ora attacca quel blocco all'operazione rimasta a metà. Prima il blocco **Aggiornare il
+codice sul PC**, poi questo (zero token):
+
+```powershell
+$env:UV_PYTHON = "3.14"
+uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo dr/*.pdf").FullName --profile dr
+```
+
+**Deve uscire:** per ogni PDF di `cicli DR/` la riga `riparazione · fonti · operazioni` e la
+riga `task`; per le due stampe `SENZA sn` e `CON sn` niente più `non letto dal parser`. Se una
+stampa si ferma ancora, **manda a Claude** la foto (dice pagina e riga): si rilancia con
+`--pagina` su quella pagina.
+
+---
+
+## Messaggio 12: cosa è cambiato nel repository
 
 ```powershell
 git status --short

@@ -16,8 +16,9 @@ Le operazioni che proseguono sulla pagina dopo (`*** CONTINUAZIONE DALLA PAGINA 
 si uniscono per numero; le righe senza numero in cima a una pagina restano all'operazione
 rimasta aperta alla fine della pagina prima. Un blocco di testo senza numero che non continua
 nulla è un errore di estrazione (mai righe perse in silenzio), tranne il blocco dopo il banner
-di fine pagina `*** C O N T I N U A ***`, che nelle stampe DR vere è il seguito del testo
-della riga NOTE (troncato a metà frase nella tabella) e va a quella. Il piè
+di fine pagina `*** C O N T I N U A ***`: nelle stampe vere è il seguito di un'operazione della
+pagina rimasta a metà frase (solo la prima riga in tabella, senza la parte in inglese), e va a
+quella se è una sola (vedi `_truncated`). Il piè
 dell'ultima pagina riporta `RIP: <riparazione> OEM: <manuale>`.
 
 Cosa si assume (da confermare sui PDF veri): la colonna TARGA è la targa macchina (la riga
@@ -45,7 +46,7 @@ _STAR_RULE = re.compile(r"^(?:\*\s*){5,}$")
 _DASHES = re.compile(r"^\s*-{10,}\s*$")
 _EQUALS = re.compile(r"^\s*={10,}\s*$")
 # Banner di fine pagina a lettere spaziate. Nelle stampe DR vere (21-11-2026) dopo il banner
-# c'è il seguito del testo della riga NOTE, che nella tabella si ferma a metà frase.
+# c'è il seguito di un'operazione della pagina che in tabella si ferma a metà frase.
 _PAGE_END_BANNER = re.compile(r"C\s+O\s+N\s+T\s+I\s+N\s+U\s+A\b")
 _CONTINUED_FROM = re.compile(r"CONTINUAZIONE DALLA PAGINA PRECEDENTE", re.IGNORECASE)
 _CONTINUES_ON = re.compile(
@@ -176,8 +177,29 @@ def _no_orphan(pending: _Op) -> None:
         )
 
 
-def _note_operation(operations: dict[str, _Op]) -> _Op | None:
-    return next((op for op in operations.values() if (op.tag or "").upper() == "NOTE"), None)
+def _truncated(operations: dict[str, _Op], page: int, continuing: _Op | None) -> list[_Op]:
+    """Operazioni cominciate su questa pagina e rimaste a metà: hanno testo ma non ancora la
+    parte dopo il separatore (l'inglese) e non sono quella che continua alla pagina dopo.
+    Stampe DR vere: la riga NOTE a pagina 2 («… FORNISCE LE»), l'op. 050 a pagina 5
+    («… A TAMPONE DELLE»); il loro seguito, scheda compresa, sta dopo il banner."""
+    return [
+        op
+        for op in operations.values()
+        if op.page == page and op is not continuing and op.text and _SECTION not in op.text
+    ]
+
+
+def _settle(pending: _Op, after_banner: bool, candidates: list[_Op]) -> None:
+    """Blocco senza numero: dopo il banner va all'unica operazione rimasta a metà; altrimenti
+    è un errore (nessuna supposizione se i candidati sono zero o più di uno)."""
+    has_content = bool(pending.text or pending.sheet or pending.sp_orig or pending.sp_fiat)
+    if after_banner and has_content and len(candidates) == 1:
+        target = candidates[0]
+        target.text.extend(pending.text)
+        target.sheet = target.sheet or pending.sheet
+        target.merge_codes(pending)
+        return
+    _no_orphan(pending)
 
 
 def _description(op: _Op) -> str:
@@ -259,7 +281,7 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
             if not line.strip() or _EQUALS.match(line):
                 continue
             if _DASHES.match(line):
-                _no_orphan(pending)
+                _settle(pending, after_banner, _truncated(operations, page.number, continuing))
                 current, pending = None, _Op("", page.number)
                 continue
             if _PAGE_END_BANNER.search(line):
@@ -298,12 +320,7 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
                 # una macchina e non deve mai finire nel controllo delle macchine attive
                 target.tag = target.tag or left
             _add_text(target, text)
-        note_op = _note_operation(operations)
-        if after_banner and current is None and pending.text and not pending.sheet and note_op:
-            # dopo il banner di fine pagina: il seguito del testo della riga NOTE
-            note_op.text.extend(pending.text)
-        else:
-            _no_orphan(pending)
+        _settle(pending, after_banner, _truncated(operations, page.number, continuing))
         carry = current if current is not None else continuing
     if not operations:
         raise ExtractionError("Nessuna operazione trovata nella stampa PVRM320.")
