@@ -27,15 +27,16 @@ Messaggio 1 (impostazioni locali): `data/settings.yaml` usa `eu.anthropic.claude
 
 ## Messaggio 2: la conoscenza della v2 è pubblicata?
 
+Fatto il 21-11-2026: sotto `Manufacturing AI/cv3/knowledge/` non c'è niente. Questo comando
+mostra cosa c'è sotto `Manufacturing AI/`, per capire dov'è la conoscenza (solo lettura):
+
 ```powershell
-$env:UV_PYTHON = "3.14"
-aws s3 ls "s3://$(Get-Content data/bucket.txt)/Manufacturing AI/cv3/knowledge/" --region eu-south-1
-aws s3 ls "s3://$(Get-Content data/bucket.txt)/Manufacturing AI/cv3/knowledge/civil/" --region eu-south-1
+aws s3 ls "s3://$(Get-Content data/bucket.txt)/Manufacturing AI/" --region eu-south-1
 ```
 
-**Deve uscire:** sotto `knowledge/` le cartelle (`PRE civil/`, forse `PRE ej200/`), sotto
-`civil/` un `current.json` e `PRE v/`. Se non esce niente, la conoscenza della v2 non è ancora
-pubblicata: fai il messaggio 3, salta il 4 e il 5, e manda a Claude le foto.
+**Deve uscire:** l'elenco delle cartelle (`PRE ...`). **Manda a Claude** la foto: dice se la
+conoscenza della v2 è pubblicata con un altro nome o se c'è solo quella della v1
+(`retrieval_output/`). Finché non è chiaro, fai il messaggio 3 e salta il 4 e il 5.
 
 ---
 
