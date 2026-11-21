@@ -300,9 +300,12 @@ sistema: se il mio Python non è la versione scritta in .python-version, dimmi c
 ```
 
 **Deve uscire:**
-- `python --version`: `Python 3.13.x` o più recente. Se è `3.12.x`, prima di `uv sync` lancia
-  `$env:UV_PYTHON = "3.12"` (vale finché il terminale è aperto). Se è più vecchio, o `python` non
-  c'è: fermati e manda a Claude;
+- `python --version`: `Python 3.12.x` o più recente. `.python-version` chiede 3.13 e uv usa solo
+  il Python del sistema: se il tuo non è 3.13, prima di `uv sync` lancia
+  `$env:UV_PYTHON = "3.14"` (con il tuo numero: `"3.12"`, `"3.14"`…). Vale finché il terminale è
+  aperto: in un terminale nuovo va rilanciato. Senza, `uv` dice
+  `No interpreter found for Python 3.13`. Se è più vecchio di 3.12, o `python` non c'è: fermati e
+  manda a Claude;
 - `uv --version`: un numero di versione. Se `uv` non c'è: `pip install uv`, poi chiudi e riapri
   il terminale e torna nella radice;
 - `uv sync`: finisce con `Installed ... packages`, senza errori. Se non riesce a scaricare (errori

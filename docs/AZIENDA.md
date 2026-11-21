@@ -30,6 +30,11 @@ materiale aziendale resta in azienda.
 
 **Tutti i comandi di questa guida si lanciano da dentro `app_cycle_validation_v2`.**
 
+`.python-version` chiede Python 3.13 e uv usa solo il Python installato sul sistema. Se il tuo è
+un altro (3.12 o più recente), dillo a uv in ogni terminale nuovo, prima dei comandi, con il tuo
+numero: `$env:UV_PYTHON = "3.14"` in PowerShell. Senza, uv risponde
+`No interpreter found for Python 3.13`. La suite è provata anche su 3.14.
+
 ```bash
 cd app_cycle_validation_v2
 uv sync --all-groups --extra aws
