@@ -130,7 +130,7 @@ l'account GitHub **personale**.
 
 ```powershell
 cd $HOME\Downloads
-git clone --branch ccr-80f7e33d-6p52sg https://github.com/DavideZanni/cycle-validation-v2.git
+git clone https://github.com/DavideZanni/cycle-validation-v2.git
 git -C cycle-validation-v2 archive --format=zip --prefix=app_cycle_validation_v2/ -o "$HOME\Downloads\app_cycle_validation_v2.zip" HEAD
 ```
 

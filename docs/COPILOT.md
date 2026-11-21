@@ -23,7 +23,7 @@ il risultato scritto, e alla fine (messaggio 10).
    comando Git chiede l'accesso: usa l'account GitHub **personale**):
 
    ```powershell
-   git clone --branch ccr-80f7e33d-6p52sg https://github.com/DavideZanni/cycle-validation-v2.git "$HOME\Downloads\cycle-validation-v2"
+   git clone https://github.com/DavideZanni/cycle-validation-v2.git "$HOME\Downloads\cycle-validation-v2"
    ```
 
    Se è già clonato, aggiornalo:
