@@ -35,6 +35,7 @@ from cycle_validation.services.machines import (
     StaticMachineRegistry,
     UnavailableMachineRegistry,
 )
+from cycle_validation.verdict.consolidate import is_blocking_failure
 
 ACTIVE = StaticMachineRegistry(["TM-1001", "TM-2002"])
 
@@ -415,14 +416,46 @@ def test_dr_multiple_recommendations_are_disambiguated_by_condition() -> None:
     assert "DR-DEMO-01" in result.rationale
 
 
-def test_dr_accept_as_is_stops_the_validation() -> None:
+def test_dr_accept_as_is_is_a_warning_that_does_not_block() -> None:
     result = _dr("SN-DEMO-001", 2)
-    assert result.reason is Reason.DR_NON_APPLICABILE
-    assert result.verdict is Verdict.ERRATO
+    assert (result.reason, result.verdict) == (Reason.DR_SENZA_RIPARAZIONE, Verdict.WARNING)
+    assert "senza riparazione" in result.rationale
+    assert not is_blocking_failure(result)
+    # nessun contesto DR per le operazioni: la procedura è quella di riparazione
+    assert dr_tasks(memory_knowledge(), DrSelectors("SN-DEMO-001", (2,))) == []
+
+
+def test_dr_accept_as_is_written_differently_is_recognised() -> None:
+    for written in ("Accept-as-is", "ACCEPT AS IS.", "Use as is"):
+        kb = IndexedKnowledgeBase(
+            "t",
+            dr_recommendations=[
+                DrRecommendation(serial_number="SN-X", conditions=(1,), procedure=written)
+            ],
+        )
+        assert _dr("SN-X", 1, kb=kb).reason is Reason.DR_SENZA_RIPARAZIONE, written
+
+
+def test_dr_repair_and_accept_as_is_together_keep_the_repair() -> None:
+    kb = IndexedKnowledgeBase(
+        "t",
+        dr_recommendations=[
+            DrRecommendation(
+                serial_number="SN-X", conditions=(1,), procedure="Repair", tasks=("70-1",)
+            ),
+            DrRecommendation(serial_number="SN-X", conditions=(2,), procedure="Accept as is"),
+        ],
+    )
+    result = _dr("SN-X", 1, 2, kb=kb)
+    assert result.reason is Reason.VERIFICATO
+    assert "nessuna riparazione" in result.rationale
+    assert dr_tasks(kb, DrSelectors("SN-X", (1, 2))) == [(None, "70-1")]
 
 
 def test_dr_reject_stops_even_with_a_single_recommendation() -> None:
-    assert _dr("SN-DEMO-002", 9).reason is Reason.DR_NON_APPLICABILE
+    result = _dr("SN-DEMO-002", 9)
+    assert (result.reason, result.verdict) == (Reason.DR_NON_APPLICABILE, Verdict.ERRATO)
+    assert is_blocking_failure(result)
 
 
 def test_dr_no_recommendation_for_serial() -> None:

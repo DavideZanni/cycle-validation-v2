@@ -268,7 +268,7 @@ esperimenti saltano il caso. Se di una riga conta solo l'esito, togli `reason`.
 |---|---|
 | `CORRETTO` | `VERIFICATO` |
 | `ERRATO` | `CONTRADDIZIONE`, `MACCHINA_NON_ATTIVA`, `DR_NON_APPLICABILE`, `DR_NESSUNA_CORRISPONDENZA` |
-| `WARNING` | `FONTE_ASSENTE`, `TARGA_SCONOSCIUTA`, `EVIDENZA_NON_TROVATA`, `VERSIONE_DIVERSA`, `PUBBLICAZIONE_PARZIALE`, `DATO_INCERTO`, `RIFERIMENTO_AMBIGUO`, `CITAZIONE_NON_VERIFICATA`, `GIUDIZIO_INSTABILE`, `ESTRAZIONE_NON_CONFERMATA`, `BUDGET_ESAURITO`, `ERRORE_TECNICO`, `BLOCCATO_A_MONTE` |
+| `WARNING` | `FONTE_ASSENTE`, `TARGA_SCONOSCIUTA`, `EVIDENZA_NON_TROVATA`, `VERSIONE_DIVERSA`, `PUBBLICAZIONE_PARZIALE`, `DATO_INCERTO`, `RIFERIMENTO_AMBIGUO`, `CITAZIONE_NON_VERIFICATA`, `GIUDIZIO_INSTABILE`, `DR_SENZA_RIPARAZIONE`, `ESTRAZIONE_NON_CONFERMATA`, `BUDGET_ESAURITO`, `ERRORE_TECNICO`, `BLOCCATO_A_MONTE` |
 | `NON_APPLICABILE` | `CAMPO_ASSENTE`, `ESCLUSO_DA_REGOLA`, `NON_VERIFICATO_PER_PROFILO` |
 
 **Quanti casi.** Pochi ma vari: 5-10 MOS, 3-5 DR, 5 EJ200, con qualche ERRATO vero (macchina
@@ -383,8 +383,8 @@ e mai ERRATO.
 | Regola di oggi | Se è sbagliata |
 |---|---|
 | DR: un serial number con una sola recommendation vale per qualunque condition | si applica una recommendation a una condition non prevista |
-| DR: `Accept as is` e `Reject` riconosciuti solo scritti così | una variante di scrittura passa come riparazione normale |
-| DR: `Accept as is` e `Reject` = ERRATO e ciclo bloccato, senza guardare le operazioni (domanda 17, in verifica) | un ciclo giusto, con sole ispezioni e registrazioni, esce ERRATO |
+| DR: `Accept as is` (anche `Accept-as-is`, `Use as is`) e `Reject` riconosciuti per nome | un'altra parola per la stessa disposizione passa come riparazione normale |
+| DR: `Reject` = ERRATO e ciclo bloccato; `Accept as is` = WARNING `DR_SENZA_RIPARAZIONE`, gli altri controlli proseguono senza la procedura DR come riferimento (domanda 17) | un ciclo con una riparazione non voluta non esce ERRATO da solo: lo dice il WARNING, va guardato a mano |
 | DR: nessuna recommendation trovata = ERRATO | dati DR incompleti danno ERRATO invece di WARNING |
 | Scheda presente ma famiglia del motore non riconosciuta = CORRETTO, con nota | passa una scheda di un'altra famiglia |
 | MOS: la fonte è l'OEM del piè di pagina più il task letto dalle NOTE | note scritte in altro modo danno fonti mancanti |

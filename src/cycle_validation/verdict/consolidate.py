@@ -59,7 +59,14 @@ def apply_integrity(
     return out
 
 
+# WARNING di un controllo bloccante che non ferma gli altri: il dubbio è sul ciclo intero e
+# gli altri controlli servono proprio a guardarlo (DR `Accept as is`).
+_NOT_BLOCKING = (Reason.DR_SENZA_RIPARAZIONE,)
+
+
 def is_blocking_failure(result: CheckResult) -> bool:
+    if result.reason in _NOT_BLOCKING:
+        return False
     return result.verdict not in (Verdict.CORRETTO, Verdict.NON_APPLICABILE)
 
 

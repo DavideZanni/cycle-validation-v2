@@ -1,6 +1,13 @@
 """Controllo `dr_recommendation`: il serial number ha una recommendation applicabile.
 
 È un controllo bloccante: se non passa, gli altri controlli del ciclo non partono.
+
+Disposizioni del DR. `Repair`: la riparazione si fa, con i task e la procedura del DR come
+contesto delle operazioni. `Reject`: il pezzo si scarta, ERRATO e ciclo bloccato.
+`Accept as is`: il pezzo si accetta senza riparazione; il ciclo può avere comunque ispezioni e
+registrazioni, quindi WARNING `DR_SENZA_RIPARAZIONE` senza blocco, e la procedura DR (che nei
+documenti veri è solo la procedura di riparazione) non fa da contesto: una raccordatura nel
+ciclo non deve sembrare giusta perché la procedura la descrive (domanda 17).
 """
 
 from cycle_validation.checks.base import CheckContext, guarded, make_result
@@ -10,7 +17,8 @@ from cycle_validation.kb.port import DocumentInfo, DrRecommendation, KnowledgeBa
 from cycle_validation.resolve.civil import resolve_document
 from cycle_validation.resolve.dr import (
     DrSelectors,
-    is_not_applicable,
+    is_accept_as_is,
+    is_reject,
     match_recommendations,
     without_conditions,
 )
@@ -25,14 +33,18 @@ def _label(recommendation: DrRecommendation) -> str:
 def applicable_recommendations(
     kb: KnowledgeBase, selectors: DrSelectors | None
 ) -> list[DrRecommendation]:
-    """Recommendation su cui proseguire. Vuota se il controllo DR non passa."""
+    """Recommendation di riparazione su cui proseguire: il contesto delle operazioni.
+    Vuota se il controllo DR non passa; senza le `Accept as is`, che non prevedono
+    riparazione."""
     if selectors is None:
         return []
     found = kb.find_dr_recommendations(selectors.serial_number)
     if without_conditions(found):
         return []
     matched = match_recommendations(found, selectors.conditions)
-    return [] if any(is_not_applicable(item) for item in matched) else matched
+    if any(is_reject(item) for item in matched):
+        return []
+    return [item for item in matched if not is_accept_as_is(item)]
 
 
 def dr_tasks(kb: KnowledgeBase, selectors: DrSelectors | None) -> list[tuple[str | None, str]]:
@@ -114,25 +126,46 @@ def _check(ctx: CheckContext, target: Target) -> CheckResult:
         Evidence(document_key=_label(item), quote=f"{item.procedure} (condition {item.conditions})")
         for item in matched
     ]
-    stopped = next((item for item in matched if is_not_applicable(item)), None)
+    # Controllo bloccante: un dubbio sui dati dell'indice non ferma il ciclo, si scrive.
+    doubts = describe(sorted({reason for item in matched for reason in item.uncertain}))
+    stopped = next((item for item in matched if is_reject(item)), None)
     if stopped is not None:
         return make_result(
             CHECK,
             target,
             Reason.DR_NON_APPLICABILE,
-            f"La recommendation {_label(stopped)} prevede '{stopped.procedure}': "
-            "il ciclo propone riparazioni non applicabili.",
+            f"La recommendation {_label(stopped)} prevede '{stopped.procedure}': il pezzo va "
+            "scartato, il ciclo di riparazione non si applica.",
             evidence=evidence,
         )
-    names = ", ".join(_label(item) for item in matched)
-    # Controllo bloccante: un dubbio sui dati dell'indice non ferma il ciclo, si scrive.
-    doubts = sorted({reason for item in matched for reason in item.uncertain})
+    accepted = [item for item in matched if is_accept_as_is(item)]
+    repairs = [item for item in matched if not is_accept_as_is(item)]
+    if not repairs:
+        names = ", ".join(_label(item) for item in accepted)
+        return make_result(
+            CHECK,
+            target,
+            Reason.DR_SENZA_RIPARAZIONE,
+            f"La recommendation {names} per le repair condition {conditions} prevede "
+            f"'{accepted[0].procedure}': il pezzo si accetta senza riparazione. Da controllare "
+            "a mano che il ciclo non contenga le lavorazioni della procedura di riparazione "
+            "(per esempio raccordatura o attacco chimico); ispezioni e registrazioni possono "
+            "restare. Gli altri controlli proseguono senza la procedura DR come riferimento."
+            + doubts,
+            evidence=evidence,
+        )
+    names = ", ".join(_label(item) for item in repairs)
+    note = ""
+    if accepted:
+        others = ", ".join(_label(item) for item in accepted)
+        note = f" Per {others} la recommendation è '{accepted[0].procedure}': nessuna riparazione."
     return make_result(
         CHECK,
         target,
         Reason.VERIFICATO,
         f"Recommendation applicabile per il serial number {selectors.serial_number}: {names}."
-        + describe(doubts),
+        + note
+        + doubts,
         evidence=evidence,
     )
 

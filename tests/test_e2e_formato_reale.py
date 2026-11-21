@@ -278,9 +278,10 @@ def test_dr_with_manual_null_and_empty_conditions(tmp_path: Path) -> None:
     assert "70-21-00-110-031" in request.prompt and "0.31 mm" in request.prompt
 
 
-def test_dr_accept_as_is_for_the_requested_condition_is_an_error(tmp_path: Path) -> None:
+def test_dr_accept_as_is_for_the_requested_condition_is_a_warning(tmp_path: Path) -> None:
     report, _ = dr_run(tmp_path / "a", "BBBB2DDD", (2,))
-    assert reasons(report, CheckName.DR_RECOMMENDATION) == [Reason.DR_NON_APPLICABILE]
+    assert reasons(report, CheckName.DR_RECOMMENDATION) == [Reason.DR_SENZA_RIPARAZIONE]
+    assert report.status.value != "bloccato"
     report, _ = dr_run(tmp_path / "b", "BBBB2DDD", (1,))
     assert reasons(report, CheckName.DR_RECOMMENDATION) == [Reason.VERIFICATO]
 

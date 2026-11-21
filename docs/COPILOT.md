@@ -34,8 +34,9 @@ i cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git le ignora).
 ## Aggiornare il codice sul PC
 
 Da lanciare **ogni volta che Claude dice di aver corretto il codice**.
-Copia nella cartella della v2 codice, test e documenti nuovi dal repository personale (clone
-temporaneo, poi cancellato) e lancia i test.
+Copia nella cartella della v2 codice, test, documenti e casi sintetici nuovi dal repository
+personale (clone temporaneo, poi cancellato) e lancia i test. `eval\casi\aziendali` non si
+tocca.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -45,6 +46,7 @@ git clone --quiet --depth 1 https://github.com/DavideZanni/cycle-validation-v2.g
 robocopy "$tmp\src" src /E /XD __pycache__ /NFL /NDL /NJH /NJS /NP
 robocopy "$tmp\tests" tests /E /XD __pycache__ /NFL /NDL /NJH /NJS /NP
 robocopy "$tmp\docs" docs /E /NFL /NDL /NJH /NJS /NP
+robocopy "$tmp\eval\casi\sintetici" eval\casi\sintetici /E /NFL /NDL /NJH /NJS /NP
 Remove-Item -Recurse -Force $tmp
 uv run pytest -q
 ```
@@ -62,7 +64,7 @@ uv run pytest -q
 | Condition | Recommendation | Esito | Costo |
 |---|---|---|---|
 | 1 | Repair | `5 corretti, 15 warning, 0 errati`; `extraction_integrity` e `dr_recommendation` CORRETTO | 0,0097 USD, 9 sessioni |
-| 2 | Accept as is | `dr_recommendation` ERRATO (`DR_NON_APPLICABILE`), il resto bloccato: **regola da rivedere** (messaggio 17) | 0 USD |
+| 2 | Accept as is | `dr_recommendation` ERRATO (`DR_NON_APPLICABILE`), il resto bloccato: regola cambiata, vedi messaggio 17 | 0 USD |
 | 3 | Repair | identico alla condition 1 | 0,0057 USD, 9 sessioni |
 
   Descrizioni: 005, 040, 050, 060 CORRETTO; 010, 020, 030, 080, 090 `EVIDENZA_NON_TROVATA`.
@@ -85,66 +87,43 @@ uv run pytest -q
 - **Messaggio 15**: la conferma funziona. Tre run della condition 3: op. 060 CORRETTO,
   CORRETTO, WARNING `GIUDIZIO_INSTABILE` (la prima sessione ha detto ERRATO, le 2 conferme non
   l'hanno ritrovato tutte); 0 errati, 9-11 sessioni, 0,007-0,011 USD per run.
-- **Messaggio 16**: le 2 procedure DR della conoscenza hanno 16 righe ciascuna e la frase
-  «accept as is» (con spazi) non c'è mai. Righe probabilmente lunghissime e frase scritta in
-  un altro modo: si riguarda contando sul testo intero (messaggio 17). La parte sulle
-  recommendation non era nella foto.
+- **Messaggi 16 e 17**: le 2 procedure DR della conoscenza sono solo procedure di riparazione
+  (16 righe, circa 1.250 caratteri): «accept as is», «reject», «condition» non ci sono mai. La
+  disposizione per condition sta solo nelle recommendation. Corretto nel codice (domanda 17):
+  `Accept as is` ora dà WARNING `DR_SENZA_RIPARAZIONE` e gli altri controlli proseguono senza
+  la procedura di riparazione come riferimento; `Reject` resta ERRATO e blocca.
 
 ---
 
-## Messaggio 17: «Accept as is» nei DR veri, sul testo intero
+## Messaggio 18: la condition «Accept as is» con la regola nuova
 
-Oggi con `Accept as is` il programma dà ERRATO e blocca tutto, senza guardare le operazioni.
-È una regola da verificare (domanda 17 di `docs/DOMANDE_APERTE.md`). Solo lettura, nessun
-costo, non stampa codici. Il messaggio 16 cercava riga per riga, ma le procedure hanno solo 16
-righe: qui si conta sul testo intero e con più modi di scrivere.
+Prima il blocco **Aggiornare il codice sul PC** in cima a questo file. Poi questo: rilancia la
+condition 2 (`Accept as is`) con il ciclo già letto dal parser (`--cycle-json`, nessuna
+lettura nuova). Circa 1 centesimo.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 $kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
 $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-$rec = Get-Content ($v + "dr_recommendations.json") -Raw | ConvertFrom-Json
-"--- recommendation per procedura"
-$rec | Group-Object { "$($_.procedure)".Trim().ToLower() } | ForEach-Object {
-  $nome = $_.Name; $g = $_.Group
-  $sn = $g.serial_number | Sort-Object -Unique
-  $altre = @($sn | Where-Object { $s = $_; @($rec | Where-Object { $_.serial_number -eq $s -and $_.procedure -notmatch 'accept|reject' }).Count -gt 0 }).Count
-  "{0,-14} righe {1,2}  con task {2,2}  task in tutto {3,3}  con manuale {4,2}  serial con anche un Repair {5,2}" -f $nome, $g.Count, @($g | Where-Object { ($_.tasks | Measure-Object).Count -gt 0 }).Count, ($g | ForEach-Object { ($_.tasks | Measure-Object).Count } | Measure-Object -Sum).Sum, @($g | Where-Object { $_.manual }).Count, $altre
-}
-"--- procedure DR: quante volte compaiono le parole"
-$parole = [ordered]@{ 'accept as is' = 'accept(ed)?[\s-]+as[\s-]+is'; 'accept' = 'accept'; 'use as is' = 'use[\s-]+as[\s-]+is'; 'repair' = 'repair'; 'reject' = 'reject'; 'scrap' = 'scrap'; 'condition' = 'condition'; 'disposition' = 'disposition'; 'inspect' = 'inspect'; 'record' = 'record'; 'mark' = 'mark'; 'limit' = 'limit' }
-$proc = @((Get-Content ($v + "manifest.json") -Raw | ConvertFrom-Json).documents | Where-Object { $_.kind -eq 'DR_PROC' })
-$n = 0
-foreach ($d in $proc) {
-  $n++; $testo = Get-Content ($v + $d.file) -Raw; $righe = @(Get-Content ($v + $d.file))
-  $lunga = ($righe | Measure-Object -Property Length -Maximum).Maximum
-  $conta = foreach ($k in $parole.Keys) { "$k $([regex]::Matches($testo, $parole[$k], 'IgnoreCase').Count)" }
-  "procedura $n : $($righe.Count) righe, $($testo.Length) caratteri, riga piu' lunga $lunga"
-  "   $($conta -join ', ')"
-}
+$ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*CON sn.pdf" | Select-Object -First 1).FullName
+$sn = ((uv run cycle-validation leggi $ciclo --profile dr) | Select-String 'S/N (\S+)$').Matches[0].Groups[1].Value
+$out = "runs/accept-as-is"
+uv run cycle-validation run $ciclo --profile dr --serial-number $sn --condition 2 --knowledge $v --config data/settings.yaml --cycle-json "runs/dr-parser-condition-3/cycle.json" --out $out | Out-Null
+$rep = Get-Content "$out/report.json" -Raw | ConvertFrom-Json
+$dr = $rep.results | Where-Object { $_.check -eq 'dr_recommendation' }
+"stato {0}  dr_recommendation {1} {2}" -f $rep.status, $dr.verdict, $dr.reason
+"corretti {0}  warning {1}  errati {2}  sessioni {3}  costo {4:N4}" -f $rep.counts.corretto, $rep.counts.warning, $rep.counts.errato, $rep.usage.sessions, $rep.usage.cost_usd
+$rep.results | Where-Object { $_.check -eq 'operation_description' } | ForEach-Object { "  op {0,-5} {1,-9} {2}" -f $_.target.label, $_.verdict, $_.reason }
 ```
 
-**Deve uscire:** prima una riga per tipo di recommendation (`repair`, `accept as is`,
-`reject`, …), poi per ogni procedura DR due righe: dimensioni e conteggi delle parole.
-**Manda a Claude** la foto, con **tutte e due le parti** (se non stanno in una foto, due foto).
+**Deve uscire:** `stato completo`, `dr_recommendation WARNING DR_SENZA_RIPARAZIONE`, poi i
+conteggi e una riga per ogni descrizione. Le descrizioni ora non hanno la procedura DR come
+riferimento: molte usciranno WARNING `FONTE_ASSENTE` (manuale del motore assente), qualcuna
+CORRETTO se cita un task dell'SPM. **Manda a Claude** la foto.
 
-Poi questo apre le procedure DR in VS Code, **solo da leggere tu, non mandarle**:
-
-```powershell
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-(Get-Content ($v + "manifest.json") -Raw | ConvertFrom-Json).documents | Where-Object { $_.kind -eq 'DR_PROC' } | ForEach-Object { code ($v + $_.file) }
-```
-
-Con Ctrl+F cerca `accept`, `reject`, `condition`. Dimmi a parole:
-
-1. con «accept as is» la procedura chiede qualcosa (ispezione, registrazione, marcatura,
-   limiti, altro)?
-2. per una condition «accept as is» esiste un ciclo DR? Che operazioni ha di solito?
-3. con «reject» un ciclo di riparazione è sempre sbagliato?
-4. ancora aperta: l'ERRATO dell'op. 060 (in `runs\dr-condition-3\report.md`, sezione delle
-   descrizioni) aveva ragione? Il terzo run del messaggio 15 l'ha messo «da controllare a
-   mano»: serve il tuo giudizio. Non mandare il file.
+Resta aperta, quando puoi chiedere a chi conosce i DR: domanda 17 di
+`docs/DOMANDE_APERTE.md` (con «accept as is» esiste un ciclo, e con quali operazioni?) e il
+giudizio sull'ERRATO dell'op. 060 (in `runs\dr-condition-3\report.md`; non mandare il file).
 
 ---
 
@@ -155,12 +134,12 @@ della v2; `data/`, `runs/`, `eval/casi/aziendali/` e i PDF restano fuori perché
 ignora. Il push lo fai come al solito sul branch `feature/cycle-validation-v2`.
 
 ```powershell
-git add src tests docs
+git add src tests docs eval/casi/sintetici
 git status --short
-git commit -m "v2: parser PVRM320 per le stampe DR, task del capitolo 70 nell'SPM, procedura DR citata come caso, conferma degli ERRATO, comando leggi"
+git commit -m "v2: parser PVRM320 per le stampe DR, task del capitolo 70 nell'SPM, procedura DR citata come caso, conferma degli ERRATO, Accept as is senza blocco, comando leggi"
 ```
 
-**Deve uscire:** in `git status` solo righe `M ` e `A ` sotto `src/`, `tests/`, `docs/`; poi
+**Deve uscire:** in `git status` solo righe `M ` e `A ` sotto `src/`, `tests/`, `docs/`, `eval/casi/sintetici/`; poi
 il riepilogo del commit.
 
 ---

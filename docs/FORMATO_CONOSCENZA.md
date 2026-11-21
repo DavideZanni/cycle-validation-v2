@@ -131,8 +131,10 @@ l'applicabilità al motore non viene verificata.
 Con `manual: null` i task si cercano nei manuali citati dal ciclo. Se un serial number ha una
 sola recommendation, questa vale per qualunque condition, anche con `conditions: []`. Se ne ha
 più di una, valgono quelle con una condition in comune con quelle richieste; se una di queste ha
-`conditions: []`, il caso è ambiguo e il ciclo si ferma con un WARNING. `Accept as is` e
-`Reject` danno ERRATO (la riparazione non va fatta).
+`conditions: []`, il caso è ambiguo e il ciclo si ferma con un WARNING. `Reject` dà ERRATO
+e ferma il ciclo (il pezzo si scarta). `Accept as is` dà WARNING `DR_SENZA_RIPARAZIONE` e
+gli altri controlli proseguono, senza i task e la procedura di quella recommendation come
+riferimento: le procedure DR pubblicate sono procedure di riparazione (domanda 17).
 
 ```json
 [

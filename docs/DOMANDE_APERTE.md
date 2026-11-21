@@ -59,33 +59,39 @@ regola?
 
 Risposta:
 
-### 17. DR con `Accept as is`: il ciclo va davvero bloccato? (da rivedere)
+### 17. DR con `Accept as is`: scelta fatta, da confermare
 
-Regola di oggi, scelta all'inizio senza dati veri e mai verificata: se la recommendation
-applicabile dice `Accept as is` (o `Reject`), `dr_recommendation` esce ERRATO
-`DR_NON_APPLICABILE` («il ciclo propone riparazioni non applicabili») e gli altri controlli non
-partono. Il programma non guarda nemmeno le operazioni del ciclo. Il 21-11-2026, sul ciclo DR
-vero con la condition 2, è uscito così.
+Regola di prima, scelta all'inizio senza dati veri: con `Accept as is` (o `Reject`)
+`dr_recommendation` usciva ERRATO e gli altri controlli non partivano, senza guardare le
+operazioni. Dubbio dell'utente (21-11-2026): «Accept as is» non vuol dire «non si fa nulla».
 
-Dubbio dell'utente (21-11-2026): «Accept as is» non vuol dire «non si fa nulla». Nella prassi
-aeronautica il pezzo non si ripara, ma di solito restano le altre operazioni (ispezione,
-registrazione del caso, marcatura, eventuali limiti o controlli in più, collaudo finale). Un
-ciclo con quelle operazioni sarebbe giusto. Sarebbe sbagliato solo un ciclo che ripara.
+Cosa si è visto sui dati veri (21-11-2026, messaggi 16 e 17):
 
-Cosa serve sapere, dai dati veri (messaggio 17 di `docs/COPILOT.md`; il 16 non ha trovato la frase «accept as is» con gli spazi) e da chi conosce i DR:
+- le 2 procedure DR pubblicate sono solo **procedure di riparazione** (16 righe, circa 1.250
+  caratteri ciascuna: rimozione del difetto, raccordatura, ispezione visiva, attacco chimico,
+  penetranti). «Accept as is», «reject», «condition» non ci sono mai;
+- la disposizione per condition (`Repair`, `Accept as is`, `Reject`) sta quindi solo nelle
+  recommendation dell'indice, non nel testo della procedura.
 
-- le recommendation `Accept as is` hanno task? Se sì, quelli sono il lavoro da fare;
-- cosa dice la procedura DR nel punto «accept as is» (ispezioni, registrazioni, limiti);
-- per una condition `Accept as is` esiste un ciclo DR, e quali operazioni ha;
-- `Reject` (pezzo scartato): lì un ciclo di riparazione è davvero sempre sbagliato?
+Nella prassi aeronautica «use/accept as is» vuol dire che il pezzo non conforme si usa senza
+ripararlo, perché l'ingegneria l'ha giudicato accettabile; la decisione si registra e il pezzo
+prosegue con ispezioni e documenti fino al rilascio.
 
-Alternative alla regola di oggi, da scegliere dopo:
+**Scelta fatta (21-11-2026):**
 
-| Scelta | Cosa farebbe |
-|---|---|
-| A. non bloccare | i controlli proseguono, con i task e la procedura DR dell'`Accept as is` come contesto; un'operazione di riparazione esce ERRATO dal confronto con la procedura |
-| B. WARNING | `dr_recommendation` esce WARNING «da verificare a mano», niente blocco, nessun ERRATO automatico |
-| C. come oggi | ERRATO e blocco, se i DR veri confermano che con `Accept as is` non c'è ciclo |
+| Disposizione | Esito di `dr_recommendation` | Gli altri controlli |
+|---|---|---|
+| `Repair` | CORRETTO | proseguono con i task e la procedura DR come riferimento |
+| `Accept as is` (anche `Accept-as-is`, `Use as is`) | WARNING `DR_SENZA_RIPARAZIONE`: il pezzo si accetta senza riparazione, da controllare a mano che il ciclo non contenga le lavorazioni della procedura di riparazione | proseguono, **senza** la procedura DR come riferimento: una raccordatura nel ciclo non deve risultare giusta perché la procedura di riparazione la descrive |
+| `Reject` | ERRATO `DR_NON_APPLICABILE` (il pezzo si scarta) | bloccati |
+| più condition, una `Repair` e una `Accept as is` | CORRETTO, con una nota | proseguono con la sola `Repair` come riferimento |
+
+Il programma non decide da solo se un'operazione è una riparazione: lo dice il WARNING e lo
+guarda una persona. Da confermare con chi conosce i DR:
+
+- per una condition `Accept as is` esiste un ciclo DR, e con quali operazioni?
+- con `Reject` un ciclo di riparazione è sempre sbagliato?
+- i task delle recommendation `Accept as is`, quando ci sono, che cosa sono? Oggi non si usano.
 
 Risposta:
 

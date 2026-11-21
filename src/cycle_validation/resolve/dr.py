@@ -9,7 +9,11 @@ from cycle_validation.errors import CycleValidationError
 from cycle_validation.kb.port import DrRecommendation
 from cycle_validation.text import normalize_quote
 
-NOT_APPLICABLE_PROCEDURES = ("accept as is", "reject")
+# Disposizioni del DR diverse da una riparazione. `Reject`: il pezzo si scarta, un ciclo di
+# riparazione è sbagliato. `Accept as is`: il pezzo si accetta senza riparazione, ma il ciclo
+# può avere comunque ispezioni e registrazioni, quindi non è un errore di per sé (domanda 17).
+REJECT_PROCEDURES = ("reject",)
+ACCEPT_AS_IS_PROCEDURES = ("accept as is", "use as is")
 _INTEGER = re.compile(r"-?[0-9]+")
 
 
@@ -93,5 +97,14 @@ def without_conditions(recommendations: Sequence[DrRecommendation]) -> list[DrRe
     return [item for item in recommendations if not item.conditions]
 
 
-def is_not_applicable(recommendation: DrRecommendation) -> bool:
-    return normalize_quote(recommendation.procedure) in NOT_APPLICABLE_PROCEDURES
+def _procedure(recommendation: DrRecommendation) -> str:
+    # "Accept-as-is", "ACCEPT AS IS" e "accept as is." sono la stessa disposizione
+    return normalize_quote(recommendation.procedure.replace("-", " ")).rstrip(".")
+
+
+def is_reject(recommendation: DrRecommendation) -> bool:
+    return _procedure(recommendation) in REJECT_PROCEDURES
+
+
+def is_accept_as_is(recommendation: DrRecommendation) -> bool:
+    return _procedure(recommendation) in ACCEPT_AS_IS_PROCEDURES
