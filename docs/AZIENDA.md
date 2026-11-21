@@ -141,9 +141,12 @@ La conoscenza la pubblica knowledge-index su S3: `current.json` punta alla versi
 esperimenti:
 
 ```bash
-uv run cycle-validation eval fotografia --bucket <BUCKETNAME> --prefisso "Manufacturing AI/cv3/knowledge/" --out eval/casi/aziendali/conoscenza/foto-AAAAMMGG
+uv run cycle-validation eval fotografia --bucket <BUCKETNAME> --prefisso "Manufacturing AI/cv3/knowledge/civil/" --out eval/casi/aziendali/conoscenza/foto-AAAAMMGG
 uv run cycle-validation kb-check "eval/casi/aziendali/conoscenza/foto-AAAAMMGG/Manufacturing AI/cv3/knowledge/civil/v/<versione>"
 ```
+
+Si scarica solo `civil/`: la guida aziendale vuole che documenti e output EJ200 restino su
+AWS EU, quindi niente copia locale della conoscenza EJ200.
 
 La versione è quella scritta in `knowledge/civil/current.json`. `kb-check` stampa i conteggi,
 anche delle voci che l'indice segna come incerte, e fallisce se un file non va: va lanciato a ogni

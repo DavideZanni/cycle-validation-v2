@@ -53,65 +53,65 @@ uv run pytest -q
 
 ---
 
-## Messaggio 9: le due stampe DR che il parser non legge e il terzo ciclo MOS
+## Messaggio 9: stampe DR e terzo ciclo MOS (fatto)
 
-`leggi` stampa la pagina 2 delle due stampe DR come il programma la legge dal PDF (zero
-token); poi si valida il terzo ciclo MOS, che cita solo task del manuale SPM (qualche
-centesimo).
+Fatto il 21-11-2026. Terzo ciclo MOS: `7 corretti, 16 warning, 0 errati, 14 non applicabili`,
+3 sessioni, 0,0058 USD. I task delle operazioni 005, 030 e 040 sono tutti nell'SPM
+(CORRETTO); descrizioni 005 e 030 CORRETTO, 040 WARNING `EVIDENZA_NON_TROVATA` (il modello
+non ha trovato nel testo la conferma); le altre FONTE_ASSENTE (manuale del motore assente).
+Le due stampe DR: dopo il banner di fine pagina `*** C O N T I N U A ***` c'è il seguito del
+testo della riga NOTE; il parser ora lo attacca alla NOTE. Una delle due stampe scrive il caso
+DR e il serial number del pezzo: `leggi` ora li stampa.
+
+---
+
+## Messaggio 10: il ciclo DR con il serial number scritto nella stampa
+
+Prima il blocco **Aggiornare il codice sul PC** in cima a questo file. Poi questo:
+
+1. cancella dal PC la copia della conoscenza **EJ200**, scaricata insieme a quella civile nel
+   messaggio 4: la guida aziendale dice che documenti e output EJ200 restano su AWS EU. Le
+   prove usano solo la conoscenza civile;
+2. rilegge le due stampe DR (adesso devono passare dal parser) e stampa caso DR e S/N;
+3. lancia la stampa `CON sn` con il suo serial number, una volta per ogni condition che la
+   conoscenza ha per quel serial number. Qualche centesimo.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo dr/*sn.pdf").FullName --profile dr --pagina 2
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-uv run cycle-validation run (Get-ChildItem "docs/Esempio ciclo mos/*.pdf" | Select-Object -Last 1).FullName --profile mos --knowledge ($kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path) --config data/settings.yaml
-Select-String -Path runs/ultimo/report.md -Pattern '^- (Stato|Esiti|Costo)'
-Select-String -Path runs/ultimo/report.md -Pattern '^- \*\*(\S+)\*\* \S+ (.+?) \S+ (ERRATO|WARNING|CORRETTO) \((\w+)\)' | ForEach-Object { $g = $_.Matches[0].Groups; "{0,-8} {1,-22} {2,-30} {3}" -f $g[3].Value, $g[1].Value, $g[2].Value, $g[4].Value }
+$base = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge"
+Remove-Item -Recurse -Force "$base/ej200" -ErrorAction SilentlyContinue
+Test-Path "$base/ej200"
+$kb = "$base/civil/"
+$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo dr/*sn.pdf").FullName --profile dr
+$ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*CON sn.pdf" | Select-Object -First 1).FullName
+$sn = ((uv run cycle-validation leggi $ciclo --profile dr) | Select-String 'S/N (\S+)$').Matches[0].Groups[1].Value
+$rec = (Get-Content ($v + "dr_recommendations.json") -Raw | ConvertFrom-Json) | Where-Object { $_.serial_number -eq $sn -and $_.conditions.Count -gt 0 }
+foreach ($r in $rec) {
+  $c = $r.conditions -join ','
+  $out = "runs/dr-condition-$($r.conditions -join '-')"
+  "=== condition $c, recommendation $($r.procedure)"
+  uv run cycle-validation run $ciclo --profile dr --serial-number $sn --condition $c --knowledge $v --config data/settings.yaml --out $out
+  Select-String -Path "$out/report.md" -Pattern '^- Costo'
+  Select-String -Path "$out/report.md" -Pattern '^- \*\*(\S+)\*\* \S+ (.+?) \S+ (ERRATO|WARNING|CORRETTO) \((\w+)\)' | ForEach-Object { $g = $_.Matches[0].Groups; "{0,-8} {1,-22} {2,-30} {3}" -f $g[3].Value, $g[1].Value, $g[2].Value, $g[4].Value }
+}
 ```
 
 **Deve uscire:**
 
-- per ciascuna delle due stampe DR: le righe della pagina 2 numerate (`  12 | ...`), poi
-  `non letto dal parser: ... (comincia con «...»)`. **Manda a Claude** le foto di tutte le
-  righe (anche più foto): servono per correggere il parser;
-- il terzo ciclo MOS: `task_code` dell'operazione 005 CORRETTO (entrambi i task sono
-  nell'SPM) e `operation_description` 005 giudicato dal modello. `source` resta
-  FONTE_ASSENTE (il manuale del motore non è nel sottoinsieme) e le targhe ERRORE_TECNICO
-  (manca l'elenco delle macchine attive).
+- `False` (la copia EJ200 non c'è più);
+- `leggi`: le due stampe lette (riparazione, fonti, 9 o 10 operazioni), e per la stampa
+  `CON sn` una riga `dr: caso ... · S/N ...`;
+- per ogni condition (`=== condition ...`):
+  - recommendation **Repair**: `dr_recommendation` CORRETTO e le descrizioni confrontate dal
+    modello con il testo della procedura DR, che è nel sottoinsieme (CORRETTO, WARNING o
+    ERRATO); `source` FONTE_ASSENTE (manuale del motore assente);
+  - recommendation **Accept as is**: `dr_recommendation` ERRATO (per quella condition la
+    riparazione non va fatta) e i controlli dopo non partono.
 
----
-
-## Messaggio 10: due cicli DR con le recommendation del sottoinsieme
-
-Prova di funzionamento del ramo DR: il ciclo `rip.A6` lanciato con due serial number presi
-dalla conoscenza, uno con recommendation **Repair** e uno con **Accept as is**, entrambi di una
-procedura DR che è nel sottoinsieme. I serial number li sceglie il comando: non è detto che
-siano quelli veri del ciclo, quindi gli esiti delle descrizioni non sono ancora una misura.
-Qualche centesimo.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-$presenti = (Get-Content ($v + "manifest.json") -Raw | ConvertFrom-Json).documents.code
-$rec = (Get-Content ($v + "dr_recommendations.json") -Raw | ConvertFrom-Json) | Where-Object { $_.reference -in $presenti -and $_.conditions.Count -gt 0 }
-$ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*rip.A6.pdf" | Select-Object -First 1).FullName
-foreach ($r in @(($rec | Where-Object procedure -eq 'Repair' | Select-Object -First 1), ($rec | Where-Object procedure -eq 'Accept as is' | Select-Object -First 1))) {
-  "=== $($r.procedure): serial $($r.serial_number), condition $($r.conditions -join ','), procedura $($r.reference)"
-  uv run cycle-validation run $ciclo --profile dr --serial-number $r.serial_number --condition ($r.conditions -join ',') --knowledge $v --config data/settings.yaml --out "runs/dr-$($r.procedure -replace ' ', '-')"
-  Select-String -Path "runs/dr-$($r.procedure -replace ' ', '-')/report.md" -Pattern '^- \*\*(\S+)\*\* \S+ (.+?) \S+ (ERRATO|WARNING|CORRETTO) \((\w+)\)' | ForEach-Object { $g = $_.Matches[0].Groups; "{0,-8} {1,-22} {2,-30} {3}" -f $g[3].Value, $g[1].Value, $g[2].Value, $g[4].Value }
-}
-```
-
-**Deve uscire**, per ciascuno dei due:
-
-- **Repair**: `dr_recommendation` CORRETTO; le descrizioni delle operazioni confrontate dal
-  modello con il testo della procedura DR (CORRETTO, WARNING o ERRATO a seconda di cosa dice
-  la procedura); `source` FONTE_ASSENTE (manuale del motore non nel sottoinsieme);
-- **Accept as is**: `dr_recommendation` ERRATO (per quella condition la riparazione non va
-  fatta) e i controlli dopo non partono.
-
-**Manda a Claude** le foto. Se sai il serial number e la condition veri di questo ciclo,
-dimmeli: si rilancia con quelli e allora l'esito è una misura vera.
+**Manda a Claude** le foto e, se lo sai, quale condition è quella vera di questo pezzo: per
+quella l'esito è una misura vera. Le righe ERRATO e WARNING delle descrizioni le puoi leggere
+per intero in `runs\dr-condition-...\report.md`, con la citazione della procedura.
 
 ---
 
