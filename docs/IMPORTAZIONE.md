@@ -120,14 +120,27 @@ Lo zip contiene già la cartella `app_cycle_validation_v2/`, solo file del repos
 Expand-Archive "$HOME\Downloads\app_cycle_validation_v2.zip" -DestinationPath .
 ```
 
-**Se lo scarichi da GitHub** (repository personale, scarica lo ZIP del branch di lavoro dal
-pulsante *Code → Download ZIP*): dentro c'è una cartella con il nome del repository e del branch,
-che va rinominata:
+**Se lo cloni da GitHub.** Il clone va in una cartella **fuori** dal repository aziendale: da
+lì si prende solo il codice, non la storia (che ha commit con l'email personale e non serve al
+repository aziendale). Il repository è privato: al primo comando Git chiede di accedere con
+l'account GitHub **personale**.
 
 ```powershell
-Expand-Archive "$HOME\Downloads\<nome dello zip>.zip" -DestinationPath "$HOME\Downloads\v2tmp"
-Move-Item "$HOME\Downloads\v2tmp\<unica cartella dentro>" .\app_cycle_validation_v2
+cd $HOME\Downloads
+git clone --branch ccr-80f7e33d-6p52sg https://github.com/DavideZanni/cycle-validation-v2.git
+git -C cycle-validation-v2 archive --format=zip --prefix=app_cycle_validation_v2/ -o "$HOME\Downloads\app_cycle_validation_v2.zip" HEAD
 ```
+
+Il secondo comando fa lo stesso zip mandato in chat (solo i file del repository). Poi torna nella
+radice del repository aziendale ed estrai come sopra:
+
+```powershell
+cd <percorso>\avioaero_datalake_cycle_validation
+Expand-Archive "$HOME\Downloads\app_cycle_validation_v2.zip" -DestinationPath .
+```
+
+Se il clone chiede l'accesso e quello personale non passa (rete o regole aziendali), usa lo zip
+mandato in chat. Finito tutto, la cartella `Downloads\cycle-validation-v2` si può cancellare.
 
 Controllo, dalla radice del repository:
 
