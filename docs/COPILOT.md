@@ -62,7 +62,7 @@ uv run pytest -q
 | Condition | Recommendation | Esito | Costo |
 |---|---|---|---|
 | 1 | Repair | `5 corretti, 15 warning, 0 errati`; `extraction_integrity` e `dr_recommendation` CORRETTO | 0,0097 USD, 9 sessioni |
-| 2 | Accept as is | `dr_recommendation` ERRATO (`DR_NON_APPLICABILE`), il resto bloccato: giusto | 0 USD |
+| 2 | Accept as is | `dr_recommendation` ERRATO (`DR_NON_APPLICABILE`), il resto bloccato: **regola da rivedere** (messaggio 16) | 0 USD |
 | 3 | Repair | identico alla condition 1 | 0,0057 USD, 9 sessioni |
 
   Descrizioni: 005, 040, 050, 060 CORRETTO; 010, 020, 030, 080, 090 `EVIDENZA_NON_TROVATA`.
@@ -114,6 +114,70 @@ foreach ($i in 1..3) {
 `runs\dr-condition-3\report.md`, cerca `060` nella sezione delle descrizioni, leggi la
 spiegazione dell'ERRATO e dimmi **se ha ragione** e su quale punto (limite in mm, classe del
 penetrante, ingrandimento, altro). Non mandare il file.
+
+---
+
+## Messaggio 16: cosa vuol dire «Accept as is» nei DR veri
+
+Oggi con `Accept as is` il programma dà ERRATO e blocca tutto, senza guardare le operazioni.
+È una regola da verificare (domanda 17 di `docs/DOMANDE_APERTE.md`). Questo blocco guarda le
+recommendation e le procedure DR della conoscenza. Solo lettura, nessun costo, non stampa
+codici.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
+$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+$rec = Get-Content ($v + "dr_recommendations.json") -Raw | ConvertFrom-Json
+"--- recommendation per procedura"
+$rec | Group-Object { "$($_.procedure)".Trim().ToLower() } | ForEach-Object {
+  $nome = $_.Name; $g = $_.Group
+  $sn = $g.serial_number | Sort-Object -Unique
+  $altre = @($sn | Where-Object { $s = $_; @($rec | Where-Object { $_.serial_number -eq $s -and $_.procedure -notmatch 'accept|reject' }).Count -gt 0 }).Count
+  "{0,-14} righe {1,2}  con task {2,2}  task in tutto {3,3}  con manuale {4,2}  serial con anche un Repair {5,2}" -f $nome, $g.Count, @($g | Where-Object { ($_.tasks | Measure-Object).Count -gt 0 }).Count, ($g | ForEach-Object { ($_.tasks | Measure-Object).Count } | Measure-Object -Sum).Sum, @($g | Where-Object { $_.manual }).Count, $altre
+}
+"--- procedure DR: dove compare 'accept/use as is' e cosa c'e' vicino"
+$frase = 'accept(ed)?\s+as[\s-]+is|use\s+as[\s-]+is'
+$proc = @((Get-Content ($v + "manifest.json") -Raw | ConvertFrom-Json).documents | Where-Object { $_.kind -eq 'DR_PROC' })
+"procedure DR nella conoscenza: $($proc.Count)"
+$n = 0
+foreach ($d in $proc) {
+  $n++; $righe = @(Get-Content ($v + $d.file))
+  $occ = @($righe | Select-String -Pattern $frase)
+  $vicino = foreach ($p in 'inspect','record','mark','identif','limit','life','shop visit','penetrant|fpi','dimension','blend','repair','reject') {
+    $k = @($occ | Where-Object { $a = [Math]::Max(0, $_.LineNumber - 8); $b = [Math]::Min($righe.Count - 1, $_.LineNumber + 12); ($righe[$a..$b] -join ' ') -match $p }).Count
+    "$p $k"
+  }
+  "procedura $n : $($righe.Count) righe, 'as is' $($occ.Count) volte | vicino: $($vicino -join ', ')"
+}
+```
+
+**Deve uscire:** una riga per tipo di recommendation (`repair`, `accept as is`, `reject`, …),
+poi una riga per ogni procedura DR, con quante volte ogni parola compare vicino ad «accept as
+is». **Manda a Claude** la foto.
+
+Poi questo, **solo da leggere tu, non mandarlo** (è testo dei documenti): mostra il testo
+attorno ai primi punti «accept as is» di ogni procedura.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
+$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+$frase = 'accept(ed)?\s+as[\s-]+is|use\s+as[\s-]+is'
+$proc = @((Get-Content ($v + "manifest.json") -Raw | ConvertFrom-Json).documents | Where-Object { $_.kind -eq 'DR_PROC' })
+$n = 0
+foreach ($d in $proc) {
+  $n++
+  Get-Content ($v + $d.file) | Select-String -Pattern $frase -Context 6,12 | Select-Object -First 4 | ForEach-Object { "=== procedura $n, riga $($_.LineNumber)"; $_.Context.PreContext; ">> $($_.Line)"; $_.Context.PostContext }
+}
+```
+
+Dimmi a parole:
+
+1. con «accept as is» la procedura chiede qualcosa (ispezione, registrazione, marcatura,
+   limiti, altro)?
+2. per una condition «accept as is» esiste un ciclo DR? Che operazioni ha di solito?
+3. con «reject» un ciclo di riparazione è sempre sbagliato?
 
 ---
 

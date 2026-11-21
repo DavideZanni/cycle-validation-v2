@@ -384,6 +384,7 @@ e mai ERRATO.
 |---|---|
 | DR: un serial number con una sola recommendation vale per qualunque condition | si applica una recommendation a una condition non prevista |
 | DR: `Accept as is` e `Reject` riconosciuti solo scritti così | una variante di scrittura passa come riparazione normale |
+| DR: `Accept as is` e `Reject` = ERRATO e ciclo bloccato, senza guardare le operazioni (domanda 17, in verifica) | un ciclo giusto, con sole ispezioni e registrazioni, esce ERRATO |
 | DR: nessuna recommendation trovata = ERRATO | dati DR incompleti danno ERRATO invece di WARNING |
 | Scheda presente ma famiglia del motore non riconosciuta = CORRETTO, con nota | passa una scheda di un'altra famiglia |
 | MOS: la fonte è l'OEM del piè di pagina più il task letto dalle NOTE | note scritte in altro modo danno fonti mancanti |

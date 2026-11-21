@@ -59,6 +59,36 @@ regola?
 
 Risposta:
 
+### 17. DR con `Accept as is`: il ciclo va davvero bloccato? (da rivedere)
+
+Regola di oggi, scelta all'inizio senza dati veri e mai verificata: se la recommendation
+applicabile dice `Accept as is` (o `Reject`), `dr_recommendation` esce ERRATO
+`DR_NON_APPLICABILE` («il ciclo propone riparazioni non applicabili») e gli altri controlli non
+partono. Il programma non guarda nemmeno le operazioni del ciclo. Il 21-11-2026, sul ciclo DR
+vero con la condition 2, è uscito così.
+
+Dubbio dell'utente (21-11-2026): «Accept as is» non vuol dire «non si fa nulla». Nella prassi
+aeronautica il pezzo non si ripara, ma di solito restano le altre operazioni (ispezione,
+registrazione del caso, marcatura, eventuali limiti o controlli in più, collaudo finale). Un
+ciclo con quelle operazioni sarebbe giusto. Sarebbe sbagliato solo un ciclo che ripara.
+
+Cosa serve sapere, dai dati veri (messaggio 16 di `docs/COPILOT.md`) e da chi conosce i DR:
+
+- le recommendation `Accept as is` hanno task? Se sì, quelli sono il lavoro da fare;
+- cosa dice la procedura DR nel punto «accept as is» (ispezioni, registrazioni, limiti);
+- per una condition `Accept as is` esiste un ciclo DR, e quali operazioni ha;
+- `Reject` (pezzo scartato): lì un ciclo di riparazione è davvero sempre sbagliato?
+
+Alternative alla regola di oggi, da scegliere dopo:
+
+| Scelta | Cosa farebbe |
+|---|---|
+| A. non bloccare | i controlli proseguono, con i task e la procedura DR dell'`Accept as is` come contesto; un'operazione di riparazione esce ERRATO dal confronto con la procedura |
+| B. WARNING | `dr_recommendation` esce WARNING «da verificare a mano», niente blocco, nessun ERRATO automatico |
+| C. come oggi | ERRATO e blocco, se i DR veri confermano che con `Accept as is` non c'è ciclo |
+
+Risposta:
+
 ## Risposte date (20-11-2026)
 
 ### 13. Task citato che il manuale non ha
