@@ -204,9 +204,13 @@ def read_cycles(
     pdfs: Annotated[list[Path], typer.Argument(help="PDF dei cicli.")],
     profile: Annotated[str, typer.Option(help="mos | dr | ej200")] = "mos",
     config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
+    pagina: Annotated[
+        int | None, typer.Option(help="Stampa anche il testo di questa pagina, riga per riga.")
+    ] = None,
 ) -> None:
     """Legge i cicli con il parser di layout, senza modello né conoscenza (zero token), e
-    stampa riparazione, fonti e task citati: serve a scegliere quali cicli provare."""
+    stampa riparazione, fonti e task citati: serve a scegliere quali cicli provare. Con
+    `--pagina` stampa il testo di quella pagina com'è letto dal PDF, per capire un errore."""
     try:
         settings = load_settings(config)
         limits = load_profile(profile, settings.paths.profiles_dir).file_limits
@@ -215,7 +219,11 @@ def read_cycles(
     for path in pdfs:
         typer.echo(path.name)
         try:
-            cycle = parse_pvrm320(read_pdf(path, limits))
+            pdf = read_pdf(path, limits)
+            if pagina is not None and 1 <= pagina <= len(pdf.pages):
+                for number, line in enumerate(pdf.pages[pagina - 1].text.splitlines(), 1):
+                    typer.echo(f"  {number:3} | {line}")
+            cycle = parse_pvrm320(pdf)
         except CycleValidationError as error:
             typer.echo(f"  non letto dal parser: {error}")
             continue

@@ -249,7 +249,7 @@ def test_a_block_of_text_without_operation_number_is_not_silently_dropped() -> N
         row("QQ/902", "", "OPERAZIONE DI CUI SI E PERSO IL NUMERO"),
         SEP,
     ]
-    with pytest.raises(ExtractionError, match="senza numero"):
+    with pytest.raises(ExtractionError, match=r"senza numero.*comincia con «OPERAZIONE DI CUI"):
         one_page(body)
 
 

@@ -164,8 +164,10 @@ def _no_orphan(pending: _Op) -> None:
     """Testo o scheda senza un numero di operazione a cui attaccarli: il layout non è quello
     atteso. Meglio fermarsi (e lasciare il passo all'estrattore di riserva) che perdere righe."""
     if pending.text or pending.sheet:
+        first = next((line for line in pending.text if line != _SECTION), None)
+        start = f" (comincia con «{first[:60]}»)" if first else f" (scheda {pending.sheet})"
         raise ExtractionError(
-            f"Stampa PVRM320, pagina {pending.page}: blocco senza numero di operazione."
+            f"Stampa PVRM320, pagina {pending.page}: blocco senza numero di operazione{start}."
         )
 
 
