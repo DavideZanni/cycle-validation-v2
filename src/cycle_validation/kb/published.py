@@ -156,6 +156,9 @@ class PublishedKnowledgeBase:
     def find_task(self, manual: str, task: str) -> TaskLocation | None:
         return self.current().find_task(manual, task)
 
+    def find_task_in_kind(self, kind: str, task: str) -> TaskLocation | None:
+        return self.current().find_task_in_kind(kind, task)
+
     def find_machine_tag(self, tag: str) -> MachineTagEntry | None:
         return self.current().find_machine_tag(tag)
 

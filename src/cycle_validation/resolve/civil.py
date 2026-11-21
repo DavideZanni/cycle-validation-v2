@@ -13,6 +13,12 @@ from cycle_validation.text import normalize_code
 
 _NUMBERS = re.compile(r"\d+")
 
+# Il capitolo 70 dei manuali GE è quello delle pratiche standard: i suoi task stanno nel
+# manuale SPM anche quando il ciclo cita solo il manuale del motore ("TASK 70-11-00-350-002
+# ABC123456 TASK 72-11-31-..."). Il tipo è il `kind` dei documenti nel manifest.
+STANDARD_PRACTICES_KIND = "SPM"
+_STANDARD_PRACTICES_TASK = re.compile(r"70-")
+
 
 @dataclass(frozen=True)
 class DocumentResolution:
@@ -108,15 +114,26 @@ def manuals_for_operation(cycle: Cycle, operation: Operation) -> list[str]:
     return _unique([source.manual for source in linked_sources(cycle, operation)])
 
 
+def locate_task(kb: KnowledgeBase, manuals: Sequence[str], task: str) -> TaskLocation | None:
+    """Il task nei manuali indicati; un task delle pratiche standard (capitolo 70) che lì
+    non c'è si cerca nei documenti SPM."""
+    for manual in manuals:
+        hit = kb.find_task(manual, task)
+        if hit is not None:
+            return hit
+    if _STANDARD_PRACTICES_TASK.match(normalize_code(task)):
+        return kb.find_task_in_kind(STANDARD_PRACTICES_KIND, task)
+    return None
+
+
 def resolve_operation(cycle: Cycle, operation: Operation, kb: KnowledgeBase) -> OperationRefs:
-    """Cerca ogni task code dell'operazione nei manuali delle fonti collegate."""
+    """Cerca ogni task code dell'operazione nei manuali delle fonti collegate (e, per il
+    capitolo 70, nel manuale SPM)."""
     manuals = manuals_for_operation(cycle, operation)
     found: list[TaskLocation] = []
     missing: list[str] = []
     for code in operation.task_codes:
-        location = next(
-            (hit for manual in manuals if (hit := kb.find_task(manual, code)) is not None), None
-        )
+        location = locate_task(kb, manuals, code)
         if location is None:
             missing.append(code)
         else:
@@ -185,9 +202,10 @@ def context_locations(
             names = _unique([name for name in (document.code, document.key) if name])
             pairs += [(source.manual, name) for name in names]
     manuals = _unique([source.manual for source in sources])
+    lookups = [([manual], task) for manual, task in pairs]
     for manual, task in extra_tasks:
-        pairs += [(manual, task)] if manual is not None else [(name, task) for name in manuals]
-    locations = [hit for manual, task in pairs if (hit := kb.find_task(manual, task))]
+        lookups.append(([manual] if manual is not None else manuals, task))
+    locations = [hit for names, task in lookups if (hit := locate_task(kb, names, task))]
     if not locations:
         locations = [whole_document(document) for document in extra_documents]
     return _dedupe(locations)

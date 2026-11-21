@@ -44,6 +44,21 @@ Come si corregge in knowledge-index, in ordine:
 
 Risposta:
 
+### 16. Task del capitolo 70 cercati nel manuale SPM (scelta da confermare)
+
+Prova del 21-11-2026 su un ciclo MOS vero: il ciclo cita come fonte solo il manuale del motore
+(l'OEM del piè di pagina), ma nel testo scrive anche task del capitolo 70
+(`TASK 70-11-00-350-002`, valori inventati), che stanno nel manuale delle pratiche standard
+(SPM, `kind: SPM` nel manifest). Prima il programma li cercava solo nel manuale citato e non li
+trovava mai; lo stesso per i task delle recommendation DR con `manual: null`.
+
+Scelta fatta: un task che comincia con `70-` e non è nei manuali citati si cerca nei documenti
+con `kind: SPM`. Gli altri capitoli no. La citazione resta verificata sul testo dell'SPM.
+Da confermare: il capitolo 70 è sempre e solo l'SPM? C'è un altro capitolo con la stessa
+regola?
+
+Risposta:
+
 ## Risposte date (20-11-2026)
 
 ### 13. Task citato che il manuale non ha

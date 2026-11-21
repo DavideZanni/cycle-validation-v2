@@ -64,7 +64,13 @@ _SHEET_LINE = re.compile(
 )
 # riparazione nella testata ripetuta a ogni pagina: vale per le operazioni di quella pagina
 _PAGE_REPAIR = re.compile(r"^\s*RIPARAZIONE\s*:\s*(?P<repair>\S+)", re.IGNORECASE | re.MULTILINE)
-_TASK = re.compile(r"\bTASK\s+(\d{2}-\d{2}-\d{2}(?:\s+REPAIR\s+\d+)?)", re.IGNORECASE)
+# Il task per intero: codice completo (70-42-00-350-002) o sezione con tipo e numero
+# (72-00-00 REPAIR 001). Il codice completo va letto tutto: tagliato alle prime tre coppie
+# non corrisponde a nessun task del manuale.
+_TASK = re.compile(
+    r"\bTASK\s+(\d{2}-\d{2}-\d{2}(?:-\d{3}-\d{3}|\s+REPAIR\s+\d+)?)(?![\dA-Za-z-])",
+    re.IGNORECASE,
+)
 # Fonti EJ200: il codice dopo la parola RDR, RN o EF ("DELLA RDR EJ00010X-01"); i codici RN
 # ed EF si riconoscono anche da soli, perché cominciano con il tipo ("RN-EJ-000-0000-01",
 # "EF000A0000-01"). Un codice contiene almeno una cifra: "RDR ALLEGATA" non è un riferimento.

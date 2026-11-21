@@ -74,6 +74,9 @@ class RemoteKnowledgeBase:
     def find_task(self, manual: str, task: str) -> TaskLocation | None:
         return self._manuals.find_task(manual, task)
 
+    def find_task_in_kind(self, kind: str, task: str) -> TaskLocation | None:
+        return self._manuals.find_task_in_kind(kind, task)
+
     def find_machine_tag(self, tag: str) -> MachineTagEntry | None:
         self._ensure()
         return self._tags.get(normalize_code(tag))

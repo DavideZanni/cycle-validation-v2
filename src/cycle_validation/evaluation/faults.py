@@ -132,6 +132,10 @@ class FaultyKnowledge:
         self._maybe_fail("task", manual, task)
         return self._inner.find_task(manual, task)
 
+    def find_task_in_kind(self, kind: str, task: str) -> TaskLocation | None:
+        self._maybe_fail("task", kind, task)
+        return self._inner.find_task_in_kind(kind, task)
+
     def find_machine_tag(self, tag: str) -> MachineTagEntry | None:
         self._maybe_fail("targhe", tag)
         return self._inner.find_machine_tag(tag)

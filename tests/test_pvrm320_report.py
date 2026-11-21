@@ -92,6 +92,23 @@ def test_task_codes_come_from_the_text_once_per_code() -> None:
     assert ops(civil())["010"].task_codes == []
 
 
+def test_full_task_codes_are_read_whole() -> None:
+    """Stampa vera: il codice completo del task non va tagliato alle prime tre coppie."""
+    body = block(
+        ["NOTE", "000000"],
+        "005",
+        [
+            "SECONDO TASK 70-11-00-350-002 ABC123456 TASK 72-11-31-200-801",
+            "FIGURE 801 (SHEET 3) E TASK 72-11-32 REPAIR 004",
+        ],
+    )
+    assert ops(one_page(body))["005"].task_codes == [
+        "70-11-00-350-002",
+        "72-11-31-200-801",
+        "72-11-32 REPAIR 004",
+    ]
+
+
 def test_civil_source_is_the_oem_manual_with_the_task_from_the_notes() -> None:
     cycle = civil()
     assert len(cycle.sources) == 1

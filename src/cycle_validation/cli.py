@@ -1,4 +1,5 @@
-"""CLI: `run`, `golden`, `kb-check` ed `eval` (esperimenti: `eval esegui`, `eval classifica`)."""
+"""CLI: `run`, `leggi`, `golden`, `kb-check` ed `eval` (esperimenti: `eval esegui`,
+`eval classifica`)."""
 
 import asyncio
 import json
@@ -25,7 +26,9 @@ from cycle_validation.evaluation.variant import load_variant
 from cycle_validation.extract.base import CycleExtractor
 from cycle_validation.extract.factory import make_pdf_extractor
 from cycle_validation.extract.from_file import FileCycleExtractor
+from cycle_validation.extract.pvrm320 import parse_pvrm320
 from cycle_validation.golden import GoldenCase, load_cases, run_golden
+from cycle_validation.ingest.pdf import read_pdf
 from cycle_validation.ingest.transcribe import make_transcriber
 from cycle_validation.kb.local import load_local_knowledge
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
@@ -194,6 +197,37 @@ def run(
         f"{counts.errato} errati, {counts.non_applicabile} non applicabili."
     )
     typer.echo(f"Risultati in {out}")
+
+
+@app.command("leggi")
+def read_cycles(
+    pdfs: Annotated[list[Path], typer.Argument(help="PDF dei cicli.")],
+    profile: Annotated[str, typer.Option(help="mos | dr | ej200")] = "mos",
+    config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
+) -> None:
+    """Legge i cicli con il parser di layout, senza modello né conoscenza (zero token), e
+    stampa riparazione, fonti e task citati: serve a scegliere quali cicli provare."""
+    try:
+        settings = load_settings(config)
+        limits = load_profile(profile, settings.paths.profiles_dir).file_limits
+    except CycleValidationError as error:
+        raise _fail(error) from error
+    for path in pdfs:
+        typer.echo(path.name)
+        try:
+            cycle = parse_pvrm320(read_pdf(path, limits))
+        except CycleValidationError as error:
+            typer.echo(f"  non letto dal parser: {error}")
+            continue
+        sources = ", ".join(
+            source.manual + (f" {source.task}" if source.task else "") for source in cycle.sources
+        )
+        tasks = list(dict.fromkeys(code for op in cycle.operations for code in op.task_codes))
+        typer.echo(
+            f"  riparazione: {cycle.repair_code or '-'} · fonti: {sources or '-'} · "
+            f"operazioni: {len(cycle.operations)}"
+        )
+        typer.echo(f"  task: {', '.join(tasks) or '-'}")
 
 
 def _session_for(name: str) -> Callable[[AgentSettings, Path | None], AgentSession]:

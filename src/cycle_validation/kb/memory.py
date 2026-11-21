@@ -56,8 +56,15 @@ class IndexedKnowledgeBase:
         return list(self._by_name.get(normalize_code(manual), ()))
 
     def find_task(self, manual: str, task: str) -> TaskLocation | None:
+        return self._task_in(self.find_manuals(manual), task)
+
+    def find_task_in_kind(self, kind: str, task: str) -> TaskLocation | None:
+        wanted = normalize_code(kind)
+        documents = [d for d in self._documents if normalize_code(d.kind or "") == wanted]
+        return self._task_in(documents, task)
+
+    def _task_in(self, documents: list[DocumentInfo], task: str) -> TaskLocation | None:
         wanted = normalize_code(task)
-        documents = self.find_manuals(manual)
         for document in documents:
             location = self._tasks.get((document.key, wanted))
             if location is not None:

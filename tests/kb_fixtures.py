@@ -118,6 +118,10 @@ class BrokenKnowledge(IndexedKnowledgeBase):
         self._fail()
         return None
 
+    def find_task_in_kind(self, kind: str, task: str) -> TaskLocation | None:
+        self._fail()
+        return None
+
     def find_machine_tag(self, tag: str) -> MachineTagEntry | None:
         self._fail()
         return None

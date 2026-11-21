@@ -85,3 +85,8 @@ def test_stats(kb: KnowledgeBase) -> None:
         "schede": 2,
         "recommendation_dr": 3,
     }
+
+
+def test_task_by_document_kind_needs_a_document_of_that_kind(kb: KnowledgeBase) -> None:
+    # la conoscenza sintetica non ha documenti con `kind`: nessun task per tipo
+    assert kb.find_task_in_kind("SPM", "72-00-01-350-003") is None

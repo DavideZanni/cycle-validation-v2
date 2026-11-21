@@ -373,6 +373,9 @@ class Ej200KnowledgeBase:
     def find_task(self, manual: str, task: str) -> TaskLocation | None:
         return None  # EJ200: i riferimenti sono pubblicazioni intere, non task
 
+    def find_task_in_kind(self, kind: str, task: str) -> TaskLocation | None:
+        return None
+
     def find_machine_tag(self, tag: str) -> MachineTagEntry | None:
         wanted = normalize_code(tag)
         return next((t for t in self._tags() if normalize_code(t.tag) == wanted), None)
