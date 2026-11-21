@@ -100,16 +100,27 @@ Claude conferma la struttura.
 Ora devo partire da una situazione pulita. Questi sono i comandi che lancerò nel terminale,
 dalla radice del repository:
 
+git rev-parse --show-toplevel
+git remote -v
+Test-Path .\buildspec.yml
 git switch feature/cycle-validation-v2
 git pull
 git status
 git config user.email
 Test-Path .\app_cycle_validation_v2
 
-Controllali e dimmi cosa devo vedere dopo ciascuno.
+I primi tre servono a essere sicuro di essere nella radice del repository giusto (la cartella
+aperta in VS Code si chiama diversamente dal repository). Controllali e dimmi cosa devo vedere
+dopo ciascuno.
 ```
 
 **Deve uscire:**
+- `git rev-parse --show-toplevel`: il percorso della cartella in cui sei nel terminale (scritto
+  con `/` al posto di `\`). Se è un'altra cartella, sei dentro un repository più grande o in una
+  sottocartella: **fermati** e manda a Claude;
+- `git remote -v`: due righe `origin` con `.../ge-aero/avioaero_datalake_cycle_validation...`.
+  Se il repository è un altro: **fermati**;
+- `Test-Path .\buildspec.yml`: `True`;
 - `git switch`: `Already on 'feature/cycle-validation-v2'` oppure `Switched to branch ...`;
 - `git pull`: `Already up to date.` oppure l'elenco dei file aggiornati, senza la parola
   `CONFLICT`;

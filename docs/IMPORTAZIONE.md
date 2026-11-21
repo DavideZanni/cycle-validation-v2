@@ -259,6 +259,22 @@ riporta il messaggio.
 
 ---
 
+## Prima di portare il branch su `main` (non per l'importazione)
+
+Visto nella ricognizione: `buildspec.yml` entra in `app_cycle_validation/` e costruisce
+l'immagine Docker da lì, quindi **nell'immagine di produzione la v2 non entra** (entrano solo i
+`.md` spostati in `app_cycle_validation/docs/`, se il suo `Dockerfile` copia tutta la cartella).
+
+L'artefatto però è `files: '**/*'` con `discard-paths: yes`, raccolto dalla radice: da quando la
+v2 è sul branch ci finiscono anche i suoi 238 file, tutti nella stessa cartella perché i percorsi
+vengono tolti. La v2 ha 8 nomi ripetuti in cartelle diverse (`__init__.py`, `ciclo.json`,
+`expected.json`, ...). Se l'artefatto serve a qualcosa dopo la build, e se CodeBuild costruisce
+questo branch, va chiesto a chi gestisce la pipeline; la correzione più piccola è limitare
+l'artefatto alla v1 (`base-directory: app_cycle_validation`) o toglierlo se non lo usa nessuno.
+Non fa parte dell'importazione: si decide prima del merge su `main`.
+
+---
+
 ## Se qualcosa non va
 
 | Cosa vedi | Cosa fare |
