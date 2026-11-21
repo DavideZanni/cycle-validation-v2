@@ -65,32 +65,42 @@ DR e il serial number del pezzo: `leggi` ora li stampa.
 
 ---
 
-## Messaggio 10: il ciclo DR con il serial number scritto nella stampa
+## Messaggio 10: il ciclo DR con il serial number della stampa (fatto)
 
-Fatto il 21-11-2026 fino a `leggi`: test verdi, copia EJ200 cancellata (`False`). Le due stampe
-DR passano la pagina 2 ma si fermano a pagina 5 (`blocco senza numero di operazione`,
-comincia con «SUPERFICI RACCORDATE.»), e per questo `leggi` non stampava il serial number:
-ora lo stampa comunque.
+Fatto il 21-11-2026 sulla stampa `CON sn` (serial number letto dal PDF), con il ciclo letto
+dal modello perché il parser si fermava ancora a pagina 5:
 
-Prima il blocco **Aggiornare il codice sul PC** in cima a questo file (se il test
-`test_a_new_version_is_picked_up_after_the_check_interval` fallisce con `WinError 5`, rilancia
-solo `uv run pytest -q`). Poi questo: stampa la pagina 5 delle due stampe DR (zero token), poi
-lancia la stampa `CON sn` con il suo serial number, una volta per ogni condition che la
-conoscenza ha per quel serial number. Finché il parser non legge la pagina 5, `run` estrae il
-ciclo con il modello: qualche centesimo per run.
+| Condition | Recommendation | Esito | Costo |
+|---|---|---|---|
+| 1 | Repair | `dr_recommendation` CORRETTO; 3 corretti, 29 warning, 0 errati | 0,0368 USD, 8 sessioni |
+| 2 | Accept as is | `dr_recommendation` ERRATO (`DR_NON_APPLICABILE`), il resto bloccato: giusto | 0,0099 USD, 1 sessione |
+| 3 | Repair | `dr_recommendation` CORRETTO; 4 corretti, 20 warning, **1 errato** (descrizione 060, `CONTRADDIZIONE`) | 0,0226 USD, 10 sessioni |
+
+Il modello legge il ciclo ogni volta in modo un po' diverso (fonti e task cambiano da un run
+all'altro): per questo i run 1 e 3 non sono confrontabili. Corretto nel codice: la procedura
+DR citata come «D.R. CASE #…» ora si trova nel sottoinsieme, e la scheda dell'op. 050 (dopo il
+banner) non è più segnalata come «fuori riga».
+
+---
+
+## Messaggio 11: le stampe DR con il parser e di nuovo il ciclo DR
+
+Prima il blocco **Aggiornare il codice sul PC** in cima a questo file. Poi questo: rilegge tutti
+i cicli DR (zero token), poi rilancia la stampa `CON sn` per ogni condition, adesso letta dal
+parser (stesso ciclo a ogni run, nessun token per la lettura). Qualche centesimo.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 $kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
 $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo dr/*sn.pdf").FullName --profile dr --pagina 5
+uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo dr/*.pdf").FullName --profile dr
 $ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*CON sn.pdf" | Select-Object -First 1).FullName
 $sn = ((uv run cycle-validation leggi $ciclo --profile dr) | Select-String 'S/N (\S+)$').Matches[0].Groups[1].Value
 "serial number letto dalla stampa: $sn"
 $rec = (Get-Content ($v + "dr_recommendations.json") -Raw | ConvertFrom-Json) | Where-Object { $_.serial_number -eq $sn -and $_.conditions.Count -gt 0 }
 foreach ($r in $rec) {
   $c = $r.conditions -join ','
-  $out = "runs/dr-condition-$($r.conditions -join '-')"
+  $out = "runs/dr-parser-condition-$($r.conditions -join '-')"
   "=== condition $c, recommendation $($r.procedure)"
   uv run cycle-validation run $ciclo --profile dr --serial-number $sn --condition $c --knowledge $v --config data/settings.yaml --out $out
   Select-String -Path "$out/report.md" -Pattern '^- Costo'
@@ -100,39 +110,16 @@ foreach ($r in $rec) {
 
 **Deve uscire:**
 
-- per ciascuna delle due stampe DR: le righe della pagina 5 numerate (`  12 | ...`), la riga
-  `dr: caso ... · S/N ...` (solo per `CON sn`) e `non letto dal parser: ...`. **Manda a
-  Claude** le foto di tutte le righe della pagina 5: servono per correggere il parser;
-- `serial number letto dalla stampa: ...` (non vuoto);
-- per ogni condition (`=== condition ...`):
-  - recommendation **Repair**: `dr_recommendation` CORRETTO e le descrizioni confrontate dal
-    modello con il testo della procedura DR, che è nel sottoinsieme (CORRETTO, WARNING o
-    ERRATO); `source` FONTE_ASSENTE (manuale del motore assente);
-  - recommendation **Accept as is**: `dr_recommendation` ERRATO (per quella condition la
-    riparazione non va fatta) e i controlli dopo non partono.
+- `leggi`: per ogni PDF di `cicli DR/` le righe `riparazione · fonti · operazioni` e `task`;
+  per `SENZA sn` e `CON sn` niente più `non letto dal parser`;
+- per ogni condition: `extraction_integrity` CORRETTO (nessun `ESTRAZIONE_NON_CONFERMATA`),
+  `dr_recommendation` CORRETTO per Repair ed ERRATO per Accept as is; costo più basso di prima
+  (nessuna sessione per leggere il ciclo).
 
-**Manda a Claude** le foto e, se lo sai, quale condition è quella vera di questo pezzo: per
-quella l'esito è una misura vera. Le righe ERRATO e WARNING delle descrizioni le puoi leggere
-per intero in `runs\dr-condition-...\report.md`, con la citazione della procedura.
-
----
-
-## Messaggio 11: le due stampe DR rilette dopo la correzione
-
-Dopo i run del messaggio 10. La pagina 5 aveva lo stesso schema della pagina 2: l'op. 050 si
-ferma a metà frase e il seguito (scheda compresa) sta dopo il banner `*** C O N T I N U A ***`.
-Il parser ora attacca quel blocco all'operazione rimasta a metà. Prima il blocco **Aggiornare il
-codice sul PC**, poi questo (zero token):
-
-```powershell
-$env:UV_PYTHON = "3.14"
-uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo dr/*.pdf").FullName --profile dr
-```
-
-**Deve uscire:** per ogni PDF di `cicli DR/` la riga `riparazione · fonti · operazioni` e la
-riga `task`; per le due stampe `SENZA sn` e `CON sn` niente più `non letto dal parser`. Se una
-stampa si ferma ancora, **manda a Claude** la foto (dice pagina e riga): si rilancia con
-`--pagina` su quella pagina.
+**Manda a Claude** le foto. E una cosa che puoi giudicare solo tu: apri
+`runs\dr-condition-3\report.md`, cerca `060` nella sezione delle descrizioni e leggi perché il
+modello dice CONTRADDIZIONE, con la citazione della procedura DR. **Dimmi se ha ragione** (non
+mandare il file): è il primo ERRATO su un ciclo vero.
 
 ---
 
