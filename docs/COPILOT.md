@@ -73,28 +73,37 @@ Il blocco è nella storia di git (commit e327f66), se servisse rifarlo.
 
 ---
 
-## Messaggio 6: perché il manuale non si trova
+## Messaggio 6: perché il manuale non si trova (fatto)
 
-Stampa i nomi con cui la conoscenza conosce i suoi 10 documenti e le fonti e i task che il
-parser ha letto dal ciclo del messaggio 5. Solo lettura, nessun costo.
-
-```powershell
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-$m = Get-Content ($kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path + "manifest.json") -Raw | ConvertFrom-Json
-$m.documents | Select-Object key, code, kind, version, published, @{n='aliases'; e={$_.aliases -join ', '}} | Format-Table -AutoSize -Wrap
-$c = Get-Content runs/ultimo/cycle.json -Raw | ConvertFrom-Json
-$c.sources | Select-Object manual, task, repair_code, issue | Format-Table -AutoSize -Wrap
-$c.operations | Select-Object operation_number, repair_code, machine_tag, @{n='task_codes'; e={$_.task_codes -join ', '}} | Format-Table -AutoSize -Wrap
-```
-
-**Deve uscire:** tre tabelle. La prima ha 10 righe, una per documento della conoscenza, con
-`key`, `code` e gli alias. La seconda ha le fonti del ciclo, con il manuale citato. La terza ha
-le 10 operazioni con i loro task code. **Manda a Claude** la foto di tutte e tre: dal confronto
-tra la prima e la seconda si vede se il manuale manca davvero o se è scritto in un altro modo.
+Fatto il 21-11-2026. La versione di prova della conoscenza ha 10 documenti: 8 capitoli del
+manuale SPM (pratiche standard, capitolo 70) e 2 procedure DR. Il manuale del motore citato dal
+ciclo MOS del messaggio 5 non c'è: FONTE_ASSENTE era giusto. Questa conoscenza è fatta per i
+cicli DR di quelle due procedure, quindi la prova vera va fatta su uno di quelli.
 
 ---
 
-## Messaggio 7: niente è cambiato nel repository
+## Messaggio 7: quale ciclo DR provare
+
+Solo lettura, nessun costo. Stampa tre cose: come il ciclo MOS del messaggio 5 scrive i task
+(per controllare che il parser li legga interi), le recommendation DR della conoscenza (serial
+number, condition, procedura, task) e i nomi dei cicli DR su S3.
+
+```powershell
+$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
+$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+Select-String -Path runs/ultimo/cycle.json -Pattern 'TASK.{0,40}' -AllMatches | ForEach-Object { $_.Matches.Value }
+(Get-Content ($v + "dr_recommendations.json") -Raw | ConvertFrom-Json) | Select-Object serial_number, @{n='conditions'; e={$_.conditions -join ','}}, procedure, reference, @{n='tasks'; e={$_.tasks -join ', '}} | Format-Table -AutoSize -Wrap
+aws s3 ls "s3://$(Get-Content data/bucket.txt)/Manufacturing AI/cicli DR/" --region eu-south-1 | ForEach-Object { $_.Substring(31) }
+```
+
+**Deve uscire:** le righe con `TASK` e il codice com'è scritto nel ciclo, una tabella di 23
+recommendation, l'elenco dei PDF in `cicli DR/`. **Manda a Claude** la foto (anche più di una se
+l'elenco è lungo) e, se lo sai, di quale serial number e condition è ciascun ciclo DR: il nome
+del file da solo non lo dice.
+
+---
+
+## Messaggio 8: niente è cambiato nel repository
 
 ```powershell
 git status --short
