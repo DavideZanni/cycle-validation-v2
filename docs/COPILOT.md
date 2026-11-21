@@ -112,18 +112,34 @@ uv run pytest -q
 
 ## Salvare le correzioni nel repository aziendale
 
-Consigliato adesso: le prove finora sono andate bene e i test passano. Mette nel commit solo
-codice, test, documenti e casi sintetici della v2; `data/`, `runs/`, `eval/casi/aziendali/` e i PDF restano fuori perché git li
-ignora. Il push lo fai come al solito sul branch `feature/cycle-validation-v2`.
+Consigliato adesso: le prove finora sono andate bene e i test passano. Prima lancia
+**Aggiornare il codice sul PC**, poi questo. Mette nel commit solo codice, test, documenti e
+casi sintetici della v2; `data/`, `runs/`, `eval/casi/aziendali/` e i PDF restano fuori perché
+git li ignora. Poi fa il push sul branch `feature/cycle-validation-v2`, ma solo se sei su quel
+branch e se nel commit non è entrato niente fuori da quelle cartelle.
 
 ```powershell
 git add src tests docs eval/casi/sintetici
 git status --short
 git commit -m "v2: parser PVRM320 per le stampe DR, task del capitolo 70 nell'SPM, procedura DR citata come caso, conferma degli ERRATO, Accept as is senza blocco, comando leggi"
+$branch = git branch --show-current
+$fuori = git show --name-only --format= HEAD | Where-Object { $_ -and $_ -notmatch '^app_cycle_validation_v2/(src|tests|docs|eval/casi/sintetici)/' }
+if ($branch -ne "feature/cycle-validation-v2") { "FERMO: sei sul branch '$branch', non su feature/cycle-validation-v2. Niente push." }
+elseif ($fuori) { "FERMO: nel commit ci sono file fuori dalle cartelle previste. Niente push:"; $fuori }
+else { git push origin feature/cycle-validation-v2; git log --oneline -1; git status -sb | Select-Object -First 1 }
 ```
 
-**Deve uscire:** in `git status` solo righe `M ` e `A ` sotto `src/`, `tests/`, `docs/`,
-`eval/casi/sintetici/`; poi il riepilogo del commit.
+**Deve uscire:**
+
+- in `git status` solo righe `M ` e `A ` sotto `src/`, `tests/`, `docs/`, `eval/casi/sintetici/`;
+- il riepilogo del commit;
+- le righe del push (`To https://github.com/...`, `feature/cycle-validation-v2 -> feature/cycle-validation-v2`);
+- l'ultimo commit e `## feature/cycle-validation-v2...origin/feature/cycle-validation-v2`, senza
+  `[ahead ...]`.
+
+Se esce `FERMO`, oppure il push è rifiutato (`rejected`, `fetch first`), **non insistere e non
+usare `--force`**: manda a Claude la foto. Se il commit dice `nothing to commit`, le correzioni
+erano già salvate: va bene lo stesso, il push manda solo quello che manca.
 
 ---
 
