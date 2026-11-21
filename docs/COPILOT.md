@@ -73,38 +73,49 @@ uv run pytest -q
   nelle due letture: l'ERRATO non viene da una lettura sbagliata del testo, ma da quello con
   cui è stato confrontato (messaggio 13). `git status`: solo file sotto `src/`, `tests/`,
   `docs/`.
+- **Messaggio 13**: i due run hanno confrontato l'op. 060 con **lo stesso documento**, la
+  procedura DR, alla stessa pagina: il run col ciclo letto dal modello cita una riga e dice
+  ERRATO, quello col parser cita quella riga e la precedente e dice CORRETTO. Differenze
+  d'ingresso: col modello l'op. 060 non ha il repair code e il ciclo ha fonti in più (i due
+  casi DR, il riferimento SA).
 
 ---
 
-## Messaggio 13: con cosa è stata confrontata l'op. 060
+## Messaggio 14: l'op. 060 è stabile? (tre ripetizioni per lettura)
 
-Zero token. Per i due run (ciclo letto dal modello e ciclo letto dal parser) stampa le fonti
-del ciclo, i task e il repair code dell'op. 060, poi l'esito della sua descrizione e i
-documenti usati come prova (solo nome, pagina e riga: niente testo dei manuali).
+Rilancia tre volte la condition 3 con il ciclo **già letto** del run del modello e tre volte
+con quello del parser (`--cycle-json`: nessuna lettura nuova). Così si separa l'effetto
+dell'ingresso dalla variabilità del modello. Sei run, circa 5 centesimi in tutto.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-foreach ($d in "runs/dr-condition-3", "runs/dr-parser-condition-3") {
-  "=== $d"
-  $rep = Get-Content "$d/report.json" -Raw | ConvertFrom-Json
-  $op = $rep.cycle.operations | Where-Object { $_.operation_number -match '^0?60$' }
-  "fonti del ciclo: " + (($rep.cycle.sources | ForEach-Object { "$($_.manual) / task $($_.task) / rip. $($_.repair_code)" }) -join ' ; ')
-  "op. 060: task " + ($op.task_codes -join ',') + " / rip. $($op.repair_code)"
-  $rep.results | Where-Object { $_.check -eq 'operation_description' -and $_.target.label -match '^0?60$' } | ForEach-Object {
-    "esito: $($_.verdict) $($_.reason)"
-    $_.evidence | ForEach-Object { "  prova: $($_.document_key) pag. $($_.page) riga $($_.line)" }
+$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
+$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+$ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*CON sn.pdf" | Select-Object -First 1).FullName
+$sn = ((uv run cycle-validation leggi $ciclo --profile dr) | Select-String 'S/N (\S+)$').Matches[0].Groups[1].Value
+foreach ($lettura in "dr-condition-3", "dr-parser-condition-3") {
+  foreach ($i in 1..3) {
+    $out = "runs/ripeti-060-$lettura-$i"
+    uv run cycle-validation run $ciclo --profile dr --serial-number $sn --condition 3 --knowledge $v --config data/settings.yaml --cycle-json "runs/$lettura/cycle.json" --out $out | Out-Null
+    $rep = Get-Content "$out/report.json" -Raw | ConvertFrom-Json
+    $r = $rep.results | Where-Object { $_.check -eq 'operation_description' -and $_.target.label -match '^0?60$' }
+    "{0,-22} {1}  {2,-9} {3,-22} righe {4,-8} costo {5:N4}" -f $lettura, $i, $r.verdict, $r.reason, (($r.evidence | ForEach-Object { $_.line }) -join ','), $rep.usage.cost_usd
   }
 }
 ```
 
-**Deve uscire:** per ogni run le righe `fonti del ciclo`, `op. 060`, `esito` e una o più righe
-`prova`. Se le prove dei due run vengono da documenti diversi, l'ERRATO dipende da quale
-documento il programma ha scelto per il confronto.
+**Deve uscire:** sei righe, tre per `dr-condition-3` (lettura del modello) e tre per
+`dr-parser-condition-3` (lettura del parser), ognuna con esito, motivo, righe citate e costo.
 
-**Manda a Claude** la foto. E, se puoi: apri `runs\dr-condition-3\report.md`, cerca `060`
-nella sezione delle descrizioni, leggi la spiegazione dell'ERRATO e dimmi solo **se ha
-ragione** e su quale punto (limite in mm, classe del penetrante, ingrandimento, altro). Non
-mandare il file.
+- Se la lettura del modello dà ERRATO e quella del parser CORRETTO tutte e tre le volte, conta
+  l'ingresso (repair code o fonti in più).
+- Se gli esiti cambiano tra una ripetizione e l'altra con lo stesso ingresso, è il modello che
+  oscilla su questa operazione.
+
+**Manda a Claude** la foto. E resta la domanda che solo tu puoi decidere: apri
+`runs\dr-condition-3\report.md`, cerca `060` nella sezione delle descrizioni, leggi la
+spiegazione dell'ERRATO e dimmi **se ha ragione** e su quale punto (limite in mm, classe del
+penetrante, ingrandimento, altro). Non mandare il file.
 
 ---
 
