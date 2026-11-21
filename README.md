@@ -27,6 +27,7 @@ Documenti:
   `app_cycle_validation_v2/` accanto alla versione in produzione;
 - `docs/COPILOT.md`: i comandi da lanciare in ordine sul computer aziendale per provare la v2
   con Bedrock, S3 e un ciclo vero;
+- `docs/AMBIENTE_AZIENDALE.md`: il computer aziendale, chi fa cosa e cosa è permesso nelle prove;
   `docs/README_RADICE.md` è il README della radice del repository aziendale;
 - `docs/AZIENDA.md`: importare e collegare il progetto sul computer aziendale, lanciare gli
   esperimenti sui cicli veri, cosa fare se qualcosa non va;

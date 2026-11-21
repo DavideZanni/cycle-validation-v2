@@ -227,9 +227,18 @@ def read_cycles(
         typer.echo(path.name)
         try:
             pdf = read_pdf(path, limits)
-            if pagina is not None and 1 <= pagina <= len(pdf.pages):
-                for number, line in enumerate(pdf.pages[pagina - 1].text.splitlines(), 1):
-                    typer.echo(f"  {number:3} | {line}")
+        except CycleValidationError as error:
+            typer.echo(f"  non letto: {error}")
+            continue
+        if pagina is not None and 1 <= pagina <= len(pdf.pages):
+            for number, line in enumerate(pdf.pages[pagina - 1].text.splitlines(), 1):
+                typer.echo(f"  {number:3} | {line}")
+        # caso DR e serial number si cercano nel testo, anche se il parser non lo legge
+        cases = list(dict.fromkeys(_DR_CASE.findall(pdf.text)))
+        serials = list(dict.fromkeys(_SERIAL.findall(pdf.text)))
+        if cases or serials:
+            typer.echo(f"  dr: caso {', '.join(cases) or '-'} · S/N {', '.join(serials) or '-'}")
+        try:
             cycle = parse_pvrm320(pdf)
         except CycleValidationError as error:
             typer.echo(f"  non letto dal parser: {error}")
@@ -243,10 +252,6 @@ def read_cycles(
             f"operazioni: {len(cycle.operations)}"
         )
         typer.echo(f"  task: {', '.join(tasks) or '-'}")
-        cases = list(dict.fromkeys(_DR_CASE.findall(pdf.text)))
-        serials = list(dict.fromkeys(_SERIAL.findall(pdf.text)))
-        if cases or serials:
-            typer.echo(f"  dr: caso {', '.join(cases) or '-'} · S/N {', '.join(serials) or '-'}")
 
 
 def _session_for(name: str) -> Callable[[AgentSettings, Path | None], AgentSession]:

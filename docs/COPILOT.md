@@ -67,25 +67,26 @@ DR e il serial number del pezzo: `leggi` ora li stampa.
 
 ## Messaggio 10: il ciclo DR con il serial number scritto nella stampa
 
-Prima il blocco **Aggiornare il codice sul PC** in cima a questo file. Poi questo:
+Fatto il 21-11-2026 fino a `leggi`: test verdi, copia EJ200 cancellata (`False`). Le due stampe
+DR passano la pagina 2 ma si fermano a pagina 5 (`blocco senza numero di operazione`,
+comincia con «SUPERFICI RACCORDATE.»), e per questo `leggi` non stampava il serial number:
+ora lo stampa comunque.
 
-1. cancella dal PC la copia della conoscenza **EJ200**, scaricata insieme a quella civile nel
-   messaggio 4: la guida aziendale dice che documenti e output EJ200 restano su AWS EU. Le
-   prove usano solo la conoscenza civile;
-2. rilegge le due stampe DR (adesso devono passare dal parser) e stampa caso DR e S/N;
-3. lancia la stampa `CON sn` con il suo serial number, una volta per ogni condition che la
-   conoscenza ha per quel serial number. Qualche centesimo.
+Prima il blocco **Aggiornare il codice sul PC** in cima a questo file (se il test
+`test_a_new_version_is_picked_up_after_the_check_interval` fallisce con `WinError 5`, rilancia
+solo `uv run pytest -q`). Poi questo: stampa la pagina 5 delle due stampe DR (zero token), poi
+lancia la stampa `CON sn` con il suo serial number, una volta per ogni condition che la
+conoscenza ha per quel serial number. Finché il parser non legge la pagina 5, `run` estrae il
+ciclo con il modello: qualche centesimo per run.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-$base = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge"
-Remove-Item -Recurse -Force "$base/ej200" -ErrorAction SilentlyContinue
-Test-Path "$base/ej200"
-$kb = "$base/civil/"
+$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
 $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo dr/*sn.pdf").FullName --profile dr
+uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo dr/*sn.pdf").FullName --profile dr --pagina 5
 $ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*CON sn.pdf" | Select-Object -First 1).FullName
 $sn = ((uv run cycle-validation leggi $ciclo --profile dr) | Select-String 'S/N (\S+)$').Matches[0].Groups[1].Value
+"serial number letto dalla stampa: $sn"
 $rec = (Get-Content ($v + "dr_recommendations.json") -Raw | ConvertFrom-Json) | Where-Object { $_.serial_number -eq $sn -and $_.conditions.Count -gt 0 }
 foreach ($r in $rec) {
   $c = $r.conditions -join ','
@@ -99,9 +100,10 @@ foreach ($r in $rec) {
 
 **Deve uscire:**
 
-- `False` (la copia EJ200 non c'è più);
-- `leggi`: le due stampe lette (riparazione, fonti, 9 o 10 operazioni), e per la stampa
-  `CON sn` una riga `dr: caso ... · S/N ...`;
+- per ciascuna delle due stampe DR: le righe della pagina 5 numerate (`  12 | ...`), la riga
+  `dr: caso ... · S/N ...` (solo per `CON sn`) e `non letto dal parser: ...`. **Manda a
+  Claude** le foto di tutte le righe della pagina 5: servono per correggere il parser;
+- `serial number letto dalla stampa: ...` (non vuoto);
 - per ogni condition (`=== condition ...`):
   - recommendation **Repair**: `dr_recommendation` CORRETTO e le descrizioni confrontate dal
     modello con il testo della procedura DR, che è nel sottoinsieme (CORRETTO, WARNING o
