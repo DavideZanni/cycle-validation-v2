@@ -2,83 +2,69 @@
 
 L'importazione è fatta (21-11-2026, branch `feature/cycle-validation-v2`, test verdi su Windows;
 il perché delle scelte è in `docs/IMPORTAZIONE.md`). Le regole a Copilot sono già date e la
-ricognizione è fatta: regione `eu-south-1`, credenziali AWS con SSO, bucket e modello della v1
-nel suo `.env`.
+ricognizione è fatta: regione `eu-south-1`, credenziali AWS con SSO.
 
 Qui si prova la v2 con i servizi veri: Bedrock con i cicli inventati, la conoscenza su S3, un
-ciclo vero. Copia i blocchi in ordine nella stessa conversazione di Copilot (modalità Agent,
-**senza** *Allow all*). Sotto ogni messaggio c'è cosa deve uscire.
+ciclo vero. **Tutto è da copiare e incollare così com'è**, niente da sostituire. Il messaggio 1
+lo lanci tu nel tuo terminale; gli altri li incolli nella stessa conversazione di Copilot
+(modalità Agent, **senza** *Allow all*). Sotto ogni messaggio c'è cosa deve uscire.
 
 **Copilot lancia i comandi di prova, ma non modifica niente.** Se un comando fallisce si ferma e
-riporta l'errore; la correzione la fa Claude. I file locali (impostazioni, PDF) li prepari tu a
-mano, nelle cartelle che git ignora.
-
-**Prima di incollare** sostituisci `<bucket>` con il valore di `BUCKETNAME` del `.env` della v1.
-Il nome del bucket e il numero dell'account non vanno in questo file né a Claude.
+riporta l'errore; la correzione la fa Claude.
 
 **Se un comando dice che il token è scaduto** (`Token has expired`, `ExpiredToken`,
 `SSO session`): lancia tu `aws sso login`, poi chiedi a Copilot di rilanciare lo stesso comando.
 
 ---
 
-## Messaggio 1: modelli disponibili e conoscenza su S3 (solo lettura)
+## Messaggio 1: impostazioni locali (tu, nel tuo terminale)
 
-```text
-Lancia questi comandi, uno alla volta (sono solo letture, non serve la forma della regola 3):
-
-aws bedrock list-inference-profiles --region eu-south-1 --query "inferenceProfileSummaries[].inferenceProfileId" --output text
-aws s3 ls "s3://<bucket>/Manufacturing AI/cv3/knowledge/" --region eu-south-1
-aws s3 ls "s3://<bucket>/Manufacturing AI/cv3/knowledge/civil/" --region eu-south-1
-
-Poi dimmi:
-a) l'output completo del primo comando, e se contiene eu.anthropic.claude-haiku-4-5-20251001-v1:0;
-b) cosa c'è sotto knowledge/ e sotto knowledge/civil/: c'è un current.json? ci sono cartelle?
-Non scrivere il nome del bucket.
-```
-
-**Deve uscire:** un elenco di profili `eu.anthropic...` e il contenuto delle due cartelle.
-
-- Se nell'elenco c'è `eu.anthropic.claude-haiku-4-5-20251001-v1:0`: nel messaggio 2 usa la
-  **variante A** (Haiku, il modello per cui la v2 è tarata, costa meno).
-- Se non c'è: usa la **variante B** (Sonnet 4.5, lo stesso della v1).
-- Se `knowledge/civil/` non esiste o non ha `current.json`: la conoscenza della v2 non è ancora
-  pubblicata. Fai lo stesso i messaggi 2 e 3, salta 4 e 5, e manda a Claude l'output.
-
----
-
-## Messaggio 2: impostazioni locali (a mano, senza Copilot)
-
-Le impostazioni di prova vanno in una copia dentro `data/`, che git ignora: `config/settings.yaml`
-del repository non si tocca. Nel **tuo** terminale, da `app_cycle_validation_v2`:
+Nel terminale di VS Code, dalla radice del repository aziendale. I comandi scrivono solo in
+`app_cycle_validation_v2/data/`, che git ignora: `config/settings.yaml` non si tocca. Il nome
+del bucket lo prendono dal `.env` della v1 e restano sul tuo PC; il modello lo scelgono da soli
+(Haiku 4.5 se Bedrock a Milano ce l'ha, altrimenti Sonnet 4.5 come la v1).
 
 ```powershell
-New-Item -ItemType Directory -Force data
-```
-
-**Variante A, Haiku:**
-
-```powershell
-(Get-Content config/settings.yaml) -replace '^  model: haiku$', '  model: eu.anthropic.claude-haiku-4-5-20251001-v1:0' -replace '^  aws_region:$', '  aws_region: eu-south-1' -replace '^  save_transcripts: false$', '  save_transcripts: true' | Set-Content data/settings.yaml
-```
-
-**Variante B, Sonnet 4.5:**
-
-```powershell
-(Get-Content config/settings.yaml) -replace '^  model: haiku$', '  model: eu.anthropic.claude-sonnet-4-5-20250929-v1:0' -replace '^  aws_region:$', '  aws_region: eu-south-1' -replace '^  save_transcripts: false$', '  save_transcripts: true' | Set-Content data/settings.yaml
-```
-
-Poi, in tutti e due i casi:
-
-```powershell
+cd app_cycle_validation_v2
+$env:UV_PYTHON = "3.14"
+New-Item -ItemType Directory -Force data | Out-Null
+(Select-String -Path ..\app_cycle_validation\.env -Pattern '^BUCKETNAME=(.+)$').Matches[0].Groups[1].Value.Trim().Trim('"') | Set-Content data/bucket.txt
+$haiku = 'eu.anthropic.claude-haiku-4-5-20251001-v1:0'; $sonnet = 'eu.anthropic.claude-sonnet-4-5-20250929-v1:0'
+$modello = if ((aws bedrock list-inference-profiles --region eu-south-1 --query "inferenceProfileSummaries[].inferenceProfileId" --output text) -match [regex]::Escape($haiku)) { $haiku } else { $sonnet }
+(Get-Content config/settings.yaml) -replace '^  model: haiku$', "  model: $modello" -replace '^  aws_region:$', '  aws_region: eu-south-1' -replace '^  save_transcripts: false$', '  save_transcripts: true' | Set-Content data/settings.yaml
+Test-Path data/bucket.txt
 Select-String -Path data/settings.yaml -Pattern '^  (model|aws_region|save_transcripts|use_bedrock):'
 git status --short
 ```
 
-**Deve uscire:** quattro righe con il modello scelto, `aws_region: eu-south-1`,
-`use_bedrock: true`, `save_transcripts: true`. `git status --short` non stampa niente.
+**Deve uscire:** `True`; quattro righe con `model: eu.anthropic.claude-haiku-4-5-...` (oppure
+`...sonnet-4-5...`), `aws_region: eu-south-1`, `use_bedrock: true`, `save_transcripts: true`;
+`git status --short` non stampa niente.
 
-`save_transcripts: true` salva in `runs/` il dialogo con il modello, per capire un errore.
+Se `Select-String` sul `.env` dà errore (`Cannot index into a null array`), nel `.env` non c'è
+`BUCKETNAME`: fermati e dillo a Claude. Se `aws bedrock` dà errore di token: `aws sso login` e
+rilancia da `$modello = ...`.
+
+`save_transcripts: true` salva in `runs/` il dialogo con il modello, per capire un errore;
 `runs/` è ignorata da git e resta sul tuo PC.
+
+---
+
+## Messaggio 2: la conoscenza della v2 è pubblicata? (Copilot, solo lettura)
+
+```text
+Lancia questi comandi, uno alla volta, nella forma della regola 3:
+
+aws s3 ls "s3://$(Get-Content data/bucket.txt)/Manufacturing AI/cv3/knowledge/" --region eu-south-1
+aws s3 ls "s3://$(Get-Content data/bucket.txt)/Manufacturing AI/cv3/knowledge/civil/" --region eu-south-1
+
+Dimmi cosa c'è sotto knowledge/ e sotto knowledge/civil/: c'è un current.json? ci sono
+cartelle? Non scrivere il nome del bucket.
+```
+
+**Deve uscire:** sotto `civil/` un `current.json` e una cartella `v/`. Se `civil/` non esiste o
+non ha `current.json`, la conoscenza della v2 non è ancora pubblicata: fai il messaggio 3, salta
+il 4 e il 5, e manda a Claude l'output.
 
 ---
 
@@ -102,7 +88,7 @@ $env:CV_LIVE_CONFIG = "data/settings.yaml"; uv run pytest -m live
 - `pytest -m live`: `1 passed`.
 
 Se il `run` dà molti esiti diversi, o **tutte** le operazioni sono errori tecnici, il modello
-non risponde. Chiedi a Copilot:
+non risponde. Incolla a Copilot:
 
 ```text
 Leggi i file in runs/ultimo/transcripts/ senza modificare niente e dimmi il primo messaggio di
@@ -116,19 +102,15 @@ e **manda a Claude** quello che esce, senza andare avanti. Costo del messaggio: 
 ## Messaggio 4: la conoscenza vera su S3
 
 ```text
-Lancia questi comandi, uno alla volta, nella forma della regola 3:
+Lancia questi comandi, uno alla volta, nella forma della regola 3, e dimmi l'output di
+ciascuno senza il nome del bucket:
 
-uv run cycle-validation eval fotografia --bucket <bucket> --regione eu-south-1 --prefisso "Manufacturing AI/cv3/knowledge/" --out eval/casi/aziendali/conoscenza/foto-20261121
+uv run cycle-validation eval fotografia --bucket (Get-Content data/bucket.txt) --regione eu-south-1 --prefisso "Manufacturing AI/cv3/knowledge/" --out eval/casi/aziendali/conoscenza/foto-20261121
 Get-Content "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/cv3/knowledge/civil/current.json"
-
-Dal current.json leggi la versione e lancia:
-
-uv run cycle-validation kb-check "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/cv3/knowledge/civil/v/<versione>"
-
-Dimmi l'output di ciascuno, senza il nome del bucket.
+uv run cycle-validation kb-check ("eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/cv3/knowledge/civil/" + (Get-Content "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/cv3/knowledge/civil/current.json" | ConvertFrom-Json).path)
 ```
 
-**Deve uscire:** la fotografia scaricata senza errori, il `current.json` con una versione, il
+**Deve uscire:** `Fotografia in ...: N oggetti`, il `current.json` con `version` e `path`, il
 `kb-check` con i conteggi (documenti, task, targhe, schede…) e nessun errore. Se `kb-check`
 fallisce, **manda a Claude** il messaggio: dice quale file non va.
 
@@ -136,14 +118,13 @@ fallisce, **manda a Claude** il messaggio: dice quale file non va.
 
 ## Messaggio 5: un ciclo MOS vero
 
-A mano: crea la cartella `docs\Esempio ciclo mos\` dentro `app_cycle_validation_v2` (git la
-ignora) e mettici il PDF di un ciclo MOS che conosci bene. Poi, sostituendo il nome del file e
-la versione del messaggio 4:
+A mano: dentro `app_cycle_validation_v2` crea la cartella `docs\Esempio ciclo mos\` (git la
+ignora) e mettici **un solo** PDF, un ciclo MOS che conosci bene. Poi incolla a Copilot:
 
 ```text
 Lancia questo comando, nella forma della regola 3:
 
-uv run cycle-validation run "docs/Esempio ciclo mos/<file>.pdf" --profile mos --knowledge "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/cv3/knowledge/civil/v/<versione>" --config data/settings.yaml
+uv run cycle-validation run (Get-ChildItem "docs/Esempio ciclo mos/*.pdf" | Select-Object -First 1).FullName --profile mos --knowledge ("eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/cv3/knowledge/civil/" + (Get-Content "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/cv3/knowledge/civil/current.json" | ConvertFrom-Json).path) --config data/settings.yaml
 
 Poi leggi runs/ultimo/report.md senza modificarlo e dimmi: i conteggi (corretti, warning,
 errati, non applicabili), il tempo totale, e per ogni riga ERRATO o WARNING il numero
@@ -151,12 +132,11 @@ dell'operazione, il controllo e il motivo (il codice, per esempio FONTE_ASSENTE)
 copiare il testo dei manuali.
 ```
 
-**Deve uscire:** `Ciclo completo: ...` e il riepilogo. Senza `--machines` lo stato delle
-macchine non si verifica: le righe sulle targhe escono WARNING, è previsto (l'elenco delle
-macchine attive lo colleghiamo dopo, con la query delle macchine della v1).
+**Deve uscire:** `Ciclo completo: ...` e il riepilogo. Senza elenco delle macchine attive le
+righe sulle targhe escono WARNING: è previsto, l'elenco lo colleghiamo dopo.
 
-**Manda a Claude** il riepilogo di Copilot e dimmi, per le righe ERRATO e WARNING, se secondo te
-l'esito è giusto: è la prima misura vera.
+**Manda a Claude** il riepilogo e dimmi, per le righe ERRATO e WARNING, se secondo te l'esito è
+giusto: è la prima misura vera.
 
 ---
 
@@ -173,7 +153,7 @@ Deve non stampare niente. Dimmi cosa esce.
 **Deve uscire:** niente. Se compare un file, **manda a Claude** l'elenco: nessun comando di prova
 doveva toccare file tracciati.
 
-Poi **manda a Claude** le risposte dei messaggi 1, 3, 4 e 5.
+Poi **manda a Claude** le risposte dei messaggi 2, 3, 4 e 5.
 
 ---
 
