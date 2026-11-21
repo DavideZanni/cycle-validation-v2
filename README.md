@@ -25,7 +25,8 @@ Documenti:
 
 - `docs/IMPORTAZIONE.md`: portare il progetto nel repository aziendale, nella cartella
   `app_cycle_validation_v2/` accanto alla versione in produzione;
-- `docs/COPILOT.md`: i messaggi da incollare a Copilot, in ordine, per fare l'importazione;
+- `docs/COPILOT.md`: i messaggi da incollare a Copilot, in ordine, per provare la v2 sul
+  computer aziendale con Bedrock, S3 e un ciclo vero;
   `docs/README_RADICE.md` è il README della radice del repository aziendale;
 - `docs/AZIENDA.md`: importare e collegare il progetto sul computer aziendale, lanciare gli
   esperimenti sui cicli veri, cosa fare se qualcosa non va;

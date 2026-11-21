@@ -4,8 +4,10 @@ Come mettere questo progetto nel repository aziendale `avioaero_datalake_cycle_v
 branch `feature/cycle-validation-v2`, accanto alla versione in produzione. Dopo l'importazione,
 installare e provare la v2 è scritto in `docs/AZIENDA.md`.
 
-**I messaggi pronti da incollare a Copilot, passo per passo, sono in `docs/COPILOT.md`.** Questo
-file spiega le scelte e fa da riferimento.
+**Fatta il 21-11-2026** (commit `dfca303` e `7fd60ab` sul branch `feature/cycle-validation-v2`).
+Questo file resta come riferimento per rifarla. I messaggi per Copilot usati quella volta sono
+nella storia git (`docs/COPILOT.md` al commit `815878e`); oggi `docs/COPILOT.md` contiene le
+prove con i servizi veri.
 
 Su ogni passo: il comando (PowerShell, Windows) e cosa devi vedere. Se vedi altro, fermati e
 riporta l'output a chi ti segue.
