@@ -23,6 +23,8 @@ vanno eseguiti dove ci sono le credenziali.
 
 Documenti:
 
+- `docs/IMPORTAZIONE.md`: portare il progetto nel repository aziendale, nella cartella
+  `app_cycle_validation_v2/` accanto alla versione in produzione;
 - `docs/AZIENDA.md`: importare e collegare il progetto sul computer aziendale, lanciare gli
   esperimenti sui cicli veri, cosa fare se qualcosa non va;
 - `docs/FORMATO_CONOSCENZA.md`: com'è fatta la conoscenza pubblicata su S3 (con valori inventati);

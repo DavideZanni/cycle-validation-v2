@@ -23,17 +23,15 @@ parte C.
 
 ## 2. Portare il codice e installare
 
-Da GitHub:
+Il codice sta nel repository aziendale `avioaero_datalake_cycle_validation`, nella cartella
+`app_cycle_validation_v2/`, accanto alla versione 1 in produzione (`app_cycle_validation/`).
+Come ci è arrivato, e come rifarlo, è in `docs/IMPORTAZIONE.md`. Viaggia solo il codice: il
+materiale aziendale resta in azienda.
+
+**Tutti i comandi di questa guida si lanciano da dentro `app_cycle_validation_v2`.**
 
 ```bash
-git clone https://github.com/DavideZanni/cycle-validation-v2.git
-cd cycle-validation-v2
-```
-
-Se GitHub è bloccato, sul computer personale `git archive --format=zip --output=cycle-validation-v2.zip main`,
-poi porti lo zip e lo estrai. Viaggia solo il codice: il materiale aziendale resta in azienda.
-
-```bash
+cd app_cycle_validation_v2
 uv sync --all-groups --extra aws
 uv run pytest
 uv run ruff check .
