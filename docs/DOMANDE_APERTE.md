@@ -87,7 +87,9 @@ prosegue con ispezioni e documenti fino al rilascio.
 | più condition, una `Repair` e una `Accept as is` | CORRETTO, con una nota | proseguono con la sola `Repair` come riferimento |
 
 Il programma non decide da solo se un'operazione è una riparazione: lo dice il WARNING e lo
-guarda una persona. Da confermare con chi conosce i DR:
+guarda una persona. Provato sul ciclo DR vero (messaggio 18): WARNING, 0 errati, nessuna
+sessione del modello; tutte le descrizioni `FONTE_ASSENTE`, perché senza la procedura di
+riparazione resta solo il manuale del motore, che non è nella conoscenza. Da confermare con chi conosce i DR:
 
 - per una condition `Accept as is` esiste un ciclo DR, e con quali operazioni?
 - con `Reject` un ciclo di riparazione è sempre sbagliato?

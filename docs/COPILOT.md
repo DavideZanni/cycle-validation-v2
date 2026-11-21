@@ -92,45 +92,28 @@ uv run pytest -q
   disposizione per condition sta solo nelle recommendation. Corretto nel codice (domanda 17):
   `Accept as is` ora dà WARNING `DR_SENZA_RIPARAZIONE` e gli altri controlli proseguono senza
   la procedura di riparazione come riferimento; `Reject` resta ERRATO e blocca.
+- **Messaggio 18**: condition 2 con la regola nuova: `dr_recommendation` WARNING
+  `DR_SENZA_RIPARAZIONE`, 0 errati, 20 warning, 0 sessioni, 0 USD. Tutte le descrizioni
+  `FONTE_ASSENTE`: senza la procedura di riparazione resta solo il manuale del motore, che non
+  c'è. Stato `parziale` per il registro macchine non collegato, come nelle altre condition.
+  Questo ciclo cita il caso DR e le sue operazioni 040-060 seguono la procedura di riparazione:
+  è un ciclo di riparazione, e con `Accept as is` il WARNING chiede giustamente di guardarlo.
 
 ---
 
-## Messaggio 18: la condition «Accept as is» con la regola nuova
+## Ancora aperte (da chiedere a chi conosce i cicli, quando capita)
 
-Prima il blocco **Aggiornare il codice sul PC** in cima a questo file. Poi questo: rilancia la
-condition 2 (`Accept as is`) con il ciclo già letto dal parser (`--cycle-json`, nessuna
-lettura nuova). Circa 1 centesimo.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-$ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*CON sn.pdf" | Select-Object -First 1).FullName
-$sn = ((uv run cycle-validation leggi $ciclo --profile dr) | Select-String 'S/N (\S+)$').Matches[0].Groups[1].Value
-$out = "runs/accept-as-is"
-uv run cycle-validation run $ciclo --profile dr --serial-number $sn --condition 2 --knowledge $v --config data/settings.yaml --cycle-json "runs/dr-parser-condition-3/cycle.json" --out $out | Out-Null
-$rep = Get-Content "$out/report.json" -Raw | ConvertFrom-Json
-$dr = $rep.results | Where-Object { $_.check -eq 'dr_recommendation' }
-"stato {0}  dr_recommendation {1} {2}" -f $rep.status, $dr.verdict, $dr.reason
-"corretti {0}  warning {1}  errati {2}  sessioni {3}  costo {4:N4}" -f $rep.counts.corretto, $rep.counts.warning, $rep.counts.errato, $rep.usage.sessions, $rep.usage.cost_usd
-$rep.results | Where-Object { $_.check -eq 'operation_description' } | ForEach-Object { "  op {0,-5} {1,-9} {2}" -f $_.target.label, $_.verdict, $_.reason }
-```
-
-**Deve uscire:** `stato completo`, `dr_recommendation WARNING DR_SENZA_RIPARAZIONE`, poi i
-conteggi e una riga per ogni descrizione. Le descrizioni ora non hanno la procedura DR come
-riferimento: molte usciranno WARNING `FONTE_ASSENTE` (manuale del motore assente), qualcuna
-CORRETTO se cita un task dell'SPM. **Manda a Claude** la foto.
-
-Resta aperta, quando puoi chiedere a chi conosce i DR: domanda 17 di
-`docs/DOMANDE_APERTE.md` (con «accept as is» esiste un ciclo, e con quali operazioni?) e il
-giudizio sull'ERRATO dell'op. 060 (in `runs\dr-condition-3\report.md`; non mandare il file).
+- domanda 17 di `docs/DOMANDE_APERTE.md`: con «accept as is» esiste un ciclo DR, e con quali
+  operazioni? con «reject» un ciclo di riparazione è sempre sbagliato?
+- l'ERRATO dell'op. 060 (in `runs\dr-condition-3\report.md`) aveva ragione? Non mandare il
+  file.
 
 ---
 
 ## Salvare le correzioni nel repository aziendale
 
-Quando vuoi (le prove finora sono andate bene). Mette nel commit solo codice, test e documenti
-della v2; `data/`, `runs/`, `eval/casi/aziendali/` e i PDF restano fuori perché git li
+Consigliato adesso: le prove finora sono andate bene e i test passano. Mette nel commit solo
+codice, test, documenti e casi sintetici della v2; `data/`, `runs/`, `eval/casi/aziendali/` e i PDF restano fuori perché git li
 ignora. Il push lo fai come al solito sul branch `feature/cycle-validation-v2`.
 
 ```powershell
@@ -139,8 +122,8 @@ git status --short
 git commit -m "v2: parser PVRM320 per le stampe DR, task del capitolo 70 nell'SPM, procedura DR citata come caso, conferma degli ERRATO, Accept as is senza blocco, comando leggi"
 ```
 
-**Deve uscire:** in `git status` solo righe `M ` e `A ` sotto `src/`, `tests/`, `docs/`, `eval/casi/sintetici/`; poi
-il riepilogo del commit.
+**Deve uscire:** in `git status` solo righe `M ` e `A ` sotto `src/`, `tests/`, `docs/`,
+`eval/casi/sintetici/`; poi il riepilogo del commit.
 
 ---
 
