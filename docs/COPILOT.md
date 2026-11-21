@@ -62,41 +62,39 @@ civil ed ej200). `kb-check` della versione civil `20261119T141528Z` senza errori
 
 ---
 
-## Messaggio 5: un ciclo MOS vero
+## Messaggio 5: un ciclo MOS vero (fatto)
 
-Scarica da `cicli MOS/` il ciclo che finisce con `A1.pdf` nella cartella
-`docs\Esempio ciclo mos\` (git la ignora), lo valida con la conoscenza del messaggio 4 e
-stampa il riepilogo. Il primo comando svuota prima quella cartella, così dentro c'è un solo
-PDF. Qualche minuto; costo: pochi centesimi.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-Remove-Item "docs/Esempio ciclo mos/*.pdf" -ErrorAction SilentlyContinue
-aws s3 cp "s3://$(Get-Content data/bucket.txt)/Manufacturing AI/cicli MOS/" "docs/Esempio ciclo mos/" --recursive --exclude "*" --include "*A1.pdf" --region eu-south-1 --only-show-errors
-Get-ChildItem "docs/Esempio ciclo mos/*.pdf" | Select-Object Name
-uv run cycle-validation run (Get-ChildItem "docs/Esempio ciclo mos/*.pdf" | Select-Object -First 1).FullName --profile mos --knowledge ($kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path) --config data/settings.yaml
-Select-String -Path runs/ultimo/report.md -Pattern '^- (Stato|Esiti|Costo)'
-Select-String -Path runs/ultimo/report.md -Pattern '^- \*\*(\S+)\*\* \S+ (.+?) \S+ (ERRATO|WARNING) \((\w+)\)' | ForEach-Object { $g = $_.Matches[0].Groups; "{0,-8} {1,-22} {2,-30} {3}" -f $g[3].Value, $g[1].Value, $g[2].Value, $g[4].Value }
-```
-
-**Deve uscire:** il nome del PDF scaricato (uno solo), `Ciclo completo: ...` (o `parziale`), lo
-stato, gli esiti e il costo, poi una riga per ogni ERRATO o WARNING: esito, controllo,
-operazione o fonte, motivo (per esempio `FONTE_ASSENTE`). Senza elenco delle macchine attive le
-righe sulle targhe escono WARNING: è previsto, l'elenco lo colleghiamo dopo.
-
-Il dettaglio completo, con le citazioni dei manuali, è in `runs/ultimo/report.md`: aprilo tu in
-VS Code, ma non mandarlo a Claude.
-
-**Manda a Claude** la foto delle righe e dimmi, per ogni ERRATO e WARNING, se secondo te l'esito è
-giusto: è la prima misura vera. Per provare un altro ciclo cambia `A1.pdf` nel comando
-`aws s3 cp` (per esempio `A3.pdf`) e rilancia il blocco.
-
-I cicli DR vogliono anche il serial number e la repair condition: li proviamo dopo.
+Fatto il 21-11-2026 sul primo dei tre PDF che finiscono con `A1.pdf`. Il ciclo è letto bene dal
+parser di layout (10 operazioni, zero token), ma `Ciclo parziale: 2 corretti, 20 warning,
+0 errati, 15 non applicabili.`, 0 sessioni, 0 USD: il manuale citato dal ciclo non è stato
+trovato nella conoscenza (`source` FONTE_ASSENTE), quindi non è partito nessun confronto con il
+modello. Le targhe escono ERRORE_TECNICO perché manca l'elenco delle macchine attive: previsto.
+Il blocco è nella storia di git (commit e327f66), se servisse rifarlo.
 
 ---
 
-## Messaggio 6: niente è cambiato nel repository
+## Messaggio 6: perché il manuale non si trova
+
+Stampa i nomi con cui la conoscenza conosce i suoi 10 documenti e le fonti e i task che il
+parser ha letto dal ciclo del messaggio 5. Solo lettura, nessun costo.
+
+```powershell
+$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
+$m = Get-Content ($kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path + "manifest.json") -Raw | ConvertFrom-Json
+$m.documents | Select-Object key, code, kind, version, published, @{n='aliases'; e={$_.aliases -join ', '}} | Format-Table -AutoSize -Wrap
+$c = Get-Content runs/ultimo/cycle.json -Raw | ConvertFrom-Json
+$c.sources | Select-Object manual, task, repair_code, issue | Format-Table -AutoSize -Wrap
+$c.operations | Select-Object operation_number, repair_code, machine_tag, @{n='task_codes'; e={$_.task_codes -join ', '}} | Format-Table -AutoSize -Wrap
+```
+
+**Deve uscire:** tre tabelle. La prima ha 10 righe, una per documento della conoscenza, con
+`key`, `code` e gli alias. La seconda ha le fonti del ciclo, con il manuale citato. La terza ha
+le 10 operazioni con i loro task code. **Manda a Claude** la foto di tutte e tre: dal confronto
+tra la prima e la seconda si vede se il manuale manca davvero o se è scritto in un altro modo.
+
+---
+
+## Messaggio 7: niente è cambiato nel repository
 
 ```powershell
 git status --short
@@ -104,5 +102,3 @@ git status --short
 
 **Deve uscire:** niente. Se compare un file, **manda a Claude** l'elenco: nessun comando di prova
 doveva toccare file tracciati.
-
-Poi **manda a Claude** la foto del messaggio 5.
