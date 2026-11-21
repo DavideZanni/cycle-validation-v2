@@ -69,39 +69,59 @@ uv run pytest -q
   Restano WARNING le targhe (registro macchine non collegato), la scheda dell'op. 050 (non è
   tra le 94 schede) e il manuale del motore. Con il ciclo letto dal modello (messaggio 10)
   l'op. 060 usciva ERRATO `CONTRADDIZIONE`; letta dal parser è CORRETTO.
+- **Messaggio 12**: il parser legge tutte le stampe DR. La descrizione dell'op. 060 è uguale
+  nelle due letture: l'ERRATO non viene da una lettura sbagliata del testo, ma da quello con
+  cui è stato confrontato (messaggio 13). `git status`: solo file sotto `src/`, `tests/`,
+  `docs/`.
 
 ---
 
-## Messaggio 12: la descrizione dell'op. 060 nelle due letture, e cosa è cambiato
+## Messaggio 13: con cosa è stata confrontata l'op. 060
 
-Zero token, nessun aggiornamento del codice. Rilegge col parser tutte le stampe DR (la foto del
-messaggio 11 non le mostrava), poi stampa la descrizione dell'op. 060 come l'ha letta il
-modello (run `dr-condition-3`) e come l'ha letta il parser (run `dr-parser-condition-3`):
-serve a capire se l'ERRATO veniva da una lettura sbagliata del modello. Infine l'elenco dei
-file cambiati nel repository.
+Zero token. Per i due run (ciclo letto dal modello e ciclo letto dal parser) stampa le fonti
+del ciclo, i task e il repair code dell'op. 060, poi l'esito della sua descrizione e i
+documenti usati come prova (solo nome, pagina e riga: niente testo dei manuali).
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo dr/*.pdf").FullName --profile dr
 foreach ($d in "runs/dr-condition-3", "runs/dr-parser-condition-3") {
   "=== $d"
-  (Get-Content "$d/cycle.json" -Raw | ConvertFrom-Json).operations | Where-Object { $_.operation_number -match '^0?60$' } | ForEach-Object { $_.operation_description }
+  $rep = Get-Content "$d/report.json" -Raw | ConvertFrom-Json
+  $op = $rep.cycle.operations | Where-Object { $_.operation_number -match '^0?60$' }
+  "fonti del ciclo: " + (($rep.cycle.sources | ForEach-Object { "$($_.manual) / task $($_.task) / rip. $($_.repair_code)" }) -join ' ; ')
+  "op. 060: task " + ($op.task_codes -join ',') + " / rip. $($op.repair_code)"
+  $rep.results | Where-Object { $_.check -eq 'operation_description' -and $_.target.label -match '^0?60$' } | ForEach-Object {
+    "esito: $($_.verdict) $($_.reason)"
+    $_.evidence | ForEach-Object { "  prova: $($_.document_key) pag. $($_.page) riga $($_.line)" }
+  }
 }
-git status --short
 ```
 
-**Deve uscire:**
+**Deve uscire:** per ogni run le righe `fonti del ciclo`, `op. 060`, `esito` e una o più righe
+`prova`. Se le prove dei due run vengono da documenti diversi, l'ERRATO dipende da quale
+documento il programma ha scelto per il confronto.
 
-- `leggi`: per ogni PDF le righe `riparazione · fonti · operazioni`, nessun
-  `non letto dal parser`;
-- due testi sotto `=== runs/dr-condition-3` e `=== runs/dr-parser-condition-3`: se sono
-  diversi (pezzi mancanti, frasi fuse con l'operazione vicina), l'ERRATO era colpa della
-  lettura del modello;
-- `git status`: solo file sotto `src/`, `tests/` e `docs/` (` M` modificati, `??` nuovi), da
-  salvare con un commit quando la prova è finita.
+**Manda a Claude** la foto. E, se puoi: apri `runs\dr-condition-3\report.md`, cerca `060`
+nella sezione delle descrizioni, leggi la spiegazione dell'ERRATO e dimmi solo **se ha
+ragione** e su quale punto (limite in mm, classe del penetrante, ingrandimento, altro). Non
+mandare il file.
 
-**Manda a Claude** le foto. Se in `git status` compare altro (per esempio `data/`, `runs/`,
-`eval/`), dillo.
+---
+
+## Salvare le correzioni nel repository aziendale
+
+Quando vuoi (le prove finora sono andate bene). Mette nel commit solo codice, test e documenti
+della v2; `data/`, `runs/`, `eval/casi/aziendali/` e i PDF restano fuori perché git li
+ignora. Il push lo fai come al solito sul branch `feature/cycle-validation-v2`.
+
+```powershell
+git add src tests docs
+git status --short
+git commit -m "v2: parser PVRM320 per le stampe DR, task del capitolo 70 nell'SPM, procedura DR citata come caso, comando leggi"
+```
+
+**Deve uscire:** in `git status` solo righe `M ` e `A ` sotto `src/`, `tests/`, `docs/`; poi
+il riepilogo del commit.
 
 ---
 
