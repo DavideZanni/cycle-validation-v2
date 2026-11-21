@@ -78,14 +78,18 @@ uv run pytest -q
   ERRATO, quello col parser cita quella riga e la precedente e dice CORRETTO. Differenze
   d'ingresso: col modello l'op. 060 non ha il repair code e il ciclo ha fonti in più (i due
   casi DR, il riferimento SA).
+- **Messaggio 14**: stesso ingresso, esiti diversi. Con la lettura del modello ERRATO 2 volte
+  su 3, con quella del parser 1 su 3: il modello oscilla sull'op. 060. Corretto nel codice: un
+  ERRATO della descrizione ora si rifà con 2 sessioni uguali e resta ERRATO solo se lo
+  ritrovano tutte; altrimenti WARNING `GIUDIZIO_INSTABILE`, da guardare a mano.
 
 ---
 
-## Messaggio 14: l'op. 060 è stabile? (tre ripetizioni per lettura)
+## Messaggio 15: la conferma degli ERRATO sull'op. 060
 
-Rilancia tre volte la condition 3 con il ciclo **già letto** del run del modello e tre volte
-con quello del parser (`--cycle-json`: nessuna lettura nuova). Così si separa l'effetto
-dell'ingresso dalla variabilità del modello. Sei run, circa 5 centesimi in tutto.
+Prima il blocco **Aggiornare il codice sul PC** in cima a questo file. Poi questo: rilancia tre
+volte la condition 3 con il ciclo letto dal parser (`--cycle-json`, nessuna lettura nuova).
+Circa 4 centesimi in tutto.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -93,26 +97,20 @@ $kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v
 $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
 $ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*CON sn.pdf" | Select-Object -First 1).FullName
 $sn = ((uv run cycle-validation leggi $ciclo --profile dr) | Select-String 'S/N (\S+)$').Matches[0].Groups[1].Value
-foreach ($lettura in "dr-condition-3", "dr-parser-condition-3") {
-  foreach ($i in 1..3) {
-    $out = "runs/ripeti-060-$lettura-$i"
-    uv run cycle-validation run $ciclo --profile dr --serial-number $sn --condition 3 --knowledge $v --config data/settings.yaml --cycle-json "runs/$lettura/cycle.json" --out $out | Out-Null
-    $rep = Get-Content "$out/report.json" -Raw | ConvertFrom-Json
-    $r = $rep.results | Where-Object { $_.check -eq 'operation_description' -and $_.target.label -match '^0?60$' }
-    "{0,-22} {1}  {2,-9} {3,-22} righe {4,-8} costo {5:N4}" -f $lettura, $i, $r.verdict, $r.reason, (($r.evidence | ForEach-Object { $_.line }) -join ','), $rep.usage.cost_usd
-  }
+foreach ($i in 1..3) {
+  $out = "runs/conferma-060-$i"
+  uv run cycle-validation run $ciclo --profile dr --serial-number $sn --condition 3 --knowledge $v --config data/settings.yaml --cycle-json "runs/dr-parser-condition-3/cycle.json" --out $out | Out-Null
+  $rep = Get-Content "$out/report.json" -Raw | ConvertFrom-Json
+  $r = $rep.results | Where-Object { $_.check -eq 'operation_description' -and $_.target.label -match '^0?60$' }
+  "{0}  {1,-9} {2,-20} errati {3}  conferme {4}  sessioni {5}  costo {6:N4}" -f $i, $r.verdict, $r.reason, $rep.counts.errato, $rep.session_modes.conferma, $rep.usage.sessions, $rep.usage.cost_usd
 }
 ```
 
-**Deve uscire:** sei righe, tre per `dr-condition-3` (lettura del modello) e tre per
-`dr-parser-condition-3` (lettura del parser), ognuna con esito, motivo, righe citate e costo.
+**Deve uscire:** tre righe. L'op. 060 esce CORRETTO (`VERIFICATO`) oppure WARNING
+(`GIUDIZIO_INSTABILE`); ERRATO solo se la contraddizione è ritrovata tre volte su tre.
+`conferme 2` compare solo nei run in cui la prima sessione ha detto ERRATO.
 
-- Se la lettura del modello dà ERRATO e quella del parser CORRETTO tutte e tre le volte, conta
-  l'ingresso (repair code o fonti in più).
-- Se gli esiti cambiano tra una ripetizione e l'altra con lo stesso ingresso, è il modello che
-  oscilla su questa operazione.
-
-**Manda a Claude** la foto. E resta la domanda che solo tu puoi decidere: apri
+**Manda a Claude** la foto. Resta la domanda che solo tu puoi decidere: apri
 `runs\dr-condition-3\report.md`, cerca `060` nella sezione delle descrizioni, leggi la
 spiegazione dell'ERRATO e dimmi **se ha ragione** e su quale punto (limite in mm, classe del
 penetrante, ingrandimento, altro). Non mandare il file.
@@ -128,7 +126,7 @@ ignora. Il push lo fai come al solito sul branch `feature/cycle-validation-v2`.
 ```powershell
 git add src tests docs
 git status --short
-git commit -m "v2: parser PVRM320 per le stampe DR, task del capitolo 70 nell'SPM, procedura DR citata come caso, comando leggi"
+git commit -m "v2: parser PVRM320 per le stampe DR, task del capitolo 70 nell'SPM, procedura DR citata come caso, conferma degli ERRATO, comando leggi"
 ```
 
 **Deve uscire:** in `git status` solo righe `M ` e `A ` sotto `src/`, `tests/`, `docs/`; poi

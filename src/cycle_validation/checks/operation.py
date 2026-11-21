@@ -3,7 +3,8 @@ testo di riferimento. È l'unico controllo che usa il modello.
 
 Il codice trova il dove (documenti e righe), l'agente confronta, il codice verifica le
 citazioni e assegna l'esito. Un giudizio senza citazione verificata non diventa mai
-né CORRETTO né ERRATO.
+né CORRETTO né ERRATO. Una contraddizione si rifà `confirm_contradiction` volte: resta
+ERRATO solo se la ritrovano tutte (il modello, sullo stesso testo, può oscillare).
 """
 
 import asyncio
@@ -268,23 +269,52 @@ def decide_operation(
     return result, None
 
 
-async def check_operations(
-    ctx: CheckContext,
-    session: AgentSession,
-    settings: AgentSettings,
-    system_prompt: str,
-    stats: dict[str, int] | None = None,
-) -> tuple[list[CheckResult], list[PipelineError]]:
-    """`stats`, se dato, riceve il numero di sessioni "inline" e "search" pianificate."""
-    # La pianificazione interroga la knowledge base (rete, file): fuori dal loop degli eventi,
-    # che nel servizio è lo stesso di tutte le altre richieste.
-    jobs, results = await asyncio.to_thread(plan_operation_checks, ctx, settings, system_prompt)
-    if stats is not None:
-        stats["inline"] = sum(1 for job in jobs if not job.request.use_tools)
-        stats["search"] = sum(1 for job in jobs if job.request.use_tools)
-    outcomes: Sequence[SessionOutcome] = await run_sessions(
+_DISAGREE = (Reason.VERIFICATO, Reason.EVIDENZA_NON_TROVATA, Reason.CITAZIONE_NON_VERIFICATA)
+
+
+def confirm_contradiction(first: CheckResult, confirmations: Sequence[CheckResult]) -> CheckResult:
+    """Un ERRATO resta tale solo se ogni verifica di conferma ritrova la contraddizione.
+    Se una la smentisce: WARNING GIUDIZIO_INSTABILE, da guardare a mano. Se una conferma
+    non si è potuta fare (guasto) e nessuna smentisce: WARNING per errore tecnico."""
+    usage = first.usage
+    for item in confirmations:
+        usage = usage + item.usage
+    if all(item.reason is Reason.CONTRADDIZIONE for item in confirmations):
+        evidence = list(first.evidence)
+        for item in confirmations:
+            evidence += [proof for proof in item.evidence if proof not in evidence]
+        return first.model_copy(update={"usage": usage, "evidence": tuple(evidence)})
+    found = 1 + sum(1 for item in confirmations if item.reason is Reason.CONTRADDIZIONE)
+    others = " ".join(
+        f"Verifica {number}: {item.reason.value}. {item.rationale}"
+        for number, item in enumerate(confirmations, start=2)
+    )
+    disagree = any(item.reason in _DISAGREE for item in confirmations)
+    reason = Reason.GIUDIZIO_INSTABILE if disagree else Reason.ERRORE_TECNICO
+    lead = (
+        f"Giudizio non stabile: contraddizione ritrovata in {found} verifiche su "
+        f"{1 + len(confirmations)}, da controllare a mano."
+        if disagree
+        else "Contraddizione non confermata per un errore tecnico, da controllare a mano."
+    )
+    rationale = f"{lead} Verifica 1: CONTRADDIZIONE. {first.rationale} {others}"
+    return make_result(
+        CHECK,
+        first.target,
+        reason,
+        rationale,
+        evidence=first.evidence,
+        decided_by="agent",
+        usage=usage,
+    )
+
+
+async def _run(
+    session: AgentSession, requests: Sequence[SessionRequest], settings: AgentSettings
+) -> Sequence[SessionOutcome]:
+    return await run_sessions(
         session,
-        [job.request for job in jobs],
+        requests,
         concurrency=settings.concurrency,
         retries=settings.retries,
         backoff_s=settings.retry_backoff_s,
@@ -292,11 +322,53 @@ async def check_operations(
         validate=OperationJudgement.model_validate,
         timeout_s=settings.session_timeout_s,
     )
-    errors: list[PipelineError] = []
-    for job, outcome in zip(jobs, outcomes, strict=True):
-        result, error = decide_operation(job, outcome, settings)
-        results.append(result)
-        if error is not None:
-            errors.append(error)
+
+
+async def check_operations(
+    ctx: CheckContext,
+    session: AgentSession,
+    settings: AgentSettings,
+    system_prompt: str,
+    stats: dict[str, int] | None = None,
+) -> tuple[list[CheckResult], list[PipelineError]]:
+    """`stats`, se dato, riceve il numero di sessioni "inline" e "search" pianificate e,
+    se ce ne sono, quelle di "conferma" delle contraddizioni."""
+    # La pianificazione interroga la knowledge base (rete, file): fuori dal loop degli eventi,
+    # che nel servizio è lo stesso di tutte le altre richieste.
+    jobs, results = await asyncio.to_thread(plan_operation_checks, ctx, settings, system_prompt)
+    if stats is not None:
+        stats["inline"] = sum(1 for job in jobs if not job.request.use_tools)
+        stats["search"] = sum(1 for job in jobs if job.request.use_tools)
+    outcomes = await _run(session, [job.request for job in jobs], settings)
+    decided = [
+        decide_operation(job, outcome, settings)
+        for job, outcome in zip(jobs, outcomes, strict=True)
+    ]
+    errors = [error for _, error in decided if error is not None]
+
+    repeats = settings.confirm_contradiction
+    doubtful = [
+        i for i, (result, _) in enumerate(decided) if result.reason is Reason.CONTRADDIZIONE
+    ]
+    if repeats and doubtful:
+        requests = [
+            jobs[i].request.model_copy(
+                update={"session_id": f"{jobs[i].request.session_id}-conferma-{k}"}
+            )
+            for i in doubtful
+            for k in range(1, repeats + 1)
+        ]
+        if stats is not None:
+            stats["conferma"] = len(requests)
+        confirmations = await _run(session, requests, settings)
+        for n, i in enumerate(doubtful):
+            checked = [
+                decide_operation(jobs[i], outcome, settings)
+                for outcome in confirmations[n * repeats : (n + 1) * repeats]
+            ]
+            errors += [error for _, error in checked if error is not None]
+            decided[i] = (confirm_contradiction(decided[i][0], [r for r, _ in checked]), None)
+
+    results += [result for result, _ in decided]
     results.sort(key=lambda item: item.target.index or 0)
     return results, errors

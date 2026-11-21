@@ -56,6 +56,11 @@ class AgentSettings(_Strict):
     # Task citato che il manuale non ha: WARNING subito, senza chiamare il modello (MIGLIORIE
     # B6, scelta il 20-11-2026 al posto di A2). Una sessione in meno.
     skip_missing_task: bool = True
+    # Una contraddizione (ERRATO) si conferma con altrettante sessioni uguali: resta ERRATO
+    # solo se la ritrovano tutte, altrimenti WARNING GIUDIZIO_INSTABILE. Su un ciclo DR vero
+    # lo stesso confronto dava ERRATO 3 volte su 6 (21-11-2026). Costa solo sugli ERRATO.
+    # 0 = nessuna conferma.
+    confirm_contradiction: int = Field(default=2, ge=0, le=5)
     # Testo delle sessioni su disco: contiene cicli e manuali. Spento nel servizio, acceso
     # negli esperimenti (eval/varianti/baseline.yaml).
     save_transcripts: bool = False

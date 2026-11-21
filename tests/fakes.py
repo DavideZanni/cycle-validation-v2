@@ -26,6 +26,11 @@ class ScriptedSession:
         self.running = 0
         self.max_running = 0
 
+    @property
+    def planned(self) -> list[SessionRequest]:
+        """Le sessioni dei controlli, senza le conferme delle contraddizioni."""
+        return [request for request in self.requests if "-conferma-" not in request.session_id]
+
     async def run(self, request: SessionRequest) -> SessionOutcome:
         import asyncio
 

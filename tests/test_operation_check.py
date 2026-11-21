@@ -175,7 +175,8 @@ def test_check_operations_end_to_end_with_scripted_session() -> None:
         Reason.CAMPO_ASSENTE,
         Reason.CONTRADDIZIONE,
     ]
-    assert len(session.requests) == 3
+    assert len(session.planned) == 3
+    assert len(session.requests) == 3 + 2 * SETTINGS.confirm_contradiction
 
 
 def test_schema_is_closed_and_prompt_loads(repo_root: Path) -> None:
@@ -352,3 +353,68 @@ def test_the_agent_sees_only_the_treatment_of_the_cycle_engine() -> None:
 def test_the_treatment_keeps_every_value_when_the_engine_is_unknown() -> None:
     prompt = _prompt_with_sheet("Lavaggio con solvente [GENX]; Lavaggio ad acqua [LEAP]", "XYZ")
     assert "Lavaggio con solvente [GENX]; Lavaggio ad acqua [LEAP]" in prompt
+
+
+# --- conferma delle contraddizioni ----------------------------------------------------------
+
+
+def _flipping(confirm: str) -> ScriptedSession:
+    """Prima sessione: contraddizione; sessioni di conferma: `confirm`."""
+
+    def reply(request: SessionRequest, attempt: int) -> dict[str, Any]:
+        if "-conferma-" not in request.session_id:
+            return answer("contraddetto", [QUOTE_OK])
+        return answer(confirm, [] if confirm == "non_verificabile" else [QUOTE_OK])
+
+    return ScriptedSession(reply)
+
+
+def test_a_contradiction_found_again_by_every_confirmation_stays_wrong() -> None:
+    session = _flipping("contraddetto")
+    results, _ = asyncio.run(check_operations(ctx([op()]), session, SETTINGS, "s"))
+    assert (results[0].verdict, results[0].reason) == (Verdict.ERRATO, Reason.CONTRADDIZIONE)
+    assert [r.session_id for r in session.requests] == [
+        "op-000-0010",
+        "op-000-0010-conferma-1",
+        "op-000-0010-conferma-2",
+    ]
+    assert results[0].usage.sessions == 3 * ONE_CALL.sessions
+
+
+def test_a_contradiction_that_a_confirmation_does_not_find_is_an_unstable_warning() -> None:
+    for confirm in ("coerente", "non_verificabile"):
+        stats: dict[str, int] = {}
+        results, errors = asyncio.run(
+            check_operations(ctx([op()]), _flipping(confirm), SETTINGS, "s", stats)
+        )
+        result = results[0]
+        assert (result.verdict, result.reason) == (Verdict.WARNING, Reason.GIUDIZIO_INSTABILE)
+        assert "1 verifiche su 3" in result.rationale
+        assert result.evidence  # la riga della contraddizione resta, per chi controlla a mano
+        assert errors == []
+        assert stats["conferma"] == 2
+
+
+def test_a_confirmation_that_fails_technically_does_not_keep_the_error() -> None:
+    session = ScriptedSession(
+        lambda r, a: (
+            RuntimeError("throttling")
+            if "-conferma-2" in r.session_id
+            else answer("contraddetto", [QUOTE_OK])
+        )
+    )
+    results, errors = asyncio.run(check_operations(ctx([op()]), session, SETTINGS, "s"))
+    assert (results[0].verdict, results[0].reason) == (Verdict.WARNING, Reason.ERRORE_TECNICO)
+    assert errors and errors[0].target == "0010"
+
+
+def test_no_confirmation_for_correct_judgements_or_when_turned_off() -> None:
+    session = ScriptedSession(lambda r, a: answer("coerente", [QUOTE_OK]))
+    asyncio.run(check_operations(ctx([op()]), session, SETTINGS, "s"))
+    assert len(session.requests) == 1
+
+    off = SETTINGS.model_copy(update={"confirm_contradiction": 0})
+    session = _flipping("coerente")
+    results, _ = asyncio.run(check_operations(ctx([op()]), session, off, "s"))
+    assert results[0].reason is Reason.CONTRADDIZIONE
+    assert len(session.requests) == 1

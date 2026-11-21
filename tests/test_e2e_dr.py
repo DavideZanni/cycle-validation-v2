@@ -54,7 +54,7 @@ def test_dr_selectors_are_attached_to_the_cycle_record(tmp_path: Path) -> None:
 def test_dr_recommendation_tasks_feed_the_operation_context(tmp_path: Path) -> None:
     deps, session = dr_deps(tmp_path)
     report = run_dr("SN-DEMO-001", (1,), deps)
-    (request,) = session.requests
+    request = session.requests[0]  # poi le eventuali conferme di una contraddizione
     assert "72-00-01-350-003" in request.prompt  # task della recommendation DR-DEMO-01
     assert report.status.value == "completo"
 

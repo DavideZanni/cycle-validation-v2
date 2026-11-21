@@ -243,7 +243,7 @@ def test_mos_with_the_published_civil_format(tmp_path: Path) -> None:
         Reason.VERIFICATO,
     ]
     assert report.meta.knowledge_version == "20260101T090000Z"
-    assert len(session.requests) == 3
+    assert len(session.planned) == 3
 
     payload = json.loads((tmp_path / "run" / "payload.json").read_text("utf-8"))
     feedback = [
@@ -274,7 +274,7 @@ def test_dr_with_manual_null_and_empty_conditions(tmp_path: Path) -> None:
     # task si cerca nel manuale citato dal ciclo
     report, session = dr_run(tmp_path, "AAAA1CCC", (3,))
     assert reasons(report, CheckName.DR_RECOMMENDATION) == [Reason.VERIFICATO]
-    (request,) = session.requests
+    (request,) = session.planned
     assert "70-21-00-110-031" in request.prompt and "0.31 mm" in request.prompt
 
 
@@ -529,4 +529,4 @@ def test_ej200_from_the_print_to_the_frontend_payload(tmp_path: Path) -> None:
     assert payload["cycle_errors_count"] == 2
     assert payload["cycle_status"] == "completo"
     assert payload["_pipeline_errors"] == []
-    assert len(session.requests) == 7
+    assert len(session.planned) == 7

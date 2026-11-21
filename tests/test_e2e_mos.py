@@ -60,9 +60,10 @@ def test_mos_end_to_end(pdf: Path, tmp_path: Path) -> None:
     assert report.status.value == "completo"
     assert report.meta.knowledge_version == "sintetico-2026-11"
     assert report.meta.profile == "mos"
-    assert len(session.requests) == 3  # la 0040 non chiama il modello
-    assert report.session_modes == {"inline": 3, "search": 0}
-    assert report.usage.sessions == 3
+    assert len(session.planned) == 3  # la 0040 non chiama il modello
+    # una delle due contraddizioni è della descrizione: si conferma con due sessioni in più
+    assert report.session_modes == {"inline": 3, "search": 0, "conferma": 2}
+    assert report.usage.sessions == 5
     assert set(report.timings_ms) >= {"ingest", "extract", "checks", "total"}
 
     payload = json.loads((run_dir / "payload.json").read_text(encoding="utf-8"))

@@ -233,7 +233,7 @@ def test_ej200_end_to_end(tmp_path: Path) -> None:
         Reason.CONTRADDIZIONE,
     ]
     assert report.counts.errato == 1
-    assert len(session.requests) == 2
+    assert len(session.planned) == 2
 
 
 def test_process_sheets_are_not_verified_for_ej200(tmp_path: Path) -> None:
