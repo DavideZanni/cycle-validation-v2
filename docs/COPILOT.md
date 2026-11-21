@@ -111,6 +111,17 @@ errore che trovi, con account e ARN come <omesso>.
 
 e **manda a Claude** quello che esce, senza andare avanti. Costo del messaggio: pochi centesimi.
 
+**Se l'errore parla di certificati** (`SELF_SIGNED_CERT_IN_CHAIN`, `unable to get local issuer
+certificate`, `certificate verify failed`): è il proxy aziendale (Zscaler), che la v1 gestisce con
+`zscaler.pem`. Incolla a Copilot:
+
+```text
+Rilancia lo stesso comando, nella forma della regola 3, aggiungendo prima:
+$env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Path; $env:AWS_CA_BUNDLE = $env:NODE_EXTRA_CA_CERTS;
+```
+
+Se funziona, aggiungi quelle due variabili anche ai comandi dei messaggi 4 e 5.
+
 ---
 
 ## Messaggio 4: la conoscenza vera su S3
