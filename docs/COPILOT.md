@@ -19,18 +19,10 @@ il risultato scritto, e alla fine (messaggio 10).
 1. Apri VS Code sulla cartella del repository aziendale (`File → Apri cartella`).
 2. Apri un terminale: `Terminale → Nuovo terminale`. Deve essere **PowerShell** e il percorso
    deve essere la radice del repository (quella con `buildspec.yml`).
-3. Clona il repository personale in `Downloads`, fuori dal repository aziendale (al primo
-   comando Git chiede l'accesso: usa l'account GitHub **personale**):
-
-   ```powershell
-   git clone https://github.com/DavideZanni/cycle-validation-v2.git "$HOME\Downloads\cycle-validation-v2"
-   ```
-
-   Se è già clonato, aggiornalo:
-   `git -C "$HOME\Downloads\cycle-validation-v2" pull`.
-4. Apri questo file: `File → Apri file → Downloads\cycle-validation-v2\docs\COPILOT.md`. I
-   messaggi sono i blocchi di testo: copia **tutto** il blocco, dalla prima all'ultima riga.
-5. Apri la chat di Copilot e scegli la modalità **Ask** (non *Agent* né *Edit*). Usa una
+3. Apri questo file nel browser, su GitHub:
+   `https://github.com/DavideZanni/cycle-validation-v2/blob/main/docs/COPILOT.md`. I messaggi
+   sono i blocchi di testo: copiali con il pulsante in alto a destra di ogni blocco.
+4. Apri la chat di Copilot e scegli la modalità **Ask** (non *Agent* né *Edit*). Usa una
    conversazione sola dall'inizio alla fine, così Copilot si ricorda le regole.
 
 ---
@@ -134,33 +126,39 @@ dopo ciascuno.
 
 ## Messaggio 4: portare la cartella della v2
 
+Si clona direttamente dentro il repository, nella cartella `app_cycle_validation_v2`, e subito
+dopo si cancella la cartella `.git` del clone. **Il secondo comando è obbligatorio:** finché c'è
+quella `.git`, per il repository aziendale `app_cycle_validation_v2` è un altro repository, e
+`git add` salverebbe solo un riferimento al repository personale, non i file: i colleghi
+vedrebbero una cartella vuota. Tolta la `.git`, restano i 238 file del progetto, senza storia e
+senza legami con GitHub personale.
+
 ```text
 Devo portare un progetto da un altro repository dentro questo, nella cartella
-app_cycle_validation_v2, senza la sua storia git. L'ho già clonato in
-$HOME\Downloads\cycle-validation-v2 (fuori da questo repository). Questi sono i comandi che
-lancerò dalla radice di questo repository:
+app_cycle_validation_v2, senza la sua storia git. Questi sono i comandi che lancerò dalla radice
+di questo repository:
 
-git -C "$HOME\Downloads\cycle-validation-v2" pull
-git -C "$HOME\Downloads\cycle-validation-v2" archive --format=zip --prefix=app_cycle_validation_v2/ -o "$HOME\Downloads\app_cycle_validation_v2.zip" HEAD
-Expand-Archive "$HOME\Downloads\app_cycle_validation_v2.zip" -DestinationPath .
+git clone https://github.com/DavideZanni/cycle-validation-v2.git app_cycle_validation_v2
+Remove-Item -Recurse -Force .\app_cycle_validation_v2\.git
 Test-Path .\app_cycle_validation_v2\pyproject.toml
-Test-Path .\app_cycle_validation_v2\app_cycle_validation_v2
 Test-Path .\app_cycle_validation_v2\.git
 git status --short
 
-Il secondo comando crea uno zip con i soli file del repository clonato, tutti dentro la cartella
-app_cycle_validation_v2/. Controllali e dimmi cosa devo vedere dopo ciascuno. Non devo ancora
-installare niente né lanciare test.
+Il secondo comando cancella la .git del clone, così la cartella diventa una cartella normale di
+questo repository e non un repository annidato. Controllali e dimmi cosa devo vedere dopo
+ciascuno. Non devo ancora installare niente né lanciare test.
 ```
 
 **Deve uscire:**
-- `pull`: `Already up to date.` o l'elenco dei file aggiornati;
-- `archive` ed `Expand-Archive`: niente, oppure una barra di avanzamento;
-- i tre `Test-Path`: `True`, `False`, `False`;
+- `git clone`: al primo uso chiede l'accesso a GitHub, usa l'account **personale**; finisce con
+  `Resolving deltas: 100% ... done.`;
+- `Remove-Item`: niente;
+- i due `Test-Path`: `True`, poi `False`. **Se il secondo è `True`, la `.git` è ancora lì: non
+  andare avanti**;
 - `git status --short`: una riga sola, `?? app_cycle_validation_v2/`.
 
-Se `Expand-Archive` dice che un file esiste già, la cartella c'era da un tentativo precedente:
-fermati e manda a Claude.
+Se `git clone` dice `already exists and is not an empty directory`, la cartella c'era da un
+tentativo precedente: fermati e manda a Claude.
 
 ---
 
@@ -222,14 +220,15 @@ Dimmi cosa devo vedere.
 Il `.gitignore` in radice esclude `*.json` e `*.pdf`: con un `git add` normale resterebbero
 fuori 50 file della v2 (dati dei test, esempi, casi sintetici) e i test fallirebbero altrove.
 Per questo la cartella si aggiunge con `git add -f`, che è sicuro **solo** perché la cartella è
-appena uscita dallo zip e contiene solo i file del repository: niente `.venv`, niente risultati,
-niente dati aziendali. Una volta aggiunti, il `.gitignore` non li tocca più; i `.json` e `.pdf`
+appena clonata, senza `.git`, e contiene solo i file del repository: niente `.venv`, niente
+risultati, niente dati aziendali. Una volta aggiunti, il `.gitignore` non li tocca più; i `.json` e `.pdf`
 nuovi restano esclusi come oggi.
 
 ```text
 Il .gitignore in radice esclude *.json e *.pdf: con un git add normale resterebbero fuori 50
-file della v2 (dati dei test ed esempi). La cartella app_cycle_validation_v2 è appena estratta
-da uno zip che contiene solo i file del repository, quindi la aggiungo con git add -f. Prima
+file della v2 (dati dei test ed esempi). La cartella app_cycle_validation_v2 è appena clonata
+(con la .git già cancellata) e contiene solo i file del repository, quindi la aggiungo con
+git add -f. Prima
 controllo che nella cartella ci siano solo quei 238 file, dopo controllo che git li abbia presi
 tutti. Questi sono i comandi, dalla radice:
 
@@ -360,20 +359,6 @@ kb-check, git status, push), e qualunque cosa sia andata diversamente dal previs
 ```
 
 Manda il riepilogo a Claude, con l'esito della scheda Actions.
-
----
-
-## Pulizia (a mano, alla fine)
-
-Chiudi questo file in VS Code (ne trovi una copia in `app_cycle_validation_v2/docs/COPILOT.md`),
-poi:
-
-```powershell
-Remove-Item -Recurse -Force "$HOME\Downloads\cycle-validation-v2"
-Remove-Item "$HOME\Downloads\app_cycle_validation_v2.zip"
-```
-
-Cancellano solo il clone e lo zip in `Downloads`, non il repository aziendale.
 
 ---
 

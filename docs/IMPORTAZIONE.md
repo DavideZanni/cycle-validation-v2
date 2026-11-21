@@ -113,47 +113,26 @@ Devi vedere: `Your branch is up to date`, `nothing to commit, working tree clean
 
 ## 3. Portare la cartella della v2
 
-Lo zip contiene già la cartella `app_cycle_validation_v2/`, solo file del repository: niente
-`.venv`, niente risultati, niente materiale aziendale.
-
-**Se hai lo zip `app_cycle_validation_v2.zip`** (quello mandato in chat), copialo in
-`Downloads` e dalla radice del repository:
+Dalla radice del repository aziendale:
 
 ```powershell
-Expand-Archive "$HOME\Downloads\app_cycle_validation_v2.zip" -DestinationPath .
+git clone https://github.com/DavideZanni/cycle-validation-v2.git app_cycle_validation_v2
+Remove-Item -Recurse -Force .\app_cycle_validation_v2\.git
+Test-Path .\app_cycle_validation_v2\.git        # False
+git status --short                              # ?? app_cycle_validation_v2/
 ```
 
-**Se lo cloni da GitHub.** Il clone va in una cartella **fuori** dal repository aziendale: da
-lì si prende solo il codice, non la storia (che ha commit con l'email personale e non serve al
-repository aziendale). Il repository è privato: al primo comando Git chiede di accedere con
-l'account GitHub **personale**.
+Il repository è privato: al clone Git chiede l'accesso con l'account GitHub **personale**.
 
-```powershell
-cd $HOME\Downloads
-git clone https://github.com/DavideZanni/cycle-validation-v2.git
-git -C cycle-validation-v2 archive --format=zip --prefix=app_cycle_validation_v2/ -o "$HOME\Downloads\app_cycle_validation_v2.zip" HEAD
-```
+**Perché si cancella `.git`.** Una cartella con la sua `.git` dentro un altro repository è un
+repository annidato: `git add` salverebbe solo un riferimento al repository personale, non i
+file, e i colleghi vedrebbero una cartella vuota. Tolta la `.git` restano i 238 file del
+progetto, senza la storia personale (commit con l'email personale) e senza legami con GitHub
+personale.
 
-Il secondo comando fa lo stesso zip mandato in chat (solo i file del repository). Poi torna nella
-radice del repository aziendale ed estrai come sopra:
-
-```powershell
-cd <percorso>\avioaero_datalake_cycle_validation
-Expand-Archive "$HOME\Downloads\app_cycle_validation_v2.zip" -DestinationPath .
-```
-
-Se il clone chiede l'accesso e quello personale non passa (rete o regole aziendali), usa lo zip
-mandato in chat. Finito tutto, la cartella `Downloads\cycle-validation-v2` si può cancellare.
-
-Controllo, dalla radice del repository:
-
-```powershell
-Test-Path .\app_cycle_validation_v2\pyproject.toml
-Test-Path .\app_cycle_validation_v2\app_cycle_validation_v2
-```
-
-Devi vedere `True` e poi `False` (il secondo `True` vuol dire una cartella dentro l'altra: sposta
-il contenuto un livello su).
+Se il clone non passa (rete o regole aziendali): lo zip `app_cycle_validation_v2.zip` contiene
+già la cartella, si copia in `Downloads` e dalla radice
+`Expand-Archive "$HOME\Downloads\app_cycle_validation_v2.zip" -DestinationPath .`
 
 **Non lanciare ancora `uv sync` né i test**: prima il commit (punto 4), così nel commit finisce
 solo il codice.
@@ -192,7 +171,7 @@ git commit -m "docs: documentazione della v1 in app_cycle_validation/docs, READM
 
 Il `.gitignore` aziendale in radice esclude `*.json` e `*.pdf`: con un `git add` normale
 resterebbero fuori 50 file della v2 (dati dei test ed esempi). Si aggiunge con `-f`, che è sicuro
-solo perché la cartella è appena estratta dallo zip e non c'è ancora la `.venv`:
+solo perché la cartella è appena clonata (senza `.git`) e non c'è ancora la `.venv`:
 
 ```powershell
 Test-Path .\app_cycle_validation_v2\.venv                          # False
