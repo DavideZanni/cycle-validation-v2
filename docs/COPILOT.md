@@ -34,7 +34,8 @@ Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i pas
 1. In Copilot passa ad **Ask** (in basso nella chat): nelle foto è ancora su **Agent** con
    **Allow all**.
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
-3. **5.1** la v2 in locale con login e frontend, al posto della v1. Le macchine attive dal
+3. **5.1** la v2 in locale con login e frontend, al posto della v1. Per ora solo il
+   **blocco A** (la libreria): poi Claude completa il passo. Le macchine attive dal
    PC non si leggono (prova del 22-11: Redshift non si raggiunge), quindi in locale le targhe
    escono WARNING «non verificabile». È giusto così: in QA la v2 legge Redshift come la v1.
 4. **Ingestion del manuale** trovato prima (uno solo), poi **5.2**: i tre cicli «con errori».
@@ -139,16 +140,25 @@ Le macchine attive: dal PC Redshift non si raggiunge (prova del 22-11), quindi i
 parte con `MACHINES_SOURCE` = `nessuna` e ogni targa esce WARNING «non verificabile». In QA
 e in produzione la v2 legge Redshift come la v1 (`MACHINES_SOURCE` = `diretta`).
 
-**Blocco A: la libreria nella v2.** Installa nella v2 il file `.whl` della v1 e controlla che
-ci siano le sei cose che la v2 usa. Gratis.
+**Blocco A: la libreria nella v2.** Prima prova (22-11): `libreria pronta: False`. La
+libreria si carica, ma nel `.whl` preso mancano dei pezzi che la v1 usa: forse in `vendor` ci
+sono più versioni, o la v1 ne usa un'altra. Questo blocco mostra i `.whl` che ci sono, la riga
+dei requirements della v1, e per la v2 e per la v1 la versione della libreria e i pezzi che
+mancano. Non cambia niente. Gratis.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-$whl = (Get-ChildItem ..\app_cycle_validation\vendor -Filter "chatbot_ai_sdk*.whl" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
-if ($whl) { uv pip install --quiet $whl; uv run python -c "import chatbot_ai_sdk.auth as a; print('libreria pronta:', all(hasattr(a, n) for n in ('AuthMiddleware', 'AuthSettings', 'IntrospectionValidator', 'current_user', 'ServiceAccessMiddleware', 'S3PermissionsSource')))" } else { "FERMO: nessun .whl in app_cycle_validation\vendor" }
+Get-ChildItem ..\app_cycle_validation\vendor -Filter "*.whl" -ErrorAction SilentlyContinue | ForEach-Object { "whl: $($_.Name)" }
+Select-String -Path ..\app_cycle_validation\requirements*.txt -Pattern "chatbot" -ErrorAction SilentlyContinue | ForEach-Object { "requirements: $($_.Line)" }
+$prova = "import importlib.metadata as m, chatbot_ai_sdk.auth as a; d = (m.packages_distributions().get('chatbot_ai_sdk') or ['?'])[0]; print(d, m.version(d) if d != '?' else '?', '- mancano:', [n for n in ('AuthMiddleware', 'AuthSettings', 'IntrospectionValidator', 'current_user', 'ServiceAccessMiddleware', 'S3PermissionsSource') if not hasattr(a, n)])"
+"v2: " + (uv run python -c $prova 2>&1 | Select-Object -Last 1)
+"v1: " + (& ..\app_cycle_validation\.venv\Scripts\python.exe -c $prova 2>&1 | Select-Object -Last 1)
 ```
 
-**Deve uscire:** `libreria pronta: True`.
+**Deve uscire:** una o più righe `whl: ...`, forse una riga `requirements: ...`, poi
+`v2: <nome> <versione> - mancano: [...]` e `v1: <nome> <versione> - mancano: []`.
+
+**Manda a Claude:** la foto. Claude scrive qui come installare la versione giusta.
 
 **Passo B: la configurazione in Run and Debug.** Apri `.vscode/launch.json` (quello nella
 radice di `ProgettoDocumenti`) e aggiungi questa configurazione dentro `"configurations": [`,

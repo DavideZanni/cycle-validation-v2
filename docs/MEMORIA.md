@@ -472,7 +472,9 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   CORS; l'utente va in `request.state.user`); `chatbot_ai_sdk.auth.middleware.current_user(request)
   -> VerifiedUser`; `chatbot_ai_sdk.auth.validator.IntrospectionValidator(settings, *,
   transport, clock)`. Variabili lette direttamente: `AUTH_CACHE_TTL_S`, `ENVIRONMENT`,
-  `LOG_LEVEL`. `ServiceAccessMiddleware` e `S3PermissionsSource` non sono usciti: COPILOT 5.1.
+  `LOG_LEVEL`. `ServiceAccessMiddleware` e `S3PermissionsSource` non sono usciti. Installando
+  nella v2 il primo `.whl` di `vendor` esce `libreria pronta: False` (22-11 notte): mancano
+  dei pezzi. Si confronta con la libreria della v1 (COPILOT 5.1, blocco A).
 - **Come la v1 usa la libreria (C21).** Import: `from chatbot_ai_sdk.auth import
   AuthMiddleware, AuthSettings, IntrospectionValidator, current_user, ServiceAccessMiddleware,
   S3PermissionsSource` (in `routes.py` anche `VerifiedUser`). Chiamata:
