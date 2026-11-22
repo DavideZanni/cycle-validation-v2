@@ -186,7 +186,7 @@ $testo = Get-Content $launch -Raw
 $v1 = [regex]::Match((Get-Content ..\app_cycle_validation\app_backend.py -Raw), 'load_secrets\(\s*["'']([^"'']+)').Groups[1].Value
 $m = [regex]::Match($testo, '"CV_ENV_SECRET"\s*:\s*"([^"]*)"')
 "nome della v1 trovato: $([bool]$v1) · CV_ENV_SECRET in launch.json: $($m.Success) · uguali: $($m.Success -and $m.Groups[1].Value -eq $v1)"
-if ($v1 -and $m.Success -and $m.Groups[1].Value -ne $v1) { Copy-Item $launch "$launch.prima-di-cv2"; Set-Content $launch $testo.Remove($m.Groups[1].Index, $m.Groups[1].Length).Insert($m.Groups[1].Index, $v1) -NoNewline -Encoding utf8; "CV_ENV_SECRET corretto con il nome della v1." }
+if ($v1 -and $m.Success -and $m.Groups[1].Value -ne $v1) { Copy-Item $launch "$launch.prima-di-cv2"; Set-Content $launch ($testo.Remove($m.Groups[1].Index, $m.Groups[1].Length).Insert($m.Groups[1].Index, $v1)) -NoNewline -Encoding utf8; "CV_ENV_SECRET corretto con il nome della v1." }
 ```
 
 **Deve uscire:** `nome della v1 trovato: True · CV_ENV_SECRET in launch.json: True · uguali:
