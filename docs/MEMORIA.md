@@ -69,8 +69,9 @@ sugli errori veri aspetta i manuali nella conoscenza.
   `MACHINES_SOURCE=diretta`, `REDSHIFT_DATABASE` (il database scritto nel file delle credenziali
   della v1) e `MACHINES_QUERY` (la query di `verify_active_TM`), a meno che non stiano già nel
   secret di ambiente.
-- **D2. Quando passare a QA.** Proposta: dopo i punti 2-4. La prova in locale è riuscita il
-  22-11 notte: il prossimo passo è il punto 5. La misura sugli errori (punto 1) può andare avanti in parallelo.
+- **D2. Quando passare a QA.** **Deciso dall'utente (22-11 notte):** prima altre prove in
+  locale dal frontend (COPILOT 5.3), poi QA quando lo dice lui. Il blocco 7.1 non va lanciato
+  prima: cambia il `buildspec.yml`. La misura sugli errori (punto 1) può andare avanti in parallelo.
 
 **Non serve per la consegna** (`MIGLIORIE.md`, «Da fare»): chiamata diretta a Bedrock (B1), più
 concorrenza (B4), varianti proposte dal modello (E1), togliere le rotte storiche (D).

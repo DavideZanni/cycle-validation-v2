@@ -34,11 +34,14 @@ Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i pas
 1. In Copilot passa ad **Ask** (in basso nella chat): nelle foto è ancora su **Agent** con
    **Allow all**.
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
-3. **Pubblicare in QA** (sezione 7): blocco 7.1, foto a Claude, poi **Salvare** (sezione 6) e
-   la pull request verso `develop`.
-4. Dopo la pubblicazione: la prova dal frontend QA (7.2).
-5. **Ingestion del manuale** trovato prima (uno solo), poi **5.2**: i tre cicli «con errori».
-6. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
+3. **5.3** prove in locale dal frontend (la lista è lì): prima di QA, decisione dell'utente
+   del 22-11.
+4. **Ingestion del manuale** trovato prima (uno solo), poi **5.2**: i tre cicli «con errori».
+5. **Salvare** (sezione 6) quando vuoi: salva sul ramo `feature/cycle-validation-v2`, non su
+   `develop`.
+6. **Pubblicare in QA** (sezione 7): **non ancora**, quando lo decidi tu. Non lanciare il
+   blocco 7.1 prima: cambia il `buildspec.yml`.
+7. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
 
 ---
 
@@ -168,29 +171,56 @@ Claude le confronta con i 10 errori trovati da `confronta` (`MEMORIA.md`, sezion
 
 **Manda a Claude:** la foto, e scrivi a parole quanti manuali hai ingestionato.
 
+### 5.3 Prove in locale dal frontend
+
+La v2 gira in locale al posto della v1 (5.1): voce composta **«CV v2»**, oppure **login**,
+**app_frontend** e **CV v2 (porta 8003)** a mano, poi `http://localhost:3000`. Qualche centesimo
+per ciclo. Le targhe escono sempre WARNING (dal PC Redshift non si raggiunge): non contano.
+
+Prove, nell'ordine (salta quelle che non puoi fare):
+
+1. **I tre cicli «con errori»**, MOS, dal frontend. Gli esiti devono essere quelli del
+   blocco 5.2 (stessa v2, stessa conoscenza): conta corretti, warning, errati.
+2. **Un ciclo MOS lungo** (quello con più operazioni che hai): il tempo dall'invio al
+   risultato. Deve stare sotto i 10 minuti (il frontend aspetta al massimo 11).
+3. **Un DR con serial number e condition**, poi **lo stesso DR senza** (oggi il pulsante
+   Confirm vuole i due campi: se non si può, salta il secondo).
+4. **File sbagliato:** un DR caricato scegliendo MOS. Deve uscire «Modulo sbagliato».
+5. **Pulsante militare** (se lo vedi): deve dire che i cicli EJ200 sono spenti (in locale
+   è giusto).
+6. **Storico:** riapri una chat di prima dall'elenco a sinistra, rinominala, cancellala.
+7. **Download** del CSV dei risultati.
+
+**Manda a Claude:** per ogni prova la foto dell'intestazione dei risultati (o del messaggio)
+e scrivi a parole il tempo della prova 2. Se qualcosa non va: la foto del frontend e quella
+del log di CV v2 nel terminale.
+
 ---
 
 ## 6. Salvare nel repository aziendale
 
-Da lanciare quando Claude dice che ci sono cose nuove da salvare (**adesso sì**, dopo il
-blocco 7.1: tutto il lavoro del 22-11 e la preparazione per QA). Prima lancia **Aggiornare il
-codice sul PC**, poi questi due blocchi, uno alla volta.
+Da lanciare quando Claude dice che ci sono cose nuove da salvare (**adesso sì**: comandi `qa`,
+blocchi nuovi, documenti). Salva sul ramo `feature/cycle-validation-v2`: `develop` (QA) e
+`main` non cambiano finché non apri tu la pull request. Prima lancia **Aggiornare il codice sul
+PC**, poi questi due blocchi, uno alla volta.
 
-Salva codice, test, documenti, casi di prova, impostazioni, prompt, dipendenze, il Dockerfile
-scritto da `qa`, la libreria in `vendor/` e il `buildspec.yml` della radice. I dati aziendali
+Salva codice, test, documenti, casi di prova, impostazioni, prompt e dipendenze. Dopo il
+blocco 7.1 anche il Dockerfile scritto da `qa`, la libreria in `vendor/` e il `buildspec.yml`
+della radice (prima del 7.1 restano come sono). I dati aziendali
 (`data/`, `runs/`, `eval/casi/aziendali/`, i PDF) restano fuori: git li ignora.
 
 **6.1 Commit**
 
 ```powershell
-git add src tests docs eval/casi/sintetici config prompts pyproject.toml uv.lock README.md Dockerfile vendor ../buildspec.yml
+git add src tests docs eval/casi/sintetici config prompts pyproject.toml uv.lock README.md Dockerfile ../buildspec.yml
+if (Test-Path vendor) { git add vendor }
 git status --short
-git commit -m "v2 pronta per QA: accesso con chatbot_ai_sdk come la v1, secret di ambiente della v1, macchine attive da Redshift come la v1, Dockerfile dalla v1 (cycle-validation qa), buildspec sulla v2, stampe modificate a mano, comandi confronta e macchine"
+git commit -m "v2: prova in locale con login e frontend, comando qa per la pubblicazione, blocchi e documenti aggiornati"
 ```
 
 **Deve uscire:** in `git status` righe sotto `src/`, `tests/`, `docs/`, `eval/casi/sintetici/`,
-`config/`, `prompts/`, `vendor/`, più `pyproject.toml`, `uv.lock`, `README.md`, `Dockerfile` e
-`../buildspec.yml` (`M` cambiato, `A` nuovo, `D` tolto); poi il riepilogo del commit. Niente
+`config/`, `prompts/`, forse `pyproject.toml`, `uv.lock`, `README.md`; dopo il 7.1 anche
+`vendor/`, `Dockerfile` e `../buildspec.yml` (`M` cambiato, `A` nuovo, `D` tolto); poi il riepilogo del commit. Niente
 sotto `data/` o `runs/`.
 
 **6.2 Push**
@@ -221,6 +251,8 @@ salvato: lancia lo stesso il push.
 ---
 
 ## 7. Pubblicare in QA
+
+**Non ancora** (22-11): prima le prove in locale (5.3). Quando lo decidi tu.
 
 La v2 prende il posto della v1 in QA. Oggi `buildspec.yml` (nella radice del repository)
 costruisce l'immagine dalla cartella della v1. Il comando `cycle-validation qa` prepara tutto
