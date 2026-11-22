@@ -27,7 +27,7 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ---
 
-## 1. Cosa fare adesso (22-11-2026, pomeriggio)
+## 1. Cosa fare adesso (22-11-2026, sera)
 
 Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i passi.
 
@@ -35,9 +35,9 @@ Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i pas
    **Allow all**.
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
 3. **5.1** Redshift: blocco A, poi blocco B.
-4. **5.2** la libreria dei permessi (seconda parte) e la domanda **C21** a Copilot (sezione 3).
-5. **Ingestion del manuale** trovato con il blocco di prima (uno solo). Poi **5.3**: fotografia
-   nuova della conoscenza e i tre cicli «con errori».
+4. **5.2** la v2 in locale con login e frontend, al posto della v1 (dopo 5.1: serve il file
+   delle macchine).
+5. **Ingestion del manuale** trovato prima (uno solo), poi **5.3**: i tre cicli «con errori».
 6. Lancia **Salvare nel repository aziendale** (sezione 6).
 7. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
 
@@ -72,24 +72,10 @@ uv run pytest -q
 
 ## 3. Domande per Copilot
 
-C1-C20 hanno già la risposta (`MEMORIA.md`). In basso nella chat scegli **Ask**, non
-**Agent**, e togli con la **x** gli allegati che non c'entrano (per esempio un file con accessi
-o password). Apri nella chat la cartella `ProgettoDocumenti`. Copia il testo così com'è.
-**Manda a Claude** le foto delle risposte.
-
-```text
-Rispondi solo leggendo il codice, senza modificare né eseguire niente. Non scrivere nomi di
-persone, indirizzi, account, chiavi o valori di segreti: se servono, scrivi «c'è» o «non c'è».
-
-C21. Nel backend della cycle validation v1:
-     a) copia tutte le righe import che prendono qualcosa da chatbot_ai_sdk (solo le righe
-        import) e la chiamata completa a ServiceAccessMiddleware;
-     b) nelle rotte, come si leggono utente e servizi dell'utente verificato (per esempio
-        request.state..., current_user(...).qualcosa)? Copia le righe;
-     c) in verify_active_TM (o dove si chiama redshift_connector.connect) da dove viene il
-        database: scritto nel codice («scritto nel codice», senza il valore) oppure da quale
-        variabile o chiave (il nome)?
-```
+Nessuna domanda aperta: C1-C21 hanno la risposta (`MEMORIA.md`). Quando ne servono altre,
+Claude le scrive qui. Ricorda: modalità **Ask**, togli con la **x** gli allegati che non
+c'entrano, e il testo comincia sempre con «Rispondi solo leggendo il codice, senza modificare né
+eseguire niente».
 
 ---
 
@@ -145,25 +131,27 @@ stessa risposta.
 Serve a controllare le targhe come la v1 (cos'è Redshift e perché: `MEMORIA.md`, sezione 5).
 Su Redshift non devi creare niente.
 
-**Blocco A: scaricare l'elenco.** L'ultima volta si è fermato perché nel secret di Redshift non
-c'è il nome del database. Ora il comando lo cerca nel codice della v1, dove la v1 apre la
-connessione. Stampa solo il numero di macchine. Gratis.
+**Blocco A: scaricare l'elenco.** L'ultima volta ha seguito la riga sbagliata. Nella v1 il nome
+del database lo dà la funzione `get_db_credentials` del file delle credenziali (C21): ora il
+comando segue il valore fino a lì e trova la chiave che la funzione legge. Di quel file (che
+Copilot non può aprire) usa solo la struttura e stampa solo il nome della chiave. Stampa solo il
+numero di macchine. Gratis.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 uv run cycle-validation macchine --v1 ..\app_cycle_validation
 ```
 
-**Deve uscire:** `Dalla v1: ... tabella trovata, database scritto nel codice.` (oppure
-`database letto dalla chiave X` e sotto `Chiave X del database: trovata.`), poi `Nel secret di
-ambiente: SECRET_NAME trovato.` e infine `Macchine attive: N (Redshift cluster). Scritte in
+**Deve uscire:** `Dalla v1: ... tabella trovata, database letto dalla chiave X` (oppure
+`scritto nel codice`), `Nel secret di ambiente: SECRET_NAME trovato.`, `Chiave X del database:
+trovata.` e infine `Macchine attive: N (Redshift cluster). Scritte in
 data\macchine_attive.json`.
 
 Se esce un errore:
 
-- `database NON trovato` e poi `Manca il nome del database`: rispondi alla domanda C21 c)
-  (sezione 3) e manda la foto. Se il nome lo conosci, puoi rilanciare aggiungendo
-  `--database <nome>` (il nome resta sul tuo schermo);
+- `Chiave X del database: NON trovata` o `database NON trovato`: manda la foto. Se il nome
+  del database lo conosci (per esempio lo vedi tu nel file delle credenziali della v1),
+  rilancia aggiungendo `--database <nome>`: il nome resta sul tuo schermo;
 - `ExpiredToken` o simili: `aws sso login`, poi rilancia;
 - `ResourceNotFoundException`: rilancia aggiungendo `--regione eu-west-1` (o la regione che usa
   la v1);
@@ -189,51 +177,70 @@ if (Test-Path runs/mos-macchine/report.json) { (Get-Content runs/mos-macchine/re
 
 **Manda a Claude:** la foto.
 
-### 5.2 La libreria dei permessi, seconda parte
+### 5.2 La v2 in locale, al posto della v1
 
-La prima parte ha trovato `AuthMiddleware`, `IntrospectionValidator` e `current_user`, ma non
-`ServiceAccessMiddleware` e `S3PermissionsSource`: forse il blocco ha preso un altro file
-`.whl`. Questo blocco elenca tutti i file `.whl` della libreria, usa quello della cartella
-`vendor` della v1 e stampa tutte le classi della parte `auth` (nomi, parametri, campi). Niente
-valori. Gratis.
+La v2 ora controlla token e permessi con la stessa libreria della v1 (si accende da sola quando
+legge il secret della v1) e parte con lo stesso secret «di ambiente». In locale si avvia sulla
+porta 8003, la stessa della v1: login e frontend non cambiano. La v1 e la v2 non possono
+girare insieme (stessa porta).
+
+**Blocco A: la libreria nella v2.** Installa nella v2 il file `.whl` della v1 e controlla che
+ci siano le sei cose che la v2 usa. Gratis.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-Get-ChildItem .. -Recurse -Filter "chatbot_ai_sdk*.whl" -ErrorAction SilentlyContinue | ForEach-Object { "trovato: " + $_.Directory.Name + "\" + $_.Name }
 $whl = (Get-ChildItem ..\app_cycle_validation\vendor -Filter "chatbot_ai_sdk*.whl" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
-$py = @'
-import dataclasses, importlib, inspect, pkgutil
-import chatbot_ai_sdk as sdk
-print("versione:", getattr(sdk, "__version__", "-"))
-for info in pkgutil.walk_packages(sdk.__path__, sdk.__name__ + "."):
-    try:
-        module = importlib.import_module(info.name)
-    except Exception as exc:
-        print("non letto:", info.name, type(exc).__name__)
-        continue
-    for name, item in vars(module).items():
-        if name.startswith("_") or getattr(item, "__module__", "") != module.__name__:
-            continue
-        if not (inspect.isclass(item) or inspect.isfunction(item)):
-            continue
-        try:
-            print(f"{info.name}.{name}{inspect.signature(item)}")
-        except (TypeError, ValueError):
-            print(f"{info.name}.{name}")
-        if dataclasses.is_dataclass(item):
-            print("    campi:", ", ".join(f.name for f in dataclasses.fields(item)))
-        print("    " + " / ".join((inspect.getdoc(item) or "-").splitlines()[:2]))
-'@
-$dir = Join-Path $env:TEMP "cv2-sdk-firme"; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; New-Item -ItemType Directory $dir | Out-Null
-if ($whl) { $py | Set-Content "$dir\firme.py"; uv run --no-project --with $whl python -I "$dir\firme.py" } else { "FERMO: nessun .whl in app_cycle_validation\vendor" }
+if ($whl) { uv pip install --quiet $whl; uv run python -c "import chatbot_ai_sdk.auth as a; print('libreria pronta:', all(hasattr(a, n) for n in ('AuthMiddleware', 'AuthSettings', 'IntrospectionValidator', 'current_user', 'ServiceAccessMiddleware', 'S3PermissionsSource')))" } else { "FERMO: nessun .whl in app_cycle_validation\vendor" }
 ```
 
-**Deve uscire:** le righe `trovato: ...` (i file della libreria), `versione: ...`, poi per ogni
-classe o funzione il nome con i parametri e sotto la spiegazione. Cerco soprattutto
-`ServiceAccessMiddleware`, `S3PermissionsSource` e `VerifiedUser` (i suoi campi). L'output è
-lungo: va bene in più foto.
+**Deve uscire:** `libreria pronta: True`.
 
-**Manda a Claude:** le foto di tutto l'output.
+**Passo B: la configurazione in Run and Debug.** Apri `.vscode/launch.json` (quello nella
+radice di `ProgettoDocumenti`) e aggiungi questa configurazione dentro `"configurations": [`,
+dopo quella del backend della v1 (attenzione alle virgole tra una configurazione e l'altra). Al
+posto delle due scritte `<...>` metti gli stessi valori della v1: `AWS_PROFILE` lo copi dalla
+configurazione del backend v1; il nome del secret è quello tra virgolette in
+`load_secrets("...")` di `app_backend.py` della v1. **Questi valori non vanno mandati a
+Claude** e non vanno nel repository personale.
+
+```json
+{
+  "name": "CV v2 (porta 8003)",
+  "type": "debugpy",
+  "request": "launch",
+  "module": "uvicorn",
+  "args": ["cycle_validation.api.entry:app", "--port", "8003"],
+  "cwd": "${workspaceFolder}/avioaero_datalake_cycle_validation/app_cycle_validation_v2",
+  "python": "${workspaceFolder}/avioaero_datalake_cycle_validation/app_cycle_validation_v2/.venv/Scripts/python.exe",
+  "env": {
+    "AWS_PROFILE": "<come nella configurazione della v1>",
+    "CV_ENV_SECRET": "<il nome in load_secrets della v1>",
+    "CYCLE_VALIDATION_CONFIG": "data/settings.yaml",
+    "MACHINES_FILE": "data/macchine_attive.json",
+    "CIVIL_KNOWLEDGE_POINTER": "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/current.json",
+    "EJ200_VALIDATION_ENABLED": "false",
+    "CLOUDWATCH_METRICS": "false"
+  }
+}
+```
+
+`EJ200_VALIDATION_ENABLED` è spento perché in locale la conoscenza EJ200 verrebbe scaricata
+sul PC (regola: resta su AWS). Il pulsante militare il frontend lo mostra lo stesso a chi ha il
+permesso: se lo premi, la v2 risponde che l'EJ200 è spento. È giusto così.
+
+**Passo C: la prova.** In Run and Debug avvia, come per la v1, il task dei prerequisiti di
+centralizer, poi **login**, **frontend** e **CV v2 (porta 8003)** (non il backend della v1).
+Nel frontend: entra con il tuo utente, scegli il ciclo civile, MOS, carica la stampa di esempio
+MOS.
+
+**Deve uscire:** nella Debug Console di CV v2 la riga `Uvicorn running on
+http://127.0.0.1:8003` e nessun errore all'avvio; nel frontend la pagina dei risultati del
+ciclo, come con la v1.
+
+**Manda a Claude:** la foto della Debug Console di CV v2 dopo l'avvio e una foto
+dell'intestazione dei risultati (in alto: esito e numero di errori). Se all'avvio esce
+`Configurazione ... non valida`, la foto dell'elenco dei problemi (ci sono solo nomi di
+variabili).
 
 ### 5.3 Dopo l'ingestion: i tre cicli «con errori»
 
@@ -266,8 +273,9 @@ Claude le confronta con i 10 errori trovati da `confronta` (`MEMORIA.md`, sezion
 ## 6. Salvare nel repository aziendale
 
 Da lanciare quando Claude dice che ci sono cose nuove da salvare (**adesso sì**: lettura delle
-stampe modificate a mano, comandi `confronta` e `macchine`, documenti riordinati). Prima lancia
-**Aggiornare il codice sul PC**, poi questi due blocchi, uno alla volta.
+stampe modificate a mano, comandi `confronta` e `macchine`, accesso come la v1, documenti
+riordinati). Prima lancia **Aggiornare il codice sul PC**, poi questi due blocchi, uno alla
+volta.
 
 Salva solo codice, test, documenti e casi di prova della v2. I dati aziendali (`data/`,
 `runs/`, `eval/casi/aziendali/`, i PDF) restano fuori: git li ignora.
@@ -277,7 +285,7 @@ Salva solo codice, test, documenti e casi di prova della v2. I dati aziendali (`
 ```powershell
 git add src tests docs eval/casi/sintetici
 git status --short
-git commit -m "v2: stampe modificate a mano rimesse in ordine, titoli OPERAZIONE EVENTUALE, comandi confronta e macchine, documenti riordinati"
+git commit -m "v2: accesso con chatbot_ai_sdk come la v1, secret di ambiente della v1 (CV_ENV_SECRET), stampe modificate a mano, comandi confronta e macchine, documenti riordinati"
 ```
 
 **Deve uscire:** in `git status` solo righe sotto `src/`, `tests/`, `docs/`,

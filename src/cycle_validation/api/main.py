@@ -2,8 +2,9 @@
 
 `build_services` monta tutto dall'ambiente con i client boto3: S3, conoscenza pubblicata,
 EJ200, macchine attive (file o Redshift Data API), CloudWatch. Le variabili sono in
-`api/settings.py` e `api/production.py`. Con `SECRET_NAME` le variabili mancanti si leggono
-prima da Secrets Manager. Per un montaggio diverso basta passare un'altra `factory`.
+`api/settings.py` e `api/production.py`. Con `CV_ENV_SECRET` (il secret «di ambiente» della
+v1; prima si usava `SECRET_NAME`) le variabili mancanti si leggono prima da Secrets Manager.
+Per un montaggio diverso basta passare un'altra `factory`.
 """
 
 import os
@@ -59,7 +60,10 @@ def create_app_from_env(
     """Legge il secret (se c'è), valida la configurazione con messaggi chiari, poi costruisce
     l'app."""
     env: MutableMapping[str, str] = os.environ if environ is None else environ
-    secret = (env.get("SECRET_NAME") or "").strip()
+    # Come la v1 (`load_secrets("<secret di ambiente>")` in app_backend.py): il nome del secret
+    # di ambiente arriva da CV_ENV_SECRET. Dopo, SECRET_NAME vuol dire quello che vuol dire nella
+    # v1 (il secret di Redshift). Senza CV_ENV_SECRET vale ancora il vecchio SECRET_NAME.
+    secret = (env.get("CV_ENV_SECRET") or env.get("SECRET_NAME") or "").strip()
     if secret:
         region = (env.get("REGION_NAME") or "").strip() or None
         bootstrap_environment(_boto3().client("secretsmanager", region_name=region), secret, env)

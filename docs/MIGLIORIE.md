@@ -79,6 +79,7 @@ aziendale.
 | G8 | (22-11-2026) stampa modificata a mano: se nel PDF le righe sono fuori ordine rispetto alla pagina, la lettura le rimette in ordine di posizione e unisce i pezzi della stessa riga (`ingest/pdf.py`); `leggi` dice quali pagine. Le stampe normali restano come prima |
 | G9 | (22-11-2026) comando `macchine`: elenco delle macchine attive da Redshift per le prove sul PC, con il secret e la tabella della v1 e la Data API; `leggi --breve` e `--senza-riordino`; nelle pagine rimesse in ordine una riga senza colonne resta nell'operazione in corso |
 | G10 | (22-11-2026) titolo «OPERAZIONE EVENTUALE» in un blocco a sé attaccato all'operazione dopo; `confronta --primo-senza-riordino`; `macchine` prende `SECRET_NAME` dal secret «di ambiente» della v1 e il database dalla connessione della v1 (o `--database`); nelle descrizioni lette dopo il riordino si tolgono gli asterischi di cornice e le righe di soli segni. Il riordino recupera nelle stampe DR testo che prima si perdeva |
+| G11 | (22-11-2026 sera) accesso come la v1: `API_AUTH=sdk` con `chatbot_ai_sdk` (token del cookie, permessi da `permissions.json`, utente da `current_user`), scelto da solo con il secret della v1; `CV_ENV_SECRET` per leggere all'avvio il secret «di ambiente» della v1; `macchine` segue il database fino alla funzione delle credenziali della v1 (analisi del codice) |
 
 ---
 

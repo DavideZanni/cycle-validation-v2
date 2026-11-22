@@ -35,6 +35,8 @@ class AppConfig:
     # Header con cui il frontend passa l'utente già verificato e i suoi servizi (vedi api/auth.py).
     user_header: str = "X-User"
     services_header: str = "X-Services"
+    # "sdk": token e permessi con la libreria della v1; "header": utente e servizi dagli header
+    auth: str = "header"
     environment: str = "development"
     secret_name: str | None = None
     input_tokens_cost: float = 0.0
@@ -75,6 +77,18 @@ def _optional(environ: Mapping[str, str], name: str, default: str) -> str | None
     return raw.strip() or None
 
 
+def _auth_mode(environ: Mapping[str, str], problems: list[str]) -> str:
+    """`API_AUTH`: sdk, header o auto (predefinito: sdk se c'è `AUTH_INTROSPECT_URL`, come nel
+    secret della v1)."""
+    raw = (environ.get("API_AUTH") or "auto").strip().casefold()
+    if raw == "auto":
+        return "sdk" if (environ.get("AUTH_INTROSPECT_URL") or "").strip() else "header"
+    if raw not in {"sdk", "header"}:
+        problems.append(f"API_AUTH: valore non valido ({raw!r}); usa sdk, header o auto.")
+        return "header"
+    return raw
+
+
 def load_app_config(environ: Mapping[str, str]) -> AppConfig:
     """Raccoglie tutti i problemi e li riporta insieme, senza stampare valori di secret."""
     problems = [
@@ -99,6 +113,7 @@ def load_app_config(environ: Mapping[str, str]) -> AppConfig:
         max_upload_bytes=_number(environ, "API_MAX_UPLOAD_MB", int, 50, problems) * 1024 * 1024,
         user_header=environ.get("API_USER_HEADER", "").strip() or "X-User",
         services_header=environ.get("API_SERVICES_HEADER", "").strip() or "X-Services",
+        auth=_auth_mode(environ, problems),
         environment=environ.get("ENVIRONMENT", "development").strip() or "development",
         secret_name=environ.get("SECRET_NAME") or None,
         input_tokens_cost=_number(environ, "INPUT_TOKENS_COST", float, 0.0, problems),

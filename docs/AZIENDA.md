@@ -108,24 +108,29 @@ e, se qualcosa non va, le elenca insieme con il nome.
 | `API_MAX_WORKERS` | no | validazioni contemporanee (6); ognuna apre fino a `agent.concurrency` sessioni |
 | `API_MAX_UPLOAD_MB` | no | dimensione massima del file (50) |
 | `API_INCLUDE_TRACEBACK` | no | **in produzione `false`** |
-| `API_USER_HEADER`, `API_SERVICES_HEADER` | no | header con utente e servizi (`X-User`, `X-Services`) |
+| `API_AUTH` | no | `sdk` (token e permessi con la libreria `chatbot_ai_sdk` della v1), `header` (prove) o `auto` (predefinito: `sdk` se c'è `AUTH_INTROSPECT_URL`) |
+| `AUTH_*` | con `sdk` | le variabili della libreria, già nel secret della v1 (`AUTH_INTROSPECT_URL`, `AUTH_CLIENT_ID`, `AUTH_CLIENT_SECRET`, `AUTH_EXPECTED_CLIENT_ID`, `AUTH_SSO_CLAIM`, `AUTH_PERMISSIONS_BUCKET`, `AUTH_PERMISSIONS_KEY`) |
+| `API_USER_HEADER`, `API_SERVICES_HEADER` | no | con `header`: header con utente e servizi (`X-User`, `X-Services`) |
+| `CV_ENV_SECRET` | no | nome del secret «di ambiente» (lo stesso della v1): le sue chiavi diventano variabili, senza sovrascrivere quelle già impostate. Senza, vale il vecchio `SECRET_NAME` |
 
 Il ruolo AWS deve poter usare `redshift-data:ExecuteStatement`, `DescribeStatement` e
 `GetStatementResult` (più `redshift:GetClusterCredentials` per un cluster con utente). Se
 Redshift all'inizio non è pronto, parti con `MACHINES_FILE`.
 
-**Chi è l'utente.** L'accesso lo verifica il frontend: il backend legge utente e servizi dagli
+**Chi è l'utente.** Con `API_AUTH=sdk` come nella v1: la libreria controlla il token del
+cookie (401 se manca o non vale) e i permessi di `permissions.json` (403; sotto
+`/cycle_validation/ej200` serve `cv_ej200`). I cicli militari passano solo dalle rotte
+`/cycle_validation/ej200`. Con `API_AUTH=header` (prove) l'accesso lo verifica il frontend: il backend legge utente e servizi dagli
 header e se ne fida. Per questo **il backend deve essere raggiungibile solo dal frontend** (rete
 privata, security group o gateway). Senza utente valido la risposta è 401, senza il servizio
 giusto 403 (EJ200 chiede `cv_ej200` o `all`).
 
-**Da cambiare prima della messa in servizio.** Il frontend di oggi non manda questi due header:
-manda solo `sso` e il cookie di sessione con il token. La v1 controlla il token e legge i
-permessi da `permissions.json` su S3 con la libreria interna `chatbot_ai_sdk`. La v2 dovrà fare
-lo stesso (`MEMORIA.md`, sezione 9, «Accesso ai cicli militari»).
+Il frontend di oggi non manda gli header della modalità `header`: manda solo `sso` e il cookie
+di sessione con il token. In azienda quindi `sdk` (`MEMORIA.md`, sezione 9, «Accesso ai cicli
+militari»).
 
-**Da cambiare anche questo** (`MEMORIA.md`, sezione 1, punti 4 e 6): in servizio la v2 deve
-partire con lo stesso secret «di ambiente» della v1 (le chiavi della v1: `BUCKETNAME`,
+**Con il secret della v1** (`MEMORIA.md`, sezione 1, punti 4 e 6): in servizio la v2 parte con
+`CV_ENV_SECRET` = lo stesso secret «di ambiente» della v1 (le chiavi della v1: `BUCKETNAME`,
 `REGION_NAME`, `FRONTEND_URL`, `SECRET_NAME` di Redshift, `AUTH_*`), senza variabili nuove da
 chiedere a chi gestisce AWS. Le variabili `REDSHIFT_*` sopra restano per chi preferisce la
 Data API.

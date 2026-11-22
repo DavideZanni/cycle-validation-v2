@@ -613,10 +613,10 @@ def export_machines(
             f"codice, secret di ambiente {'trovato' if found.env_secret else 'NON trovato'}, "
             f"tabella {'trovata' if found.table else 'NON trovata'}, database "
             + (
-                "scritto nel codice"
-                if found.database
-                else f"letto dalla chiave {found.database_key}"
+                f"letto dalla chiave {found.database_key}"
                 if found.database_key
+                else "scritto nel codice"
+                if found.database
                 else "NON trovato"
             )
             + "."
@@ -635,7 +635,11 @@ def export_machines(
         return values
 
     environment: dict[str, Any] = {}
-    if found is not None and found.env_secret and not (secret and (database or found.database)):
+    if (
+        found is not None
+        and found.env_secret
+        and not (secret and (database or (found.database and not found.database_key)))
+    ):
         # come la v1: SECRET_NAME (e a volte il database) stanno nel secret di ambiente
         environment = read(found.env_secret, "Secret di ambiente della v1")
     secret = secret or (found.secret if found else None)
@@ -652,14 +656,21 @@ def export_machines(
     arn = str(values.pop("__arn__"))
     if not database and found is not None:
         key = found.database_key
-        database = found.database or (
+        from_key = (
             str(values.get(key) or environment.get(key) or os.environ.get(key) or "") or None
             if key
             else None
         )
-        if key and not found.database:
+        database = from_key or found.database
+        if key:
             typer.echo(
-                f"Chiave {key} del database: " + ("trovata." if database else "NON trovata.")
+                f"Chiave {key} del database: "
+                + ("trovata." if from_key else "NON trovata nei due secret né nell'ambiente.")
+                + (
+                    " Uso il valore predefinito scritto nel codice."
+                    if not from_key and database
+                    else ""
+                )
             )
     try:
         region, parameters = data_api_target(values, arn, database)

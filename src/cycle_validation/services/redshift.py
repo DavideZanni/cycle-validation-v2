@@ -10,6 +10,8 @@ In alternativa `fetch_with_data_api` usa la Redshift Data API con un client boto
 `redshift-data`: nessun driver da installare, credenziali dal ruolo AWS.
 """
 
+import ast
+import contextlib
 import re
 import time
 from collections.abc import Callable, Mapping
@@ -137,10 +139,11 @@ _LOAD_SECRETS = re.compile(r"""load_secrets\(\s*["']([^"']+)["']""")
 _FROM = re.compile(r"""\bFROM\s+([A-Za-z_"][\w."]*)""", re.IGNORECASE)
 _TABLE = re.compile(r"^[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*){0,2}$")
 _SKIP = {".venv", "venv", "node_modules", "__pycache__", ".git"}
-# il database della connessione: scritto nel codice (`database="..."`) oppure letto da una
-# chiave (`database=os.getenv("X")`, `database=secret["X"]`, ...)
-_DATABASE = re.compile(r"""\b(?:database|dbname|db_name)\s*=\s*(?:["']([^"'\s]+)["']|([^,)\n]+))""")
-_KEY = re.compile(r"""["'](\w+)["']|(\w+)\s*$""")
+# il database della connessione: nella v1 `RedshiftConnector(database=REDSHIFT_DBNAME)`, con
+# `..., REDSHIFT_DBNAME = get_db_credentials()` definita in un altro file. Si segue il valore
+# nel codice (assegnazioni, tuple restituite da una funzione) fino a un testo scritto nel codice
+# o a una chiave letta da un secret o dall'ambiente (`x["K"]`, `.get("K")`, `getenv("K")`).
+_DB_ARGS = {"database", "dbname", "db_name"}
 
 
 @dataclass(frozen=True)
@@ -157,8 +160,7 @@ def find_in_v1(folder: Path) -> V1Redshift:
     secret: str | None = None
     table: str | None = None
     env_secret: str | None = None
-    database: str | None = None
-    database_key: str | None = None
+    trees: list[ast.Module] = []
     for path in sorted(folder.rglob("*.py")):
         if _SKIP & set(path.parts):
             continue
@@ -176,16 +178,93 @@ def find_in_v1(folder: Path) -> V1Redshift:
             after = _FROM.findall(text[at : at + 400])
             found = before[-1] if before else (after[0] if after else None)
             table = found.replace('"', "") if found else None
-        if (
-            database is None
-            and database_key is None
-            and "redshift_connector" in text
-            and (match := _DATABASE.search(text)) is not None
-        ):
-            key = _KEY.search(match[2] or "")
-            database = match[1]
-            database_key = (key[1] or key[2]) if key else None
+        with contextlib.suppress(SyntaxError, ValueError):
+            trees.append(ast.parse(text))
+    database, database_key = _database_in(trees)
     return V1Redshift(secret, table, env_secret, database, database_key)
+
+
+type _Found = tuple[str | None, str | None]
+
+
+def _database_in(trees: list[ast.Module]) -> _Found:
+    """(testo nel codice, chiave): la chiave, se c'è, vale più del testo (che è il suo valore
+    predefinito, come in `.get("K", "predefinito")`)."""
+    functions = {
+        node.name: node
+        for tree in trees
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+    }
+    for tree in trees:
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            for keyword in node.keywords:
+                if keyword.arg in _DB_ARGS:
+                    found = _resolve(keyword.value, tree, functions, 0)
+                    if found != (None, None):
+                        return found
+    return None, None
+
+
+def _text(node: ast.AST | None) -> str | None:
+    return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None
+
+
+def _resolve(node: ast.AST, scope: ast.AST, functions: dict[str, Any], depth: int) -> _Found:
+    if depth > 6:
+        return None, None
+    if (literal := _text(node)) is not None:
+        return literal, None
+    if isinstance(node, ast.Subscript) and (key := _text(node.slice)) is not None:
+        return None, key
+    if isinstance(node, ast.Call) and node.args and (key := _text(node.args[0])) is not None:
+        name = (
+            node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", "")
+        )
+        if name in {"get", "getenv"}:
+            return (_text(node.args[1]) if len(node.args) > 1 else None), key
+    if isinstance(node, ast.Name):
+        for assign in ast.walk(scope):
+            targets = (
+                assign.targets
+                if isinstance(assign, ast.Assign)
+                else [assign.target]
+                if isinstance(assign, ast.AnnAssign) and assign.value is not None
+                else []
+            )
+            value = getattr(assign, "value", None)
+            for target in targets:
+                if isinstance(target, ast.Name) and target.id == node.id and value is not None:
+                    return _resolve(value, scope, functions, depth + 1)
+                if isinstance(target, ast.Tuple) and value is not None:
+                    names = [getattr(item, "id", None) for item in target.elts]
+                    if node.id in names:
+                        return _from_tuple(value, names.index(node.id), scope, functions, depth)
+    return None, None
+
+
+def _from_tuple(
+    value: ast.AST, index: int, scope: ast.AST, functions: dict[str, Any], depth: int
+) -> _Found:
+    """L'elemento `index` di una tupla scritta o restituita da una funzione della v1."""
+    if isinstance(value, ast.Tuple) and index < len(value.elts):
+        return _resolve(value.elts[index], scope, functions, depth + 1)
+    if isinstance(value, ast.Call):
+        name = (
+            value.func.attr
+            if isinstance(value.func, ast.Attribute)
+            else getattr(value.func, "id", "")
+        )
+        function = functions.get(name)
+        if function is not None:
+            for node in ast.walk(function):
+                if isinstance(node, ast.Return) and node.value is not None:
+                    found = _from_tuple(node.value, index, function, functions, depth + 1)
+                    if found != (None, None):
+                        return found
+    return None, None
 
 
 def machines_query(table: str) -> str:

@@ -23,6 +23,7 @@ from cycle_validation.api.auth import (
     SERVICE_EJ200,
     Identity,
     IdentityMiddleware,
+    install_sdk_auth,
 )
 from cycle_validation.api.models import (
     SESSION_ID,
@@ -84,6 +85,9 @@ class ApiServices:
     # Chiamata una volta all'avvio, prima delle richieste (MIGLIORIE B7): di solito
     # `runner.preload(profili)`. Se solleva, il servizio non parte e l'errore dice quale file.
     warmup: Callable[[], None] | None = None
+    # La libreria `chatbot_ai_sdk.auth` per `auth: sdk` (None = si importa; i test ne passano
+    # una finta).
+    auth_library: Any = None
 
 
 class ApiError(Exception):
@@ -449,11 +453,14 @@ def create_app(services: ApiServices) -> FastAPI:
     )
     app.include_router(router)
 
-    app.add_middleware(
-        IdentityMiddleware,
-        user_header=services.config.user_header,
-        services_header=services.config.services_header,
-    )
+    if services.config.auth == "sdk":
+        install_sdk_auth(app, services.config.frontend_url, services.auth_library)
+    else:
+        app.add_middleware(
+            IdentityMiddleware,
+            user_header=services.config.user_header,
+            services_header=services.config.services_header,
+        )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[services.config.frontend_url],

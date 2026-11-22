@@ -174,7 +174,7 @@ def test_the_database_can_be_a_key_read_by_the_v1(tmp_path: Path) -> None:
         "import redshift_connector\nc = redshift_connector.connect(database=config.DB_NAME)\n",
         "utf-8",
     )
-    assert find_in_v1(tmp_path).database_key == "DB_NAME"
+    assert find_in_v1(tmp_path).database_key is None  # attributo di un modulo: non si segue
 
 
 def test_a_missing_database_asks_for_the_option() -> None:
@@ -222,3 +222,29 @@ def test_secret_without_database_takes_it_from_the_v1_environment_secret(
     assert "database letto dalla chiave RS_DB" in result.output
     assert "Chiave RS_DB del database: trovata." in result.output
     assert json.loads(out.read_text(encoding="utf-8")) == ["TM-1", "TM-2"]
+
+
+def test_the_database_is_followed_through_a_credentials_function(tmp_path: Path) -> None:
+    """Come la v1: la connessione riceve `self.database`, che viene da
+    `RedshiftConnector(database=REDSHIFT_DBNAME)` e da `get_db_credentials()` in un altro file."""
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config" / "credentials.py").write_text(
+        "def get_db_credentials():\n"
+        "    secret = load(SECRET_NAME)\n"
+        "    dbname = secret.get('db_x', 'predefinito')\n"
+        "    return secret['host'], secret['username'], secret['password'], dbname\n",
+        "utf-8",
+    )
+    (tmp_path / "tm.py").write_text(
+        "import redshift_connector\n"
+        "class RedshiftConnector:\n"
+        "    def extract_data(self):\n"
+        "        with redshift_connector.connect(host=self.host, database=self.database):\n"
+        "            pass\n"
+        "def verify_active_TM(tags):\n"
+        "    H, U, P, REDSHIFT_DBNAME = get_db_credentials()\n"
+        "    redshift = RedshiftConnector(host=H, port=5439, database=REDSHIFT_DBNAME)\n",
+        "utf-8",
+    )
+    found = find_in_v1(tmp_path)
+    assert (found.database, found.database_key) == ("predefinito", "db_x")

@@ -44,11 +44,11 @@ sugli errori veri aspetta i manuali nella conoscenza.
 
 | # | Cosa | Perché serve | Come si chiude | Chi |
 |---|---|---|---|---|
-| 1 | Macchine attive sul PC | senza, tutte le targhe escono `ERRORE_TECNICO` e il ciclo è `parziale` | COPILOT 5.1 (blocco A ora cerca il database nel codice della v1) | U |
+| 1 | Macchine attive sul PC | senza, tutte le targhe escono `ERRORE_TECNICO` e il ciclo è `parziale` | COPILOT 5.1: il comando ora segue il database fino a `get_db_credentials` della v1 | U |
 | 2 | Misura sugli errori veri | oggi la v2 trova 0 dei 10 errori dei cicli «con errori», perché mancano i manuali | ingestion del manuale citato, poi COPILOT 5.3; Claude confronta con i 10 errori | U, poi C |
-| 3 | Accesso degli utenti come la v1 | oggi la v2 aspetta header che il frontend non manda: risponderebbe 401 a tutti | COPILOT 5.2 e C21, poi Claude collega la libreria `chatbot_ai_sdk` come nella v1 | U, poi C |
-| 4 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | Claude: all'avvio la v2 legge quel secret come `load_secrets`; Redshift con `SECRET_NAME` e `redshift_connector` come la v1 (stessa rete, nessun permesso nuovo). Decisione D1 sotto | C |
-| 5 | Prova in locale | è il passo prima di develop | `launch.json`: una configurazione per la v2 sulla porta 8003 al posto della v1, con centralizer e login (Claude prepara il testo, l'utente lo aggiunge) | C, poi U |
+| 3 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Da provare: COPILOT 5.2 | U |
+| 4 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto per l'avvio** (22-11 sera): `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets`. Manca Redshift in servizio: come la v1, con `SECRET_NAME`, `get_db_credentials` e `redshift_connector` (stessa rete, nessun permesso nuovo), dopo 5.1 | C |
+| 5 | Prova in locale | è il passo prima di develop | COPILOT 5.2: libreria nella v2, configurazione in `launch.json`, prova dal frontend con login | U |
 | 6 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | Dockerfile della v2 come quello della v1 (Python 3.14, certificato, libreria in `vendor/`); su develop `cd app_cycle_validation_v2` nel buildspec. Per tornare indietro si rimette la riga | C, poi U |
 | 7 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 4.1 | U |
 | 8 | Prova EJ200 | i dati EJ200 non escono da AWS | dopo il punto 6, dal frontend QA | U |
@@ -57,9 +57,10 @@ sugli errori veri aspetta i manuali nella conoscenza.
 **Decisioni da prendere:**
 
 - **D1. Dove scrivere il nome del secret «di ambiente» per la v2.** Nella v1 è scritto nel
-  codice; nel repository personale (pubblico) non si può. Proposta: la v2 lo legge dalla
-  variabile `CV_ENV_SECRET`; in locale la mette `launch.json`, nel container una riga `ENV` nel
-  Dockerfile della copia aziendale (il blocco di aggiornamento non copia il Dockerfile).
+  codice; nel repository personale (pubblico) non si può. Fatto così (22-11 sera, da
+  confermare dall'utente): la v2 lo legge dalla variabile `CV_ENV_SECRET`; in locale la mette
+  `launch.json`, nel container una riga `ENV` nel Dockerfile della copia aziendale (il blocco
+  di aggiornamento non copia il Dockerfile).
 - **D2. Quando passare a QA.** Proposta: dopo i punti 1-5 e una prova in locale riuscita con
   centralizer e login.
 
@@ -146,9 +147,15 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
     ambiente, prende `SECRET_NAME`, legge il secret di Redshift, fa la query con la Data API.
     Stampa solo il numero di macchine.
   - **Il secret di Redshift** (prova del 22-11) ha i campi `dbClusterIdentifier`, `engine`,
-    `host`, `password`, `port`, `username`: è un cluster, e **il database non c'è**. La v1 lo
-    passa a `redshift_connector.connect` dal codice: dal 22-11 il comando lo cerca lì (scritto
-    nel codice o letto da una chiave, che si cerca nei due secret); se no, `--database`.
+    `host`, `password`, `port`, `username`: è un cluster, e **il database non c'è**.
+  - **Da dove la v1 prende il database (C21):** in `verify_active_TM`
+    `REDSHIFT_HOST, REDSHIFT_USER, REDSHIFT_PWD, REDSHIFT_DBNAME = get_db_credentials()`, poi
+    `RedshiftConnector(host=..., port=5439, database=REDSHIFT_DBNAME, ...)`, che passa i
+    valori a `redshift_connector.connect`. `get_db_credentials` sta in
+    `src/config/credentials.py`, che Copilot non può leggere (esclusione dell'organizzazione).
+    Il comando `macchine` segue il valore fino a quella funzione (analisi del codice Python, solo
+    la struttura) e trova la chiave che legge; poi cerca la chiave nei due secret e
+    nell'ambiente. Stampa solo il nome della chiave. Se non basta: `--database`.
   - **Perché Redshift e non il documento delle targhe su S3:** il documento dice se una targa
     esiste e che macchina è; Redshift dice se la macchina è in uso oggi. Una macchina dismessa
     che è ancora nel documento è un errore. Alternativa possibile: l'ingestion copia ogni
@@ -442,9 +449,26 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   -> VerifiedUser`; `chatbot_ai_sdk.auth.validator.IntrospectionValidator(settings, *,
   transport, clock)`. Variabili lette direttamente: `AUTH_CACHE_TTL_S`, `ENVIRONMENT`,
   `LOG_LEVEL`. `ServiceAccessMiddleware` e `S3PermissionsSource` non sono usciti: COPILOT 5.2.
-- **Conseguenza per la v2:** oggi la v2 si fida di due header (`X-User`, `X-Services`) che il
-  frontend non manda: così risponderebbe 401 a tutti. Deve controllare come la v1, con la
-  stessa libreria (sezione 1, punto 3).
+- **Come la v1 usa la libreria (C21).** Import: `from chatbot_ai_sdk.auth import
+  AuthMiddleware, AuthSettings, IntrospectionValidator, current_user, ServiceAccessMiddleware,
+  S3PermissionsSource` (in `routes.py` anche `VerifiedUser`). Chiamata:
+  `app.add_middleware(ServiceAccessMiddleware, service_keys={"cv", "cv_ej200"},
+  path_service_keys={"/cycle_validation/ej200": {"cv_ej200"}},
+  permissions=S3PermissionsSource.from_env())`. Le rotte civili leggono solo
+  `username = current_user(request).sso`; il router EJ200 ha
+  `dependencies=[Depends(current_user)]` e usa `user.sso`. `VerifiedUser` ha `sso` e
+  `client_id`. **Nessuna rotta legge i servizi dell'utente** e non c'è `request.state` nel
+  codice: il permesso lo controlla solo il middleware.
+- **Cosa fa la v2 (dal 22-11 sera, `api/auth.py`).** `API_AUTH=sdk` (scelto da solo se c'è
+  `AUTH_INTROSPECT_URL`, cioè con il secret della v1): gli stessi tre pezzi della v1 (token,
+  permessi, utente) con gli stessi parametri; l'utente delle sessioni e dei feedback è
+  `current_user(request).sso`. I servizi non arrivano alle rotte, quindi la v2 li deduce dal
+  percorso, già controllato dalla libreria. Conseguenza: le rotte nuove
+  `validation/options` e `validation/upload` non offrono il militare; i cicli militari passano
+  da `/cycle_validation/ej200/...`, come nel frontend di oggi. Senza la libreria installata la
+  v2 non parte (meglio che partire senza controllo). `API_AUTH=header` resta per le prove.
+- La libreria nella v2: `uv pip install` del `.whl` della v1 (COPILOT 5.2). `uv run` la
+  lascia; `uv sync` la toglierebbe (va reinstallata).
 - `GET /validation/options` della v2 mostra il pulsante militare solo a chi ha `cv_ej200` o
   `all` (per un frontend futuro; quello di oggi usa `/login/permissions`).
 
