@@ -29,19 +29,21 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ## 1. Cosa fare adesso (22-11-2026, notte)
 
-Il confronto ha trovato gli errori dei tre cicli «con errori». La v2 non li vede perché i
-manuali che quei cicli citano non sono nella conoscenza di prova. Ora: le macchine attive da
-Redshift, e un controllo su come si leggono tutte le stampe.
+Si prova tutto in locale, come la v1 (centralizer e login da Run and Debug), poi develop, poi
+main. L'ingestion dei manuali la fai tu. Ho corretto: il secret di Redshift (nella v1 arriva da
+un secret «di ambiente»), le stampe con «OPERAZIONE EVENTUALE», i caratteri strani nei blocchi,
+il blocco della libreria.
 
-1. In Copilot passa ad **Ask** (in basso nella chat).
+1. In Copilot passa ad **Ask** (in basso nella chat): nelle foto è ancora su **Agent**.
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
-3. Lancia la **sezione 5.1** (Redshift): prima il blocco A, gratis; poi il blocco B, qualche
-   centesimo.
-4. Lancia la **sezione 5.2** (gratis): come si leggono tutte le stampe.
-5. Lancia la **sezione 5.3** (gratis): la libreria dei permessi della v1.
-6. Lancia **Salvare nel repository aziendale** (sezione 6).
-7. Manda i tre **messaggi** della sezione 4: al collega del frontend (4.1), a chi gestisce AWS
-   e il gateway (4.2), a chi fa l'ingestion dei manuali (4.3, prima lancia il suo blocco).
+3. **Sezione 5.1** (Redshift): blocco A, poi blocco B.
+4. **Sezione 5.2** (gratis): le stampe si leggono tutte? Cosa cambia il riordino?
+5. **Sezione 5.3** (gratis): la libreria dei permessi della v1.
+6. Fai a Copilot le **domande C18-C20** (sezione 3): come si avvia la v1 in locale e come si
+   pubblica.
+7. **Sezione 4.2**: lancia il blocco, poi fai l'ingestion dei manuali dell'elenco.
+8. Lancia **Salvare nel repository aziendale** (sezione 6).
+9. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
 
 ---
 
@@ -74,9 +76,25 @@ uv run pytest -q
 
 ## 3. Domande per Copilot
 
-Per ora nessuna: Copilot ha risposto a C1-C17 (`MEMORIA.md`, sezione 8). Quando ci saranno:
-in basso nella chat scegli **Ask**, non **Agent**, e togli con la **x** gli allegati che non
-c'entrano (per esempio un file con accessi o password).
+C1-C17 hanno già la risposta (`MEMORIA.md`, sezione 8). In basso nella chat scegli **Ask**,
+non **Agent**, e togli con la **x** gli allegati che non c'entrano (per esempio un file con
+accessi o password). Apri nella chat la cartella `ProgettoDocumenti`. Copia il testo così com'è.
+**Manda a Claude** le foto delle risposte.
+
+```text
+Rispondi solo leggendo il codice, senza modificare né eseguire niente. Non scrivere nomi di
+persone, indirizzi, account, chiavi o valori di segreti: se servono, scrivi «c'è» o «non c'è».
+
+C18. Nei file .vscode/launch.json (e simili) come si avviano in locale il backend della cycle
+     validation v1, centralizer e login? Per ognuno: modulo o comando, cartella di lavoro,
+     porta, file .env usati, nomi delle variabili d'ambiente (solo i nomi).
+C19. In locale, come fa il backend v1 a verificare il token del cookie? A quale servizio si
+     rivolge IntrospectionValidator (nome della variabile con l'indirizzo, non il valore)? E
+     da dove legge permissions.json in locale (S3 o un file)?
+C20. buildspec.yml e Dockerfile della cycle validation: da quale cartella costruiscono
+     l'immagine? La build parte da develop, da main o da tutti e due? Cosa cambia tra i due
+     (ambienti, nomi delle immagini: solo come sono fatti, non i valori)?
+```
 
 ---
 
@@ -99,12 +117,8 @@ Claude la risposta a parole (senza codici veri).
   lavorazione, targa, parola nella descrizione)? Oggi la v2 una scheda assente la segna N/A,
   come la v1: senza una regola non può sapere che manca.
 - **P7. Redshift** (solo se la sezione 5.1 dà `AccessDeniedException`). Chi gestisce AWS
-  può darti la lettura del secret di Redshift della v1 e l'uso della Data API di Redshift
-  (`redshift-data`)? Serve solo per le prove sul PC; in servizio li avrà il ruolo della v2.
-- **P5. Dove gira la v1** (per chi gestisce AWS o il gateway). Il backend della v1 è
-  un'immagine Docker in ECR, ma dove gira (ECS o altro)? Chi configura il gateway che manda
-  `/cycle_validation` al backend? Serve per mettere la v2 accanto e provare i cicli EJ200
-  dentro AWS.
+  può darti la lettura dei due secret della v1 (quello «di ambiente» e quello di Redshift) e
+  l'uso della Data API di Redshift (`redshift-data`)? Serve solo per le prove sul PC.
 
 ### 4.1 Messaggio per il collega del frontend
 
@@ -127,45 +141,25 @@ stessa risposta.
 
 **Scrivi a Claude** la risposta del collega, a parole.
 
-### 4.2 Messaggio per chi gestisce AWS e il gateway (P5 e P7)
-
-```text
-Ciao! Sto preparando la v2 del backend di Cycle Validation e vorrei metterla accanto alla v1
-per provarla, senza toccare la v1. Mi servono tre informazioni:
-
-1. Dove gira il backend v1 (l'immagine in ECR): ECS, App Runner o altro? Con quale ruolo IAM?
-2. Chi configura il gateway che manda /cycle_validation al backend? Si può aggiungere un
-   secondo indirizzo per la v2 (per esempio /cycle_validation_v2) solo per alcuni utenti?
-3. La v2 legge le macchine attive da Redshift con la Data API, con lo stesso secret della v1.
-   Il ruolo della v2 (e, per le prove, il mio utente SSO) può avere la lettura di quel secret
-   e i permessi redshift-data:ExecuteStatement, DescribeStatement e GetStatementResult?
-```
-
-**Scrivi a Claude** la risposta, a parole (senza nomi di servizi, account o indirizzi).
-
-### 4.3 Messaggio per chi fa l'ingestion dei manuali
+### 4.2 I manuali da ingestionare
 
 I tre cicli «con errori» citano manuali che non sono nella conoscenza di prova: senza, la v2 non
-può trovare gli errori. Questo blocco stampa i manuali citati dai tre cicli, da incollare nel
-messaggio (restano sul tuo schermo e nel messaggio interno, non mandarli a Claude). Gratis.
+può trovare gli errori. Questo blocco stampa i manuali citati dai tre cicli: sono quelli da
+ingestionare (restano sul tuo schermo, non mandarli a Claude). Gratis.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 $radice = (Resolve-Path "..\..").Path
 $errati = Get-ChildItem $radice -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-($errati | ForEach-Object { uv run cycle-validation leggi $_.FullName --profile mos } | Select-String 'fonti: (.+?) ·' | ForEach-Object { $_.Matches[0].Groups[1].Value -split ', ' } | Sort-Object -Unique) -join "`n"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+($errati | ForEach-Object { uv run cycle-validation leggi $_.FullName --profile mos } | Select-String 'fonti: (.+?) \S+ operazioni:' | ForEach-Object { $_.Matches[0].Groups[1].Value -split ', ' } | Sort-Object -Unique) -join "`n"
 ```
 
-```text
-Ciao! Per provare la v2 di Cycle Validation mi servono nella conoscenza civile anche questi
-manuali (li citano tre cicli di prova che oggi non si possono verificare):
+**Deve uscire:** l'elenco dei manuali, uno per riga. Fai l'ingestion di quelli, poi scrivi a
+Claude a parole quanti erano e la nuova versione della conoscenza (`current.json`). Le prove sul
+PC usano una fotografia della conoscenza (`foto-20261121`): dopo l'ingestion Claude prepara il
+blocco per una fotografia nuova e per rilanciare i tre cicli «con errori».
 
-<incolla qui l'elenco uscito dal blocco>
-
-Quando sono dentro, mi dici la nuova versione della conoscenza (current.json)?
-```
-
-**Scrivi a Claude** la risposta, a parole.
 
 ---
 
@@ -188,8 +182,10 @@ $env:UV_PYTHON = "3.14"
 uv run cycle-validation macchine --v1 ..\app_cycle_validation
 ```
 
-**Deve uscire:** `Dalla v1: nome del secret trovato, tabella trovata.` e poi `Macchine attive:
-N (Redshift cluster). Scritte in data\macchine_attive.json`.
+**Deve uscire:** `Dalla v1: nome del secret NON trovato nel codice, secret di ambiente
+trovato, tabella trovata.`, poi `Nel secret di ambiente: SECRET_NAME trovato.` e infine
+`Macchine attive: N (Redshift cluster). Scritte in data\macchine_attive.json`. (Come la v1:
+il nome del secret di Redshift sta dentro il secret «di ambiente».)
 
 Se esce un errore:
 
@@ -198,7 +194,8 @@ Se esce un errore:
   `--regione eu-west-1` (o la regione che usa la v1);
 - `AccessDeniedException`: le tue credenziali non possono leggere il secret o usare la Data
   API. È la domanda P7 (sezione 4);
-- `NON trovato`: scrivi a Claude quale dei due manca.
+- `SECRET_NAME NON trovato. Campi: ...`: manda la foto (si vedono solo i nomi dei campi);
+- `tabella NON trovata`: scrivi a Claude.
 
 **Manda a Claude:** la foto.
 
@@ -222,21 +219,23 @@ if (Test-Path runs/mos-macchine/report.json) { (Get-Content runs/mos-macchine/re
 
 ### 5.2 Come si leggono tutte le stampe
 
-Per ogni stampa di esempio e delle cartelle `cicli MOS` scrive come la legge la v2 adesso
-(`ora`) e, se cambia, come la leggeva senza rimettere in ordine le righe (`prima`). Serve a
-vedere che il riordino non rovina nessuna stampa, e perché quattro stampe non si leggono.
-Gratis.
+Per ogni stampa di esempio e delle cartelle `cicli MOS`: come la legge la v2 adesso. Per le
+stampe dove ha rimesso in ordine delle pagine, confronta la lettura con e senza riordino della
+stessa stampa e mostra le prime differenze (codici mascherati). Le quattro stampe con
+«OPERAZIONE EVENTUALE» ora dovrebbero leggersi. Gratis.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
 $radice = (Resolve-Path "..\..").Path
 $tutte = @(Get-ChildItem "docs/Esempio ciclo mos/*.pdf", "docs/Esempio ciclo dr/*.pdf") + @(Get-ChildItem $radice -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.DirectoryName -match 'cicli MOS' }) | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-foreach ($f in $tutte) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); $a = @(uv run cycle-validation leggi $f.FullName --profile mos --breve)[-1]; $b = @(uv run cycle-validation leggi $f.FullName --profile mos --breve --senza-riordino)[-1]; "$h  ora:$a"; if ($a -ne $b) { "          prima:$b" } }
+foreach ($f in $tutte) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); $a = @(uv run cycle-validation leggi $f.FullName --profile mos --breve)[-1]; "$h $a"; if ($a -match 'rimesse in ordine: \d') { @(uv run cycle-validation confronta $f.FullName $f.FullName --profile mos --primo-senza-riordino) | Select-Object -First 6 | ForEach-Object { "          $_" } } }
 ```
 
-**Deve uscire:** una riga `ora:` per stampa (operazioni, parser, pagine rimesse in ordine) e,
-sotto, una riga `prima:` solo dove la lettura è cambiata. Le stampe che non si leggono hanno
-`parser: NON LETTO (...)` con il motivo.
+**Deve uscire:** una riga per stampa (operazioni, parser, pagine rimesse in ordine). Sotto le
+stampe con pagine rimesse in ordine, la riga `operazioni: N e N · differenze: K` e le prime
+differenze tra prima e dopo il riordino. Nessun `NON LETTO`, tranne la stampa che non ha il
+layout PVRM320 (quella la legge il modello).
 
 **Manda a Claude:** la foto (anche in più foto).
 
@@ -271,12 +270,15 @@ for info in pkgutil.walk_packages(sdk.__path__, sdk.__name__ + "."):
             print("    " + " / ".join((inspect.getdoc(item) or "-").splitlines()[:3]))
 print("variabili d'ambiente:", ", ".join(sorted(env)) or "-")
 '@
-if ($whl) { $py | Set-Content "$env:TEMP\sdk_firme.py"; uv run --no-project --with $whl python "$env:TEMP\sdk_firme.py" }
+$dir = Join-Path $env:TEMP "cv2-sdk-firme"; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; New-Item -ItemType Directory $dir | Out-Null
+if ($whl) { $py | Set-Content "$dir\firme.py"; uv run --no-project --with $whl python -I "$dir\firme.py" }
 ```
 
 **Deve uscire:** `libreria trovata: True`, poi una riga per ognuna delle cinque cose cercate
 (nome e parametri) con sotto la sua spiegazione, e alla fine i nomi delle variabili
-d'ambiente. Se esce `libreria trovata: False`, chiedi a Copilot dov'è il file `.whl`.
+d'ambiente. Se esce `libreria trovata: False`, chiedi a Copilot dov'è il file `.whl`. (La
+prima volta si era fermato su un file `inspect.py` lasciato nella cartella TEMP: ora lo script
+gira in una cartella sua.)
 
 **Manda a Claude:** la foto di tutto l'output.
 

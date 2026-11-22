@@ -89,10 +89,18 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
   in un secret di Secrets Manager (`SECRET_NAME` in `config.py`). Se la query fallisce la v1
   salta il controllo; la v2 dà WARNING `ERRORE_TECNICO` e il ciclo è `parziale`.
   - **In servizio** la v2 usa la Data API (`REDSHIFT_*`, `MACHINES_QUERY`, `AZIENDA.md`).
-  - **Sul PC** (dal 22-11): `cycle-validation macchine --v1 ..\app_cycle_validation` prende
-    dalla v1 nome del secret e tabella, legge host e database dal secret, fa la query con la
-    Data API e scrive `data\macchine_attive.json`; poi `run --machines
-    data\macchine_attive.json`. Stampa solo il numero di macchine.
+  - **Sul PC** (dal 22-11): `cycle-validation macchine --v1 ..\app_cycle_validation`
+    scrive `data\macchine_attive.json`; poi `run --machines data\macchine_attive.json`.
+    Nella v1 il nome del secret di Redshift non è nel codice: `config.py` ha
+    `SECRET_NAME = os.getenv("SECRET_NAME")`, e all'avvio `app_backend.py` chiama
+    `load_secrets("<secret di ambiente>")` che mette le chiavi del secret di ambiente nelle
+    variabili d'ambiente (`secret_loader.py`). Il comando fa lo stesso: legge il secret di
+    ambiente, prende `SECRET_NAME`, legge il secret di Redshift (host, database), fa la query
+    con la Data API. Stampa solo il numero di macchine.
+  - **Perché Redshift e non il documento delle targhe su S3:** il documento dice se una targa
+    esiste e che macchina è; Redshift dice se la macchina è in uso oggi. Una macchina dismessa
+    che è ancora nel documento è un errore. Alternativa possibile: l'ingestion copia ogni
+    giorno l'elenco delle attive su S3 e la v2 lo legge con `MACHINES_FILE`.
 - **Frontend**: il gateway QA aziendale (pagina *Cycle Validation*) oggi parla con la v1. La v2
   non è ancora collegata.
 
@@ -302,8 +310,10 @@ chi conosce i cicli.
 (immagine Docker pubblicata in ECR, tag del commit e `latest`), `Dockerfile` (Python 3.14,
 gunicorn `app_backend:app` sulla porta 8000), `app_backend.py` (all'avvio legge le variabili da
 Secrets Manager), `vite.config.ts` (solo in locale manda `/cycle_validation/` alla porta
-8003). **Il deploy (ECS o altro) e il gateway che collega `/cycle_validation` non sono nel
-repository**: vanno chiesti a chi li gestisce (P5).
+8003). **Come si prova e si pubblica (l'utente, 22-11-2026):** in locale si avviano da Run and Debug
+centralizer, login e il backend che si vuole provare, poi il frontend. Quando funziona in
+locale si fa push su `develop` e poi su `main`, che è il modo per mandarlo in servizio. I
+dettagli (launch.json, cartella da cui si costruisce l'immagine) sono le domande C18-C20.
 
 ### Accesso ai cicli militari (22-11-2026, risposte C15-C17)
 
@@ -367,13 +377,19 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
     v2 su questi errori servono quei manuali nella conoscenza.
   - Gli `ERRORE_TECNICO` (7-9 per ciclo) sono tutti sulla targa: sul PC il registro delle
     macchine non è collegato. Dal 22-11 c'è il comando `macchine` (COPILOT 5.1).
-  - Lettura di tutte le stampe delle cartelle `cicli MOS`: 4 non lette dal parser
-    (`8d3c673c`, `8e6c9c8d`, `b1261d11`, `d206cc9c`, motivo da vedere: COPILOT 5.2); in due
-    (`22f586bb`, `895167b9`) tutte le pagine sono state rimesse in ordine: da confrontare con
-    la lettura senza riordino.
+  - **Lettura di tutte le stampe delle cartelle `cicli MOS`** (22-11 sera, `leggi --breve`
+    con e senza riordino): il riordino fa leggere 4 stampe che prima si fermavano
+    (`298bc28e`, `38960731`, `5ff17062`, `f355dc3c`). Non lette: 3 per un titolo «*****
+    OPERAZIONE EVENTUALE *****» in un blocco a sé (`8d3c673c`, `b1261d11`, `d206cc9c`:
+    corretto, ora il titolo va all'operazione dopo) e 1 senza layout PVRM320 (`8e6c9c8d`:
+    la legge il modello). In `22f586bb` e `895167b9` tutte le pagine vengono rimesse in
+    ordine: da confrontare (`confronta X X --primo-senza-riordino`).
+  - **Caratteri strani nei blocchi** («À» al posto di «·»): l'output di Python passato in una
+    pipe di PowerShell usa un'altra codifica. Nei blocchi che leggono l'output:
+    `[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"`.
 - **Frontend:** Copilot ha letto il codice del frontend e della v1 il 22-11-2026 (domande
   C1-C14, sezione 8). La v2 è stata adattata. Mancano: la modifica del pulsante Confirm
-  (collega) e dove gira la v1 (P5).
+  (collega) e la prova in locale insieme a centralizer e login (C18-C20).
 - **DR senza serial number e condition (22-11): riuscita.**
   - Stampa «SENZA sn» (campo `S/N:` vuoto): nessun serial number trovato, e nessuno preso per
     sbaglio dalle frasi «REGISTRARE P/N E S/N...». WARNING `DR_NON_VERIFICATA`, ciclo non
