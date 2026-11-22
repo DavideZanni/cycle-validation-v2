@@ -2,7 +2,7 @@
 
 import json
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from cycle_validation.errors import CycleValidationError
@@ -15,9 +15,12 @@ from cycle_validation.text import normalize_quote
 REJECT_PROCEDURES = ("reject",)
 ACCEPT_AS_IS_PROCEDURES = ("accept as is", "use as is")
 _INTEGER = re.compile(r"-?[0-9]+")
-# Serial number scritto nella stampa: "APPLY ON S/N XXXX0000". Almeno 6 caratteri, con almeno
-# una cifra: "S/N DEL PARTICOLARE" e "S/N:" vuoto non contano.
-SERIAL_IN_TEXT = re.compile(r"\bS/N\s*:?\s+(?=[A-Z0-9]*\d)([A-Z0-9]{6,})\b")
+# Serial number scritto nella stampa: "APPLY ON S/N XXXX0000", anche "S/N:XXXX0000",
+# "S / N. XXXX-0000". Almeno 6 caratteri, con almeno una cifra: "S/N DEL PARTICOLARE",
+# "S/N ......" e "S/N:" vuoto non contano.
+SERIAL_IN_TEXT = re.compile(
+    r"\bS\s*/\s*N\b\.?\s*[:#]?\s*(?=[A-Z0-9-]*\d)([A-Z0-9][A-Z0-9-]{4,}[A-Z0-9])\b"
+)
 
 
 class SelectorError(CycleValidationError):
@@ -83,17 +86,28 @@ def parse_selectors(
     return DrSelectors(serial, parsed)
 
 
-def serial_in_text(text: str) -> str | None:
-    """Il serial number scritto nella stampa ("APPLY ON S/N ..."), se ce n'è uno solo."""
-    found = list(dict.fromkeys(SERIAL_IN_TEXT.findall(text)))
+def serials_in_text(text: str) -> list[str]:
+    """I serial number scritti nella stampa, senza ripetizioni, nell'ordine in cui compaiono."""
+    return list(dict.fromkeys(SERIAL_IN_TEXT.findall(text)))
+
+
+def serial_in_text(text: str, known: Callable[[str], bool] | None = None) -> str | None:
+    """Il serial number scritto nella stampa ("APPLY ON S/N ..."), se ce n'è uno solo. Se ce
+    ne sono più d'uno (per esempio un altro numero dopo la scritta S/N della testata), vale
+    quello che ha recommendation nei dati DR (`known`), se è uno solo."""
+    found = serials_in_text(text)
+    if len(found) > 1 and known is not None:
+        found = [serial for serial in found if known(serial)]
     return found[0] if len(found) == 1 else None
 
 
-def with_serial_from_text(selectors: DrSelectors, text: str) -> DrSelectors:
+def with_serial_from_text(
+    selectors: DrSelectors, text: str, known: Callable[[str], bool] | None = None
+) -> DrSelectors:
     """Se il serial number non è stato indicato, lo prende dalla stampa."""
     if selectors.serial_number:
         return selectors
-    found = serial_in_text(text)
+    found = serial_in_text(text, known)
     return DrSelectors(found, selectors.conditions) if found else selectors
 
 

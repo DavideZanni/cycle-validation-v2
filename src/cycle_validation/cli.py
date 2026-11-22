@@ -33,7 +33,7 @@ from cycle_validation.ingest.pdf import read_pdf
 from cycle_validation.ingest.transcribe import make_transcriber
 from cycle_validation.kb.local import load_local_knowledge
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
-from cycle_validation.resolve.dr import SERIAL_IN_TEXT, parse_selectors
+from cycle_validation.resolve.dr import SERIAL_IN_TEXT, parse_selectors, serials_in_text
 from cycle_validation.services.machines import load_machine_registry
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, help="Validazione dei cicli.")
@@ -205,6 +205,18 @@ def run(
 _DR_CASE = re.compile(r"D\.\s*R\.\s*CASE\s*#?\s*(\d{6,})", re.IGNORECASE)
 
 
+_CODE_TOKEN = re.compile(r"\S*\d\S*")
+
+
+def _masked(text: str) -> str:
+    """Le parole con almeno una cifra diventano forme: «AB12-3C» → «AA99-9A». Le altre restano."""
+
+    def shape(match: re.Match[str]) -> str:
+        return re.sub(r"\d", "9", re.sub(r"[A-Za-z]", "A", match.group()))
+
+    return _CODE_TOKEN.sub(shape, text)
+
+
 @app.command("leggi")
 def read_cycles(
     pdfs: Annotated[list[Path], typer.Argument(help="PDF dei cicli.")],
@@ -212,6 +224,13 @@ def read_cycles(
     config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
     pagina: Annotated[
         int | None, typer.Option(help="Stampa anche il testo di questa pagina, riga per riga.")
+    ] = None,
+    cerca: Annotated[
+        str | None,
+        typer.Option(
+            help="Stampa solo le righe che contengono questo testo, con i codici mascherati "
+            "(lettere → A, cifre → 9), e i serial number trovati, mascherati."
+        ),
     ] = None,
 ) -> None:
     """Legge i cicli con il parser di layout, senza modello né conoscenza (zero token), e
@@ -228,6 +247,15 @@ def read_cycles(
             pdf = read_pdf(path, limits)
         except CycleValidationError as error:
             typer.echo(f"  non letto: {error}")
+            continue
+        if cerca:
+            # per capire cosa c'è nella stampa senza far vedere codici veri nelle foto
+            for page in pdf.pages:
+                for line in page.text.splitlines():
+                    if cerca.casefold() in line.casefold():
+                        typer.echo(f"  p.{page.number} | {_masked(line.strip())}")
+            serials = [_masked(serial) for serial in serials_in_text(pdf.text)]
+            typer.echo(f"  serial number trovati: {len(serials)} ({', '.join(serials) or '-'})")
             continue
         if pagina is not None and 1 <= pagina <= len(pdf.pages):
             for number, line in enumerate(pdf.pages[pagina - 1].text.splitlines(), 1):

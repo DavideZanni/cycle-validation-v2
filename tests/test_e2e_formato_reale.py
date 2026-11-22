@@ -483,8 +483,20 @@ def test_ej200_from_the_print_to_the_frontend_payload(tmp_path: Path) -> None:
         None,
         None,
         None,
-        {"code": "PG 900", "sp_orig": "X1Y00000002Z000ZZ", "tabNumber": "PG 900"},
-        {"code": "16", "sp_orig": "X1Y00000003Z000ZZ", "tabNumber": "16"},
+        {
+            "code": "PG 900",
+            "sp_orig": "X1Y00000002Z000ZZ",
+            "tabNumber": "PG 900",
+            "task": None,
+            "class": None,
+        },
+        {
+            "code": "16",
+            "sp_orig": "X1Y00000003Z000ZZ",
+            "tabNumber": "16",
+            "task": None,
+            "class": None,
+        },
         None,
     ]
     assert ops[3]["operationDescription"].endswith("RACCORDATURA 0.50MM;")

@@ -420,6 +420,34 @@ def test_serial_number_is_read_from_the_print() -> None:
     assert with_serial_from_text(DrSelectors("SN-1"), text) == DrSelectors("SN-1")
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "APPLY ON S/N:AAAA1CCC",
+        "APPLY ON S / N. AAAA1CCC",
+        "APPLY ON S/N # AAAA1CCC",
+        "APPLY ON S/N\nAAAA1CCC",
+    ],
+)
+def test_serial_number_in_other_spellings(text: str) -> None:
+    assert serial_in_text(text) == "AAAA1CCC"
+
+
+def test_serial_number_with_a_dash_and_dotted_header_field() -> None:
+    assert serial_in_text("P/N ......  S/N ......\nAPPLY ON S/N AAAA-1CCC") == "AAAA-1CCC"
+
+
+def test_more_serial_numbers_keep_the_one_with_recommendations() -> None:
+    """Un altro numero dopo la scritta S/N (testata, altre note): vale quello noto al DR."""
+    text = "S/N 20261121\nAPPLY ON S/N AAAA1CCC"
+    assert serial_in_text(text) is None
+    assert serial_in_text(text, lambda serial: serial == "AAAA1CCC") == "AAAA1CCC"
+    assert serial_in_text(text, lambda serial: False) is None
+    assert serial_in_text(text, lambda serial: True) is None
+    found = with_serial_from_text(DrSelectors(None, (1,)), text, lambda s: s == "AAAA1CCC")
+    assert found == DrSelectors("AAAA1CCC", (1,))
+
+
 def _dr(serial: str, *conditions: int, kb: KnowledgeBase | None = None) -> CheckResult:
     ctx = _ctx(kb=kb, profile_name="dr", selectors=DrSelectors(serial, conditions))
     return check_dr_recommendation(ctx)[0]

@@ -27,19 +27,18 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ---
 
-## 1. Cosa fare adesso (22-11-2026, pomeriggio)
+## 1. Cosa fare adesso (22-11-2026, sera)
 
-1. In Copilot passa ad **Ask** (in basso nella chat). Nelle ultime foto era su **Agent** con
-   **Allow all** acceso: così può cambiare file e lanciare comandi senza chiedere.
-2. Lancia **Aggiornare il codice sul PC** (sezione 2): la v2 ora manda le risposte come le
-   legge il frontend.
-3. Lancia la **prova del ciclo DR senza serial number e condition** (sezione 5.1).
-4. Lancia **Quanto dura una validazione** (sezione 5.3): non costa niente.
-5. Lancia **Salvare nel repository aziendale** (sezione 6).
-6. Fai a Copilot le **domande C13 e C14** (sezione 3).
-7. Manda al collega del frontend il **messaggio** della sezione 4.1.
-8. Quando hai tempo: lancia la **prova del ciclo MOS «con errori»** (sezione 5.2).
-9. Quando capita: fai le **domande alle persone** (sezione 4).
+1. In Copilot passa ad **Ask** (in basso nella chat). Nelle foto è ancora su **Agent** con
+   **Allow all** acceso.
+2. Lancia **Aggiornare il codice sul PC** (sezione 2).
+3. Lancia la **prova del ciclo DR senza serial number e condition** (sezione 5.1): prima il
+   passo A, poi il passo B.
+4. Lancia **Salvare nel repository aziendale** (sezione 6).
+5. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
+6. Quando hai tempo: **ciclo MOS «con errori»** (sezione 5.2). Il blocco non ha trovato il PDF:
+   copialo in `docs\Esempio ciclo mos\` e mettigli nel nome le parole `con errori`.
+7. Quando capita: fai le **domande alle persone** (sezione 4).
 
 ---
 
@@ -72,45 +71,11 @@ uv run pytest -q
 
 ## 3. Domande per Copilot
 
-Copilot può leggere il codice del repository aziendale. Alle domande C1-C12 ha già risposto il
-22-11-2026 (le risposte sono in `MEMORIA.md`, sezione 8). Ne restano due.
+Per ora nessuna: Copilot ha risposto alle domande C1-C14 il 22-11-2026 (le risposte sono in
+`MEMORIA.md`, sezione 8). Le prossime arriveranno qui.
 
-**Prima di cominciare, due cose importanti:**
-
-- in basso nella chat di Copilot scegli **Ask**, non **Agent**. In Agent Copilot può
-  modificare file e lanciare comandi: non deve;
-- se in basso nella chat c'è un file allegato che non c'entra (per esempio un file con accessi
-  o password), toglilo con la **x** prima di scrivere. Copilot non deve leggerlo.
-
-Poi incolla questo messaggio:
-
-```text
-Fai solo il consulente: non eseguire comandi, non creare, modificare o cancellare file, non
-fare commit. Puoi solo leggere i file del workspace.
-
-Apri app_cycle_validation_v2/docs/COPILOT.md, sezione "3. Domande per Copilot", e rispondi
-alle domande C13 e C14, cercando nel codice della v1 (app_cycle_validation/) e, se lo vedi,
-del frontend.
-
-Per ogni risposta: numero della domanda, file e funzione (percorso esatto), il pezzo di codice
-o di prompt che conta (breve) e la risposta in due o tre righe, in modo semplice. Se non lo
-trovi o non sei sicuro, scrivi "non trovato": non supporre. Non scrivere valori di segreti,
-account AWS, ARN, URL o host interni, nomi di bucket, codici veri di manuali, cicli o DR: al
-loro posto <omesso>. I nomi delle variabili invece sì.
-```
-
-**Manda a Claude:** le foto delle risposte.
-
-**Le domande** (Copilot le legge da qui, tu non devi copiarle):
-
-- **C13. La scheda nella v1.** Il frontend mostra `scheda.tabNumber`, `scheda.task` e
-  `scheda.class`. Cosa ci mette la v1 in questi tre campi, per un ciclo civile (MOS/DR) e per
-  uno EJ200? Da quale colonna o scritta della stampa vengono? Incolla il pezzo del prompt di
-  estrazione o del codice che li riempie.
-- **C14. DR fermo nella v1.** Quando la validazione DR si ferma (`Reject`, `Accept as is`,
-  nessuna recommendation per quelle condition), in quale campo della risposta la v1 scrive il
-  motivo che l'utente vede? E i campi `DRCase` e `serialNumber` delle `sources`: chi li
-  riempie e con cosa (dal PDF, dai dati DR, da quello che scrive l'utente)?
+Quando ci saranno: in basso nella chat scegli **Ask**, non **Agent**, e togli con la **x** gli
+allegati che non c'entrano (per esempio un file con accessi o password).
 
 ---
 
@@ -162,16 +127,25 @@ stessa risposta.
 
 ### 5.1 Ciclo DR senza serial number e condition
 
-Dal 22-11-2026 il ciclo DR si può validare senza dire serial number e condition, e
-«accept as is» ferma il ciclo come «reject». Il blocco fa due prove sulla stampa DR che scrive
-il serial number:
+Il 22-11 la v2 non ha trovato il serial number nella stampa. Ora lo cerca in più modi e, se ne
+trova più d'uno, tiene quello che ha recommendation nei dati DR. Due passi.
 
-- **senza dati**: il serial number deve essere preso dalla stampa. Quel serial number ha
-  recommendation diverse (riparazione e «accept as is»), quindi senza condition deve uscire
-  WARNING `DR_NON_VERIFICATA` e gli altri controlli devono andare avanti;
-- **condition 2** («accept as is»): deve uscire ERRATO e il ciclo fermo.
+**Passo A: cosa c'è scritto vicino a «S/N».** Non chiama il modello e non costa niente. I codici
+escono mascherati (lettere → `A`, cifre → `9`), così nella foto non si vedono quelli veri.
 
-Costa qualche centesimo (solo la prima prova chiama il modello).
+```powershell
+$env:UV_PYTHON = "3.14"
+$ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*sn.pdf" | Select-Object -First 1).FullName
+"PDF che finiscono con sn: " + @(Get-ChildItem "docs/Esempio ciclo dr/*sn.pdf").Count
+uv run cycle-validation leggi $ciclo --profile dr --cerca "S/N"
+```
+
+**Deve uscire:** `PDF che finiscono con sn: 1`, il nome del file, alcune righe `p.N | ...` con
+la scritta `S/N`, e alla fine `serial number trovati: N (...)`.
+
+**Manda a Claude:** la foto di tutto l'output.
+
+**Passo B: le due prove.** Costa qualche centesimo.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -186,45 +160,32 @@ foreach ($r in "dr-senza-dati", "dr-condition-2") { $j = Get-Content "runs/$r/re
 **Deve uscire:** due righe `Ciclo ...` con i conteggi, poi:
 
 - `dr-senza-dati : stato parziale, DR WARNING DR_NON_VERIFICATA, serial number trovato: sì`
-- `dr-condition-2 : stato bloccato, DR ERRATO DR_NON_APPLICABILE, serial number trovato: sì`
+  (il serial number ha recommendation diverse: senza condition non si sa quale vale, ma gli
+  altri controlli vanno avanti con la riparazione);
+- `dr-condition-2 : stato bloccato, DR ERRATO DR_NON_APPLICABILE, serial number trovato: sì`.
 
-**Manda a Claude:** la foto delle due righe `Ciclo ...` e delle due righe finali.
+**Manda a Claude:** la foto delle due righe `Ciclo ...` e delle due righe finali. Se esce
+ancora `serial number trovato: no`, basta la foto del passo A.
 
 ### 5.2 Il ciclo MOS «con errori»
 
 Passa alla v2 il PDF del ciclo MOS «con errori» e mostra cosa dice su fonti e task. Il PDF lo
-cerca in `docs\` e in `Downloads`. Costa qualche centesimo.
+cerca in `docs\` e in `Downloads`, con le parole `con errori` nel nome: se non c'è, copialo in
+`docs\Esempio ciclo mos\` e rinominalo. Costa qualche centesimo.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 $kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
 $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
 $ciclo = (Get-ChildItem docs, "$HOME\Downloads" -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
-if ($ciclo) { "Trovato: " + (Split-Path $ciclo -Leaf) } else { "FERMO: PDF con errori non trovato, mettilo in docs\Esempio ciclo mos\" }
-uv run cycle-validation run $ciclo --profile mos --knowledge $v --config data/settings.yaml --out runs/mos-con-errori
-(Get-Content runs/mos-con-errori/report.json -Raw | ConvertFrom-Json).results | Where-Object { $_.check -in 'source', 'task_code' } | Format-Table @{n='controllo'; e={$_.check}}, @{n='riga'; e={$_.target.label}}, verdict, reason, @{n='motivo'; e={$_.rationale}} -Wrap
+if ($ciclo) { uv run cycle-validation run $ciclo --profile mos --knowledge $v --config data/settings.yaml --out runs/mos-con-errori } else { "FERMO: PDF con errori non trovato, mettilo in docs\Esempio ciclo mos\ con 'con errori' nel nome" }
+if ($ciclo) { (Get-Content runs/mos-con-errori/report.json -Raw | ConvertFrom-Json).results | Where-Object { $_.check -in 'source', 'task_code' } | Format-Table @{n='controllo'; e={$_.check}}, @{n='riga'; e={$_.target.label}}, verdict, reason, @{n='motivo'; e={$_.rationale}} -Wrap }
 ```
 
-**Deve uscire:** `Trovato: ...`, poi una riga `Ciclo ...` con i conteggi e il costo, poi una
-tabella con le fonti e i task: esito, motivo e spiegazione.
+**Deve uscire:** una riga `Ciclo ...` con i conteggi e il costo, poi una tabella con le fonti e
+i task: esito, motivo e spiegazione. Se esce `FERMO`, sposta il PDF e rilancia.
 
 **Manda a Claude:** la foto della riga dei conteggi e della tabella (anche in due foto).
-
-### 5.3 Quanto dura una validazione
-
-Il frontend aspetta al massimo 660 secondi l'upload e il backend della v1 ferma tutto dopo 600
-secondi. Questo blocco legge i report delle prove già fatte e mostra quanto è durata ognuna.
-Non chiama il modello e non costa niente.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-Get-ChildItem runs -Directory | ForEach-Object { $f = Join-Path $_.FullName "report.json"; if (Test-Path $f) { $j = Get-Content $f -Raw | ConvertFrom-Json; [pscustomobject]@{ prova = $_.Name; operazioni = @($j.cycle.operations).Count; secondi = [math]::Round($j.timings_ms.total / 1000) } } } | Sort-Object secondi -Descending | Format-Table -AutoSize
-```
-
-**Deve uscire:** una tabella con il nome della prova, il numero di operazioni e i secondi.
-Tutto sotto 600 va bene.
-
-**Manda a Claude:** la foto della tabella.
 
 ---
 
@@ -242,7 +203,7 @@ Salva solo codice, test, documenti e casi di prova della v2. I dati aziendali (`
 ```powershell
 git add src tests docs eval/casi/sintetici
 git status --short
-git commit -m "v2: DR con serial number e condition facoltativi, accept as is blocca; risposta adattata al frontend; documenti riorganizzati"
+git commit -m "v2: DR con serial number e condition facoltativi (anche dalla stampa), accept as is blocca; risposta adattata al frontend; documenti riorganizzati"
 ```
 
 **Deve uscire:** in `git status` solo righe sotto `src/`, `tests/`, `docs/`,

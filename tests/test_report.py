@@ -216,6 +216,24 @@ def test_payload_sheet_has_the_tab_number_the_frontend_shows() -> None:
     assert first["scheda"]["tabNumber"] == "SP-1" and first["scheda"]["code"] == "SP-1"
 
 
+def test_civil_sheet_task_is_the_code_after_sp_orig() -> None:
+    """Come la v1 (C13): nei cicli civili `scheda.task` è il codice dopo «SP.ORIG.»."""
+    cycle = CYCLE.model_copy(
+        update={
+            "operations": [
+                Operation(
+                    operation_number="0010",
+                    process_sheet=ProcessSheet(code="16", sp_orig="70-11-22-333-444"),
+                )
+            ]
+        }
+    )
+    built = report().model_copy(update={"cycle": cycle, "results": []})
+    (operation,) = build_legacy_payload(built)["operations"]
+    assert operation["scheda"]["task"] == "70-11-22-333-444"
+    assert operation["scheda"]["class"] is None
+
+
 def test_markdown_has_one_row_per_operation_and_a_column_per_check() -> None:
     text = render_markdown(report())
     assert "Operazione" in text
@@ -273,7 +291,13 @@ def test_ej200_payload_has_the_columns_of_the_results_table() -> None:
         "operationDescription": "LAVAGGIO DEL COMPONENTE SECONDO SCHEDA PROCESSO.",
         "targaCResp": "IM0294",
         "taskCodeCited": None,
-        "scheda": {"code": "PG 300", "sp_orig": "X1Y22300001Z999ZZ", "tabNumber": "PG 300"},
+        "scheda": {
+            "code": "PG 300",
+            "sp_orig": "X1Y22300001Z999ZZ",
+            "tabNumber": "PG 300",
+            "task": None,
+            "class": None,
+        },
         "operationFeedback": "N/A",
         "targaCRespFeedback": "N/A",
         "taskCodeFeedback": "N/A",

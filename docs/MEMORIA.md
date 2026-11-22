@@ -250,8 +250,10 @@ operazioni. Il backend non è chiamato.
 
 **Tempi massimi.** Frontend: 300 s per le chiamate normali, **660 s per l'upload**. Backend v1:
 gunicorn con `--timeout 600`. Un commento parla di 650 s nel gateway nginx, ma nei file non
-c'è. **La v2 deve finire una validazione in meno di 10 minuti** (da misurare: prova 5.3 in
-`COPILOT.md`).
+c'è. **La v2 deve finire una validazione in meno di 10 minuti.** Misurato il 22-11-2026 sui
+cicli DR da 9 operazioni: al massimo 131 s (con la lettura del PDF fatta dal modello), di solito
+12-30 s; 0 s quando nessun controllo chiama il modello (ciclo bloccato, o DR senza riferimento).
+Un ciclo MOS lungo è ancora da misurare.
 
 **«N/A, non verificato per EJ200».** Nasce nel backend v1 (`ej200/validation.py`) e va in
 `schedaFeedback` quando un'operazione EJ200 ha una scheda. Il frontend lo mostra `Info`
@@ -265,8 +267,30 @@ azzurro perché non è esattamente `N/A`.
 - l'esito DR va nella riga della fonte che cita il DR (con `DRCase` e `serialNumber`); se
   nessuna fonte lo cita, si aggiunge una riga DR in cima alle fonti. Se la fonte ha anche un
   suo avviso, si mostra prima il più grave e poi l'altro, separati da ` | `;
-- la scheda ha anche `tabNumber` (= il codice). Cosa mettere in `scheda.task` e
-  `scheda.class` è da capire (domanda C13).
+- la scheda ha i campi che il frontend mostra, riempiti come nella v1: `tabNumber` = il codice;
+  `task` = il codice dopo «SP.ORIG.» nei cicli civili, vuoto negli EJ200; `class` vuoto (la v2
+  non la legge).
+
+**La scheda nella v1** (risposta C13). Civile: il modello legge solo la riga dopo `SCHEDA`
+(prompt `cycle_extraction.yaml`): `tabNumber` il codice, `task` il codice sulla stessa riga
+(senza «SP.ORIG.»/«SP.FIAT»), `class` la lettera dopo «Class». I task dopo `SCHEDA` non vanno
+in `taskCodeCited`; se manca il codice ma c'è un task, `check_task_codes` sposta il task in
+`taskCodeCited` e la scheda diventa vuota. EJ200 (`ej200_cycle_extraction.yaml`, `_scheda`):
+solo `tabNumber`; `task` e `class` sempre vuoti; le righe SCHEDA si tolgono dalla descrizione.
+
+**DR fermo nella v1** (risposta C14, `DR_source_validation`, `process_single_cycle_bytes`):
+
+- il motivo va in `sources[0].sourceFeedback`, in inglese, uno per caso (`Accept as is`,
+  `Reject`, nessuna recommendation: «Error found: no matching DR data found…», serial number e
+  condition mancanti). Il frontend lo mostra nella riga «DR Case»;
+- ogni operazione riceve `fallbackFeedback: "Error during validation."` (il frontend non lo
+  mostra); `_pipeline_errors` riceve un messaggio generico «Attenzione: validazione
+  bloccata…»;
+- `DRCase` lo legge il modello dalla prima operazione (la NOTE, di solito 005/010);
+  `serialNumber` è quello scritto dall'utente, in maiuscolo (sovrascrive quello letto dal PDF).
+  Per un DR serial number e condition sono obbligatori (`_enforce_dr_policy`);
+- **se il modello non trova il `DRCase`, la v1 salta del tutto la validazione DR.** La v2 no:
+  senza riferimento dà WARNING `DR_NON_VERIFICATA`.
 
 **La v1 non è un riferimento.** Dà errori falsi (su un ciclo EJ200, due «Error» con valori che
 rispettano il limite) e giudizi diversi per casi uguali. Per sapere se la v2 ha ragione serve
@@ -292,12 +316,16 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
   - Descrizioni: 4 CORRETTO, 5 WARNING `EVIDENZA_NON_TROVATA`; la scheda dell'op. 050 non è
     tra le 94 schede.
 - **EJ200:** mai provato con i servizi veri (va fatto dentro AWS).
-- **Ciclo MOS «con errori»:** blocco pronto in `COPILOT.md`; manca sapere quali sono gli
-  errori (domanda P3).
-- **Frontend:** Copilot ha letto il codice del frontend e della v1 il 22-11-2026 (sezione 8). La
-  v2 è stata adattata. Mancano: cosa va in `scheda.task` e `scheda.class` (C13), dove la v1
-  mostra lo stop DR (C14), il tempo vero di una validazione (prova 5.3), la modifica del
-  pulsante Confirm (collega), dove gira la v1 (P5).
+- **Ciclo MOS «con errori»:** il blocco non ha trovato il PDF (non è in `docs\` né in
+  `Downloads` con «con errori» nel nome). Manca anche sapere quali sono gli errori (P3).
+- **Frontend:** Copilot ha letto il codice del frontend e della v1 il 22-11-2026 (domande
+  C1-C14, sezione 8). La v2 è stata adattata. Mancano: la modifica del pulsante Confirm
+  (collega) e dove gira la v1 (P5).
+- **DR senza serial number e condition (22-11):** prima prova con `serial number trovato: no`
+  in tutte e due le prove (WARNING `DR_NON_VERIFICATA`, 0 corretti, 20 warning). Ricerca resa
+  più tollerante e, con più serial number, scelta di quello noto ai dati DR. Da riprovare
+  (prova 5.1, passo A per vedere cosa c'è scritto).
+- **Tempi:** vedi sezione 8, «Tempi massimi».
 - **Salvataggio:** tutto è nel repository aziendale fino al 21-11-2026; codice e documenti del
   22-11-2026 sono da salvare.
 
@@ -320,6 +348,8 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | Copilot in modalità Agent (anche con «Allow all» acceso) | scelta in basso nella chat | passare ad Ask. Il 22-11 ha risposto alle domande in Agent senza cambiare niente, ma in Agent potrebbe |
 | Il bucket si vede in una foto | è aperto `data/bucket.txt` | non ripeterlo; chiedere di chiudere il file |
 | Un esito della v1 sembra sbagliato | la v1 sbaglia | non usarla come riferimento |
+| DR senza dati: `serial number trovato: no` | la stampa scrive il serial number in un modo non previsto, o ci sono più numeri dopo «S/N» | `leggi <pdf> --profile dr --cerca "S/N"` mostra le righe con i codici mascherati |
+| Un blocco va avanti anche se il file non c'è (`Missing argument 'pdf'`) | le righe incollate partono una alla volta | mettere il comando dentro `if ($ciclo) { ... }` sulla stessa riga |
 | I documenti tolti restano sul PC | `robocopy` copia ma non cancella | il blocco di aggiornamento li cancella per nome |
 
 ## 11. Decisioni prese

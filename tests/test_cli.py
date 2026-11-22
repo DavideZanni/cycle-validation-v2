@@ -389,3 +389,23 @@ def test_leggi_prints_the_dr_serial_even_when_the_parser_fails(tmp_path: Path) -
     lines = result.output.splitlines()
     assert lines[1] == "  dr: caso - · S/N AAAA1CCC"
     assert lines[2].startswith("  non letto dal parser:")
+
+
+def test_leggi_cerca_prints_matching_lines_with_masked_codes(tmp_path: Path) -> None:
+    """Per capire la stampa dalle foto senza far vedere codici veri."""
+    from pvrm320_report_fixtures import FOOTER, block, page
+
+    from cycle_validation.testing.pdf import build_pdf
+
+    body = block(
+        ["NOTE", "999999"],
+        "005",
+        ["P/N: S/N:", "IN D.R. CASE #01000002.", "APPLY ON S/N AAAA1CCC"],
+    )
+    printed = tmp_path / "dr.pdf"
+    printed.write_bytes(build_pdf([page(1, body, FOOTER)]))
+    result = runner.invoke(cli.app, ["leggi", str(printed), "--profile", "dr", "--cerca", "s/n"])
+    assert result.exit_code == 0, result.output
+    assert "AAAA1CCC" not in result.output and "01000002" not in result.output
+    assert "APPLY ON S/N AAAA9AAA" in result.output
+    assert "  serial number trovati: 1 (AAAA9AAA)" in result.output.splitlines()

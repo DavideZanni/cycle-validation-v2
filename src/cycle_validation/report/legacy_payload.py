@@ -7,7 +7,7 @@ Come il frontend legge i testi (risposta di Copilot sul codice del frontend, 22-
 - «Completed with Errors» se `cycle_errors_count > 0` o `_pipeline_errors` non è vuoto;
 - non legge `drRecommendationFeedback` né `cycle_status`: l'esito DR va in una riga di
   `sources` (colonna *Type* «DR Case» quando la riga ha `DRCase`);
-- della scheda mostra `tabNumber`, `task`, `class`.
+- della scheda mostra `tabNumber`, `task`, `class` (come li riempie la v1: `_scheda`).
 """
 
 from typing import Any
@@ -70,12 +70,17 @@ def _dr_source_index(sources: list[Source], dr: CheckResult) -> int | None:
     return None
 
 
-def _scheda(operation_sheet: Any) -> dict[str, Any] | None:
+def _scheda(operation_sheet: Any, ej200: bool) -> dict[str, Any] | None:
+    """La scheda con i campi che il frontend mostra, riempiti come nella v1 (risposta di
+    Copilot C13): `tabNumber` è il codice; `task` è il codice dopo «SP.ORIG.» della riga
+    SCHEDA nei cicli civili, vuoto negli EJ200 (lì è un task code dell'operazione); `class`
+    la v2 non la legge."""
     if operation_sheet is None:
         return None
     sheet: dict[str, Any] = operation_sheet.model_dump(exclude_none=True)
-    # il frontend mostra il codice della scheda dal campo `tabNumber`
     sheet.setdefault("tabNumber", sheet.get("code"))
+    sheet.setdefault("task", None if ej200 else sheet.get("sp_orig"))
+    sheet.setdefault("class", None)
     return sheet
 
 
@@ -123,6 +128,7 @@ def build_legacy_payload(report: Report) -> dict[str, Any]:
             row["serialNumber"] = serial
             row["sourceFeedback"] = _merged(dr, result(CheckName.SOURCE, TargetKind.SOURCE, at))
 
+    ej200 = "EJ200" in normalize_code(cycle.engine_model or "")
     operations: list[dict[str, Any]] = []
     for index, operation in enumerate(cycle.operations):
         kind = TargetKind.OPERATION
@@ -133,7 +139,7 @@ def build_legacy_payload(report: Report) -> dict[str, Any]:
                 "operationDescription": operation.operation_description,
                 "targaCResp": operation.machine_tag,
                 "taskCodeCited": ", ".join(operation.task_codes) or None,
-                "scheda": _scheda(operation.process_sheet),
+                "scheda": _scheda(operation.process_sheet, ej200),
                 "operationFeedback": feedback(CheckName.OPERATION_DESCRIPTION, kind, index),
                 "targaCRespFeedback": feedback(CheckName.MACHINE_TAG, kind, index),
                 "taskCodeFeedback": feedback(CheckName.TASK_CODE, kind, index),

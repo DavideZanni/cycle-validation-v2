@@ -151,7 +151,11 @@ async def arun_validation(
         raise ExtractionError("Il ciclo estratto non contiene operazioni.")
     if selectors is not None:
         # serial number non indicato: si prende dalla stampa ("APPLY ON S/N ...")
-        selectors = with_serial_from_text(selectors, pdf.text)
+        # più serial number nella stampa: vale quello che ha recommendation nei dati DR
+        kb = deps.kb
+        selectors = with_serial_from_text(
+            selectors, pdf.text, lambda serial: bool(kb.find_dr_recommendations(serial))
+        )
         record = {
             **(cycle.dr_record or {}),
             "serial_number": selectors.serial_number,
