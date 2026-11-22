@@ -97,6 +97,35 @@ riparazione resta solo il manuale del motore, che non è nella conoscenza. Da co
 
 Risposta:
 
+### 18. DR: serial number e condition chiesti a chi carica il ciclo
+
+Il frontend (visto il 22-11-2026), dopo «Yes — DR cycle», chiede `Serial Number (S/N)` e
+`DR Condition Numbers` (una o più, separate da virgole) prima del PDF. Dubbio dell'utente: si
+possono togliere?
+
+A cosa servono nella v2:
+
+- il **serial number** è la chiave con cui si cerca la recommendation nell'indice. Senza, il
+  controllo `dr_recommendation` non sa quale recommendation guardare, e i task e la procedura DR
+  da usare come riferimento vengono da lì. Nella stampa c'è solo a volte: una delle stampe DR
+  viste lo scrive («APPLY ON S/N …»), le altre no;
+- la **condition** non è mai scritta nella stampa. Serve solo quando il serial number ha più di
+  una recommendation (nei dati di prova 5 serial number su 17): sceglie quale vale, e quindi se
+  la disposizione è `Repair`, `Accept as is` o `Reject`. Con una sola recommendation oggi la
+  condition c'è ma non cambia niente.
+
+Proposta, da decidere con chi usa il frontend:
+
+| Campo | Proposta |
+|---|---|
+| serial number | facoltativo: se è vuoto si prende dalla stampa («APPLY ON S/N»); se non c'è neanche lì, il ciclo si ferma con un messaggio che lo chiede |
+| condition | facoltativa: se il serial number ha una sola recommendation non serve; se ne ha più di una e manca, `dr_recommendation` esce WARNING ed elenca le condition possibili |
+
+Il frontend può restare com'è: i campi restano, solo non più obbligatori. Da chiedere: chi
+carica un ciclo DR il serial number e la condition li sa sempre? Dove li legge?
+
+Risposta:
+
 ## Risposte date (20-11-2026)
 
 ### 13. Task citato che il manuale non ha

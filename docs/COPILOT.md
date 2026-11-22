@@ -105,8 +105,12 @@ uv run pytest -q
 
 ## Da fare nei prossimi giorni
 
-1. L'utente manda a Claude il frontend e il formato dell'output che si aspetta. Claude
-   confronta con `payload.json` e `report.json` della v2 e corregge dove non tornano.
+1. Frontend visto (22-11-2026, foto della v1 in QA): scelta civile/EJ200, poi DR sì/no; per il
+   DR serial number e condition (domanda 18), poi il PDF. Esito: «Validation Passed», tabella
+   *Sources* (Repair Code, Type, Reference, Task, Feedback) e tabella *Operations* (Op. / TM /
+   Task Code / Scheda Feedback, con OK e N/A). Sono gli stessi campi di `payload.json` della v2
+   (`legacy_payload.py`). Da fare: mostrare nel frontend un `payload.json` della v2, per
+   vedere come appaiono WARNING ed ERRATO.
 2. Prima prova di un ciclo **EJ200**: non è ancora mai stata fatta con servizi veri. Documenti
    e output EJ200 devono restare su AWS EU, quindi niente copia della conoscenza EJ200 sul PC e
    niente report EJ200 in `runs\`. Prima di lanciare, Claude scrive il blocco che legge la
