@@ -27,23 +27,19 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ---
 
-## 1. Cosa fare adesso (22-11-2026, notte)
+## 1. Cosa fare adesso (22-11-2026, pomeriggio)
 
-Si prova tutto in locale, come la v1 (centralizer e login da Run and Debug), poi develop, poi
-main. L'ingestion dei manuali la fai tu. Ho corretto: il secret di Redshift (nella v1 arriva da
-un secret «di ambiente»), le stampe con «OPERAZIONE EVENTUALE», i caratteri strani nei blocchi,
-il blocco della libreria.
+Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i passi.
 
-1. In Copilot passa ad **Ask** (in basso nella chat): nelle foto è ancora su **Agent**.
+1. In Copilot passa ad **Ask** (in basso nella chat): nelle foto è ancora su **Agent** con
+   **Allow all**.
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
-3. **Sezione 5.1** (Redshift): blocco A, poi blocco B.
-4. **Sezione 5.2** (gratis): le stampe si leggono tutte? Cosa cambia il riordino?
-5. **Sezione 5.3** (gratis): la libreria dei permessi della v1.
-6. Fai a Copilot le **domande C18-C20** (sezione 3): come si avvia la v1 in locale e come si
-   pubblica.
-7. **Sezione 4.2**: lancia il blocco, poi fai l'ingestion dei manuali dell'elenco.
-8. Lancia **Salvare nel repository aziendale** (sezione 6).
-9. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
+3. **5.1** Redshift: blocco A, poi blocco B.
+4. **5.2** la libreria dei permessi (seconda parte) e la domanda **C21** a Copilot (sezione 3).
+5. **Ingestion del manuale** trovato con il blocco di prima (uno solo). Poi **5.3**: fotografia
+   nuova della conoscenza e i tre cicli «con errori».
+6. Lancia **Salvare nel repository aziendale** (sezione 6).
+7. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
 
 ---
 
@@ -76,24 +72,23 @@ uv run pytest -q
 
 ## 3. Domande per Copilot
 
-C1-C17 hanno già la risposta (`MEMORIA.md`, sezione 8). In basso nella chat scegli **Ask**,
-non **Agent**, e togli con la **x** gli allegati che non c'entrano (per esempio un file con
-accessi o password). Apri nella chat la cartella `ProgettoDocumenti`. Copia il testo così com'è.
+C1-C20 hanno già la risposta (`MEMORIA.md`). In basso nella chat scegli **Ask**, non
+**Agent**, e togli con la **x** gli allegati che non c'entrano (per esempio un file con accessi
+o password). Apri nella chat la cartella `ProgettoDocumenti`. Copia il testo così com'è.
 **Manda a Claude** le foto delle risposte.
 
 ```text
 Rispondi solo leggendo il codice, senza modificare né eseguire niente. Non scrivere nomi di
 persone, indirizzi, account, chiavi o valori di segreti: se servono, scrivi «c'è» o «non c'è».
 
-C18. Nei file .vscode/launch.json (e simili) come si avviano in locale il backend della cycle
-     validation v1, centralizer e login? Per ognuno: modulo o comando, cartella di lavoro,
-     porta, file .env usati, nomi delle variabili d'ambiente (solo i nomi).
-C19. In locale, come fa il backend v1 a verificare il token del cookie? A quale servizio si
-     rivolge IntrospectionValidator (nome della variabile con l'indirizzo, non il valore)? E
-     da dove legge permissions.json in locale (S3 o un file)?
-C20. buildspec.yml e Dockerfile della cycle validation: da quale cartella costruiscono
-     l'immagine? La build parte da develop, da main o da tutti e due? Cosa cambia tra i due
-     (ambienti, nomi delle immagini: solo come sono fatti, non i valori)?
+C21. Nel backend della cycle validation v1:
+     a) copia tutte le righe import che prendono qualcosa da chatbot_ai_sdk (solo le righe
+        import) e la chiamata completa a ServiceAccessMiddleware;
+     b) nelle rotte, come si leggono utente e servizi dell'utente verificato (per esempio
+        request.state..., current_user(...).qualcosa)? Copia le righe;
+     c) in verify_active_TM (o dove si chiama redshift_connector.connect) da dove viene il
+        database: scritto nel codice («scritto nel codice», senza il valore) oppure da quale
+        variabile o chiave (il nome)?
 ```
 
 ---
@@ -141,61 +136,38 @@ stessa risposta.
 
 **Scrivi a Claude** la risposta del collega, a parole.
 
-### 4.2 I manuali da ingestionare
-
-I tre cicli «con errori» citano manuali che non sono nella conoscenza di prova: senza, la v2 non
-può trovare gli errori. Questo blocco stampa i manuali citati dai tre cicli: sono quelli da
-ingestionare (restano sul tuo schermo, non mandarli a Claude). Gratis.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-$radice = (Resolve-Path "..\..").Path
-$errati = Get-ChildItem $radice -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-($errati | ForEach-Object { uv run cycle-validation leggi $_.FullName --profile mos } | Select-String 'fonti: (.+?) \S+ operazioni:' | ForEach-Object { $_.Matches[0].Groups[1].Value -split ', ' } | Sort-Object -Unique) -join "`n"
-```
-
-**Deve uscire:** l'elenco dei manuali, uno per riga. Fai l'ingestion di quelli, poi scrivi a
-Claude a parole quanti erano e la nuova versione della conoscenza (`current.json`). Le prove sul
-PC usano una fotografia della conoscenza (`foto-20261121`): dopo l'ingestion Claude prepara il
-blocco per una fotografia nuova e per rilanciare i tre cicli «con errori».
-
-
 ---
 
 ## 5. Prove da lanciare
 
 ### 5.1 Le macchine attive da Redshift
 
-**A cosa serve.** In ogni operazione c'è la targa della macchina. La v1 controlla che sia una
-macchina attiva leggendo Redshift (il database aziendale dove c'è l'elenco delle macchine). Su
-Redshift non devi creare niente: la v2 legge la stessa tabella della v1, con lo stesso secret
-(utente e password che la v1 usa, salvati in AWS). Sul PC la v2 scarica l'elenco una volta in
-`data\macchine_attive.json` (git lo ignora) e lo usa nelle prove.
+Serve a controllare le targhe come la v1 (cos'è Redshift e perché: `MEMORIA.md`, sezione 5).
+Su Redshift non devi creare niente.
 
-**Blocco A: scaricare l'elenco.** Prende dal codice della v1 il nome del secret e la tabella,
-legge il secret con le tue credenziali AWS e fa la query con la Data API di Redshift. Stampa
-solo il numero di macchine. Gratis.
+**Blocco A: scaricare l'elenco.** L'ultima volta si è fermato perché nel secret di Redshift non
+c'è il nome del database. Ora il comando lo cerca nel codice della v1, dove la v1 apre la
+connessione. Stampa solo il numero di macchine. Gratis.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 uv run cycle-validation macchine --v1 ..\app_cycle_validation
 ```
 
-**Deve uscire:** `Dalla v1: nome del secret NON trovato nel codice, secret di ambiente
-trovato, tabella trovata.`, poi `Nel secret di ambiente: SECRET_NAME trovato.` e infine
-`Macchine attive: N (Redshift cluster). Scritte in data\macchine_attive.json`. (Come la v1:
-il nome del secret di Redshift sta dentro il secret «di ambiente».)
+**Deve uscire:** `Dalla v1: ... tabella trovata, database scritto nel codice.` (oppure
+`database letto dalla chiave X` e sotto `Chiave X del database: trovata.`), poi `Nel secret di
+ambiente: SECRET_NAME trovato.` e infine `Macchine attive: N (Redshift cluster). Scritte in
+data\macchine_attive.json`.
 
 Se esce un errore:
 
+- `database NON trovato` e poi `Manca il nome del database`: rispondi alla domanda C21 c)
+  (sezione 3) e manda la foto. Se il nome lo conosci, puoi rilanciare aggiungendo
+  `--database <nome>` (il nome resta sul tuo schermo);
 - `ExpiredToken` o simili: `aws sso login`, poi rilancia;
-- `ResourceNotFoundException`: il secret sta in un'altra regione. Rilancia aggiungendo
-  `--regione eu-west-1` (o la regione che usa la v1);
-- `AccessDeniedException`: le tue credenziali non possono leggere il secret o usare la Data
-  API. È la domanda P7 (sezione 4);
-- `SECRET_NAME NON trovato. Campi: ...`: manda la foto (si vedono solo i nomi dei campi);
-- `tabella NON trovata`: scrivi a Claude.
+- `ResourceNotFoundException`: rilancia aggiungendo `--regione eu-west-1` (o la regione che usa
+  la v1);
+- `AccessDeniedException`: è la domanda P7 (sezione 4).
 
 **Manda a Claude:** la foto.
 
@@ -217,78 +189,85 @@ if (Test-Path runs/mos-macchine/report.json) { (Get-Content runs/mos-macchine/re
 
 **Manda a Claude:** la foto.
 
-### 5.2 Come si leggono tutte le stampe
+### 5.2 La libreria dei permessi, seconda parte
 
-Per ogni stampa di esempio e delle cartelle `cicli MOS`: come la legge la v2 adesso. Per le
-stampe dove ha rimesso in ordine delle pagine, confronta la lettura con e senza riordino della
-stessa stampa e mostra le prime differenze (codici mascherati). Le quattro stampe con
-«OPERAZIONE EVENTUALE» ora dovrebbero leggersi. Gratis.
+La prima parte ha trovato `AuthMiddleware`, `IntrospectionValidator` e `current_user`, ma non
+`ServiceAccessMiddleware` e `S3PermissionsSource`: forse il blocco ha preso un altro file
+`.whl`. Questo blocco elenca tutti i file `.whl` della libreria, usa quello della cartella
+`vendor` della v1 e stampa tutte le classi della parte `auth` (nomi, parametri, campi). Niente
+valori. Gratis.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+Get-ChildItem .. -Recurse -Filter "chatbot_ai_sdk*.whl" -ErrorAction SilentlyContinue | ForEach-Object { "trovato: " + $_.Directory.Name + "\" + $_.Name }
+$whl = (Get-ChildItem ..\app_cycle_validation\vendor -Filter "chatbot_ai_sdk*.whl" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+$py = @'
+import dataclasses, importlib, inspect, pkgutil
+import chatbot_ai_sdk as sdk
+print("versione:", getattr(sdk, "__version__", "-"))
+for info in pkgutil.walk_packages(sdk.__path__, sdk.__name__ + "."):
+    try:
+        module = importlib.import_module(info.name)
+    except Exception as exc:
+        print("non letto:", info.name, type(exc).__name__)
+        continue
+    for name, item in vars(module).items():
+        if name.startswith("_") or getattr(item, "__module__", "") != module.__name__:
+            continue
+        if not (inspect.isclass(item) or inspect.isfunction(item)):
+            continue
+        try:
+            print(f"{info.name}.{name}{inspect.signature(item)}")
+        except (TypeError, ValueError):
+            print(f"{info.name}.{name}")
+        if dataclasses.is_dataclass(item):
+            print("    campi:", ", ".join(f.name for f in dataclasses.fields(item)))
+        print("    " + " / ".join((inspect.getdoc(item) or "-").splitlines()[:2]))
+'@
+$dir = Join-Path $env:TEMP "cv2-sdk-firme"; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; New-Item -ItemType Directory $dir | Out-Null
+if ($whl) { $py | Set-Content "$dir\firme.py"; uv run --no-project --with $whl python -I "$dir\firme.py" } else { "FERMO: nessun .whl in app_cycle_validation\vendor" }
+```
+
+**Deve uscire:** le righe `trovato: ...` (i file della libreria), `versione: ...`, poi per ogni
+classe o funzione il nome con i parametri e sotto la spiegazione. Cerco soprattutto
+`ServiceAccessMiddleware`, `S3PermissionsSource` e `VerifiedUser` (i suoi campi). L'output è
+lungo: va bene in più foto.
+
+**Manda a Claude:** le foto di tutto l'output.
+
+### 5.3 Dopo l'ingestion: i tre cicli «con errori»
+
+Da lanciare **dopo** l'ingestion del manuale, quando la nuova versione è pubblicata. Fa una
+fotografia nuova della conoscenza civile di prova (solo la prima volta), poi rilancia i tre
+cicli «con errori» e stampa, per ognuno, il riepilogo e le righe ERRATO (operazione e
+controllo, niente testi). Qualche centesimo per ciclo.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+$foto = "eval/casi/aziendali/conoscenza/foto-20261122"
+if (-not (Test-Path "$foto/Manufacturing AI")) { uv run cycle-validation eval fotografia --bucket (Get-Content data/bucket.txt) --prefisso "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/" --out $foto --regione eu-south-1 }
+$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
+$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+$m = if (Test-Path data/macchine_attive.json) { @("--machines", "data/macchine_attive.json") } else { @() }
 $radice = (Resolve-Path "..\..").Path
-$tutte = @(Get-ChildItem "docs/Esempio ciclo mos/*.pdf", "docs/Esempio ciclo dr/*.pdf") + @(Get-ChildItem $radice -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.DirectoryName -match 'cicli MOS' }) | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-foreach ($f in $tutte) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); $a = @(uv run cycle-validation leggi $f.FullName --profile mos --breve)[-1]; "$h $a"; if ($a -match 'rimesse in ordine: \d') { @(uv run cycle-validation confronta $f.FullName $f.FullName --profile mos --primo-senza-riordino) | Select-Object -First 6 | ForEach-Object { "          $_" } } }
+$errati = Get-ChildItem $radice -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
+foreach ($f in $errati) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); "$h " + (@(uv run cycle-validation run $f.FullName --profile mos --knowledge $v @m --config data/settings.yaml --out "runs/errori-$h") -match '^Ciclo' | Select-Object -First 1); if (Test-Path "runs/errori-$h/report.json") { (Get-Content "runs/errori-$h/report.json" -Raw | ConvertFrom-Json).results | Where-Object { $_.verdict -eq 'ERRATO' } | ForEach-Object { "    ERRATO op $(if ($_.target.kind -eq 'operation') { $_.target.label } else { $_.target.kind }) · $($_.check) · $($_.reason)" } } }
 ```
 
-**Deve uscire:** una riga per stampa (operazioni, parser, pagine rimesse in ordine). Sotto le
-stampe con pagine rimesse in ordine, la riga `operazioni: N e N · differenze: K` e le prime
-differenze tra prima e dopo il riordino. Nessun `NON LETTO`, tranne la stampa che non ha il
-layout PVRM320 (quella la legge il modello).
+**Deve uscire:** la riga `Fotografia in ...` (solo la prima volta), poi per ognuno dei tre
+cicli una riga `<impronta> Ciclo ...: N corretti, ...` e sotto le righe `ERRATO op ...`.
+Claude le confronta con i 10 errori trovati da `confronta` (`MEMORIA.md`, sezione 10).
 
-**Manda a Claude:** la foto (anche in più foto).
-
-### 5.3 La libreria dei permessi della v1
-
-La v1 controlla utente e permessi con una libreria interna (un file `.whl` nella cartella
-`vendor`), che Copilot non può aprire. Questo blocco la cerca e stampa solo i nomi: le classi
-che la v1 usa, i loro parametri, le prime righe della loro spiegazione e i nomi delle variabili
-d'ambiente che legge (i nomi, non i valori). Serve a far usare alla v2 lo stesso controllo
-della v1. Gratis.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-$whl = (Get-ChildItem .. -Recurse -Filter "chatbot_ai_sdk*.whl" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
-"libreria trovata: " + [bool]$whl
-$py = @'
-import importlib, inspect, pkgutil, re
-import chatbot_ai_sdk as sdk
-wanted = {"AuthMiddleware", "ServiceAccessMiddleware", "S3PermissionsSource", "IntrospectionValidator", "current_user"}
-env = set()
-for info in pkgutil.walk_packages(sdk.__path__, sdk.__name__ + "."):
-    try:
-        module = importlib.import_module(info.name)
-        source = inspect.getsource(module)
-    except Exception as exc:
-        print("non letto:", info.name, type(exc).__name__)
-        continue
-    env |= set(re.findall(r"(?:environ(?:\.get)?\(|environ\[|getenv\()\s*[\"'](\w+)", source))
-    for name, item in vars(module).items():
-        if name in wanted and getattr(item, "__module__", "") == module.__name__:
-            print(f"{info.name}.{name}{inspect.signature(item)}")
-            print("    " + " / ".join((inspect.getdoc(item) or "-").splitlines()[:3]))
-print("variabili d'ambiente:", ", ".join(sorted(env)) or "-")
-'@
-$dir = Join-Path $env:TEMP "cv2-sdk-firme"; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue; New-Item -ItemType Directory $dir | Out-Null
-if ($whl) { $py | Set-Content "$dir\firme.py"; uv run --no-project --with $whl python -I "$dir\firme.py" }
-```
-
-**Deve uscire:** `libreria trovata: True`, poi una riga per ognuna delle cinque cose cercate
-(nome e parametri) con sotto la sua spiegazione, e alla fine i nomi delle variabili
-d'ambiente. Se esce `libreria trovata: False`, chiedi a Copilot dov'è il file `.whl`. (La
-prima volta si era fermato su un file `inspect.py` lasciato nella cartella TEMP: ora lo script
-gira in una cartella sua.)
-
-**Manda a Claude:** la foto di tutto l'output.
+**Manda a Claude:** la foto, e scrivi a parole quanti manuali hai ingestionato.
 
 ---
 
 ## 6. Salvare nel repository aziendale
 
-Da lanciare quando Claude dice che ci sono cose nuove da salvare (**adesso sì**: il comando
-`confronta` e i documenti aggiornati). Prima lancia **Aggiornare il
-codice sul PC**, poi questi due blocchi, uno alla volta.
+Da lanciare quando Claude dice che ci sono cose nuove da salvare (**adesso sì**: lettura delle
+stampe modificate a mano, comandi `confronta` e `macchine`, documenti riordinati). Prima lancia
+**Aggiornare il codice sul PC**, poi questi due blocchi, uno alla volta.
 
 Salva solo codice, test, documenti e casi di prova della v2. I dati aziendali (`data/`,
 `runs/`, `eval/casi/aziendali/`, i PDF) restano fuori: git li ignora.
@@ -298,7 +277,7 @@ Salva solo codice, test, documenti e casi di prova della v2. I dati aziendali (`
 ```powershell
 git add src tests docs eval/casi/sintetici
 git status --short
-git commit -m "v2: DR con serial number e condition facoltativi (anche dalla stampa), accept as is blocca; risposta adattata al frontend; documenti riorganizzati"
+git commit -m "v2: stampe modificate a mano rimesse in ordine, titoli OPERAZIONE EVENTUALE, comandi confronta e macchine, documenti riordinati"
 ```
 
 **Deve uscire:** in `git status` solo righe sotto `src/`, `tests/`, `docs/`,
@@ -328,28 +307,3 @@ l'ultimo commit e `## feature/cycle-validation-v2...origin/feature/cycle-validat
 **Se esce `FERMO`, o il push è rifiutato** (`rejected`, `fetch first`): non insistere e non
 usare `--force`, manda la foto a Claude. Se il commit dice `nothing to commit`, era già tutto
 salvato: lancia lo stesso il push.
-
----
-
-## 7. Più avanti: trovare i documenti da ingestionare
-
-**Non adesso**: per ora si prova solo con la conoscenza già ingestionata. Quando si deciderà di
-aggiungere documenti, questo blocco cerca su S3 i file dei manuali citati dai cicli e delle
-procedure DR che mancano. Legge soltanto, non costa niente.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-$manuali = uv run cycle-validation leggi (Get-ChildItem "docs/Esempio ciclo mos/*.pdf", "docs/Esempio ciclo dr/*.pdf").FullName | Select-String 'fonti: ([^\s,]+)' | ForEach-Object { $_.Matches[0].Groups[1].Value }
-$procedure = (Get-Content ($v + "dr_recommendations.json") -Raw | ConvertFrom-Json).reference
-$codici = (@($manuali) + @($procedure) | Where-Object { $_ -and $_ -ne '-' } | Sort-Object -Unique | ForEach-Object { [regex]::Escape($_) }) -join '|'
-$codici
-aws s3 ls "s3://$(Get-Content data/bucket.txt)/Manufacturing AI/" --recursive --region eu-south-1 | Where-Object { $_ -match "$codici|72-56-3[12]|70-32-0[02]" -and $_ -notmatch 'ingestion-v2' } | Select-Object -First 40 | ForEach-Object { $_.Substring(31) }
-```
-
-**Deve uscire:** una riga con i codici cercati, separati da `|`, poi fino a 40 percorsi di file.
-
-**Manda a Claude:** la foto. Claude dice quali file passare all'ingestion (poche sezioni, non
-tutti i 2000 file). Se non esce nessun percorso, scrivi a Claude da quale cartella parte la tua
-ingestion.

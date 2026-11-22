@@ -16,7 +16,7 @@ parte B.
 
 ## Dove sta il codice
 
-Come funziona la v2, passo per passo, è in `docs/MEMORIA.md`, sezione 7. Qui solo dove sta ogni
+Come funziona la v2, passo per passo, è in `docs/MEMORIA.md`, sezione 8. Qui solo dove sta ogni
 parte nel codice (cartella `src/cycle_validation/`):
 
 | Dove | Cosa |
@@ -78,6 +78,7 @@ aziendale.
 | G7 | (22-11-2026) `leggi --struttura N`: come il parser vede ogni riga della pagina N (tipo di riga, numero di operazione, prima parola mascherata), senza il testo del ciclo. `confronta` dice quale delle due stampe il parser non legge |
 | G8 | (22-11-2026) stampa modificata a mano: se nel PDF le righe sono fuori ordine rispetto alla pagina, la lettura le rimette in ordine di posizione e unisce i pezzi della stessa riga (`ingest/pdf.py`); `leggi` dice quali pagine. Le stampe normali restano come prima |
 | G9 | (22-11-2026) comando `macchine`: elenco delle macchine attive da Redshift per le prove sul PC, con il secret e la tabella della v1 e la Data API; `leggi --breve` e `--senza-riordino`; nelle pagine rimesse in ordine una riga senza colonne resta nell'operazione in corso |
+| G10 | (22-11-2026) titolo «OPERAZIONE EVENTUALE» in un blocco a sé attaccato all'operazione dopo; `confronta --primo-senza-riordino`; `macchine` prende `SECRET_NAME` dal secret «di ambiente» della v1 e il database dalla connessione della v1 (o `--database`); nelle descrizioni lette dopo il riordino si tolgono gli asterischi di cornice e le righe di soli segni. Il riordino recupera nelle stampe DR testo che prima si perdeva |
 
 ---
 
@@ -128,6 +129,8 @@ ha gli esiti attesi; il modello fa solo **la proposta**.
 ---
 
 ## Ordine consigliato
+
+Prima di tutto la consegna: i punti di `MEMORIA.md`, sezione 1. Poi, per migliorare:
 
 1. Casi veri nella suite (`eval prepara` e revisione): senza, le misure valgono solo sui dati
    inventati. Poi la baseline aziendale.

@@ -20,7 +20,55 @@ Gli altri documenti:
 
 ---
 
-## 1. Chi fa cosa
+## 1. Dove siamo e cosa manca per la consegna (22-11-2026)
+
+**In breve:** la v2 funziona sui cicli veri (MOS e DR) e legge tutte le stampe viste. Per
+consegnarla mancano soprattutto **i collegamenti con l'azienda**: accesso degli utenti, macchine
+attive, configurazione e pubblicazione. Sono lavori conosciuti, non problemi aperti. La misura
+sugli errori veri aspetta i manuali nella conoscenza.
+
+**Chiuso (non si riapre senza un fatto nuovo):**
+
+- **Lettura delle stampe.** Il parser legge tutte le stampe PVRM320 viste (esempi MOS e DR e
+  le cartelle `cicli MOS`), anche quelle modificate a mano e quelle con «OPERAZIONE
+  EVENTUALE». Una stampa senza layout PVRM320 la legge il modello (sezione 10).
+- **Regole DR** (`Accept as is` e `Reject` bloccano; serial number e condition facoltativi) e
+  risposta nel formato del frontend di oggi (sezioni 8 e 9).
+- **Tempi:** al massimo 131 s su un DR da 9 operazioni, sotto i 600 s del backend.
+- **Come funziona la v1 in azienda** (risposte di Copilot C1-C20): frontend, permessi, avvio in
+  locale, costruzione dell'immagine (sezione 9).
+- **Una sola pipeline** per MOS, DR ed EJ200; il pulsante militare lo decide già il frontend
+  con `permissions.json` (sezione 9).
+
+**Da chiudere, in ordine.** Chi: C = Claude, U = utente.
+
+| # | Cosa | Perché serve | Come si chiude | Chi |
+|---|---|---|---|---|
+| 1 | Macchine attive sul PC | senza, tutte le targhe escono `ERRORE_TECNICO` e il ciclo è `parziale` | COPILOT 5.1 (blocco A ora cerca il database nel codice della v1) | U |
+| 2 | Misura sugli errori veri | oggi la v2 trova 0 dei 10 errori dei cicli «con errori», perché mancano i manuali | ingestion del manuale citato, poi COPILOT 5.3; Claude confronta con i 10 errori | U, poi C |
+| 3 | Accesso degli utenti come la v1 | oggi la v2 aspetta header che il frontend non manda: risponderebbe 401 a tutti | COPILOT 5.2 e C21, poi Claude collega la libreria `chatbot_ai_sdk` come nella v1 | U, poi C |
+| 4 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | Claude: all'avvio la v2 legge quel secret come `load_secrets`; Redshift con `SECRET_NAME` e `redshift_connector` come la v1 (stessa rete, nessun permesso nuovo). Decisione D1 sotto | C |
+| 5 | Prova in locale | è il passo prima di develop | `launch.json`: una configurazione per la v2 sulla porta 8003 al posto della v1, con centralizer e login (Claude prepara il testo, l'utente lo aggiunge) | C, poi U |
+| 6 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | Dockerfile della v2 come quello della v1 (Python 3.14, certificato, libreria in `vendor/`); su develop `cd app_cycle_validation_v2` nel buildspec. Per tornare indietro si rimette la riga | C, poi U |
+| 7 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 4.1 | U |
+| 8 | Prova EJ200 | i dati EJ200 non escono da AWS | dopo il punto 6, dal frontend QA | U |
+| 9 | Domande agli esperti | P1, P2, P6 (P4 per chi cura l'indice) | quando capita | U |
+
+**Decisioni da prendere:**
+
+- **D1. Dove scrivere il nome del secret «di ambiente» per la v2.** Nella v1 è scritto nel
+  codice; nel repository personale (pubblico) non si può. Proposta: la v2 lo legge dalla
+  variabile `CV_ENV_SECRET`; in locale la mette `launch.json`, nel container una riga `ENV` nel
+  Dockerfile della copia aziendale (il blocco di aggiornamento non copia il Dockerfile).
+- **D2. Quando passare a QA.** Proposta: dopo i punti 1-5 e una prova in locale riuscita con
+  centralizer e login.
+
+**Non serve per la consegna** (`MIGLIORIE.md`, «Da fare»): chiamata diretta a Bedrock (B1), più
+concorrenza (B4), varianti proposte dal modello (E1), togliere le rotte storiche (D).
+
+---
+
+## 2. Chi fa cosa
 
 | Chi | Cosa fa | Cosa non fa |
 |---|---|---|
@@ -37,7 +85,7 @@ tocca**. Il push lo fa l'utente, mai con `--force`. Il README della radice del r
 aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia git,
 `docs/IMPORTAZIONE.md` al commit `e2da808`.
 
-## 2. Il PC aziendale
+## 3. Il PC aziendale
 
 - Windows 11, VS Code, terminale **PowerShell 7**: i comandi sono PowerShell, non bash.
 - Il terminale deve stare nella cartella `app_cycle_validation_v2`.
@@ -56,7 +104,7 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
 - Nel computer di Claude PowerShell non si installa: Claude rilegge i blocchi a occhio prima
   di darli.
 
-## 3. Copilot
+## 4. Copilot
 
 - Va usato in modalità **Ask** (in basso nella chat). In **Agent** può modificare file e
   lanciare comandi: non deve.
@@ -70,7 +118,7 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
 - Se gli si incolla un testo senza domande, lo spiega e basta: le domande vanno scritte chiare
   (vedi la sezione 3 di `COPILOT.md`).
 
-## 4. I servizi
+## 5. I servizi
 
 - **Bedrock** (`eu-south-1`): modello `eu.anthropic.claude-haiku-5-5`, scritto in
   `data/settings.yaml`. Ci sono anche Sonnet 5.5 e Opus 5.5. Il costo nel report è una stima.
@@ -95,8 +143,12 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
     `SECRET_NAME = os.getenv("SECRET_NAME")`, e all'avvio `app_backend.py` chiama
     `load_secrets("<secret di ambiente>")` che mette le chiavi del secret di ambiente nelle
     variabili d'ambiente (`secret_loader.py`). Il comando fa lo stesso: legge il secret di
-    ambiente, prende `SECRET_NAME`, legge il secret di Redshift (host, database), fa la query
-    con la Data API. Stampa solo il numero di macchine.
+    ambiente, prende `SECRET_NAME`, legge il secret di Redshift, fa la query con la Data API.
+    Stampa solo il numero di macchine.
+  - **Il secret di Redshift** (prova del 22-11) ha i campi `dbClusterIdentifier`, `engine`,
+    `host`, `password`, `port`, `username`: è un cluster, e **il database non c'è**. La v1 lo
+    passa a `redshift_connector.connect` dal codice: dal 22-11 il comando lo cerca lì (scritto
+    nel codice o letto da una chiave, che si cerca nei due secret); se no, `--database`.
   - **Perché Redshift e non il documento delle targhe su S3:** il documento dice se una targa
     esiste e che macchina è; Redshift dice se la macchina è in uso oggi. Una macchina dismessa
     che è ancora nel documento è un errore. Alternativa possibile: l'ingestion copia ogni
@@ -104,7 +156,7 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
 - **Frontend**: il gateway QA aziendale (pagina *Cycle Validation*) oggi parla con la v1. La v2
   non è ancora collegata.
 
-## 5. La conoscenza di prova
+## 6. La conoscenza di prova
 
 È stato ingestionato solo un pezzo (i file sono circa 2000, tutti costerebbero troppo):
 
@@ -119,7 +171,7 @@ I **manuali dei motori non ci sono**: le righe che ne hanno bisogno escono WARNI
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
 
-## 6. Regole sui dati
+## 7. Regole sui dati
 
 - La guida aziendale dice: *«I documenti e gli output EJ200 restano su AWS EU; non copiarli
   nella repository o fuori dall'ambiente autorizzato.»* Quindi:
@@ -140,7 +192,7 @@ dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora
 
 ---
 
-## 7. Come funziona la v2, in breve
+## 8. Come funziona la v2, in breve
 
 Più dettagli in `MIGLIORIE.md` e `AZIENDA.md`.
 
@@ -196,10 +248,10 @@ frontend meno macchinoso):
 | condition non data, nessuna `Repair` | ERRATO, ciclo bloccato |
 
 Il frontend può quindi togliere l'obbligo delle due domande (oggi il pulsante Confirm resta
-spento se sono vuote: sezione 8); finché le fa, i valori dati si usano come prima. Il serial
+spento se sono vuote: sezione 9); finché le fa, i valori dati si usano come prima. Il serial
 number è scritto solo in alcune stampe; la condition mai.
 
-## 8. Il frontend della v1
+## 9. Il frontend della v1
 
 Visto dalle foto e dal codice (risposte di Copilot, 22-11-2026).
 
@@ -306,14 +358,50 @@ solo `tabNumber`; `task` e `class` sempre vuoti; le righe SCHEDA si tolgono dall
 rispettano il limite) e giudizi diversi per casi uguali. Per sapere se la v2 ha ragione serve
 chi conosce i cicli.
 
-**Come gira la v1.** Nel repository c'è solo la costruzione dell'immagine: `buildspec.yml`
-(immagine Docker pubblicata in ECR, tag del commit e `latest`), `Dockerfile` (Python 3.14,
-gunicorn `app_backend:app` sulla porta 8000), `app_backend.py` (all'avvio legge le variabili da
-Secrets Manager), `vite.config.ts` (solo in locale manda `/cycle_validation/` alla porta
-8003). **Come si prova e si pubblica (l'utente, 22-11-2026):** in locale si avviano da Run and Debug
-centralizer, login e il backend che si vuole provare, poi il frontend. Quando funziona in
-locale si fa push su `develop` e poi su `main`, che è il modo per mandarlo in servizio. I
-dettagli (launch.json, cartella da cui si costruisce l'immagine) sono le domande C18-C20.
+### Come si prova e si pubblica la v1 (risposte C18-C20, 22-11-2026)
+
+**L'utente:** in locale si avviano da Run and Debug centralizer, login e il backend da provare;
+quando funziona, push su `develop` (QA) e poi su `main` (produzione).
+
+**In locale.** Un solo `launch.json`, nella radice del workspace. La configurazione composta
+«CV» avvia insieme login, backend della v1 e frontend; prima lancia il task «Centralizer
+prerequisites» (`tasks.json`, lo script che apre i tunnel verso OpenSearch).
+
+| | Backend v1 | Login | Frontend (centralizer) |
+|---|---|---|---|
+| Comando | debugpy, modulo `uvicorn app_backend:app --reload --port 8003` | debugpy, `uvicorn app_backend:app --reload --port 8000` | `npm run dev` (vite) |
+| Cartella | `app_cycle_validation` | la cartella del login | la cartella del frontend React |
+| Python | `.venv` della cartella | `.venv` della cartella | — |
+| Porta | 8003 | 8000 | 3000 |
+| Variabili nel launch | `AWS_PROFILE` | `AWS_PROFILE`, `REDIRECT_URI`, `FRONTEND_URL` | nessuna (`.env.development`) |
+| Configurazione | all'avvio `load_secrets("<secret di ambiente>")` copia le chiavi di un secret AWS in `os.environ` | allo stesso modo, con il suo secret | `.env.development` |
+
+`VITE_BACKEND_URL` è vuota: il frontend chiama indirizzi relativi e il proxy di vite manda
+`/login` alla porta 8000 e `/cycle_validation/` alla 8003. Per provare la v2 basta avviarla
+sulla porta 8003 al posto della v1.
+
+Variabili della v1 (solo i nomi, da `config.py`, `app_backend.py`, `logger.py`): API e log
+(`API_MAX_WORKERS`, `API_INCLUDE_TRACEBACK`, `FRONTEND_URL`, `ENVIRONMENT`, `LOG_LEVEL`);
+OpenSearch e RAG (`OPENSEARCH_HOST`, `OPENSEARCH_KNOWLEDGE_BASE_INDEX`, `RAG_TOP_K`,
+`CHUNK_*`); modello (`EMBEDDING_*`, `LOCAL_MODEL_*`, `MODEL_ID`, `BEDROCK_MODEL_ID`, costi dei
+token); S3 e AWS (`BUCKETNAME`, `REGION_NAME`, `SECRET_NAME`, `RAW_PATH`, `TM_STRUCTURED_PATH`,
+`SP_STRUCTURED_PATH`, `DR_STRUCTURED_PATH`, `CA_BUNDLE_PATH`); EJ200 (`EJ200_OPENSEARCH_INDEX`,
+`EJ200_CATALOG_KEY`, `EJ200_VALIDATION_ENABLED`); accesso (`AUTH_INTROSPECT_URL`,
+`AUTH_CLIENT_ID`, `AUTH_CLIENT_SECRET`, `AUTH_EXPECTED_CLIENT_ID`, `AUTH_SSO_CLAIM`,
+`AUTH_PERMISSIONS_BUCKET`, `AUTH_PERMISSIONS_KEY`, `AUTH_CACHE_TTL_S`).
+
+**Costruzione e pubblicazione.** `buildspec.yml` sta nella radice del repository aziendale e fa
+`cd app_cycle_validation`, poi `docker build`: **costruisce solo la v1**. La v2 ha un suo
+Dockerfile, ma oggi nessuno lo costruisce: un push della v2 su develop o main non cambia il
+servizio. Il Dockerfile della v1: Python `3.14.10-slim`, copia `ca-certificates.crt` (lo prende
+la macchina di CodeBuild), installa AWS CLI, torch solo CPU, `requirements.txt` con la libreria
+in `vendor/`, gunicorn con 1 worker sulla porta 8000. Immagine in ECR con due tag: i primi 7
+caratteri del commit e `latest`. Nel buildspec non c'è nessuna regola sui branch: quale branch
+fa partire la build si decide in CodeBuild/CodePipeline, fuori dal repository (la documentazione
+dice develop = QA, main = produzione). Le variabili di CodeBuild: `AWS_REGION`,
+`AWS_ACCOUNT_ID`, `ECR_REPO_NAME`, `CODEBUILD_RESOLVED_SOURCE_VERSION`. La configurazione non è
+nell'immagine: arriva dal secret letto da `load_secrets`, con lo stesso nome nei due ambienti
+(cambia l'account AWS).
 
 ### Accesso ai cicli militari (22-11-2026, risposte C15-C17)
 
@@ -339,13 +427,28 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   viene dal token (`current_user(request).sso`), non dall'header `sso`. Risposte: 401 token
   mancante o non valido; 403 senza permesso; 503 se il provider d'identità o
   `permissions.json` non rispondono.
+- **Come controlla il token (C19).** In `app_backend.py`:
+  `AuthMiddleware(validator=IntrospectionValidator(AuthSettings.from_env()),
+  public_paths={"/cycle_validation/health"}, allowed_origins=[FRONTEND_URL])` e
+  `ServiceAccessMiddleware(..., permissions=S3PermissionsSource.from_env())`. Il token arriva
+  dal cookie HttpOnly del login (vale anche `Authorization: Bearer`); l'`Origin` deve essere
+  `FRONTEND_URL`. `IntrospectionValidator` chiede all'identity provider SSO se il token è
+  valido (`AUTH_INTROSPECT_URL` e gli altri `AUTH_*`). **In locale è uguale**: niente token
+  finti. `permissions.json` si legge sempre da S3 (`AUTH_PERMISSIONS_BUCKET`,
+  `AUTH_PERMISSIONS_KEY`); se non si legge, 503.
+- **La libreria (prova sul PC, 22-11):** `chatbot_ai_sdk.auth.middleware.AuthMiddleware(app,
+  validator, public_paths, allowed_origins)` (tutto protetto per default, tranne i preflight
+  CORS; l'utente va in `request.state.user`); `chatbot_ai_sdk.auth.middleware.current_user(request)
+  -> VerifiedUser`; `chatbot_ai_sdk.auth.validator.IntrospectionValidator(settings, *,
+  transport, clock)`. Variabili lette direttamente: `AUTH_CACHE_TTL_S`, `ENVIRONMENT`,
+  `LOG_LEVEL`. `ServiceAccessMiddleware` e `S3PermissionsSource` non sono usciti: COPILOT 5.2.
 - **Conseguenza per la v2:** oggi la v2 si fida di due header (`X-User`, `X-Services`) che il
   frontend non manda: così risponderebbe 401 a tutti. Deve controllare come la v1, con la
-  stessa libreria. Prima serve sapere com'è fatta (COPILOT 5.3).
+  stessa libreria (sezione 1, punto 3).
 - `GET /validation/options` della v2 mostra il pulsante militare solo a chi ha `cv_ej200` o
   `all` (per un frontend futuro; quello di oggi usa `/login/permissions`).
 
-## 9. Stato delle prove (22-11-2026)
+## 10. Stato delle prove (22-11-2026)
 
 Con Bedrock Haiku 5.5 e la conoscenza di prova:
 
@@ -377,19 +480,23 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
     v2 su questi errori servono quei manuali nella conoscenza.
   - Gli `ERRORE_TECNICO` (7-9 per ciclo) sono tutti sulla targa: sul PC il registro delle
     macchine non è collegato. Dal 22-11 c'è il comando `macchine` (COPILOT 5.1).
-  - **Lettura di tutte le stampe delle cartelle `cicli MOS`** (22-11 sera, `leggi --breve`
-    con e senza riordino): il riordino fa leggere 4 stampe che prima si fermavano
-    (`298bc28e`, `38960731`, `5ff17062`, `f355dc3c`). Non lette: 3 per un titolo «*****
-    OPERAZIONE EVENTUALE *****» in un blocco a sé (`8d3c673c`, `b1261d11`, `d206cc9c`:
-    corretto, ora il titolo va all'operazione dopo) e 1 senza layout PVRM320 (`8e6c9c8d`:
-    la legge il modello). In `22f586bb` e `895167b9` tutte le pagine vengono rimesse in
-    ordine: da confrontare (`confronta X X --primo-senza-riordino`).
+  - **Lettura di tutte le stampe** (esempi MOS e DR e cartelle `cicli MOS`, `leggi --breve`,
+    22-11): **il parser le legge tutte**, tranne `8e6c9c8d` che non ha il layout PVRM320 (la
+    legge il modello). Il riordino fa leggere `298bc28e`, `38960731`, `5ff17062`, `f355dc3c`
+    (e la stampa con «AREE RIPARATE…»); il titolo «OPERAZIONE EVENTUALE» passato
+    all'operazione dopo fa leggere `b1261d11` e `d206cc9c`. Dove il riordino non serviva per
+    leggere (`c5ff3cd6`, `e9b74c84`, `298bc28e`) le letture con e senza riordino sono uguali.
+  - **Stampe DR** (`22f586bb`, `895167b9`): tutte le pagine rimesse in ordine, stesse 9
+    operazioni, 4 differenze. Il riordino **aggiunge testo che prima si perdeva**: nella 005
+    il testo della procedura (riferimento alla SA e al caso DR), nella 030 «BLOW THE PART WITH
+    CLEAN AND DRY AIR». Erano righe in fondo al PDF. Dal 22-11 pomeriggio nelle descrizioni si
+    tolgono gli asterischi di cornice e le righe di soli segni (trattini, «/ .»).
   - **Caratteri strani nei blocchi** («À» al posto di «·»): l'output di Python passato in una
     pipe di PowerShell usa un'altra codifica. Nei blocchi che leggono l'output:
     `[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"`.
 - **Frontend:** Copilot ha letto il codice del frontend e della v1 il 22-11-2026 (domande
-  C1-C14, sezione 8). La v2 è stata adattata. Mancano: la modifica del pulsante Confirm
-  (collega) e la prova in locale insieme a centralizer e login (C18-C20).
+  C1-C20, sezione 9). La v2 è stata adattata. Mancano: la modifica del pulsante Confirm
+  (collega) e la prova in locale insieme a centralizer e login (sezione 1, punto 5).
 - **DR senza serial number e condition (22-11): riuscita.**
   - Stampa «SENZA sn» (campo `S/N:` vuoto): nessun serial number trovato, e nessuno preso per
     sbaglio dalle frasi «REGISTRARE P/N E S/N...». WARNING `DR_NON_VERIFICATA`, ciclo non
@@ -400,12 +507,12 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
     - condition 2: ciclo bloccato, 0 corretti, 37 warning, 1 errato, DR ERRATO
       `DR_NON_APPLICABILE`. I 37 warning sono i controlli fermati (`BLOCCATO_A_MONTE`): il
       frontend li mostra come `N/A` grigio e il motivo sta nella riga «DR Case» delle fonti.
-- **Tempi:** vedi sezione 8, «Tempi massimi».
-- **Salvataggio:** il lavoro fino al 22-11-2026 (regole DR, risposta adattata al frontend,
-  documenti riorganizzati) è nel ramo `feature/cycle-validation-v2` del repository aziendale.
-  Il comando `confronta` è da salvare.
+- **Tempi:** vedi sezione 9, «Tempi massimi».
+- **Salvataggio:** il lavoro fino al 22-11-2026 mattina (regole DR, risposta adattata al
+  frontend) è nel ramo `feature/cycle-validation-v2` del repository aziendale. Da salvare:
+  riordino delle stampe, `confronta`, `macchine`, documenti riordinati (COPILOT 6).
 
-## 10. Problemi già visti e cosa fare
+## 11. Problemi già visti e cosa fare
 
 | Cosa si vede | Perché | Cosa fare |
 |---|---|---|
@@ -427,8 +534,11 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | DR senza dati: `serial number trovato: no` | il blocco ha preso la stampa «SENZA sn» (`*sn.pdf` ne trova due), oppure il serial number è scritto in un modo non previsto | usare `*CON sn.pdf`; `leggi <pdf> --profile dr --cerca "S/N"` mostra le righe con i codici mascherati |
 | Un blocco va avanti anche se il file non c'è (`Missing argument 'pdf'`) | le righe incollate partono una alla volta | mettere il comando dentro `if ($ciclo) { ... }` sulla stessa riga |
 | I documenti tolti restano sul PC | `robocopy` copia ma non cancella | il blocco di aggiornamento li cancella per nome |
+| `macchine`: «Nel secret mancano host o database» | il secret di Redshift della v1 non ha il database: la v1 lo scrive nella connessione | il comando lo cerca nel codice della v1; se no `--database` |
+| Un blocco Python si ferma su un modulo della libreria standard | un file con lo stesso nome (`inspect.py`) nella cartella TEMP | lo script gira in una cartella sua con `python -I` |
+| Blocco della libreria: mancano delle classi | probabilmente ha preso un altro `.whl` | usare quello in `app_cycle_validation\vendor` (COPILOT 5.2) |
 
-## 11. Decisioni prese
+## 12. Decisioni prese
 
 Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezioni 3 e 4).
 
@@ -450,7 +560,7 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezioni 3 
 - **DR `Accept as is`:** ERRATO e ciclo bloccato, come `Reject` (regola della v1, confermata il
   22-11-2026).
 - **DR, serial number e condition:** facoltativi; il serial number si prende dalla stampa se
-  manca (sezione 7). Chi carica un DR li conosce, ma le domande rendono il frontend
+  manca (sezione 8). Chi carica un DR li conosce, ma le domande rendono il frontend
   macchinoso.
 - **`current.json`:** è il puntatore scritto da `publish.py`; il programma usa solo `version` e
   `path`.
@@ -464,7 +574,7 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezioni 3 
   dell'operazione è quello della testata della pagina.
 - **`needs_review` nell'indice:** è un promemoria per chi cura l'indice; il programma lo ignora.
 - **Frontend:** lo gestisce un collega. La v2 manda i testi come li vuole il frontend di
-  oggi (sezione 8): `N/A` grigio per i campi vuoti, esito DR nella riga della fonte DR.
+  oggi (sezione 9): `N/A` grigio per i campi vuoti, esito DR nella riga della fonte DR.
 - **DR nella v1** (per confronto): serial number letto anche dal PDF, ma sostituito da quello
   scritto dall'utente; con più recommendation tiene quelle con almeno una condition in comune,
   se non ne resta nessuna si ferma con errore; con una sola recommendation la usa senza
@@ -473,7 +583,7 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezioni 3 
 - **Repository:** si lavora su `main`; un codice vero rimasto in un vecchio messaggio di commit
   si lascia così (nessuna riscrittura della storia).
 
-## 12. Da correggere nell'indice (knowledge-index)
+## 13. Da correggere nell'indice (knowledge-index)
 
 **Targa `90`.** Nel file delle targhe la `90` ha come funzione una frase rimasta dal documento
 («la descrizione breve può essere scelta…») con le lettere accentate rovinate. Nei dati TM la
@@ -488,7 +598,7 @@ stessa targa compare in tre righe (pagine 14, 17, 18) con funzioni diverse. Come
    finché non si corregge);
 6. pubblicare la nuova versione e lanciare `kb-check`.
 
-## 13. Come si scrive `COPILOT.md`
+## 14. Come si scrive `COPILOT.md`
 
 - Blocchi PowerShell da copiare così come sono, senza niente da cambiare; ognuno comincia con
   `$env:UV_PYTHON = "3.14"` (tranne quelli di solo git).
@@ -498,7 +608,7 @@ stessa targa compare in tre righe (pagine 14, 17, 18) con funzioni diverse. Come
 - Un blocco che può fare danni (push) ha un controllo che scrive `FERMO` e non fa niente se
   qualcosa non torna.
 - Le cose fatte si tolgono (l'utente vuole il file pulito): il riassunto va qui in `MEMORIA.md`,
-  sezione 9.
+  sezione 10.
 - Scrivere tutto in modo molto semplice.
 - Accorgimenti PowerShell: in `Select-String` usare `\S+` al posto di caratteri come `·`;
   `Get-Content -Raw` prima di `ConvertFrom-Json`; in `aws s3 ls` il nome del file comincia alla
@@ -507,7 +617,7 @@ stessa targa compare in tre righe (pagine 14, 17, 18) con funzioni diverse. Come
 - Un file tolto da `docs/` va aggiunto alla riga `Remove-Item` del blocco di aggiornamento,
   perché `robocopy` non cancella.
 
-## 14. Le stampe PVRM320 viste finora
+## 15. Le stampe PVRM320 viste finora
 
 - MOS e DR hanno lo stesso modulo: testata ripetuta a ogni pagina, tabella con asterischi,
   manuale del motore nel piè di pagina. Il parser le legge senza costi.

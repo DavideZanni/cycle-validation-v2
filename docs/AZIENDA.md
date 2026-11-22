@@ -122,7 +122,13 @@ giusto 403 (EJ200 chiede `cv_ej200` o `all`).
 **Da cambiare prima della messa in servizio.** Il frontend di oggi non manda questi due header:
 manda solo `sso` e il cookie di sessione con il token. La v1 controlla il token e legge i
 permessi da `permissions.json` su S3 con la libreria interna `chatbot_ai_sdk`. La v2 dovrà fare
-lo stesso (`MEMORIA.md`, sezione 8, «Accesso ai cicli militari»).
+lo stesso (`MEMORIA.md`, sezione 9, «Accesso ai cicli militari»).
+
+**Da cambiare anche questo** (`MEMORIA.md`, sezione 1, punti 4 e 6): in servizio la v2 deve
+partire con lo stesso secret «di ambiente» della v1 (le chiavi della v1: `BUCKETNAME`,
+`REGION_NAME`, `FRONTEND_URL`, `SECRET_NAME` di Redshift, `AUTH_*`), senza variabili nuove da
+chiedere a chi gestisce AWS. Le variabili `REDSHIFT_*` sopra restano per chi preferisce la
+Data API.
 
 ## 5. Prima prova con Bedrock, sui dati inventati
 
@@ -205,6 +211,12 @@ docker run -p 8000:8000 --env-file .env cycle-validation
 
 Prova: `http://127.0.0.1:8000/cycle_validation/health` risponde `{"status":"ok","code":200}`.
 
+**In azienda** (risposte C18-C20, `MEMORIA.md`, sezione 9): in locale la v1 gira sulla porta
+8003 (vite manda lì `/cycle_validation/`), quindi la v2 va avviata sulla 8003 al posto della v1.
+L'immagine la costruisce `buildspec.yml` dalla cartella della v1: per pubblicare la v2 si cambia
+la cartella nel buildspec, prima su develop (QA). Il Dockerfile della v2 va allineato a quello
+della v1 (Python 3.14, `ca-certificates.crt`, libreria `chatbot_ai_sdk` da `vendor/`).
+
 All'avvio il servizio scarica la conoscenza: se un file pubblicato non è valido non parte, e
 l'errore dice quale. Poi rilegge `current.json` ogni 5 minuti e passa da solo alla versione
 nuova, se è valida; altrimenti resta sulla precedente e lo scrive nel log. Una validazione già
@@ -223,7 +235,7 @@ stato fatto, contano i WARNING e `_pipeline_errors`.
 Il frontend di oggi usa le rotte storiche (`/conversation`, `/upload`, `/ej200/…`) e legge i
 testi come la v1: la v2 manda `N/A` esatto per i campi vuoti, mette l'esito DR nella riga della
 fonte DR (`DRCase`, `serialNumber`) e accetta il passo DR con i due campi vuoti. Il dettaglio è
-in `MEMORIA.md`, sezione 8.
+in `MEMORIA.md`, sezione 9.
 
 ## 8. Confronto con il sistema attuale
 
@@ -401,7 +413,7 @@ e mai ERRATO.
 |---|---|
 | DR: un serial number con una sola recommendation vale per qualunque condition | si applica una recommendation a una condition non prevista |
 | DR: `Accept as is` (anche `Accept-as-is`, `Use as is`) e `Reject` riconosciuti per nome | un'altra parola per la stessa disposizione passa come riparazione normale |
-| DR: `Reject` e `Accept as is` = ERRATO e ciclo bloccato, come nella v1 (`MEMORIA.md`, sezione 7) | un ciclo con `Accept as is` che contiene solo ispezioni esce ERRATO lo stesso |
+| DR: `Reject` e `Accept as is` = ERRATO e ciclo bloccato, come nella v1 (`MEMORIA.md`, sezione 8) | un ciclo con `Accept as is` che contiene solo ispezioni esce ERRATO lo stesso |
 | DR: serial number non indicato = quello scritto nella stampa (`APPLY ON S/N`), se ce n'è uno solo | un altro numero scritto dopo `S/N` viene preso per serial number |
 | DR: condition non indicata e recommendation diverse per lo stesso serial number = WARNING `DR_NON_VERIFICATA`, si prosegue con le sole `Repair` | un pezzo da scartare passa con un WARNING invece di un ERRATO |
 | DR: nessuna recommendation trovata = ERRATO | dati DR incompleti danno ERRATO invece di WARNING |
@@ -510,7 +522,7 @@ I codici si confrontano senza spazi, trattini né maiuscole (`CPEC 100-BR` = `CP
 ### `dr_recommendations.json`
 
 Con `manual: null` i task si cercano nei manuali citati dal ciclo. Le regole su serial number,
-condition e disposizione (`Repair`, `Accept as is`, `Reject`) sono in `MEMORIA.md`, sezione 7.
+condition e disposizione (`Repair`, `Accept as is`, `Reject`) sono in `MEMORIA.md`, sezione 8.
 
 ```json
 [
