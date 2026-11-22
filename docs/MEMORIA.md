@@ -52,7 +52,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
 | 1 | Misura sugli errori veri | oggi la v2 trova 0 dei 10 errori dei cicli «con errori», perché mancano i manuali | ingestion del manuale citato, poi COPILOT 5.2; Claude confronta con i 10 errori | U, poi C |
 | 2 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Da provare: COPILOT 5.1 | U |
 | 3 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto nel codice**: `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets` (22-11 sera); macchine attive come la v1 con `MACHINES_SOURCE=diretta`: `redshift_connector` con il secret `SECRET_NAME` (22-11 notte). Da provare in QA | C, poi U |
-| 4 | Prova in locale | è il passo prima di develop | COPILOT 5.1: libreria nella v2, configurazione in `launch.json` (`MACHINES_SOURCE=nessuna`), prova dal frontend con login | U |
+| 4 | Prova in locale | è il passo prima di develop | **fatto** (22-11 notte): login, frontend e v2 da Run and Debug; ciclo MOS di esempio `Validation Passed` in circa 20 s, con accesso e permessi della v1. Configurazione in `AZIENDA.md`, sezione 7 | — |
 | 5 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | Dockerfile della v2 come quello della v1 (Python 3.14, certificato, libreria `chatbot_ai_sdk` 0.4.0rc2 con `[auth]` da `vendor/` come nei requirements della v1, extra `aws` e `redshift`) con le righe `ENV` aziendali (D1); su develop `cd app_cycle_validation_v2` nel buildspec. Per tornare indietro si rimette la riga. Il blocco di aggiornamento non copia `pyproject.toml`, `uv.lock` e `Dockerfile`: vanno copiati qui | C, poi U |
 | 6 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 4.1 | U |
 | 7 | Prova in QA: EJ200 e targhe | i dati EJ200 non escono da AWS; Redshift si raggiunge solo da AWS | dopo il punto 5, dal frontend QA | U |
@@ -68,8 +68,8 @@ sugli errori veri aspetta i manuali nella conoscenza.
   `MACHINES_SOURCE=diretta`, `REDSHIFT_DATABASE` (il database scritto nel file delle credenziali
   della v1) e `MACHINES_QUERY` (la query di `verify_active_TM`), a meno che non stiano già nel
   secret di ambiente.
-- **D2. Quando passare a QA.** Proposta: dopo i punti 2-4 e una prova in locale riuscita con
-  centralizer e login. La misura sugli errori (punto 1) può andare avanti in parallelo.
+- **D2. Quando passare a QA.** Proposta: dopo i punti 2-4. La prova in locale è riuscita il
+  22-11 notte: il prossimo passo è il punto 5. La misura sugli errori (punto 1) può andare avanti in parallelo.
 
 **Non serve per la consegna** (`MIGLIORIE.md`, «Da fare»): chiamata diretta a Bedrock (B1), più
 concorrenza (B4), varianti proposte dal modello (E1), togliere le rotte storiche (D).
@@ -490,6 +490,11 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   `dependencies=[Depends(current_user)]` e usa `user.sso`. `VerifiedUser` ha `sso` e
   `client_id`. **Nessuna rotta legge i servizi dell'utente** e non c'è `request.state` nel
   codice: il permesso lo controlla solo il middleware.
+- **Prima prova completa in locale (22-11 notte).** Dopo aver messo `FRONTEND_URL` =
+  `http://localhost:3000` nella configurazione della v2, dal frontend: sessioni, conversazione
+  e caricamento rispondono 200, il ciclo MOS di esempio esce `Validation Passed` in circa 20
+  secondi. Il frontend chiede spesso `POST /cycle_validation/sessions`: è il suo aggiornamento
+  dell'elenco, non un errore.
 - **Prima partenza della v2 in locale (22-11 notte).** Con la libreria 0.4.0rc2 `[auth]`, il
   secret di ambiente della v1 in `CV_ENV_SECRET` e `MACHINES_SOURCE=nessuna` la v2 parte sulla
   porta 8003. Aperta direttamente nel browser risponde 401 `Login richiesto.` e nel log

@@ -227,6 +227,52 @@ L'immagine la costruisce `buildspec.yml` dalla cartella della v1: per pubblicare
 la cartella nel buildspec, prima su develop (QA). Il Dockerfile della v2 va allineato a quello
 della v1 (Python 3.14, `ca-certificates.crt`, libreria `chatbot_ai_sdk` da `vendor/`).
 
+**In locale con login e frontend (provato il 22-11-2026).** Come per la v1, da Run and Debug.
+
+1. La libreria di accesso nella v2: la riga dei requirements della v1, cioè
+   `chatbot_ai_sdk-0.4.0rc2-py3-none-any.whl[auth]` da `app_cycle_validation\vendor`
+   (`uv pip install "chatbot_ai_sdk[auth] @ file:///.../vendor/chatbot_ai_sdk-0.4.0rc2-py3-none-any.whl"`).
+   La 0.3.0, che sta nella stessa cartella, non ha i pezzi che servono.
+2. In `.vscode/launch.json` (radice del workspace) una configurazione per la v2 e una voce
+   composta «CV v2» con `login`, `app_frontend` e la v2, **senza** il task «Centralizer
+   prerequisites» (sul PC lo script non c'è). La voce «CV» della v1 resta com'è: v1 e v2 usano
+   la stessa porta e non girano insieme.
+
+```json
+{
+  "name": "CV v2 (porta 8003)",
+  "type": "debugpy",
+  "request": "launch",
+  "module": "uvicorn",
+  "args": ["cycle_validation.api.entry:app", "--port", "8003"],
+  "cwd": "${workspaceFolder}/avioaero_datalake_cycle_validation/app_cycle_validation_v2",
+  "python": "${workspaceFolder}/avioaero_datalake_cycle_validation/app_cycle_validation_v2/.venv/Scripts/python.exe",
+  "env": {
+    "AWS_PROFILE": "<come nella configurazione della v1>",
+    "CV_ENV_SECRET": "<identico al nome in load_secrets della v1>",
+    "FRONTEND_URL": "http://localhost:3000",
+    "CYCLE_VALIDATION_CONFIG": "data/settings.yaml",
+    "MACHINES_SOURCE": "nessuna",
+    "CIVIL_KNOWLEDGE_POINTER": "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/current.json",
+    "EJ200_VALIDATION_ENABLED": "false",
+    "CLOUDWATCH_METRICS": "false"
+  }
+}
+```
+
+Perché ogni riga:
+
+- `CV_ENV_SECRET` identico alla v1: con un altro nome la v2 non parte
+  (`ResourceNotFoundException`);
+- `FRONTEND_URL` locale: dal secret arriva l'indirizzo del servizio e la libreria rifiuta ogni
+  POST del frontend locale con 403 `Origine non ammessa.`; il valore in `launch.json` vince sul
+  secret;
+- `MACHINES_SOURCE=nessuna`: dal PC Redshift non si raggiunge, le targhe escono WARNING;
+- `EJ200_VALIDATION_ENABLED=false`: la conoscenza EJ200 non si scarica sul PC.
+
+Aperta direttamente, `http://127.0.0.1:8003/` risponde 401 `Login richiesto.`: è giusto, la
+prova passa da `http://localhost:3000` dopo il login.
+
 All'avvio il servizio scarica la conoscenza: se un file pubblicato non è valido non parte, e
 l'errore dice quale. Poi rilegge `current.json` ogni 5 minuti e passa da solo alla versione
 nuova, se è valida; altrimenti resta sulla precedente e lo scrive nel log. Una validazione già

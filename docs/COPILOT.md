@@ -34,10 +34,7 @@ Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i pas
 1. In Copilot passa ad **Ask** (in basso nella chat): nelle foto è ancora su **Agent** con
    **Allow all**.
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
-3. **5.1** la v2 in locale con login e frontend, al posto della v1. Blocco A, passo B e
-   controllo fatti: la v2 parte. Ora il **passo C**: la prova dal frontend
-   (`http://localhost:3000`), non aprendo direttamente la porta 8003. In locale le targhe
-   escono WARNING «non verificabile» (Redshift dal PC non si raggiunge): è giusto così.
+3. **5.1** fatto: la v2 gira in locale con login e frontend, al posto della v1.
 4. **Ingestion del manuale** trovato prima (uno solo), poi **5.2**: i tre cicli «con errori».
 5. Lancia **Salvare nel repository aziendale** (sezione 6).
 6. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
@@ -129,98 +126,11 @@ stessa risposta.
 
 ## 5. Prove da lanciare
 
-### 5.1 La v2 in locale, al posto della v1
+### 5.1 La v2 in locale, al posto della v1: fatto (22-11-2026)
 
-La v2 ora controlla token e permessi con la stessa libreria della v1 (si accende da sola quando
-legge il secret della v1) e parte con lo stesso secret «di ambiente». In locale si avvia sulla
-porta 8003, la stessa della v1: login e frontend non cambiano. La v1 e la v2 non possono
-girare insieme (stessa porta).
-
-Le macchine attive: dal PC Redshift non si raggiunge (prova del 22-11), quindi in locale la v2
-parte con `MACHINES_SOURCE` = `nessuna` e ogni targa esce WARNING «non verificabile». In QA
-e in produzione la v2 legge Redshift come la v1 (`MACHINES_SOURCE` = `diretta`).
-
-**Blocco A: la libreria nella v2.** Fatto il 22-11: `versione 0.4.0rc2 - mancano: []`.
-
-**Passo B: la configurazione in Run and Debug.** Apri `.vscode/launch.json` (quello nella
-radice di `ProgettoDocumenti`) e aggiungi questa configurazione dentro `"configurations": [`,
-dopo quella del backend della v1 (attenzione alle virgole tra una configurazione e l'altra). Al
-posto delle due scritte `<...>` metti gli stessi valori della v1: `AWS_PROFILE` lo copi dalla
-configurazione del backend v1; il nome del secret è quello tra virgolette in
-`load_secrets("...")` di `app_backend.py` della v1, **identico**, senza aggiungere `_v2`: la
-v2 usa lo stesso secret della v1. La configurazione va scritta nel file `launch.json`, non nel
-terminale. **Questi valori non vanno mandati a Claude** e non vanno nel repository personale.
-
-```json
-{
-  "name": "CV v2 (porta 8003)",
-  "type": "debugpy",
-  "request": "launch",
-  "module": "uvicorn",
-  "args": ["cycle_validation.api.entry:app", "--port", "8003"],
-  "cwd": "${workspaceFolder}/avioaero_datalake_cycle_validation/app_cycle_validation_v2",
-  "python": "${workspaceFolder}/avioaero_datalake_cycle_validation/app_cycle_validation_v2/.venv/Scripts/python.exe",
-  "env": {
-    "AWS_PROFILE": "<come nella configurazione della v1>",
-    "CV_ENV_SECRET": "<il nome in load_secrets della v1>",
-    "CYCLE_VALIDATION_CONFIG": "data/settings.yaml",
-    "MACHINES_SOURCE": "nessuna",
-    "CIVIL_KNOWLEDGE_POINTER": "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/current.json",
-    "EJ200_VALIDATION_ENABLED": "false",
-    "CLOUDWATCH_METRICS": "false"
-  }
-}
-```
-
-**Controllo del passo B.** Fatto il 22-11: nome del secret uguale alla v1, voce composta «CV v2»
-a parte. La v2 parte (`Uvicorn running on http://127.0.0.1:8003`) e senza token risponde 401
-`Login richiesto.`, come la v1.
-
-`EJ200_VALIDATION_ENABLED` è spento perché in locale la conoscenza EJ200 verrebbe scaricata
-sul PC (regola: resta su AWS). Il pulsante militare il frontend lo mostra lo stesso a chi ha il
-permesso: se lo premi, la v2 risponde che l'EJ200 è spento. È giusto così.
-
-**Passo C: la prova.** Il task «Centralizer prerequisites» non funziona sul PC: lo script
-`scripts/ensure-opensearch-tunnels.ps1` non c'è (foto del 22-11), quindi una voce composta con
-quel task si ferma subito. Questa riga lo toglie dalla voce «CV v2» (la «CV» della v1 resta
-com'è). Gratis.
-
-```powershell
-$launch = Join-Path (Resolve-Path "..\..").Path ".vscode\launch.json"; $testo = Get-Content $launch -Raw; $nuovo = $testo -replace '("name"\s*:\s*"CV v2"\s*,\s*)"preLaunchTask"\s*:\s*"[^"]*"\s*,\s*', '$1'; if ($nuovo -ne $testo) { Set-Content $launch $nuovo -NoNewline -Encoding utf8; "Tolto il task dalla voce CV v2." } else { "Niente da togliere." }
-```
-
-**Correzione dell'origine (foto del 22-11).** Login e frontend funzionano, ma ogni richiesta
-della pagina esce `403 Origine non ammessa.` e nel log `cookie sent from a foreign origin`. La
-libreria accetta solo le richieste che arrivano dall'indirizzo in `FRONTEND_URL`: dal secret
-arriva quello del servizio, in locale il frontend è `http://localhost:3000` (lo stesso che ha il
-login in `launch.json`). Questo blocco aggiunge `FRONTEND_URL` alla configurazione CV v2 (vince
-sul secret) e stampa i **soli nomi** delle variabili nel `.env` della v1, per vedere cos'altro
-la v1 cambia in locale. Gratis.
-
-```powershell
-$launch = Join-Path (Resolve-Path "..\..").Path ".vscode\launch.json"; $testo = Get-Content $launch -Raw
-$m = [regex]::Match($testo, '"CV_ENV_SECRET"\s*:\s*"[^"]*"\s*,')
-if ($m.Success -and $testo -notmatch '"CV_ENV_SECRET"[^}]*"FRONTEND_URL"') { Set-Content $launch ($testo.Insert($m.Index + $m.Length, ' "FRONTEND_URL": "http://localhost:3000",')) -NoNewline -Encoding utf8; "Aggiunto FRONTEND_URL alla configurazione CV v2." } else { "FRONTEND_URL: niente da aggiungere." }
-if (Test-Path ..\app_cycle_validation\.env) { Get-Content ..\app_cycle_validation\.env | ForEach-Object { if ($_ -match '^\s*([A-Za-z_]\w*)\s*=') { "v1 .env: " + $Matches[1] } } } else { "la v1 non ha .env" }
-```
-
-**Deve uscire:** `Aggiunto FRONTEND_URL alla configurazione CV v2.` e l'elenco `v1 .env: <NOME>`
-(solo nomi, nessun valore).
-
-Poi ferma tutto quello che è avviato in Run and Debug (quadrato rosso), riavvia CV v2 (legge
-`launch.json` solo all'avvio), scegli la voce composta
-**«CV v2»** e premi play: avvia login, frontend e v2 (non la v1).
-Nel frontend: entra con il tuo utente, scegli il ciclo civile, MOS, carica la stampa di esempio
-MOS.
-
-**Deve uscire:** nella Debug Console di CV v2 la riga `Uvicorn running on
-http://127.0.0.1:8003` e nessun errore all'avvio; nel frontend la pagina dei risultati del
-ciclo, come con la v1. Le targhe sono WARNING (vedi sopra).
-
-**Manda a Claude:** la foto della Debug Console di CV v2 dopo l'avvio e una foto
-dell'intestazione dei risultati (in alto: esito e numero di errori). Se all'avvio esce
-`Configurazione ... non valida`, la foto dell'elenco dei problemi (ci sono solo nomi di
-variabili).
+Login, frontend e v2 insieme, voce composta «CV v2»: il ciclo MOS di esempio è stato validato
+dal frontend (`Validation Passed`, circa 20 secondi), con l'accesso e i permessi della v1. La
+configurazione finale e le correzioni fatte sono in `AZIENDA.md`, sezione 7.
 
 ### 5.2 Dopo l'ingestion: i tre cicli «con errori»
 
