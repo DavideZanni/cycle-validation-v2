@@ -561,7 +561,8 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
     `[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"`.
 - **Frontend:** Copilot ha letto il codice del frontend e della v1 il 22-11-2026 (domande
   C1-C20, sezione 9). La v2 è stata adattata. Mancano: la modifica del pulsante Confirm
-  (collega) e la prova in locale insieme a centralizer e login (sezione 1, punto 5).
+  (collega). La prova in locale insieme a centralizer e login è riuscita il 22-11 notte
+  (sezione 1, punto 4).
 - **DR senza serial number e condition (22-11): riuscita.**
   - Stampa «SENZA sn» (campo `S/N:` vuoto): nessun serial number trovato, e nessuno preso per
     sbaglio dalle frasi «REGISTRARE P/N E S/N...». WARNING `DR_NON_VERIFICATA`, ciclo non
