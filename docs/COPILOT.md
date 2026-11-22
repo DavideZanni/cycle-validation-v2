@@ -31,13 +31,13 @@ sul ciclo MOS di esempio). Il comando `qa` ha scritto un Dockerfile e un buildsp
 
 **Cosa manca, nell'ordine:**
 
-1. **Aggiornare** (sezione 2). Questa volta toglie anche i file vecchi rimasti sul PC.
-2. **Salvare** (sezione 3), sul ramo feature. QA non cambia.
-3. **Prove in locale dal frontend** (4.1).
-4. **Lista dei manuali** da ingestionare (4.2), poi l'**ingestion** (la fai tu, con l'ingestion
-   aziendale), poi **4.3**.
-5. **Messaggio** al collega del frontend (5.1), se non l'hai già mandato.
-6. **Più avanti, quando lo decidi tu:** pull request verso `develop` e prova in QA
+1. **Aggiornare** (sezione 2): porta sul PC il comando nuovo `manuali`.
+2. **Lista dei manuali** da ingestionare (4.2): tutti quelli che servono ai cicli di prova.
+3. **Salvare** (sezione 3), sul ramo feature. QA non cambia.
+4. **Ingestion** dei manuali della lista (la fai tu, con l'ingestion aziendale), poi **4.3**.
+5. **Prove in locale dal frontend** (4.1), meglio dopo l'ingestion.
+6. **Messaggio** al collega del frontend (5.1), se non l'hai già mandato.
+7. **Più avanti, quando lo decidi tu:** pull request verso `develop` e prova in QA
    (sezione 6).
 
 ---
@@ -147,33 +147,44 @@ del log di CV v2 nel terminale.
 
 ### 4.2 La lista dei manuali da ingestionare
 
-Gratis: non chiama il modello e non va su AWS. Legge i risultati dei tre cicli «con errori»
-lanciati il 22-11 (cartelle `runs\errori-...`) e, per ogni manuale citato, dice:
+Gratis: non chiama il modello e non va su AWS. Il blocco:
 
-- se nella conoscenza di prova c'era (`c'è`, `manca` o `in parte`);
-- in quanti cicli è citato, quanti task e capitoli;
-- per quali dei 10 errori noti serve (la scheda tolta dell'op. 030 di `c5ff3cd6` non c'entra:
-  è la domanda P6).
+- cerca **tutte le stampe di ciclo** in `ProgettoDocumenti` (esempi MOS e DR, cartelle
+  `cicli MOS`, cicli «con errori» e giusti) e le legge con il parser (le copie uguali contano
+  una volta; i PDF che non sono cicli li salta);
+- prende tutti i manuali, i capitoli e i task che i cicli citano;
+- li confronta con l'ultima fotografia della conoscenza di prova: per ognuno dice `c'è`,
+  `manca` o `c'è, ma mancano N task`;
+- mette in cima i manuali che servono per i 10 errori noti dei cicli «con errori» (la scheda
+  tolta dell'op. 030 di `c5ff3cd6` non c'entra: è la domanda P6).
 
-Sullo schermo i manuali escono come M1, M2, ... (senza codici). I codici veri, l'edizione, i
-capitoli e i task finiscono nel file `runs\manuali-da-ingestionare.txt`, che il blocco apre in
-VS Code: è la lista per l'ingestion. Il file resta sul PC (git ignora `runs/`).
+Sullo schermo i manuali escono come M1, M2, ... (senza codici). La lista vera (codici,
+edizione, capitoli, task e i file dei cicli che li citano) finisce nel file
+`runs\manuali-da-ingestionare.txt`, che il blocco apre in VS Code. Il file resta sul PC (git
+ignora `runs/`).
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$prove = (Get-ChildItem runs -Directory -Filter "errori-*").FullName; "prove trovate: " + @($prove).Count
-uv run cycle-validation manuali $prove --errori 298bc28e=005,035 --errori c5ff3cd6=040 --errori f355dc3c=010,030,040,050
+$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
+$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path; "conoscenza: " + (Split-Path -Leaf $foto) + " · " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --errori 298bc28e=005,035 --errori c5ff3cd6=040 --errori f355dc3c=010,030,040,050
 code runs\manuali-da-ingestionare.txt
 ```
 
-**Deve uscire:** `prove trovate: 3`, poi `Manuali citati in 3 cicli: N.` e una riga per manuale
-(`M1: manca · ... · serve per N errori (...)`). In cima ci sono quelli che servono per gli
-errori. Forse qualche riga `senza manuale: ...`: è un'operazione con errore che non cita un task
-delle fonti del ciclo. Si apre il file con i codici veri.
+**Deve uscire:**
 
-**Cosa ingestionare:** prima i manuali con `serve per ... errori` e stato `manca` o `in parte`,
-solo i capitoli scritti nel file. Se ne resta il tempo, gli altri con `manca`, dall'alto.
+1. `conoscenza: foto-... · v/...`;
+2. `Stampe: N file, N diverse; cicli letti: N; non lette: N`;
+3. `Manuali citati: N; da ingestionare: N.`, poi una riga per manuale
+   (`M1: manca · N cicli · N task in N capitoli · serve per N errori (...)`) e forse la riga
+   `task senza manuale nelle fonti del ciclo` (di solito i task `70-` del manuale SPM).
+
+Poi si apre il file con la lista.
+
+**Cosa ingestionare:** tutti i manuali con stato `manca` o `c'è, ma mancano ...`, solo i
+capitoli scritti nel file. Se non c'è tempo per tutti, parti dall'alto: prima quelli con
+`serve per ... errori`.
 
 **Manda a Claude:** la foto dello schermo (non quella del file).
 

@@ -199,9 +199,11 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
 
 I **manuali dei motori non ci sono**: le righe che ne hanno bisogno escono WARNING
 `FONTE_ASSENTE`, ed è giusto. Decisione del 21-11-2026: per ora non si ingestiona altro.
-**Cambiata il 22-11 notte:** l'utente ingestiona solo i manuali (e i capitoli) citati dai tre
-cicli «con errori», presi dalla lista del comando `manuali` (COPILOT 4.2), per misurare la v2
-sui 10 errori noti.
+**Cambiata il 22-11 notte:** l'utente ingestiona i manuali (solo i capitoli citati) di tutti i
+cicli di prova sul PC. La lista la fa il comando `manuali` (COPILOT 4.2): legge con il parser
+tutte le stampe di `ProgettoDocumenti`, confronta con l'ultima fotografia della conoscenza e mette
+in cima i manuali che servono per i 10 errori noti. Codici veri solo nel file sul PC
+(`runs/manuali-da-ingestionare.txt`).
 
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).

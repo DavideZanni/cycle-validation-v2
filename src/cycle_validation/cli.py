@@ -3,6 +3,7 @@
 
 import asyncio
 import difflib
+import hashlib
 import json
 import os
 import re
@@ -33,11 +34,19 @@ from cycle_validation.extract.from_file import FileCycleExtractor
 from cycle_validation.extract.pvrm320 import parse_pvrm320
 from cycle_validation.extract.pvrm320_report import page_structure
 from cycle_validation.golden import GoldenCase, load_cases, run_golden
-from cycle_validation.ingest.pdf import read_pdf
+from cycle_validation.ingest.pdf import read_pdf, read_pdf_bytes
 from cycle_validation.ingest.transcribe import make_transcriber
 from cycle_validation.kb.local import load_local_knowledge
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
-from cycle_validation.report.manuals import file_lines, needed_manuals, parse_errors, screen_lines
+from cycle_validation.report.manuals import (
+    CycleSeen,
+    file_lines,
+    from_cycle,
+    from_report,
+    needed_manuals,
+    parse_errors,
+    screen_lines,
+)
 from cycle_validation.resolve.dr import SERIAL_IN_TEXT, parse_selectors, serials_in_text
 from cycle_validation.services.machines import load_machine_registry
 
@@ -462,40 +471,105 @@ def compare_cycles(
         typer.echo(line)
 
 
+_SKIPPED_FOLDERS = frozenset({"node_modules", ".venv", "venv", ".git", "__pycache__"})
+
+
+def _pdfs_in(folder: Path) -> list[Path]:
+    """I PDF di una cartella e delle sottocartelle, saltando quelle di programmi e librerie."""
+    found: list[Path] = []
+    for root, dirs, files in os.walk(folder):
+        dirs[:] = sorted(d for d in dirs if d not in _SKIPPED_FOLDERS)
+        found.extend(Path(root) / name for name in sorted(files) if name.lower().endswith(".pdf"))
+    return found
+
+
+# una stampa di ciclo pesa poco: i PDF più grandi (manuali, scansioni lunghe) non si leggono
+_CYCLE_MAX_BYTES = 20 * 1024 * 1024
+
+
 @app.command("manuali")
 def list_manuals(
-    cartelle: Annotated[
-        list[Path], typer.Argument(help="Cartelle delle prove già fatte (con report.json).")
+    percorsi: Annotated[
+        list[Path],
+        typer.Argument(
+            help="Stampe dei cicli (PDF), cartelle con stampe, o cartelle di prove già fatte "
+            "(con report.json)."
+        ),
     ],
     errori: Annotated[
         list[str] | None,
         typer.Option(help="Operazioni con un errore noto: impronta=op,op (si può ripetere)."),
     ] = None,
+    conoscenza: Annotated[
+        Path | None,
+        typer.Option(help="Versione della conoscenza (cartella) con cui confrontare i manuali."),
+    ] = None,
     out: Annotated[Path, typer.Option(help="File con i codici veri (resta sul PC).")] = Path(
         "runs/manuali-da-ingestionare.txt"
     ),
+    config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
 ) -> None:
-    """I manuali da mettere nella conoscenza, letti dai risultati delle prove già fatte (zero
-    token): se c'erano, in quanti cicli, per quali errori noti servono. Sullo schermo M1, M2,
-    ...; i codici veri, i capitoli e i task nel file `--out`."""
+    """I manuali da mettere nella conoscenza per i cicli di prova (zero token). Le stampe si
+    leggono con il parser; con `--conoscenza` dice quali manuali e task mancano. Sullo schermo
+    M1, M2, ... e le impronte dei cicli; i codici veri, i capitoli e i task nel file `--out`."""
     try:
         errors = parse_errors(errori or [])
-        reports: dict[str, dict[str, Any]] = {}
-        for folder in cartelle:
-            path = folder / "report.json" if folder.is_dir() else folder
-            name = path.parent.name
-            try:
-                reports[name] = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, ValueError) as error:
-                typer.echo(f"{name}: report.json non letto ({type(error).__name__}), saltato.")
-        if not reports:
-            raise CycleValidationError("Nessun report.json letto: niente da elencare.")
+        settings = load_settings(config)
+        limits = load_profile("mos", settings.paths.profiles_dir).file_limits
+        kb = load_local_knowledge(conoscenza) if conoscenza else None
     except CycleValidationError as error:
         raise _fail(error) from error
-    result = needed_manuals(reports, errors)
+    cycles: dict[str, CycleSeen] = {}
+    names: dict[str, list[str]] = {}
+    pdfs: list[Path] = []
+    for path in percorsi:
+        if path.is_dir() and (path / "report.json").is_file():
+            try:
+                report = json.loads((path / "report.json").read_text(encoding="utf-8"))
+                cycles[path.name] = from_report(path.name, report)
+            except (OSError, ValueError) as error:
+                typer.echo(f"{path.name}: report.json non letto ({type(error).__name__}).")
+        elif path.is_dir():
+            pdfs.extend(_pdfs_in(path))
+        elif path.suffix.lower() == ".pdf":
+            pdfs.append(path)
+    unread = 0
+    for pdf_path in pdfs:
+        try:
+            if pdf_path.stat().st_size > (limits.max_bytes or _CYCLE_MAX_BYTES):
+                unread += 1  # troppo grande per un ciclo (per esempio un manuale)
+                continue
+            data = pdf_path.read_bytes()
+        except OSError:
+            unread += 1
+            continue
+        name = hashlib.sha256(data).hexdigest()[:8]
+        names.setdefault(name, []).append(pdf_path.name)
+        if name in cycles:
+            continue
+        try:
+            cycles[name] = from_cycle(
+                name, parse_pvrm320(read_pdf_bytes(data, pdf_path.name, limits))
+            )
+        except CycleValidationError:
+            unread += 1
+    if not cycles:
+        raise _fail(CycleValidationError("Nessun ciclo letto: niente da elencare."))
+    result = needed_manuals(list(cycles.values()), errors, kb)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text("\n".join(file_lines(result)) + "\n", encoding="utf-8")
-    typer.echo(f"Manuali citati in {len(result.cycles)} cicli: {len(result.manuals)}.")
+    read = {name: files for name, files in names.items() if name in cycles}
+    out.write_text("\n".join(file_lines(result, read)) + "\n", encoding="utf-8")
+    if pdfs:
+        typer.echo(
+            f"Stampe: {len(pdfs)} file, {len(names)} diverse; cicli letti: "
+            f"{len(cycles)}; non lette (non sono cicli PVRM320 o troppo grandi): {unread}."
+        )
+    needed = sum(need.needed for need in result.manuals)
+    typer.echo(
+        f"Manuali citati: {len(result.manuals)}; da ingestionare: {needed}"
+        + ("" if kb else " (senza --conoscenza: stato dai report, se ci sono)")
+        + "."
+    )
     for line in screen_lines(result):
         typer.echo(line)
     for line in result.unmatched:
