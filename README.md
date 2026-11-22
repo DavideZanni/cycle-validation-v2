@@ -21,17 +21,12 @@ uv run cycle-validation golden eval/casi/sintetici/mos --knowledge examples/sint
 `run` senza `--cycle-json` estrae il ciclo con il modello (serve Bedrock). Gli smoke test reali
 vanno eseguiti dove ci sono le credenziali.
 
-Documenti:
+Documenti (in `docs/`, scritti in modo semplice):
 
-- `docs/IMPORTAZIONE.md`: portare il progetto nel repository aziendale, nella cartella
-  `app_cycle_validation_v2/` accanto alla versione in produzione;
-- `docs/COPILOT.md`: i comandi da lanciare in ordine sul computer aziendale per provare la v2
-  con Bedrock, S3 e un ciclo vero;
-- `docs/AMBIENTE_AZIENDALE.md`: il computer aziendale, chi fa cosa e cosa è permesso nelle prove;
-  `docs/README_RADICE.md` è il README della radice del repository aziendale;
-- `docs/AZIENDA.md`: importare e collegare il progetto sul computer aziendale, lanciare gli
-  esperimenti sui cicli veri, cosa fare se qualcosa non va;
-- `docs/FORMATO_CONOSCENZA.md`: com'è fatta la conoscenza pubblicata su S3 (con valori inventati);
-- `docs/DOMANDE_APERTE.md`: le domande ancora aperte, con lo spazio per la risposta;
-- `docs/MIGLIORIE.md`: come è fatto in breve, cosa resta da fare e in che ordine, il registro
-  degli esperimenti.
+- `docs/COPILOT.md`: il file per lavorare sul PC aziendale: cosa fare adesso, i comandi da
+  lanciare, le domande per Copilot e per chi conosce i cicli;
+- `docs/MEMORIA.md`: tutto quello che sappiamo già: PC, regole, come funziona la v2, frontend,
+  problemi già visti, decisioni prese;
+- `docs/MIGLIORIE.md`: cosa migliorare, in che ordine, e il registro delle prove;
+- `docs/AZIENDA.md`: guida tecnica: installare, configurare, avviare il servizio, esperimenti,
+  formato della conoscenza.

@@ -1,10 +1,16 @@
-# Cycle Validation in azienda
+# Guida tecnica
 
-Tutto quello che serve sul computer aziendale, in ordine: **A** importare e collegare il
-programma, **B** fare gli esperimenti sui cicli veri, **C** cosa fare se qualcosa non va. Le
-migliorie future e il registro degli esperimenti stanno in `docs/MIGLIORIE.md`.
+La guida per installare, configurare e far girare la v2, e per fare gli esperimenti. Le parti:
 
-Ogni passo ha un comando e il risultato che devi vedere. Se vedi altro, fermati lì e guarda la
+- **A** installare e collegare il programma;
+- **B** fare gli esperimenti sui cicli veri;
+- **C** cosa fare se qualcosa non va;
+- **D** com'è fatta la conoscenza pubblicata su S3.
+
+Per le prove di tutti i giorni sul PC si usa `docs/COPILOT.md`; quello che sappiamo già è in
+`docs/MEMORIA.md`; cosa migliorare è in `docs/MIGLIORIE.md`.
+
+Ogni passo ha un comando e il risultato che devi vedere. Se vedi altro, fermati e guarda la
 parte C.
 
 ---
@@ -25,8 +31,8 @@ parte C.
 
 Il codice sta nel repository aziendale `avioaero_datalake_cycle_validation`, nella cartella
 `app_cycle_validation_v2/`, accanto alla versione 1 in produzione (`app_cycle_validation/`).
-Come ci è arrivato, e come rifarlo, è in `docs/IMPORTAZIONE.md`. Viaggia solo il codice: il
-materiale aziendale resta in azienda.
+Viaggia solo il codice: il materiale aziendale resta in azienda. Le correzioni arrivano con il
+blocco *Aggiornare il codice sul PC* di `docs/COPILOT.md`.
 
 **Tutti i comandi di questa guida si lanciano da dentro `app_cycle_validation_v2`.**
 
@@ -384,7 +390,7 @@ e mai ERRATO.
 |---|---|
 | DR: un serial number con una sola recommendation vale per qualunque condition | si applica una recommendation a una condition non prevista |
 | DR: `Accept as is` (anche `Accept-as-is`, `Use as is`) e `Reject` riconosciuti per nome | un'altra parola per la stessa disposizione passa come riparazione normale |
-| DR: `Reject` = ERRATO e ciclo bloccato; `Accept as is` = WARNING `DR_SENZA_RIPARAZIONE`, gli altri controlli proseguono senza la procedura DR come riferimento (domanda 17) | un ciclo con una riparazione non voluta non esce ERRATO da solo: lo dice il WARNING, va guardato a mano |
+| DR: `Reject` = ERRATO e ciclo bloccato; `Accept as is` = WARNING `DR_SENZA_RIPARAZIONE`, gli altri controlli proseguono senza la procedura DR come riferimento (`MEMORIA.md`, sezione 7) | un ciclo con una riparazione non voluta non esce ERRATO da solo: lo dice il WARNING, va guardato a mano |
 | DR: nessuna recommendation trovata = ERRATO | dati DR incompleti danno ERRATO invece di WARNING |
 | Scheda presente ma famiglia del motore non riconosciuta = CORRETTO, con nota | passa una scheda di un'altra famiglia |
 | MOS: la fonte è l'OEM del piè di pagina più il task letto dalle NOTE | note scritte in altro modo danno fonti mancanti |
@@ -396,3 +402,130 @@ e mai ERRATO.
 | Oltre il 20% di parole della descrizione assenti dal PDF: niente modello, WARNING | soglia da tarare sui PDF veri |
 | Chi ha solo `cv_ej200` può usare anche le rotte civili | accesso più largo del voluto |
 | Elenco delle macchine attive vuoto = "registro non disponibile" (WARNING) | — è voluto: un guasto non diventa ERRATO |
+
+---
+
+# D. Com'è fatta la conoscenza
+
+## 15. Il formato della conoscenza pubblicata
+
+La conoscenza la pubblica knowledge-index su S3. Questa parte dice com'è fatta e come la legge
+la v2. È stata confrontata il 20-11-2026 con i file veri della versione di prova. **I valori qui
+sotto sono inventati**, ma hanno la stessa forma di quelli veri. Il test
+`tests/test_e2e_formato_reale.py` fa girare tutto (dal PDF al payload del frontend) con una
+conoscenza in questo formato.
+
+### Dove sta
+
+```
+<prefisso>/knowledge/civil/current.json   {"version": "<versione>", "path": "v/<versione>/", ...}
+<prefisso>/knowledge/civil/v/<versione>/  manifest.json, documents/*.md, tasks.json,
+                                          machine_tags.json, process_sheets.json,
+                                          dr_recommendations.json, uncertainty.json (facoltativo)
+<prefisso>/knowledge/ej200/current.json
+<prefisso>/knowledge/ej200/v/<versione>/  catalog.json, uncertainty.json (facoltativo)
+```
+
+Bucket e puntatori si danno con le variabili `BUCKETNAME`, `CIVIL_KNOWLEDGE_POINTER` ed
+`EJ200_KNOWLEDGE_POINTER` (punto 4.2). Il prefisso predefinito (`Manufacturing AI/cv3/`) non è
+quello della versione di prova: va impostato. La versione ha la forma di una data e ora
+(`20260101T090000Z`). `current.json` è scritto da `publish.py`: il programma usa solo `version`
+e `path`, e `format` può mancare.
+
+### `manifest.json` (civile)
+
+Una voce per documento. Più documenti possono avere lo stesso `code`, uno per capitolo: un
+ciclo che cita il manuale per codice trova il task nel capitolo giusto.
+
+```json
+{
+  "format": 1,
+  "version": "20260101T090000Z",
+  "documents": [
+    {"key": "SPM_GEK0000_pb70-21-00-010_ch1", "file": "documents/SPM_GEK0000_pb70-21-00-010_ch1.md",
+     "lines": 214, "version": "ch1", "title": "SPM_GEK0000_pb70-21-00-010_ch1", "code": "GEK0000", "kind": "SPM"}
+  ]
+}
+```
+
+### `tasks.json`
+
+`manual` è la `key` di un documento del manifest, non il `code`; altrimenti la conoscenza non si
+carica. `line_end` non può superare `lines` del documento. Un documento può avere più task.
+
+```json
+[
+  {"manual": "SPM_GEK0000_pb70-21-00-010_ch1", "task": "70-21-00-110-030", "line_start": 14, "line_end": 45},
+  {"manual": "SPM_GEK0000_pb70-21-00-010_ch1", "task": "70-21-00-110-031", "line_start": 46, "line_end": 214}
+]
+```
+
+### `machine_tags.json`
+
+`function` elenca le lavorazioni separate da `; `. Le targhe si confrontano senza spazi né
+maiuscole (`A 0100` = `A0100`).
+
+```json
+[
+  {"tag": "1200", "function": "ASCIUGATURA; TRATTAMENTO TERMICO", "needs_review": true},
+  {"tag": "A 0100", "function": "RIPORTO HVOF; RIPORTO PLASMA", "needs_review": true}
+]
+```
+
+La targa si controlla con due elenchi: le macchine attive (Redshift o `MACHINES_FILE`) e
+questo file.
+
+| In questo file | Tra le attive | Esito |
+|---|---|---|
+| sì | sì | CORRETTO |
+| sì | no | ERRATO `MACCHINA_NON_ATTIVA` |
+| no | sì | WARNING `FONTE_ASSENTE` |
+| no | no | WARNING `TARGA_SCONOSCIUTA` |
+
+### `process_sheets.json`
+
+I codici si confrontano senza spazi, trattini né maiuscole (`CPEC 100-BR` = `CPEC100BR`). Con
+`engine_families` vuoto la scheda risulta presente, ma non si controlla se vale per il motore.
+
+```json
+[
+  {"code": "10", "edition": "13", "treatment": "POST EMULSIFIED LEV.2", "engine_families": ["GENX"]},
+  {"code": "CPEC 100-BR", "edition": "51", "treatment": "ATTACCO LOCALE A TAMPONE", "engine_families": []}
+]
+```
+
+### `dr_recommendations.json`
+
+Con `manual: null` i task si cercano nei manuali citati dal ciclo. Le regole su serial number,
+condition e disposizione (`Repair`, `Accept as is`, `Reject`) sono in `MEMORIA.md`, sezione 7.
+
+```json
+[
+  {"serial_number": "AAAA0BBB", "conditions": [1], "procedure": "Repair", "reference": "01000001", "manual": null, "tasks": ["72-56-30-220-100"]},
+  {"serial_number": "AAAA0BBB", "conditions": [2], "procedure": "Accept as is", "reference": "01000001", "manual": null, "tasks": []},
+  {"serial_number": "BBBB2DDD", "conditions": [3], "procedure": "Reject", "reference": "01000003", "manual": null, "tasks": []}
+]
+```
+
+### `catalog.json` (EJ200)
+
+Una voce per issue; il testo sta in `<document_id>/<content_hash>.md`.
+
+```json
+[
+  {"code": "EJ00020L-01", "kind": "RDR", "issue": "01", "document_id": "EJ00020L-01-1a2b3c4d", "content_hash": "1a2b3c4d5e6f7080", "title": "EJ00020L-01", "published": true, "partial": false, "references": ["EJ00020"]},
+  {"code": "EJ00020L-02", "kind": "RDR", "issue": "02", "document_id": "EJ00020L-02-2b3c4d5e", "content_hash": "2b3c4d5e6f708091", "title": "EJ00020L-02", "published": true, "partial": false, "references": ["EJ00020"]}
+]
+```
+
+Il `code` contiene già la issue: il programma la toglie, così le issue della stessa
+pubblicazione restano una pubblicazione sola. Un ciclo può citare una issue precisa
+(`EJ00020L-01`) oppure solo il codice (`EJ00020L`, `EJ00020`: vale la issue più recente). Se
+cita una issue vecchia, la fonte esce WARNING e le operazioni si confrontano con la issue
+citata.
+
+### `needs_review` e `uncertainty.json`
+
+`needs_review` è un promemoria per chi cura l'indice: il programma lo ignora. `uncertainty.json`
+segna invece le voci incerte: escono WARNING `DATO_INCERTO` (mai sul controllo DR). Se il file
+è incoerente, `kb-check` fallisce e il servizio lo ignora scrivendolo nel log.

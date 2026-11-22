@@ -1,24 +1,23 @@
 # Migliorie
 
-Cosa resta da fare, in che ordine, e il registro di ogni esperimento deciso. Come si lanciano
-gli esperimenti è in `docs/AZIENDA.md`, parte B.
+Qui c'è:
 
-Ogni miglioria si prova contro la `baseline`: una variante in `eval/varianti/` che cambia una
-cosa sola, gli stessi casi e la stessa fotografia, almeno tre ripetizioni. Si tiene solo se la
-classifica la ammette, e la decisione va nel registro in fondo.
+1. cosa è già stato migliorato;
+2. cosa resta da fare, e in che ordine;
+3. il registro delle prove fatte, con la decisione presa.
+
+**Come si prova una miglioria.** Si scrive una *variante* in `eval/varianti/` che cambia una
+cosa sola. Si fa girare sugli stessi cicli e sulla stessa conoscenza della `baseline` (la
+versione di oggi), almeno tre volte. Si tiene solo se la classifica dice che non peggiora
+niente; la decisione si scrive nel registro in fondo. Come si lancia: `docs/AZIENDA.md`,
+parte B.
 
 ---
 
-## Come è fatto, in breve
+## Dove sta il codice
 
-Un ciclo passa per: lettura del PDF (`ingest/`, `extract/`), verifica che i valori letti
-compaiano nel PDF (`extract/`, integrità), controlli (`checks/`), esito per riga
-(`verdict/`), report (`report/`). Il profilo (`config/profiles/mos|dr|ej200.yaml`) dice quali
-controlli valgono; il controllo DR è bloccante.
-
-**L'esito lo decide il codice.** Il modello giudica solo la descrizione dell'operazione contro il
-testo del manuale, e ogni sua citazione viene ritrovata dal codice a quella riga; se non c'è,
-WARNING `CITAZIONE_NON_VERIFICATA`. Un guasto (modello, Redshift, S3) dà WARNING, mai ERRATO.
+Come funziona la v2, passo per passo, è in `docs/MEMORIA.md`, sezione 7. Qui solo dove sta ogni
+parte nel codice (cartella `src/cycle_validation/`):
 
 | Dove | Cosa |
 |---|---|
@@ -71,7 +70,7 @@ aziendale.
 | F4 | documento LEAP intero come contesto quando la fonte non ha task. **Da verificare su un ciclo LEAP vero** |
 | — | servizio montato dalle variabili d'ambiente, Redshift con la Data API, secret all'avvio |
 | G1 | conferma delle contraddizioni: un ERRATO della descrizione si rifà con 2 sessioni uguali (`agent.confirm_contradiction`); se una non ritrova la contraddizione, WARNING `GIUDIZIO_INSTABILE`. Costa solo sugli ERRATO (21-11-2026, dopo l'op. 060 del ciclo DR vero) |
-| G2 | DR `Accept as is`: WARNING `DR_SENZA_RIPARAZIONE` senza blocco, al posto di ERRATO e ciclo bloccato. Le procedure DR pubblicate sono solo di riparazione e non citano «accept as is»: non fanno da riferimento. `Reject` resta ERRATO (21-11-2026, domanda 17 da confermare) |
+| G2 | DR `Accept as is`: WARNING `DR_SENZA_RIPARAZIONE` senza blocco, al posto di ERRATO e ciclo bloccato. Le procedure DR pubblicate sono solo di riparazione e non citano «accept as is»: non fanno da riferimento. `Reject` resta ERRATO (21-11-2026, da confermare: domanda P1 in `COPILOT.md`) |
 
 ---
 

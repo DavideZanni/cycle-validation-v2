@@ -1,9 +1,9 @@
 # Istruzioni per Claude
 
-Prima di lavorare con l'utente sulle prove aziendali leggi `docs/AMBIENTE_AZIENDALE.md`: è la
-memoria del progetto (chi fa cosa, PC aziendale, Copilot, pipeline, frontend, stato delle prove,
-problemi già visti e cosa fare). Prima di analizzare un problema guarda lì se è già risolto;
-quando impari qualcosa di nuovo, aggiungilo lì. Le regole che non si discutono:
+Prima di lavorare con l'utente sulle prove aziendali leggi `docs/MEMORIA.md`: è la memoria del
+progetto (chi fa cosa, PC aziendale, Copilot, pipeline, frontend, stato delle prove, problemi
+già visti, decisioni prese). Prima di analizzare un problema guarda lì se è già risolto; quando
+impari qualcosa di nuovo, aggiungilo lì. Le regole che non si discutono:
 
 - Si lavora su `main` del repository personale: niente branch.
 - Claude non ha accesso al PC aziendale: l'utente lancia nel terminale di VS Code (PowerShell 7)
@@ -17,4 +17,6 @@ quando impari qualcosa di nuovo, aggiungilo lì. Le regole che non si discutono:
 - Documenti e output EJ200 restano su AWS EU: nessuna copia locale della conoscenza EJ200.
 - Prima di ogni commit: `uv run pytest -q`, `uv run ruff check .`, `uv run ruff format --check .`,
   `uv run mypy src`.
-- Si scrive in italiano.
+- Si scrive in italiano, in modo molto semplice. In `docs/` restano quattro file: `COPILOT.md`
+  (lavoro sul PC e domande aperte), `MEMORIA.md`, `MIGLIORIE.md`, `AZIENDA.md` (guida tecnica).
+  Niente file nuovi in `docs/` senza motivo: si aggiunge a uno di questi.

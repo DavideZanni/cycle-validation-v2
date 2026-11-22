@@ -1,16 +1,25 @@
-# Prove della v2 sul computer aziendale
+# Lavorare sul PC aziendale
 
-**I comandi li lanci tu, nel terminale di VS Code**, non Copilot: la policy aziendale vieta a
-Copilot i file in `data/`. Il terminale deve essere nella cartella `app_cycle_validation_v2`
-(il prompt finisce con `app_cycle_validation_v2>`). Ogni blocco è da copiare e incollare così
-com'è. I comandi non stampano il nome del bucket: puoi mandare a Claude le foto dell'output.
+Questo è il file da usare sul PC. Dentro ci sono:
+
+1. cosa fare adesso;
+2. i comandi da lanciare (blocchi da copiare e incollare);
+3. le domande per Copilot;
+4. le domande per le persone che conoscono i cicli.
+
+Tutto quello che sappiamo già (PC, regole, problemi risolti) è in `docs/MEMORIA.md`.
+
+**Come si lancia un blocco.** Apri il terminale di VS Code nella cartella
+`app_cycle_validation_v2` (la riga finisce con `app_cycle_validation_v2>`). Copia il blocco
+intero e incollalo. Poi guarda **Deve uscire** e manda a Claude la foto indicata in **Manda a
+Claude**.
 
 **Se qualcosa va storto:**
 
-- token scaduto (`Token has expired`, `ExpiredToken`, `SSO session`): `aws sso login`, poi
+- c'è scritto `Token has expired`, `ExpiredToken` o `SSO session`: lancia `aws sso login`, poi
   rilancia lo stesso blocco;
-- errore di certificati (`SELF_SIGNED_CERT_IN_CHAIN`, `unable to get local issuer
-  certificate`): lancia questo e rilancia il blocco (vale finché non chiudi il terminale):
+- c'è scritto `SELF_SIGNED_CERT_IN_CHAIN` o `unable to get local issuer certificate`: lancia
+  questa riga, poi rilancia il blocco (vale finché non chiudi il terminale):
 
 ```powershell
 $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Path; $env:AWS_CA_BUNDLE = $env:NODE_EXTRA_CA_CERTS
@@ -18,25 +27,22 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ---
 
-## Dove siamo (21-11-2026)
+## 1. Cosa fare adesso (22-11-2026)
 
-Funzionano Bedrock (Claude Haiku 5.5), la copia della conoscenza da S3 e la lettura dei cicli
-veri. Le prove usano **solo il sottoinsieme già ingestionato** in
-`ingestion-v2-test-qa-output`: 8 capitoli del manuale SPM e 2 procedure DR. Per i documenti
-che non ci sono gli esiti escono WARNING `FONTE_ASSENTE`: è giusto così, non è un errore del
-programma. I manuali dei motori si ingestionano più avanti (ultima sezione).
-
-La copia della conoscenza è già sul PC, in `eval/casi/aziendali/conoscenza/foto-20261121/`;
-i cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git le ignora).
+1. Lancia **Aggiornare il codice sul PC** (sezione 2).
+2. Fai le **domande a Copilot** (sezione 3) e manda a Claude le foto delle risposte.
+3. Lancia **Salvare nel repository aziendale** (sezione 6): i documenti sono cambiati.
+4. Quando hai tempo: lancia la **prova del ciclo MOS «con errori»** (sezione 5).
+5. Quando capita: fai le **domande alle persone** (sezione 4).
 
 ---
 
-## Aggiornare il codice sul PC
+## 2. Aggiornare il codice sul PC
 
-Da lanciare **ogni volta che Claude dice di aver corretto il codice**.
-Copia nella cartella della v2 codice, test, documenti e casi sintetici nuovi dal repository
-personale (clone temporaneo, poi cancellato) e lancia i test. `eval\casi\aziendali` non si
-tocca.
+Da lanciare **ogni volta che Claude dice di aver cambiato qualcosa**. Prende dal repository
+personale il codice, i test, i documenti e i casi di prova, li copia nella cartella della v2 e
+lancia i test. Toglie anche i documenti vecchi che non servono più. Non tocca i dati
+aziendali.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -47,68 +53,114 @@ robocopy "$tmp\src" src /E /XD __pycache__ /NFL /NDL /NJH /NJS /NP
 robocopy "$tmp\tests" tests /E /XD __pycache__ /NFL /NDL /NJH /NJS /NP
 robocopy "$tmp\docs" docs /E /NFL /NDL /NJH /NJS /NP
 robocopy "$tmp\eval\casi\sintetici" eval\casi\sintetici /E /NFL /NDL /NJH /NJS /NP
+Remove-Item docs\AMBIENTE_AZIENDALE.md, docs\DOMANDE_APERTE.md, docs\FORMATO_CONOSCENZA.md, docs\IMPORTAZIONE.md, docs\README_RADICE.md -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force $tmp
 uv run pytest -q
 ```
 
 **Deve uscire:** tutti `passed` (qualche `skipped` va bene), nessun `failed`.
 
----
-
-## Fatto finora (21-11-2026)
-
-- **Cicli MOS**: terzo ciclo `7 corretti, 16 warning, 0 errati, 14 non applicabili`, 0,0058 USD.
-  Le righe che dipendono dal manuale del motore escono FONTE_ASSENTE (giusto).
-- **Ciclo DR `CON sn`, letto dal parser** (messaggio 11), serial number preso dalla stampa:
-
-| Condition | Recommendation | Esito | Costo |
-|---|---|---|---|
-| 1 | Repair | `5 corretti, 15 warning, 0 errati`; `extraction_integrity` e `dr_recommendation` CORRETTO | 0,0097 USD, 9 sessioni |
-| 2 | Accept as is | `dr_recommendation` ERRATO (`DR_NON_APPLICABILE`), il resto bloccato: regola cambiata, vedi messaggio 17 | 0 USD |
-| 3 | Repair | identico alla condition 1 | 0,0057 USD, 9 sessioni |
-
-  Descrizioni: 005, 040, 050, 060 CORRETTO; 010, 020, 030, 080, 090 `EVIDENZA_NON_TROVATA`.
-  Restano WARNING le targhe (registro macchine non collegato), la scheda dell'op. 050 (non è
-  tra le 94 schede) e il manuale del motore. Con il ciclo letto dal modello (messaggio 10)
-  l'op. 060 usciva ERRATO `CONTRADDIZIONE`; letta dal parser è CORRETTO.
-- **Messaggio 12**: il parser legge tutte le stampe DR. La descrizione dell'op. 060 è uguale
-  nelle due letture: l'ERRATO non viene da una lettura sbagliata del testo, ma da quello con
-  cui è stato confrontato (messaggio 13). `git status`: solo file sotto `src/`, `tests/`,
-  `docs/`.
-- **Messaggio 13**: i due run hanno confrontato l'op. 060 con **lo stesso documento**, la
-  procedura DR, alla stessa pagina: il run col ciclo letto dal modello cita una riga e dice
-  ERRATO, quello col parser cita quella riga e la precedente e dice CORRETTO. Differenze
-  d'ingresso: col modello l'op. 060 non ha il repair code e il ciclo ha fonti in più (i due
-  casi DR, il riferimento SA).
-- **Messaggio 14**: stesso ingresso, esiti diversi. Con la lettura del modello ERRATO 2 volte
-  su 3, con quella del parser 1 su 3: il modello oscilla sull'op. 060. Corretto nel codice: un
-  ERRATO della descrizione ora si rifà con 2 sessioni uguali e resta ERRATO solo se lo
-  ritrovano tutte; altrimenti WARNING `GIUDIZIO_INSTABILE`, da guardare a mano.
-- **Messaggio 15**: la conferma funziona. Tre run della condition 3: op. 060 CORRETTO,
-  CORRETTO, WARNING `GIUDIZIO_INSTABILE` (la prima sessione ha detto ERRATO, le 2 conferme non
-  l'hanno ritrovato tutte); 0 errati, 9-11 sessioni, 0,007-0,011 USD per run.
-- **Messaggi 16 e 17**: le 2 procedure DR della conoscenza sono solo procedure di riparazione
-  (16 righe, circa 1.250 caratteri): «accept as is», «reject», «condition» non ci sono mai. La
-  disposizione per condition sta solo nelle recommendation. Corretto nel codice (domanda 17):
-  `Accept as is` ora dà WARNING `DR_SENZA_RIPARAZIONE` e gli altri controlli proseguono senza
-  la procedura di riparazione come riferimento; `Reject` resta ERRATO e blocca.
-- **Messaggio 18**: condition 2 con la regola nuova: `dr_recommendation` WARNING
-  `DR_SENZA_RIPARAZIONE`, 0 errati, 20 warning, 0 sessioni, 0 USD. Tutte le descrizioni
-  `FONTE_ASSENTE`: senza la procedura di riparazione resta solo il manuale del motore, che non
-  c'è. Stato `parziale` per il registro macchine non collegato, come nelle altre condition.
-  Questo ciclo cita il caso DR e le sue operazioni 040-060 seguono la procedura di riparazione:
-  è un ciclo di riparazione, e con `Accept as is` il WARNING chiede giustamente di guardarlo.
-- **Salvataggio (21-11-2026)**: tutte le correzioni fino al 21-11 sono nel repository aziendale,
-  commit e push su `feature/cycle-validation-v2` riusciti, niente da mandare.
+**Manda a Claude:** la foto solo se c'è un `failed`.
 
 ---
 
-## Prova: il ciclo MOS «con errori» nella v2
+## 3. Domande per Copilot
 
-La v1 nel frontend (22-11-2026) su questo ciclo dà «Validation Passed» con 3 Warning: la
-prima fonte e il task code delle op. 025 e 030 citano il task generico invece di quello per i
-pezzi rotanti. Il blocco passa lo stesso PDF alla v2 e mostra gli esiti di fonti e task code,
-da confrontare con la v1. Cerca il PDF in `docs\` e in `Downloads`. Costa qualche centesimo.
+Copilot può leggere il codice del repository aziendale (la v1, forse anche il frontend). Queste
+domande servono a collegare la v2 al frontend senza sorprese.
+
+**Prima di cominciare, due cose importanti:**
+
+- in basso nella chat di Copilot scegli **Ask**, non **Agent**. In Agent Copilot può
+  modificare file e lanciare comandi: non deve;
+- se in basso nella chat c'è un file allegato che non c'entra (per esempio un file con accessi
+  o password), toglilo con la **x** prima di scrivere. Copilot non deve leggerlo.
+
+Poi incolla questo messaggio:
+
+```text
+Fai solo il consulente: non eseguire comandi, non creare, modificare o cancellare file, non
+fare commit. Puoi solo leggere i file del workspace.
+
+Apri app_cycle_validation_v2/docs/COPILOT.md, sezione "3. Domande per Copilot", e rispondi a
+ogni domanda da C1 a C12, nell'ordine, cercando nel codice di tutto il repository (v1 in
+app_cycle_validation/, frontend se c'è, file di deploy).
+
+Per ogni risposta: numero della domanda, file e funzione (percorso esatto), il pezzo di codice
+che conta (breve) e la risposta in due o tre righe, in modo semplice. Se non lo trovi o non sei
+sicuro, scrivi "non trovato": non supporre. Non scrivere valori di segreti, account AWS, ARN,
+URL o host interni, nomi di bucket: al loro posto <omesso>. I nomi delle variabili invece sì.
+```
+
+**Manda a Claude:** le foto di tutte le risposte. Se Copilot si ferma a metà, scrivigli
+«continua dalla domanda C…».
+
+**Le domande** (Copilot le legge da qui, tu non devi copiarle):
+
+- **C1. Dov'è il frontend?** In quale cartella c'è il codice della pagina *Cycle Validation*
+  (quella che chiede «Which cycle do you want to validate?»)? Se non è in questo repository,
+  dillo.
+- **C2. Come sceglie il bollino?** Quale funzione guarda il testo di un risultato e decide se
+  mostrare `OK`, `Warning`, `Error`, `N/A` o `Info`? Incollala. Quando esce `Info` e quando
+  `N/A` grigio? Un testo che comincia con `"N/A - "` che bollino dà?
+- **C3. Passed o Errors?** Quando la pagina scrive «Validation Passed» e quando «Completed with
+  Errors»? Da dove prende il numero «N errors» e il «1 err» vicino all'operazione? (un campo
+  come `cycle_errors_count`, oppure conta i testi che cominciano con «Error found»?)
+- **C4. Quali campi legge?** Elenca i campi della risposta che il frontend usa (quelli in alto,
+  quelli di `sources` e quelli di `operations`) e dove li mostra. Da dove vengono la colonna
+  *Type* («Manual») e le etichette «MOS Cycle» / «EJ200 Cycle»? Usa anche `cycle_status`,
+  `drRecommendationFeedback` o `_pipeline_errors`?
+- **C5. Serial number e condition: come li manda?** Per un ciclo DR, con quale indirizzo e con
+  quali nomi il frontend manda `Serial Number (S/N)` e `DR Condition Numbers`? Come testo
+  (`"1,2"`) o come lista? Se sono vuoti, il pulsante CONFIRM si può premere lo stesso?
+- **C6. Serial number e condition nella v1.** Cosa ci fa la v1? Legge il serial number anche
+  dal PDF? Cosa fa se lo stesso serial number ha più recommendation?
+- **C7. Quali indirizzi chiama?** Quali rotte chiama il frontend in tutto il percorso (inizio,
+  scelta del tipo, caricamento del PDF, elenco delle chat a sinistra, pollice su/giù,
+  download), e con quali campi? Con quale variabile si sceglie l'indirizzo del backend? (il
+  nome, non il valore)
+- **C8. Cosa scarica?** Il pulsante di download in alto a destra cosa scarica (JSON, PDF,
+  Excel…)? Lo prepara il frontend o lo chiede al backend?
+- **C9. Quanto aspetta?** Il frontend ha un tempo massimo di attesa per la validazione? Quanti
+  secondi? E il gateway o il backend della v1?
+- **C10. Macchine attive nella v1.** Come legge la v1 l'elenco delle macchine attive (Redshift
+  o altro)? Nomi delle variabili e colonne usate dalla query, senza valori.
+- **C11. «non verificato per EJ200».** Dove nasce questo testo sulle schede EJ200? Il frontend
+  lo tratta in modo speciale?
+- **C12. Come gira la v1?** Come viene messa in funzione la v1 dietro il gateway (Dockerfile,
+  buildspec, ECS, Lambda, SageMaker…)? Elenca i file e cosa fanno, in breve. Serve per mettere
+  la v2 nello stesso posto e provarci i cicli EJ200.
+
+---
+
+## 4. Domande per le persone che conoscono i cicli
+
+Queste Copilot non le sa: la risposta non è nel codice. Chiedile quando capita e scrivi a
+Claude la risposta a parole (senza codici veri).
+
+- **P1. DR «accept as is».** Quando la DR dice «accept as is» (il pezzo va bene così), si fa lo
+  stesso un ciclo di riparazione? Con quali operazioni? E quando dice «reject» (pezzo da
+  scartare), un ciclo di riparazione è sempre sbagliato?
+- **P2. Serial number e condition.** Chi carica un ciclo DR conosce sempre il serial number e
+  la condition? Dove li legge? (se non servono sempre, Claude può renderli facoltativi)
+- **P3. Task «70-».** I task che cominciano con `70-` stanno sempre nel manuale SPM (le pratiche
+  standard)? C'è un altro gruppo di task con la stessa regola?
+- **P4. Operazione 060 del ciclo DR.** In una prova la v2 ha segnato come sbagliata
+  l'operazione 060 del ciclo DR (condition 3). Era davvero sbagliata? Il dettaglio è in
+  `runs\dr-condition-3\report.md`: fallo guardare a chi conosce il ciclo, non mandarlo a
+  Claude.
+- **P5. Ciclo MOS «con errori».** Questo ciclo è stato dato già segnato come sbagliato. Quali
+  sono gli errori, e in quali operazioni? Serve per capire se la v2 li trova.
+- **P6. Targa «90» nell'indice** (per chi cura knowledge-index). Nel file delle targhe la
+  `90` ha come funzione una frase sbagliata e le lettere accentate rovinate. Va corretta
+  nell'indice (i passi sono in `MEMORIA.md`, «Da correggere nell'indice»).
+
+---
+
+## 5. Prova: il ciclo MOS «con errori» nella v2
+
+Passa alla v2 il PDF del ciclo MOS «con errori» e mostra cosa dice su fonti e task. Il PDF lo
+cerca in `docs\` e in `Downloads`. Costa qualche centesimo.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -120,133 +172,37 @@ uv run cycle-validation run $ciclo --profile mos --knowledge $v --config data/se
 (Get-Content runs/mos-con-errori/report.json -Raw | ConvertFrom-Json).results | Where-Object { $_.check -in 'source', 'task_code' } | Format-Table @{n='controllo'; e={$_.check}}, @{n='riga'; e={$_.target.label}}, verdict, reason, @{n='motivo'; e={$_.rationale}} -Wrap
 ```
 
-**Deve uscire:** `Trovato: ...`, la riga `Ciclo ...` con i conteggi e il costo, poi una tabella
-con le fonti e i task code: esito, motivo e spiegazione. **Manda a Claude** la foto della riga
-dei conteggi e della tabella (anche in due foto, se è lunga).
+**Deve uscire:** `Trovato: ...`, poi una riga `Ciclo ...` con i conteggi e il costo, poi una
+tabella con le fonti e i task: esito, motivo e spiegazione.
+
+**Manda a Claude:** la foto della riga dei conteggi e della tabella (anche in due foto).
 
 ---
 
-## Da fare nei prossimi giorni
+## 6. Salvare nel repository aziendale
 
-1. Frontend visto (22-11-2026, foto della v1 in QA): scelta civile/EJ200, poi DR sì/no; per il
-   DR serial number e condition (domanda 18), poi il PDF. Esito: «Validation Passed», tabella
-   *Sources* (Repair Code, Type, Reference, Task, Feedback) e tabella *Operations* (Op. / TM /
-   Task Code / Scheda Feedback, con OK e N/A). Sono gli stessi campi di `payload.json` della v2
-   (`legacy_payload.py`). Come il frontend mostra gli esiti (foto MOS ed EJ200 della v1):
-   - intestazione «Validation Passed» se non ci sono errori, anche con dei Warning;
-     «Completed with Errors» con il numero di errori se ce n'è almeno uno, e «1 err» accanto
-     all'operazione;
-   - bollini `OK` («No errors found»), `Warning` e `Error` («Error found: ...») con la
-     spiegazione, `N/A` grigio senza testo e `Info` azzurro con un testo («N/A, non verificato
-     per EJ200», sulle schede EJ200).
-   Dubbio: la v2 manda `N/A - <motivo>` per **ogni** N/A (anche «Nessuna scheda indicata»):
-   se il frontend fa `Info` di ogni N/A con un testo, le celle vuote della v1 diventano tutte
-   `Info`. Serve la regola del frontend (da chiedere a Copilot, che il codice lo può leggere).
-2. Prima prova di un ciclo **EJ200**: non è ancora mai stata fatta con servizi veri. Documenti
-   e output EJ200 devono restare su AWS EU, quindi niente copia della conoscenza EJ200 sul PC e
-   niente report EJ200 in `runs\`. Prima di lanciare, Claude scrive il blocco che legge la
-   conoscenza direttamente da S3, e insieme si decide dove far girare il ciclo e dove scrivere
-   l'output (per esempio l'ambiente SageMaker della guida aziendale).
-3. Rifare le prove dei tre cicli, MOS, DR ed EJ200, con il formato dell'output del frontend.
+Da lanciare quando Claude dice che ci sono cose nuove da salvare (**adesso sì**: documenti
+nuovi del 22-11-2026). Prima lancia **Aggiornare il codice sul PC**, poi questi due blocchi,
+uno alla volta.
 
----
+Salva solo codice, test, documenti e casi di prova della v2. I dati aziendali (`data/`,
+`runs/`, `eval/casi/aziendali/`, i PDF) restano fuori: git li ignora.
 
-## Ancora aperte (da chiedere a chi conosce i cicli, quando capita)
-
-- domanda 17 di `docs/DOMANDE_APERTE.md`: con «accept as is» esiste un ciclo DR, e con quali
-  operazioni? con «reject» un ciclo di riparazione è sempre sbagliato?
-- l'ERRATO dell'op. 060 (in `runs\dr-condition-3\report.md`) aveva ragione? Non mandare il
-  file.
-- il ciclo MOS «con errori» è stato dato già segnato come errato: quali sono gli errori, e in
-  quali operazioni? Serve la risposta giusta per giudicare la v2 (la v1 non fa da riferimento).
-
----
-
-## Domande per Copilot (legge il codice del repository aziendale)
-
-Dopo **Aggiornare il codice sul PC** questo file è anche sul PC, in
-`app_cycle_validation_v2/docs/COPILOT.md`, e Copilot lo può leggere. Apri la chat di Copilot in
-modalità **Ask** (non *Agent* né *Edit*: in Ask non può lanciare comandi né scrivere file) e
-incolla questo messaggio:
-
-```text
-Fai solo il consulente: non eseguire comandi, non creare, modificare o cancellare file, non
-fare commit. Puoi solo leggere i file del workspace.
-
-Apri app_cycle_validation_v2/docs/COPILOT.md, sezione "Domande per Copilot", e rispondi a ogni
-domanda da C1 a C12, nell'ordine, cercando nel codice di tutto il repository (v1 in
-app_cycle_validation/, frontend se c'è, file di deploy).
-
-Per ogni risposta: numero della domanda, file e funzione (percorso esatto), il pezzo di codice
-che conta (breve) e la risposta in due o tre righe. Se non lo trovi o non sei sicuro, scrivi
-"non trovato": non supporre. Non scrivere valori di segreti, account AWS, ARN, URL o host
-interni, nomi di bucket: al loro posto <omesso>; i nomi delle variabili invece sì.
-```
-
-**Manda a Claude** le foto delle risposte (anche tante). Se Copilot si ferma a metà, scrivigli
-«continua dalla domanda Cn».
-
-**Le domande**
-
-- **C1. Dov'è il frontend.** In quale cartella del repository c'è il codice della pagina
-  *Cycle Validation* (quella con «Which cycle do you want to validate?»)? Se non è in questo
-  repository, dillo.
-- **C2. I bollini.** Quale funzione decide, dal testo di un feedback, il bollino `OK`,
-  `Warning`, `Error`, `N/A` o `Info` e il testo sotto? Incolla la funzione. In particolare:
-  quando è `Info` e quando `N/A` grigio? Un feedback `"N/A - <motivo>"` che bollino dà?
-- **C3. L'intestazione.** Quando la pagina mostra «Validation Passed» e quando «Completed with
-  Errors»? Da dove vengono il numero «N errors» e «1 err» accanto all'operazione (un campo
-  come `cycle_errors_count`, o conta i testi che cominciano con «Error found»)?
-- **C4. I campi letti.** Elenca tutti i campi della risposta di validazione che il frontend
-  legge (in alto, `sources`, `operations`) e la colonna o l'etichetta che alimentano. Da dove
-  vengono la colonna *Type* («Manual») delle fonti e le etichette «MOS Cycle» / «EJ200 Cycle»?
-  Usa `cycle_status`, `drRecommendationFeedback` o `_pipeline_errors`?
-- **C5. Serial number e condition (DR).** Con quale rotta e con quali nomi di campo il
-  frontend manda `Serial Number (S/N)` e `DR Condition Numbers`? In che formato (testo "1,2" o
-  lista)? Il frontend li rende obbligatori (CONFIRM disattivato se vuoti)?
-- **C6. Serial number e condition nella v1.** Come li usa il backend della v1? Legge il serial
-  number anche dal PDF? Cosa fa se il serial number ha più recommendation?
-- **C7. Le rotte.** Quali rotte chiama il frontend in tutto il percorso (inizio, scelta del
-  tipo, caricamento del PDF, cronologia delle chat a sinistra, pollice su/giù, download) e con
-  quali campi? Con quale variabile di configurazione si sceglie l'indirizzo del backend (il
-  nome, non il valore)?
-- **C8. Il download.** Il pulsante di download in alto a destra cosa scarica (JSON, PDF,
-  Excel...)? Lo costruisce il frontend o lo chiede al backend?
-- **C9. Tempo massimo.** Il frontend ha un tempo massimo di attesa della validazione? Quanti
-  secondi? E il gateway o il backend della v1?
-- **C10. Macchine attive nella v1.** Come legge la v1 l'elenco delle macchine attive (Redshift
-  o altro)? Nomi delle variabili di configurazione e colonne che usa la query; niente valori.
-- **C11. EJ200 nella v1.** Dove nasce il testo «N/A, non verificato per EJ200» delle schede?
-  Il frontend lo tratta in modo speciale?
-- **C12. Il deploy.** Come va in esecuzione la v1 dietro il gateway (Dockerfile, buildspec,
-  ECS, Lambda, SageMaker...)? Elenca i file di deploy e cosa fanno, in breve. Serve per mettere
-  la v2 dietro lo stesso gateway QA e provarci i cicli EJ200.
-
----
-
-## Salvare le correzioni nel repository aziendale
-
-Da lanciare quando Claude dice che ci sono correzioni nuove da salvare (**ora sì**: documenti
-nuovi del 22-11-2026, la memoria del progetto e questo file). Prima lancia **Aggiornare il
-codice sul PC**, poi questo; il messaggio del commit lo aggiorna Claude. Mette nel commit solo codice, test, documenti e
-casi sintetici della v2; `data/`, `runs/`, `eval/casi/aziendali/` e i PDF restano fuori perché
-git li ignora. Poi fa il push sul branch `feature/cycle-validation-v2`, ma solo se sei su quel
-branch e se nel commit non è entrato niente fuori da quelle cartelle.
-
-Due blocchi: prima il commit, poi il push. Se il commit è già fatto, lancia solo il secondo.
-
-**1. Commit**
+**6.1 Commit**
 
 ```powershell
 git add src tests docs eval/casi/sintetici
 git status --short
-git commit -m "v2: memoria del progetto, domande per Copilot, note sul frontend"
+git commit -m "v2: documenti riorganizzati (COPILOT, MEMORIA, MIGLIORIE, AZIENDA)"
 ```
 
-**Deve uscire:** in `git status` solo righe `M ` e `A ` sotto `src/`, `tests/`, `docs/`,
-`eval/casi/sintetici/`; poi il riepilogo del commit (`[feature/cycle-validation-v2 ...]`).
+**Deve uscire:** in `git status` solo righe sotto `src/`, `tests/`, `docs/`,
+`eval/casi/sintetici/` (`M` cambiato, `A` nuovo, `D` tolto); poi il riepilogo del commit.
 
-**2. Push**
+**6.2 Push**
+
+Manda il commit su GitHub, ma solo se sei sul branch giusto e se nel commit non c'è niente fuori
+dalle cartelle previste. Altrimenti scrive `FERMO` e non fa niente.
 
 ```powershell
 $branch = git branch --show-current
@@ -260,22 +216,21 @@ if ($branch -ne "feature/cycle-validation-v2") {
 }
 ```
 
-**Deve uscire:** le righe del push (`feature/cycle-validation-v2 -> feature/cycle-validation-v2`),
+**Deve uscire:** la riga del push (`feature/cycle-validation-v2 -> feature/cycle-validation-v2`),
 l'ultimo commit e `## feature/cycle-validation-v2...origin/feature/cycle-validation-v2` senza
 `[ahead ...]`.
 
-Se esce `FERMO`, oppure il push è rifiutato (`rejected`, `fetch first`), **non insistere e non
-usare `--force`**: manda a Claude la foto. Se il commit dice `nothing to commit`, le correzioni
-erano già salvate: lancia lo stesso il push, manda solo quello che manca.
+**Se esce `FERMO`, o il push è rifiutato** (`rejected`, `fetch first`): non insistere e non
+usare `--force`, manda la foto a Claude. Se il commit dice `nothing to commit`, era già tutto
+salvato: lancia lo stesso il push.
 
 ---
 
-## Più avanti: trovare i documenti da ingestionare
+## 7. Più avanti: trovare i documenti da ingestionare
 
-Quando si decide di allargare il sottoinsieme. Cerca su S3, sotto `Manufacturing AI/` e fuori
-dalla cartella già ingestionata, i file dei manuali citati dai cicli scaricati, delle procedure
-DR citate dalle recommendation e delle sezioni che mancano. I codici li prende dai file sul
-PC. Solo lettura, nessun costo.
+**Non adesso**: per ora si prova solo con la conoscenza già ingestionata. Quando si deciderà di
+aggiungere documenti, questo blocco cerca su S3 i file dei manuali citati dai cicli e delle
+procedure DR che mancano. Legge soltanto, non costa niente.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -288,7 +243,8 @@ $codici
 aws s3 ls "s3://$(Get-Content data/bucket.txt)/Manufacturing AI/" --recursive --region eu-south-1 | Where-Object { $_ -match "$codici|72-56-3[12]|70-32-0[02]" -and $_ -notmatch 'ingestion-v2' } | Select-Object -First 40 | ForEach-Object { $_.Substring(31) }
 ```
 
-**Deve uscire:** la riga con i codici cercati, separati da `|`, poi fino a 40 percorsi di
-file. **Manda a Claude** la foto: dice quali passare all'ingestion (poche sezioni, non tutti
-i 2000 file). Se non esce nessun percorso, i sorgenti non sono sotto `Manufacturing AI/`: dì
-a Claude da quale cartella parte la tua ingestion.
+**Deve uscire:** una riga con i codici cercati, separati da `|`, poi fino a 40 percorsi di file.
+
+**Manda a Claude:** la foto. Claude dice quali file passare all'ingestion (poche sezioni, non
+tutti i 2000 file). Se non esce nessun percorso, scrivi a Claude da quale cartella parte la tua
+ingestion.
