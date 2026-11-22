@@ -37,9 +37,10 @@ stampa «con errori» con la stessa stampa giusta, se c'è.
    **Allow all** acceso.
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
 3. Lancia la **sezione 5.1**: prima il passo A (gratis), poi il passo B (qualche centesimo).
-4. Lancia **Salvare nel repository aziendale** (sezione 6).
-5. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
-6. Quando capita: fai le **domande alle persone** (sezione 4).
+4. Fai a Copilot le **domande C15-C17** (sezione 3): chi vede il pulsante militare.
+5. Lancia **Salvare nel repository aziendale** (sezione 6).
+6. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
+7. Quando capita: fai le **domande alle persone** (sezione 4).
 
 ---
 
@@ -72,11 +73,25 @@ uv run pytest -q
 
 ## 3. Domande per Copilot
 
-Per ora nessuna: Copilot ha risposto alle domande C1-C14 il 22-11-2026 (le risposte sono in
-`MEMORIA.md`, sezione 8). Le prossime arriveranno qui.
+Le domande C1-C14 hanno già la risposta (`MEMORIA.md`, sezione 8). In basso nella chat
+scegli **Ask**, non **Agent**, e togli con la **x** gli allegati che non c'entrano (per esempio
+un file con accessi o password). Apri nella chat la cartella del frontend e quella della v1.
+Copia il testo qui sotto così com'è. **Manda a Claude** le foto delle risposte.
 
-Quando ci saranno: in basso nella chat scegli **Ask**, non **Agent**, e togli con la **x** gli
-allegati che non c'entrano (per esempio un file con accessi o password).
+```text
+Rispondi solo leggendo il codice, senza modificare niente. Non scrivere nomi di persone,
+indirizzi, chiavi o segreti: se servono, scrivi «c'è» o «non c'è».
+
+C15. Nel frontend, chi vede il pulsante «EJ200 cycle (military)»? Lo vedono tutti, oppure
+     solo alcuni utenti? Se solo alcuni: da dove viene l'informazione (gruppi o ruoli
+     dell'SSO, una lista, una chiamata a un'API)? Indica file e funzione.
+C16. Quali header manda il frontend al backend della cycle validation, oltre a `sso`? C'è un
+     header con i permessi o i servizi dell'utente? Come si chiamano e che valori possono
+     avere (solo i nomi dei valori, per esempio «cv», non gli utenti)?
+C17. Il backend della v1 controlla i permessi sulle rotte `/cycle_validation/ej200/...`? Se
+     sì, dove e con quale regola? Un utente senza permesso che chiama quelle rotte cosa
+     riceve?
+```
 
 ---
 

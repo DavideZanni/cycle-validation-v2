@@ -363,8 +363,12 @@ def create_app(services: ApiServices) -> FastAPI:
         return _envelope(services, report, request.pdf_name)
 
     @router.get("/validation/options")
-    async def validation_options() -> dict[str, Any]:
-        return selection_options(military_enabled=services.config.ej200_enabled)
+    async def validation_options(request: Request) -> dict[str, Any]:
+        # il pulsante militare compare solo a chi ha il servizio EJ200 nell'SSO
+        allowed = bool(_identity(request).services & {SERVICE_EJ200, SERVICE_ALL})
+        return selection_options(
+            military_enabled=services.config.ej200_enabled, military_allowed=allowed
+        )
 
     @router.post("/validation/upload")
     async def validation_upload(

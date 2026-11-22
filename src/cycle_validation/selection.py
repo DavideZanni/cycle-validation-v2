@@ -44,18 +44,18 @@ def resolve_profile(domain: str | None, civil_type: str | None) -> str:
     return kind
 
 
-def selection_options(*, military_enabled: bool) -> dict[str, Any]:
-    """Albero delle scelte, nell'ordine in cui il frontend le propone."""
+def selection_options(*, military_enabled: bool, military_allowed: bool = True) -> dict[str, Any]:
+    """Albero delle scelte, nell'ordine in cui il frontend le propone.
+
+    `military_allowed` dice se l'utente può vedere i cicli militari (servizio `cv_ej200` o
+    `all`, dall'SSO): se no, il pulsante militare non c'è proprio. `military_enabled` è
+    l'interruttore del servizio: se è spento il pulsante c'è ma è disabilitato."""
+    domains = [{"value": CIVIL, "label": "Ciclo civile", "enabled": True}]
+    if military_allowed:
+        domains.append({"value": MILITARY, "label": "Ciclo militare", "enabled": military_enabled})
     return {
         "steps": [
-            {
-                "id": "domain",
-                "label": "Che ciclo vuoi validare?",
-                "options": [
-                    {"value": CIVIL, "label": "Ciclo civile", "enabled": True},
-                    {"value": MILITARY, "label": "Ciclo militare", "enabled": military_enabled},
-                ],
-            },
+            {"id": "domain", "label": "Che ciclo vuoi validare?", "options": domains},
             {
                 "id": "civil_type",
                 "label": "Che tipo di ciclo civile?",

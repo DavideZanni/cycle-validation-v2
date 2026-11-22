@@ -67,6 +67,11 @@ def test_options_describe_the_two_steps() -> None:
     assert all(item["enabled"] for item in first["options"] + second["options"])
 
 
+def test_options_without_permission_have_no_military_button() -> None:
+    first = selection_options(military_enabled=True, military_allowed=False)["steps"][0]
+    assert [item["value"] for item in first["options"]] == ["civil"]
+
+
 def test_options_mark_military_disabled() -> None:
     first = selection_options(military_enabled=False)["steps"][0]
     enabled = {item["value"]: item["enabled"] for item in first["options"]}
@@ -111,9 +116,16 @@ def test_options_route_needs_authentication(env: Env) -> None:
 
 
 def test_options_route_returns_the_tree(env: Env) -> None:
-    response = env.client.get(f"{BASE}/options", headers=env.auth("civile"))
+    response = env.client.get(f"{BASE}/options", headers=env.auth("tutto"))
     assert response.status_code == 200
     assert response.json() == selection_options(military_enabled=True)
+
+
+def test_options_hide_military_from_a_civil_only_user(env: Env) -> None:
+    """Il pulsante militare compare solo a chi ha il servizio EJ200 nell'SSO."""
+    body = env.client.get(f"{BASE}/options", headers=env.auth("civile")).json()
+    assert [item["value"] for item in body["steps"][0]["options"]] == ["civil"]
+    assert body == selection_options(military_enabled=True, military_allowed=False)
 
 
 def test_options_route_reports_military_disabled(tmp_path: Path) -> None:
