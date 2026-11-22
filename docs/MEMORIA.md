@@ -82,15 +82,17 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
   - `cv3/knowledge/`: vuota (è il percorso predefinito nel codice, da cambiare con
     `CIVIL_KNOWLEDGE_POINTER` quando si configura il servizio);
   - `retrieval_output/`: la conoscenza della v1.
-- **Macchine attive**: in azienda vengono da Redshift. Non sono ancora collegate, quindi le
-  targhe escono WARNING `ERRORE_TECNICO` e il ciclo è `parziale`. La v1 le legge in
-  `verify_active_TM` con `redshift_connector` (porta 5439): colonne `work_center_cd` (la
-  targa) e `work_center_usage_cd`, filtro `work_center_usage_cd = 'TO'`. Le credenziali
-  vengono da `get_db_credentials()`, in un file che Copilot non può leggere; `config.py` ha una
-  variabile `SECRET_NAME` sotto «Redshift Configuration». Se la query fallisce, la v1 salta il
-  controllo (la v2 invece dà WARNING: più prudente). La v2 non usa la connessione diretta ma la
-  Redshift Data API (`AZIENDA.md`). Il nome della tabella va in `MACHINES_QUERY` sul server
-  (non nel repository).
+- **Macchine attive**: in azienda vengono da Redshift (il database aziendale con l'elenco
+  delle macchine). Su Redshift non si crea niente: si legge la tabella che legge la v1. La v1
+  la legge in `verify_active_TM` con `redshift_connector` (porta 5439): colonne
+  `work_center_cd` (la targa) e `work_center_usage_cd`, filtro `= 'TO'`. Le credenziali sono
+  in un secret di Secrets Manager (`SECRET_NAME` in `config.py`). Se la query fallisce la v1
+  salta il controllo; la v2 dà WARNING `ERRORE_TECNICO` e il ciclo è `parziale`.
+  - **In servizio** la v2 usa la Data API (`REDSHIFT_*`, `MACHINES_QUERY`, `AZIENDA.md`).
+  - **Sul PC** (dal 22-11): `cycle-validation macchine --v1 ..\app_cycle_validation` prende
+    dalla v1 nome del secret e tabella, legge host e database dal secret, fa la query con la
+    Data API e scrive `data\macchine_attive.json`; poi `run --machines
+    data\macchine_attive.json`. Stampa solo il numero di macchine.
 - **Frontend**: il gateway QA aziendale (pagina *Cycle Validation*) oggi parla con la v1. La v2
   non è ancora collegata.
 
@@ -329,7 +331,7 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   `permissions.json` non rispondono.
 - **Conseguenza per la v2:** oggi la v2 si fida di due header (`X-User`, `X-Services`) che il
   frontend non manda: così risponderebbe 401 a tutti. Deve controllare come la v1, con la
-  stessa libreria. Prima serve sapere com'è fatta (COPILOT 5.2).
+  stessa libreria. Prima serve sapere com'è fatta (COPILOT 5.3).
 - `GET /validation/options` della v2 mostra il pulsante militare solo a chi ha `cv_ej200` o
   `all` (per un frontend futuro; quello di oggi usa `/login/permissions`).
 
@@ -347,21 +349,28 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
     tra le 94 schede.
 - **EJ200:** mai provato con i servizi veri (va fatto dentro AWS).
 - **Cicli MOS «con errori» (22-11):** sono 3 cicli diversi, ognuno in due cartelle di
-  `ProgettoDocumenti`. Chi li ha dati non ha detto quali sono gli errori. Si chiamano qui con
-  le prime 8 lettere dell'impronta SHA-256.
-  - **Sono stampe modificate a mano:** l'editor ha messo in fondo al PDF le righe toccate
-    (visto con `leggi --struttura`: dopo il banner «continua» ci sono righe di tre operazioni).
-    Il parser si fermava («blocco senza numero di operazione») e il modello leggeva il testo
-    fuori ordine. Dal 22-11 sera la lettura rimette le righe nell'ordine della pagina quando
-    nel PDF sono fuori ordine (le stampe normali restano come prima). Da verificare sul PC.
-  - `c5ff3cd6`: 2 differenze con la stampa giusta (op. 030 scheda tolta; op. 040 un numero
-    cambiato nella descrizione). La v2: 0 errati; la scheda tolta esce N/A come nella v1 (P6);
-    la descrizione non si confronta perché il manuale non è nella conoscenza di prova.
-  - `f355dc3c`: la v2 segna ERRATO l'op. 040 (descrizione), ma con il testo fuori ordine: da
-    rifare. `298bc28e`: tre fonti assenti dalla conoscenza.
-  - **Gli `ERRORE_TECNICO` (7-9 per ciclo) sono tutti sulla targa:** sul PC il registro delle
-    macchine non è collegato (né Redshift né `MACHINES_FILE`). È previsto, non è un guasto
-    del modello.
+  `ProgettoDocumenti`; si chiamano con le prime 8 lettere dell'impronta SHA-256. Sono stampe
+  modificate a mano: l'editor mette in fondo al PDF le righe toccate e a volte toglie loro le
+  colonne TARGA e NUM. OPER. Dal 22-11 la lettura rimette le righe in ordine di posizione e
+  attacca all'operazione in corso le righe senza colonne (solo nelle pagine rimesse in
+  ordine).
+  - **Errori trovati con `confronta`** (stampa giusta contro «con errori»):
+    - `298bc28e` (giusta `4e64d49a`): op. 005 un codice cambiato nella descrizione; op. 035
+      parole cambiate nella descrizione.
+    - `c5ff3cd6` (giusta `8bdb25d5`): op. 030 scheda tolta; op. 040 un numero cambiato.
+    - `f355dc3c` (giusta `04ecaabe`): op. 010 tre numeri cambiati; op. 030 numeri e parole
+      cambiati; op. 040 una lettera cambiata (la classe); op. 050 una frase sostituita (dice
+      il contrario della giusta).
+  - **La v2 non ne trova nessuno** (prova del 22-11 sera, righe in ordine): 0 errati in tutti
+    e tre. Motivo: i manuali citati non sono nella conoscenza di prova (fonti `FONTE_ASSENTE`,
+    descrizioni non confrontate). La scheda tolta esce N/A come nella v1 (P6). Per misurare la
+    v2 su questi errori servono quei manuali nella conoscenza.
+  - Gli `ERRORE_TECNICO` (7-9 per ciclo) sono tutti sulla targa: sul PC il registro delle
+    macchine non è collegato. Dal 22-11 c'è il comando `macchine` (COPILOT 5.1).
+  - Lettura di tutte le stampe delle cartelle `cicli MOS`: 4 non lette dal parser
+    (`8d3c673c`, `8e6c9c8d`, `b1261d11`, `d206cc9c`, motivo da vedere: COPILOT 5.2); in due
+    (`22f586bb`, `895167b9`) tutte le pagine sono state rimesse in ordine: da confrontare con
+    la lettura senza riordino.
 - **Frontend:** Copilot ha letto il codice del frontend e della v1 il 22-11-2026 (domande
   C1-C14, sezione 8). La v2 è stata adattata. Mancano: la modifica del pulsante Confirm
   (collega) e dove gira la v1 (P5).

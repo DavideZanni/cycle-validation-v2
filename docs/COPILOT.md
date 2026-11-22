@@ -29,17 +29,18 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ## 1. Cosa fare adesso (22-11-2026, notte)
 
-Gli errori tecnici erano tutti sulla targa (il registro delle macchine sul PC non è collegato:
-è previsto). Le stampe «con errori» sono state modificate a mano e hanno le righe fuori ordine
-dentro il PDF: ora la v2 le rimette in ordine. Copilot ha risposto a C15-C17.
+Il confronto ha trovato gli errori dei tre cicli «con errori». La v2 non li vede perché i
+manuali che quei cicli citano non sono nella conoscenza di prova. Ora: le macchine attive da
+Redshift, e un controllo su come si leggono tutte le stampe.
 
 1. In Copilot passa ad **Ask** (in basso nella chat).
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
-3. Lancia la **sezione 5.1**: blocchi A e B gratis, blocco C qualche centesimo.
-4. Lancia la **sezione 5.2** (gratis): com'è fatta la libreria dei permessi della v1.
-5. Lancia **Salvare nel repository aziendale** (sezione 6).
-6. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
-7. Quando capita: fai le **domande alle persone** (sezione 4).
+3. Lancia la **sezione 5.1** (Redshift): prima il blocco A, gratis; poi il blocco B, qualche
+   centesimo.
+4. Lancia la **sezione 5.2** (gratis): come si leggono tutte le stampe.
+5. Lancia la **sezione 5.3** (gratis): la libreria dei permessi della v1.
+6. Lancia **Salvare nel repository aziendale** (sezione 6).
+7. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
 
 ---
 
@@ -101,6 +102,9 @@ Claude la risposta a parole (senza codici veri).
   un'operazione. Quando un'operazione deve avere per forza una scheda? C'è una regola (tipo di
   lavorazione, targa, parola nella descrizione)? Oggi la v2 una scheda assente la segna N/A,
   come la v1: senza una regola non può sapere che manca.
+- **P7. Redshift** (solo se la sezione 5.1 dà `AccessDeniedException`). Chi gestisce AWS
+  può darti la lettura del secret di Redshift della v1 e l'uso della Data API di Redshift
+  (`redshift-data`)? Serve solo per le prove sul PC; in servizio li avrà il ruolo della v2.
 - **P5. Dove gira la v1** (per chi gestisce AWS o il gateway). Il backend della v1 è
   un'immagine Docker in ECR, ma dove gira (ECS o altro)? Chi configura il gateway che manda
   `/cycle_validation` al backend? Serve per mettere la v2 accanto e provare i cicli EJ200
@@ -131,58 +135,76 @@ stessa risposta.
 
 ## 5. Prove da lanciare
 
-### 5.1 I tre cicli MOS «con errori», con le righe rimesse in ordine
+### 5.1 Le macchine attive da Redshift
 
-**Blocco A: tutte le stampe si leggono ancora?** Legge con il parser le stampe di esempio e
-quelle delle cartelle `cicli MOS`, e per ognuna scrive quante operazioni trova e quali pagine
-ha dovuto rimettere in ordine. Gratis.
+**A cosa serve.** In ogni operazione c'è la targa della macchina. La v1 controlla che sia una
+macchina attiva leggendo Redshift (il database aziendale dove c'è l'elenco delle macchine). Su
+Redshift non devi creare niente: la v2 legge la stessa tabella della v1, con lo stesso secret
+(utente e password che la v1 usa, salvati in AWS). Sul PC la v2 scarica l'elenco una volta in
+`data\macchine_attive.json` (git lo ignora) e lo usa nelle prove.
 
-```powershell
-$env:UV_PYTHON = "3.14"
-$radice = (Resolve-Path "..\..").Path
-$tutte = @(Get-ChildItem "docs/Esempio ciclo mos/*.pdf", "docs/Esempio ciclo dr/*.pdf") + @(Get-ChildItem $radice -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.DirectoryName -match 'cicli MOS' }) | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-foreach ($f in $tutte) { $o = uv run cycle-validation leggi $f.FullName --profile mos; $r = ($o | Select-String "pagine rimesse") -replace '.*: ', ''; $n = ($o | Select-String "operazioni: (\d+)").Matches.Groups[1].Value; $x = $o | Select-String "non letto"; (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower() + "  operazioni: " + $(if ($n) { $n } else { "-" }) + "  pagine rimesse in ordine: " + $(if ($r) { $r } else { "nessuna" }) + $(if ($x) { "  NON LETTO" } else { "" }) }
-```
-
-**Deve uscire:** una riga per stampa. Le stampe normali: `pagine rimesse in ordine: nessuna`.
-Le tre «con errori» (`298bc28e`, `c5ff3cd6`, `f355dc3c`): qualche pagina rimessa in ordine e
-nessun `NON LETTO`.
-
-**Manda a Claude:** la foto (anche in più foto).
-
-**Blocco B: dove sono gli errori.** Lo stesso confronto di prima, ora con le righe in ordine.
-Gratis.
+**Blocco A: scaricare l'elenco.** Prende dal codice della v1 il nome del secret e la tabella,
+legge il secret con le tue credenziali AWS e fa la query con la Data API di Redshift. Stampa
+solo il numero di macchine. Gratis.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-$radice = (Resolve-Path "..\..").Path
-$errati = Get-ChildItem $radice -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-foreach ($e in $errati) { $codice = ($e.Name -split ' ')[0]; "=== con errori " + (Get-FileHash $e.FullName).Hash.Substring(0, 8).ToLower(); Get-ChildItem $radice -Recurse -Filter "$codice*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch 'con errori' } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $g = $_.Group[0]; "--- giusto? " + (Get-FileHash $g.FullName).Hash.Substring(0, 8).ToLower(); uv run cycle-validation confronta $g.FullName $e.FullName --profile mos } }
+uv run cycle-validation macchine --v1 ..\app_cycle_validation
 ```
 
-**Deve uscire:** per ogni ciclo «con errori», sotto ogni `--- giusto?` il confronto. Poche
-differenze = è la sua stampa giusta.
+**Deve uscire:** `Dalla v1: nome del secret trovato, tabella trovata.` e poi `Macchine attive:
+N (Redshift cluster). Scritte in data\macchine_attive.json`.
 
-**Manda a Claude:** la foto di tutto l'output (anche in più foto).
+Se esce un errore:
 
-**Blocco C: cosa trova la v2.** Rilancia la v2 sui tre cicli. Gli errori tecnici sulla targa ci
-saranno ancora (registro delle macchine non collegato sul PC). Qualche centesimo per ciclo.
+- `ExpiredToken` o simili: `aws sso login`, poi rilancia;
+- `ResourceNotFoundException`: il secret sta in un'altra regione. Rilancia aggiungendo
+  `--regione eu-west-1` (o la regione che usa la v1);
+- `AccessDeniedException`: le tue credenziali non possono leggere il secret o usare la Data
+  API. È la domanda P7 (sezione 4);
+- `NON trovato`: scrivi a Claude quale dei due manca.
+
+**Manda a Claude:** la foto.
+
+**Blocco B: una prova con le macchine.** Solo se il blocco A ha scritto il file. Rilancia il
+ciclo MOS di esempio con l'elenco delle macchine e conta gli esiti delle targhe. Qualche
+centesimo.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 $kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
 $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-$radice = (Resolve-Path "..\..").Path
-$errati = Get-ChildItem $radice -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-foreach ($e in $errati) { $out = "runs/mos-errori2-" + (Get-FileHash $e.FullName).Hash.Substring(0, 8).ToLower(); "=== $out"; uv run cycle-validation run $e.FullName --profile mos --knowledge $v --config data/settings.yaml --out $out; $j = Get-Content "$out/report.json" -Raw | ConvertFrom-Json; "  fonti: " + (($j.results | Where-Object { $_.check -eq 'source' } | ForEach-Object { "$($_.verdict) $($_.reason)" }) -join ', '); "  errati: " + (($j.results | Where-Object { $_.verdict -eq 'ERRATO' } | ForEach-Object { "$($_.target.label) $($_.check)" }) -join ', '); "  warning: " + (($j.results | Where-Object { $_.verdict -eq 'WARNING' } | Group-Object reason | ForEach-Object { "$($_.Name) $($_.Count)" }) -join ', ') }
+$ciclo = (Get-ChildItem "docs/Esempio ciclo mos/*.pdf" | Select-Object -First 1).FullName
+if ((Test-Path data/macchine_attive.json) -and $ciclo) { uv run cycle-validation run $ciclo --profile mos --knowledge $v --machines data/macchine_attive.json --config data/settings.yaml --out runs/mos-macchine } else { "FERMO: manca data/macchine_attive.json (blocco A)" }
+if (Test-Path runs/mos-macchine/report.json) { (Get-Content runs/mos-macchine/report.json -Raw | ConvertFrom-Json).results | Where-Object { $_.check -eq 'machine_tag' } | Group-Object verdict, reason | ForEach-Object { "targhe $($_.Name): $($_.Count)" } }
 ```
 
-**Deve uscire:** per ognuno dei 3 cicli la riga `Ciclo ...` con i conteggi e le tre righe
-fonti, errati, warning.
+**Deve uscire:** la riga `Ciclo ...` e poi poche righe `targhe CORRETTO, ...`,
+`targhe ERRATO, ...`, `targhe WARNING, ...` con quante sono. Nessun `ERRORE_TECNICO`.
 
-**Manda a Claude:** la foto di tutto l'output.
+**Manda a Claude:** la foto.
 
-### 5.2 La libreria dei permessi della v1
+### 5.2 Come si leggono tutte le stampe
+
+Per ogni stampa di esempio e delle cartelle `cicli MOS` scrive come la legge la v2 adesso
+(`ora`) e, se cambia, come la leggeva senza rimettere in ordine le righe (`prima`). Serve a
+vedere che il riordino non rovina nessuna stampa, e perché quattro stampe non si leggono.
+Gratis.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+$radice = (Resolve-Path "..\..").Path
+$tutte = @(Get-ChildItem "docs/Esempio ciclo mos/*.pdf", "docs/Esempio ciclo dr/*.pdf") + @(Get-ChildItem $radice -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.DirectoryName -match 'cicli MOS' }) | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
+foreach ($f in $tutte) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); $a = @(uv run cycle-validation leggi $f.FullName --profile mos --breve)[-1]; $b = @(uv run cycle-validation leggi $f.FullName --profile mos --breve --senza-riordino)[-1]; "$h  ora:$a"; if ($a -ne $b) { "          prima:$b" } }
+```
+
+**Deve uscire:** una riga `ora:` per stampa (operazioni, parser, pagine rimesse in ordine) e,
+sotto, una riga `prima:` solo dove la lettura è cambiata. Le stampe che non si leggono hanno
+`parser: NON LETTO (...)` con il motivo.
+
+**Manda a Claude:** la foto (anche in più foto).
+
+### 5.3 La libreria dei permessi della v1
 
 La v1 controlla utente e permessi con una libreria interna (un file `.whl` nella cartella
 `vendor`), che Copilot non può aprire. Questo blocco la cerca e stampa solo i nomi: le classi
