@@ -29,14 +29,14 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ## 1. Cosa fare adesso (22-11-2026, notte)
 
-La prova sui tre cicli «con errori» è fatta. Prima di giudicarla servono tre controlli gratis
-(sezione 5.1): troppi errori tecnici, una stampa che il parser non legge, una stampa giusta da
-trovare.
+Gli errori tecnici erano tutti sulla targa (il registro delle macchine sul PC non è collegato:
+è previsto). Le stampe «con errori» sono state modificate a mano e hanno le righe fuori ordine
+dentro il PDF: ora la v2 le rimette in ordine. Copilot ha risposto a C15-C17.
 
 1. In Copilot passa ad **Ask** (in basso nella chat).
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
-3. Lancia la **sezione 5.1**: tre blocchi, uno alla volta, tutti gratis.
-4. Fai a Copilot le **domande C15-C17** (sezione 3): chi vede il pulsante militare.
+3. Lancia la **sezione 5.1**: blocchi A e B gratis, blocco C qualche centesimo.
+4. Lancia la **sezione 5.2** (gratis): com'è fatta la libreria dei permessi della v1.
 5. Lancia **Salvare nel repository aziendale** (sezione 6).
 6. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
 7. Quando capita: fai le **domande alle persone** (sezione 4).
@@ -72,25 +72,9 @@ uv run pytest -q
 
 ## 3. Domande per Copilot
 
-Le domande C1-C14 hanno già la risposta (`MEMORIA.md`, sezione 8). In basso nella chat
-scegli **Ask**, non **Agent**, e togli con la **x** gli allegati che non c'entrano (per esempio
-un file con accessi o password). Apri nella chat la cartella del frontend e quella della v1.
-Copia il testo qui sotto così com'è. **Manda a Claude** le foto delle risposte.
-
-```text
-Rispondi solo leggendo il codice, senza modificare niente. Non scrivere nomi di persone,
-indirizzi, chiavi o segreti: se servono, scrivi «c'è» o «non c'è».
-
-C15. Nel frontend, chi vede il pulsante «EJ200 cycle (military)»? Lo vedono tutti, oppure
-     solo alcuni utenti? Se solo alcuni: da dove viene l'informazione (gruppi o ruoli
-     dell'SSO, una lista, una chiamata a un'API)? Indica file e funzione.
-C16. Quali header manda il frontend al backend della cycle validation, oltre a `sso`? C'è un
-     header con i permessi o i servizi dell'utente? Come si chiamano e che valori possono
-     avere (solo i nomi dei valori, per esempio «cv», non gli utenti)?
-C17. Il backend della v1 controlla i permessi sulle rotte `/cycle_validation/ej200/...`? Se
-     sì, dove e con quale regola? Un utente senza permesso che chiama quelle rotte cosa
-     riceve?
-```
+Per ora nessuna: Copilot ha risposto a C1-C17 (`MEMORIA.md`, sezione 8). Quando ci saranno:
+in basso nella chat scegli **Ask**, non **Agent**, e togli con la **x** gli allegati che non
+c'entrano (per esempio un file con accessi o password).
 
 ---
 
@@ -147,59 +131,96 @@ stessa risposta.
 
 ## 5. Prove da lanciare
 
-### 5.1 I tre cicli MOS «con errori»: tre controlli
+### 5.1 I tre cicli MOS «con errori», con le righe rimesse in ordine
 
-Tutti e tre gratis: leggono i risultati già fatti o i PDF, senza modello.
-
-**Blocco A: gli errori tecnici.** Nella prova ogni ciclo ha 7-9 controlli con `ERRORE_TECNICO`:
-sono troppi. Questo blocco dice su quali controlli e perché (il motivo è un messaggio tecnico,
-senza testo del ciclo).
+**Blocco A: tutte le stampe si leggono ancora?** Legge con il parser le stampe di esempio e
+quelle delle cartelle `cicli MOS`, e per ognuna scrive quante operazioni trova e quali pagine
+ha dovuto rimettere in ordine. Gratis.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-foreach ($r in Get-ChildItem runs -Directory -Filter "mos-errori-*") { $j = Get-Content "$($r.FullName)/report.json" -Raw | ConvertFrom-Json; "=== $($r.Name)"; $j.results | Where-Object { $_.reason -eq 'ERRORE_TECNICO' } | Group-Object check | ForEach-Object { "  errore tecnico su $($_.Name): $($_.Count)" }; $j.pipeline_errors | Group-Object { $_.message.Substring(0, [Math]::Min(150, $_.message.Length)) } | ForEach-Object { "  $($_.Count) volte: $($_.Name)" } }
+$radice = (Resolve-Path "..\..").Path
+$tutte = @(Get-ChildItem "docs/Esempio ciclo mos/*.pdf", "docs/Esempio ciclo dr/*.pdf") + @(Get-ChildItem $radice -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.DirectoryName -match 'cicli MOS' }) | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
+foreach ($f in $tutte) { $o = uv run cycle-validation leggi $f.FullName --profile mos; $r = ($o | Select-String "pagine rimesse") -replace '.*: ', ''; $n = ($o | Select-String "operazioni: (\d+)").Matches.Groups[1].Value; $x = $o | Select-String "non letto"; (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower() + "  operazioni: " + $(if ($n) { $n } else { "-" }) + "  pagine rimesse in ordine: " + $(if ($r) { $r } else { "nessuna" }) + $(if ($x) { "  NON LETTO" } else { "" }) }
 ```
 
-**Deve uscire:** per ogni ciclo, su quali controlli c'è l'errore tecnico e i messaggi (per
-esempio un tempo scaduto o un limite di Bedrock).
+**Deve uscire:** una riga per stampa. Le stampe normali: `pagine rimesse in ordine: nessuna`.
+Le tre «con errori» (`298bc28e`, `c5ff3cd6`, `f355dc3c`): qualche pagina rimessa in ordine e
+nessun `NON LETTO`.
 
-**Manda a Claude:** la foto.
+**Manda a Claude:** la foto (anche in più foto).
 
-**Blocco B: la stampa giusta di ogni ciclo.** Per ogni stampa «con errori» cerca le stampe che
-cominciano con lo stesso codice e non hanno `con errori` nel nome, e le confronta. Se il parser
-non legge una delle due, lo dice.
+**Blocco B: dove sono gli errori.** Lo stesso confronto di prima, ora con le righe in ordine.
+Gratis.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 $radice = (Resolve-Path "..\..").Path
 $errati = Get-ChildItem $radice -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-foreach ($e in $errati) { $codice = ($e.Name -split ' ')[0]; "=== con errori " + (Get-FileHash $e.FullName).Hash.Substring(0, 8).ToLower(); Get-ChildItem $radice -Recurse -Filter "$codice*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch 'con errori' } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $g = $_.Group[0]; "--- giusto? " + (Get-FileHash $g.FullName).Hash.Substring(0, 8).ToLower() + "  " + $g.Name.Length + " lettere nel nome"; uv run cycle-validation confronta $g.FullName $e.FullName --profile mos } }
+foreach ($e in $errati) { $codice = ($e.Name -split ' ')[0]; "=== con errori " + (Get-FileHash $e.FullName).Hash.Substring(0, 8).ToLower(); Get-ChildItem $radice -Recurse -Filter "$codice*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch 'con errori' } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $g = $_.Group[0]; "--- giusto? " + (Get-FileHash $g.FullName).Hash.Substring(0, 8).ToLower(); uv run cycle-validation confronta $g.FullName $e.FullName --profile mos } }
 ```
 
-**Deve uscire:** per ogni ciclo «con errori», una o più righe `--- giusto?` con sotto il
-confronto. Poche differenze = è la sua stampa giusta; tante differenze = è un altro ciclo con
-un codice simile. Se esce `il primo (giusto) non è letto dal parser` o `il secondo (con
-errori) non è letto dal parser`, il blocco C dice perché.
+**Deve uscire:** per ogni ciclo «con errori», sotto ogni `--- giusto?` il confronto. Poche
+differenze = è la sua stampa giusta.
 
 **Manda a Claude:** la foto di tutto l'output (anche in più foto).
 
-**Blocco C: perché il parser non legge una stampa.** Mostra come il parser vede le righe della
-pagina 6 del ciclo `f355dc3c` e della sua stampa giusta: tipo di riga, numero di operazione,
-prima parola del testo (mascherata). Il testo del ciclo non esce.
+**Blocco C: cosa trova la v2.** Rilancia la v2 sui tre cicli. Gli errori tecnici sulla targa ci
+saranno ancora (registro delle macchine non collegato sul PC). Qualche centesimo per ciclo.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
+$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
+$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
 $radice = (Resolve-Path "..\..").Path
-$e = Get-ChildItem $radice -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Where-Object { (Get-FileHash $_.FullName).Hash.ToLower().StartsWith("f355dc3c") } | Select-Object -First 1
-$giusto = if ($e) { Get-ChildItem $radice -Recurse -Filter ($e.Name -replace '\s*con errori', '') -ErrorAction SilentlyContinue | Select-Object -First 1 }
-foreach ($f in @($giusto, $e)) { if ($f) { "=== " + (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); uv run cycle-validation leggi $f.FullName --profile mos --struttura 6 } }
+$errati = Get-ChildItem $radice -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
+foreach ($e in $errati) { $out = "runs/mos-errori2-" + (Get-FileHash $e.FullName).Hash.Substring(0, 8).ToLower(); "=== $out"; uv run cycle-validation run $e.FullName --profile mos --knowledge $v --config data/settings.yaml --out $out; $j = Get-Content "$out/report.json" -Raw | ConvertFrom-Json; "  fonti: " + (($j.results | Where-Object { $_.check -eq 'source' } | ForEach-Object { "$($_.verdict) $($_.reason)" }) -join ', '); "  errati: " + (($j.results | Where-Object { $_.verdict -eq 'ERRATO' } | ForEach-Object { "$($_.target.label) $($_.check)" }) -join ', '); "  warning: " + (($j.results | Where-Object { $_.verdict -eq 'WARNING' } | Group-Object reason | ForEach-Object { "$($_.Name) $($_.Count)" }) -join ', ') }
 ```
 
-**Deve uscire:** per una o due stampe una riga `=== ` e poi le righe numerate della pagina 6
-(`op 040, ...`, `senza numero, testo «...» + N parole`, `TRATTEGGIO`, `BANNER`...) e alla fine
-`parser: letto` oppure `parser: ...` con l'errore.
+**Deve uscire:** per ognuno dei 3 cicli la riga `Ciclo ...` con i conteggi e le tre righe
+fonti, errati, warning.
 
-**Manda a Claude:** la foto di tutto l'output (anche in più foto).
+**Manda a Claude:** la foto di tutto l'output.
+
+### 5.2 La libreria dei permessi della v1
+
+La v1 controlla utente e permessi con una libreria interna (un file `.whl` nella cartella
+`vendor`), che Copilot non può aprire. Questo blocco la cerca e stampa solo i nomi: le classi
+che la v1 usa, i loro parametri, le prime righe della loro spiegazione e i nomi delle variabili
+d'ambiente che legge (i nomi, non i valori). Serve a far usare alla v2 lo stesso controllo
+della v1. Gratis.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+$whl = (Get-ChildItem .. -Recurse -Filter "chatbot_ai_sdk*.whl" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+"libreria trovata: " + [bool]$whl
+$py = @'
+import importlib, inspect, pkgutil, re
+import chatbot_ai_sdk as sdk
+wanted = {"AuthMiddleware", "ServiceAccessMiddleware", "S3PermissionsSource", "IntrospectionValidator", "current_user"}
+env = set()
+for info in pkgutil.walk_packages(sdk.__path__, sdk.__name__ + "."):
+    try:
+        module = importlib.import_module(info.name)
+        source = inspect.getsource(module)
+    except Exception as exc:
+        print("non letto:", info.name, type(exc).__name__)
+        continue
+    env |= set(re.findall(r"(?:environ(?:\.get)?\(|environ\[|getenv\()\s*[\"'](\w+)", source))
+    for name, item in vars(module).items():
+        if name in wanted and getattr(item, "__module__", "") == module.__name__:
+            print(f"{info.name}.{name}{inspect.signature(item)}")
+            print("    " + " / ".join((inspect.getdoc(item) or "-").splitlines()[:3]))
+print("variabili d'ambiente:", ", ".join(sorted(env)) or "-")
+'@
+if ($whl) { $py | Set-Content "$env:TEMP\sdk_firme.py"; uv run --no-project --with $whl python "$env:TEMP\sdk_firme.py" }
+```
+
+**Deve uscire:** `libreria trovata: True`, poi una riga per ognuna delle cinque cose cercate
+(nome e parametri) con sotto la sua spiegazione, e alla fine i nomi delle variabili
+d'ambiente. Se esce `libreria trovata: False`, chiedi a Copilot dov'è il file `.whl`.
+
+**Manda a Claude:** la foto di tutto l'output.
 
 ---
 

@@ -303,29 +303,35 @@ Secrets Manager), `vite.config.ts` (solo in locale manda `/cycle_validation/` al
 8003). **Il deploy (ECS o altro) e il gateway che collega `/cycle_validation` non sono nel
 repository**: vanno chiesti a chi li gestisce (P5).
 
-### Accesso ai cicli militari (22-11-2026)
+### Accesso ai cicli militari (22-11-2026, risposte C15-C17)
 
-Cosa vuole l'utente: chi entra con l'SSO ed è autorizzato ai cicli militari vede i pulsanti
-civile (MOS, DR) e militare (EJ200). Gli altri vedono solo MOS e DR. La pipeline è la stessa per
-tutti e tre.
+Cosa vuole l'utente: chi entra ed è autorizzato ai cicli militari vede i pulsanti civile (MOS,
+DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i tre.
 
 - **Pipeline:** è già la stessa (`run_validation`). Cambiano solo le impostazioni del profilo:
-  - EJ200 cita pubblicazioni intere, non task di un manuale;
-  - le schede EJ200 non si verificano;
-  - la conoscenza EJ200 resta su AWS EU;
-  - il DR aggiunge il controllo della recommendation, che blocca.
-- **Permessi nella v2:**
-  - il backend legge utente e servizi da due header messi dal frontend (`API_USER_HEADER`,
-    `API_SERVICES_HEADER`);
-  - EJ200 chiede il servizio `cv_ej200` o `all`;
-  - `GET /validation/options` mostra il pulsante militare solo a chi ha uno dei due servizi.
-- **Da sapere (C15-C17):**
-  - come il frontend decide chi vede il pulsante EJ200;
-  - se manda un header con i servizi (oggi sappiamo solo di `sso`);
-  - se la v1 controlla i permessi.
-
-  Se il frontend manda solo `sso`, la v2 risponde 403 a tutti finché non si decide da dove
-  prendere i servizi.
+  EJ200 cita pubblicazioni intere, le schede EJ200 non si verificano, la conoscenza EJ200 resta
+  su AWS EU, il DR aggiunge la recommendation che blocca.
+- **Come fa oggi il frontend (C15):** il pulsante militare (`ScopeChooser`) compare solo se
+  l'utente è nella lista `cv_ej200` o `all` di `permissions.json` su S3. Il frontend la riceve
+  da `GET {BACKEND_URL}/login/permissions` (servizio di login, `get_s3_permissions`, cache 10
+  minuti, solo le voci dell'utente verificato dal token). Non viene dai gruppi SSO. Chi è in
+  `cv_ej200` vede anche il civile. Quello che l'utente vuole **c'è già** nel frontend.
+- **Cosa manda il frontend (C16):** solo l'header `sso` (nome utente), `Content-Type` e il
+  cookie di sessione HttpOnly con il token. **Nessun header con i permessi.** Chiavi dei
+  servizi: `all`, `cv`, `cv_ej200` e altre di altri progetti.
+- **Come controlla la v1 (C17):** middleware della libreria interna `chatbot_ai_sdk` (file
+  `.whl` in `vendor/`): `AuthMiddleware` con `IntrospectionValidator` (token del cookie,
+  pubblica solo `/cycle_validation/health`) e `ServiceAccessMiddleware` (servizi `cv`,
+  `cv_ej200`; sotto `/cycle_validation/ej200` solo `cv_ej200`; permessi da
+  `S3PermissionsSource.from_env()`). In più `Depends(current_user)` sul router EJ200. L'utente
+  viene dal token (`current_user(request).sso`), non dall'header `sso`. Risposte: 401 token
+  mancante o non valido; 403 senza permesso; 503 se il provider d'identità o
+  `permissions.json` non rispondono.
+- **Conseguenza per la v2:** oggi la v2 si fida di due header (`X-User`, `X-Services`) che il
+  frontend non manda: così risponderebbe 401 a tutti. Deve controllare come la v1, con la
+  stessa libreria. Prima serve sapere com'è fatta (COPILOT 5.2).
+- `GET /validation/options` della v2 mostra il pulsante militare solo a chi ha `cv_ej200` o
+  `all` (per un frontend futuro; quello di oggi usa `/login/permissions`).
 
 ## 9. Stato delle prove (22-11-2026)
 
@@ -341,21 +347,21 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
     tra le 94 schede.
 - **EJ200:** mai provato con i servizi veri (va fatto dentro AWS).
 - **Cicli MOS «con errori» (22-11):** sono 3 cicli diversi, ognuno in due cartelle di
-  `ProgettoDocumenti` (una cartella di esempi e il corpus delle prove di ingestion). Chi li ha
-  dati non ha detto quali sono gli errori, e l'utente non lo sa. Si chiamano qui con le prime
-  8 lettere dell'impronta SHA-256.
-  - `c5ff3cd6` («applicazione lubrificante»): il confronto con la stampa giusta trova 2
-    differenze: op. 030 scheda tolta; op. 040 un numero cambiato nella descrizione. La v2:
-    0 errati (1 corretto, 16 warning, 16 N/A; prima prova 2 corretti). La scheda tolta esce
-    N/A, come nella v1 (P6); la descrizione non si confronta perché il manuale non è nella
-    conoscenza di prova.
-  - `f355dc3c`: il confronto si ferma, il parser non legge una delle due stampe (pagina 6,
-    blocco senza numero di operazione). La v2: 5 corretti, 21 warning, **1 errato (op. 040,
-    descrizione)**, 12 N/A; una fonte trovata e due assenti.
-  - `298bc28e`: nessuna stampa giusta con lo stesso nome. La v2: 0 corretti, 24 warning,
-    0 errati; le tre fonti assenti.
-  - **7-9 `ERRORE_TECNICO` per ciclo**: troppi, da capire prima di giudicare (COPILOT 5.1,
-    blocco A).
+  `ProgettoDocumenti`. Chi li ha dati non ha detto quali sono gli errori. Si chiamano qui con
+  le prime 8 lettere dell'impronta SHA-256.
+  - **Sono stampe modificate a mano:** l'editor ha messo in fondo al PDF le righe toccate
+    (visto con `leggi --struttura`: dopo il banner «continua» ci sono righe di tre operazioni).
+    Il parser si fermava («blocco senza numero di operazione») e il modello leggeva il testo
+    fuori ordine. Dal 22-11 sera la lettura rimette le righe nell'ordine della pagina quando
+    nel PDF sono fuori ordine (le stampe normali restano come prima). Da verificare sul PC.
+  - `c5ff3cd6`: 2 differenze con la stampa giusta (op. 030 scheda tolta; op. 040 un numero
+    cambiato nella descrizione). La v2: 0 errati; la scheda tolta esce N/A come nella v1 (P6);
+    la descrizione non si confronta perché il manuale non è nella conoscenza di prova.
+  - `f355dc3c`: la v2 segna ERRATO l'op. 040 (descrizione), ma con il testo fuori ordine: da
+    rifare. `298bc28e`: tre fonti assenti dalla conoscenza.
+  - **Gli `ERRORE_TECNICO` (7-9 per ciclo) sono tutti sulla targa:** sul PC il registro delle
+    macchine non è collegato (né Redshift né `MACHINES_FILE`). È previsto, non è un guasto
+    del modello.
 - **Frontend:** Copilot ha letto il codice del frontend e della v1 il 22-11-2026 (domande
   C1-C14, sezione 8). La v2 è stata adattata. Mancano: la modifica del pulsante Confirm
   (collega) e dove gira la v1 (P5).

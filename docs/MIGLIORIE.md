@@ -76,6 +76,7 @@ aziendale.
 | G5 | (22-11-2026) serial number dalla stampa in più forme (`S/N:`, `S / N.`, con trattino); con più serial number vale quello che ha recommendation nei dati DR. `leggi --cerca` stampa le righe con un testo e i codici mascherati. `scheda.task` = codice dopo «SP.ORIG.» nei cicli civili, come la v1 |
 | G6 | (22-11-2026) comando `confronta <giusto.pdf> <con errori.pdf>`: confronta due stampe dello stesso ciclo con il parser (zero token) e dice in quali fonti, operazioni e campi sono diverse, con i codici mascherati e solo i pezzi di descrizione che cambiano. Serve a sapere dove sono gli errori dei cicli «con errori» e a misurare se la v2 li trova |
 | G7 | (22-11-2026) `leggi --struttura N`: come il parser vede ogni riga della pagina N (tipo di riga, numero di operazione, prima parola mascherata), senza il testo del ciclo. `confronta` dice quale delle due stampe il parser non legge |
+| G8 | (22-11-2026) stampa modificata a mano: se nel PDF le righe sono fuori ordine rispetto alla pagina, la lettura le rimette in ordine di posizione e unisce i pezzi della stessa riga (`ingest/pdf.py`); `leggi` dice quali pagine. Le stampe normali restano come prima |
 
 ---
 

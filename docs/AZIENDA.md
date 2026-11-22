@@ -119,6 +119,11 @@ header e se ne fida. Per questo **il backend deve essere raggiungibile solo dal 
 privata, security group o gateway). Senza utente valido la risposta è 401, senza il servizio
 giusto 403 (EJ200 chiede `cv_ej200` o `all`).
 
+**Da cambiare prima della messa in servizio.** Il frontend di oggi non manda questi due header:
+manda solo `sso` e il cookie di sessione con il token. La v1 controlla il token e legge i
+permessi da `permissions.json` su S3 con la libreria interna `chatbot_ai_sdk`. La v2 dovrà fare
+lo stesso (`MEMORIA.md`, sezione 8, «Accesso ai cicli militari»).
+
 ## 5. Prima prova con Bedrock, sui dati inventati
 
 Dice una cosa sola: Bedrock risponde.
@@ -408,7 +413,7 @@ e mai ERRATO.
 | EJ200: il paragrafo citato si legge solo accanto al codice (`PAR.`, `FIG.`, `TAB.`, `STEP`…) | un paragrafo scritto altrove non viene mostrato |
 | PDF misto testo e scansione: si legge solo il testo | le operazioni delle pagine scansionate mancano, senza avviso |
 | Oltre il 20% di parole della descrizione assenti dal PDF: niente modello, WARNING | soglia da tarare sui PDF veri |
-| Chi ha solo `cv_ej200` può usare anche le rotte civili | accesso più largo del voluto |
+| Chi ha solo `cv_ej200` può usare anche le rotte civili | come nella v1 (risposta di Copilot C15): chi vede i militari vede anche i civili |
 | Elenco delle macchine attive vuoto = "registro non disponibile" (WARNING) | — è voluto: un guasto non diventa ERRATO |
 
 ---
