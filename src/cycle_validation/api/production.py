@@ -4,8 +4,10 @@ Oltre alle variabili di `api/settings.py` servono solo queste:
 
 | Variabile | Se manca | Cosa fa |
 |---|---|---|
+| `MACHINES_SOURCE` | dedotta | `diretta`, `data_api`, `file` o `nessuna` (sotto) |
 | `MACHINES_FILE` | — | JSON delle macchine attive (lista di targhe o `{"active": [...]}`) |
-| `REDSHIFT_DATABASE` | — | in alternativa al file: macchine attive da Redshift (Data API) |
+| `REDSHIFT_DATABASE` | — | il database di Redshift (con `diretta` e `data_api`) |
+| `REDSHIFT_SECRET_NAME` | `SECRET_NAME` | con `diretta`: il secret di Redshift della v1 |
 | `REDSHIFT_WORKGROUP` | — | Redshift Serverless; oppure `REDSHIFT_CLUSTER_ID` per un cluster |
 | `REDSHIFT_DB_USER`, `REDSHIFT_SECRET_ARN` | — | per un cluster: utente (credenziali IAM) o secret |
 | `MACHINES_QUERY` | query standard | la query, prima colonna = targa |
@@ -15,8 +17,19 @@ Oltre alle variabili di `api/settings.py` servono solo queste:
 | `CLOUDWATCH_METRICS` | attivo | costo di ogni validazione su CloudWatch |
 
 Una sola sorgente delle macchine, obbligatoria: senza, ogni targa uscirebbe WARNING.
+
+- `diretta`: come la v1. Connessione a Redshift con `redshift_connector` e host, porta, utente
+  e password del secret (lo stesso `SECRET_NAME` della v1). Va bene dove gira la v1 (su AWS):
+  dal PC Redshift non si raggiunge.
+- `data_api`: Redshift Data API (HTTPS), con `REDSHIFT_WORKGROUP` o `REDSHIFT_CLUSTER_ID`.
+- `file`: `MACHINES_FILE`.
+- `nessuna`: solo per le prove in locale. Ogni targa esce WARNING «non verificabile».
+
+Senza `MACHINES_SOURCE` vale `file` se c'è `MACHINES_FILE`, altrimenti `data_api` se c'è
+`REDSHIFT_DATABASE`.
 """
 
+import json
 import tempfile
 import threading
 from collections.abc import Callable, Mapping
@@ -40,12 +53,27 @@ from cycle_validation.kb.port import KnowledgeBase
 from cycle_validation.kb.published import PublishedKnowledgeBase
 from cycle_validation.kb.stores import WritableObjectStore
 from cycle_validation.pipeline import Dependencies
-from cycle_validation.services.machines import MachineRegistry, load_machine_registry
-from cycle_validation.services.redshift import DEFAULT_QUERY, DEFAULT_TTL_S, data_api_registry
+from cycle_validation.services.machines import (
+    MachineRegistry,
+    UnavailableMachineRegistry,
+    load_machine_registry,
+)
+from cycle_validation.services.redshift import (
+    DEFAULT_QUERY,
+    DEFAULT_TTL_S,
+    data_api_registry,
+    redshift_machine_registry,
+    secret_connection,
+)
 
 SessionFactory = Callable[[AgentSettings, Path | None], AgentSession]
 _TRUE = {"1", "true", "yes", "on", "si", "sì"}
 _FALSE = {"0", "false", "no", "off"}
+SOURCES = ("diretta", "data_api", "file", "nessuna")
+NO_MACHINES = (
+    "Registro delle macchine attive non collegato (MACHINES_SOURCE=nessuna, solo per le prove "
+    "in locale): stato non verificabile."
+)
 
 
 @dataclass(frozen=True)
@@ -71,16 +99,39 @@ class RedshiftTarget:
 
 
 @dataclass(frozen=True)
+class DirectRedshift:
+    """Come la v1: connessione diretta con le credenziali del secret di Redshift."""
+
+    database: str
+    secret_name: str
+    query: str = DEFAULT_QUERY
+    ttl_s: float = DEFAULT_TTL_S
+
+
+@dataclass(frozen=True)
 class ProductionConfig:
     settings_file: Path | None = Path("config/settings.yaml")
     knowledge_workdir: Path = Path(tempfile.gettempdir()) / "cycle-validation" / "knowledge"
     machines_file: Path | None = None
     redshift: RedshiftTarget | None = None
+    direct: DirectRedshift | None = None
+    no_machines: bool = False
     cloudwatch_metrics: bool = True
 
 
 def _text(environ: Mapping[str, str], name: str) -> str | None:
     return (environ.get(name) or "").strip() or None
+
+
+def _ttl(environ: Mapping[str, str], problems: list[str]) -> float:
+    raw_ttl = _text(environ, "MACHINES_TTL_S")
+    if raw_ttl is None:
+        return DEFAULT_TTL_S
+    try:
+        return float(raw_ttl)
+    except ValueError:
+        problems.append(f"MACHINES_TTL_S: atteso un numero di secondi, trovato {raw_ttl!r}.")
+        return DEFAULT_TTL_S
 
 
 def _redshift(environ: Mapping[str, str], problems: list[str]) -> RedshiftTarget | None:
@@ -97,13 +148,6 @@ def _redshift(environ: Mapping[str, str], problems: list[str]) -> RedshiftTarget
         )
     if cluster and not (user or secret):
         problems.append("REDSHIFT_CLUSTER_ID: serve anche REDSHIFT_DB_USER o REDSHIFT_SECRET_ARN.")
-    ttl = DEFAULT_TTL_S
-    raw_ttl = _text(environ, "MACHINES_TTL_S")
-    if raw_ttl is not None:
-        try:
-            ttl = float(raw_ttl)
-        except ValueError:
-            problems.append(f"MACHINES_TTL_S: atteso un numero di secondi, trovato {raw_ttl!r}.")
     return RedshiftTarget(
         database=database,
         workgroup=workgroup,
@@ -111,22 +155,64 @@ def _redshift(environ: Mapping[str, str], problems: list[str]) -> RedshiftTarget
         db_user=user,
         secret_arn=secret,
         query=_text(environ, "MACHINES_QUERY") or DEFAULT_QUERY,
-        ttl_s=ttl,
+        ttl_s=_ttl(environ, problems),
     )
+
+
+def _direct(environ: Mapping[str, str], problems: list[str]) -> DirectRedshift | None:
+    database = _text(environ, "REDSHIFT_DATABASE")
+    secret = _text(environ, "REDSHIFT_SECRET_NAME") or _text(environ, "SECRET_NAME")
+    if database is None:
+        problems.append("MACHINES_SOURCE=diretta: serve REDSHIFT_DATABASE.")
+    if secret is None:
+        problems.append(
+            "MACHINES_SOURCE=diretta: serve il secret di Redshift (REDSHIFT_SECRET_NAME, oppure "
+            "SECRET_NAME come nella v1)."
+        )
+    if database is None or secret is None:
+        return None
+    return DirectRedshift(
+        database=database,
+        secret_name=secret,
+        query=_text(environ, "MACHINES_QUERY") or DEFAULT_QUERY,
+        ttl_s=_ttl(environ, problems),
+    )
+
+
+def _source(environ: Mapping[str, str], problems: list[str]) -> str | None:
+    given = _text(environ, "MACHINES_SOURCE")
+    if given is None:
+        if _text(environ, "MACHINES_FILE"):
+            return "file"
+        return "data_api" if _text(environ, "REDSHIFT_DATABASE") else None
+    source = given.casefold()
+    if source not in SOURCES:
+        problems.append(f"MACHINES_SOURCE: usa {', '.join(SOURCES)}; trovato {given!r}.")
+        return None
+    return source
 
 
 def load_production_config(environ: Mapping[str, str]) -> ProductionConfig:
     """Come `load_app_config`: tutti i problemi insieme, con il nome della variabile."""
     problems: list[str] = []
+    source = _source(environ, problems)
     machines_file = _text(environ, "MACHINES_FILE")
-    redshift = _redshift(environ, problems)
-    if machines_file and redshift:
-        problems.append("MACHINES_FILE e REDSHIFT_DATABASE: una sola sorgente delle macchine.")
-    if not machines_file and not redshift:
+    redshift = _redshift(environ, problems) if source == "data_api" else None
+    direct = _direct(environ, problems) if source == "diretta" else None
+    if source is None and not problems:
         problems.append(
-            "Macchine attive: imposta MACHINES_FILE oppure REDSHIFT_DATABASE con "
-            "REDSHIFT_WORKGROUP o REDSHIFT_CLUSTER_ID."
+            "Macchine attive: imposta MACHINES_SOURCE (diretta come la v1), oppure MACHINES_FILE "
+            "o REDSHIFT_DATABASE con REDSHIFT_WORKGROUP o REDSHIFT_CLUSTER_ID."
         )
+    database = _text(environ, "REDSHIFT_DATABASE")
+    if source and ((machines_file and source != "file") or (database and source == "file")):
+        problems.append(
+            f"MACHINES_SOURCE={source} ma c'è anche "
+            f"{'MACHINES_FILE' if source != 'file' else 'REDSHIFT_DATABASE'}: "
+            "una sola sorgente delle macchine."
+        )
+    if source == "file" and not machines_file:
+        problems.append("MACHINES_SOURCE=file: serve MACHINES_FILE.")
     given = environ.get("CLOUDWATCH_METRICS")
     flag = (given or "").strip().casefold()
     metrics = True
@@ -146,6 +232,8 @@ def load_production_config(environ: Mapping[str, str]) -> ProductionConfig:
         knowledge_workdir=Path(workdir) if workdir else default.knowledge_workdir,
         machines_file=Path(machines_file) if machines_file else None,
         redshift=redshift,
+        direct=direct,
+        no_machines=source == "nessuna",
         cloudwatch_metrics=metrics,
     )
 
@@ -175,7 +263,32 @@ def _profile_dependencies(
     )
 
 
-def _machines(production: ProductionConfig, redshift_data: Any | None) -> MachineRegistry:
+def _machines(
+    production: ProductionConfig,
+    redshift_data: Any | None,
+    secrets: Any | None,
+    redshift_driver: Any | None,
+) -> MachineRegistry:
+    if production.no_machines:
+        return UnavailableMachineRegistry(NO_MACHINES)
+    if production.direct is not None:
+        if secrets is None or redshift_driver is None:
+            raise ConfigError(
+                "MACHINES_SOURCE=diretta ma manca il client secretsmanager o redshift_connector."
+            )
+        direct = production.direct
+
+        def read_secret() -> dict[str, Any]:
+            loaded = json.loads(
+                secrets.get_secret_value(SecretId=direct.secret_name)["SecretString"]
+            )
+            return loaded if isinstance(loaded, dict) else {}
+
+        return redshift_machine_registry(
+            secret_connection(read_secret, redshift_driver, direct.database),
+            direct.query,
+            ttl_s=direct.ttl_s,
+        )
     if production.redshift is not None:
         if redshift_data is None:
             raise ConfigError("REDSHIFT_DATABASE impostata ma nessun client redshift-data.")
@@ -193,6 +306,8 @@ def assemble_services(
     store: WritableObjectStore,
     cloudwatch: Any | None = None,
     redshift_data: Any | None = None,
+    secrets: Any | None = None,
+    redshift_driver: Any | None = None,
     session_factory: SessionFactory = SdkAgentSession,
 ) -> ApiServices:
     """I servizi con client già costruiti: qui nessun accesso alla rete. La conoscenza si
@@ -204,7 +319,7 @@ def assemble_services(
         )
     settings = load_settings(production.settings_file)
     session = session_factory(settings.agent, settings.paths.runs_dir / "transcripts")
-    machines = _machines(production, redshift_data)
+    machines = _machines(production, redshift_data, secrets, redshift_driver)
     civil = PublishedKnowledgeBase(
         store, config.civil_knowledge_pointer, production.knowledge_workdir / "civil"
     )

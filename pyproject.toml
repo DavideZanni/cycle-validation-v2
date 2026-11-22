@@ -19,6 +19,8 @@ dependencies = [
 [project.optional-dependencies]
 # Client AWS (S3, Bedrock per la trascrizione, CloudWatch): servono in azienda, non ai test.
 aws = ["boto3>=1.35"]
+# Macchine attive da Redshift con connessione diretta, come la v1 (MACHINES_SOURCE=diretta).
+redshift = ["redshift_connector>=2.1"]
 
 [project.scripts]
 cycle-validation = "cycle_validation.cli:app"

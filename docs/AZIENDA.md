@@ -92,16 +92,18 @@ e, se qualcosa non va, le elenca insieme con il nome.
 | Variabile | Obbligatoria | Cosa fa |
 |---|---|---|
 | `BUCKETNAME`, `REGION_NAME`, `FRONTEND_URL` | sì | bucket S3, regione AWS, indirizzo del frontend |
-| `MACHINES_FILE` | questa o Redshift | JSON delle macchine attive: lista di targhe o `{"active": [...]}` |
-| `REDSHIFT_DATABASE` | questa o il file | macchine attive da Redshift, con la Data API (nessun driver) |
-| `REDSHIFT_WORKGROUP` | con Redshift Serverless | il workgroup |
-| `REDSHIFT_CLUSTER_ID` | con un cluster | più `REDSHIFT_DB_USER` (credenziali IAM) oppure `REDSHIFT_SECRET_ARN` |
+| `MACHINES_SOURCE` | no (dedotta) | da dove si leggono le macchine attive: `diretta` (come la v1, **in servizio**), `data_api`, `file` o `nessuna` (solo prove in locale: ogni targa WARNING). Senza: `file` se c'è `MACHINES_FILE`, `data_api` se c'è `REDSHIFT_DATABASE` |
+| `REDSHIFT_DATABASE` | con `diretta` e `data_api` | il database di Redshift (nella v1 è scritto nel file delle credenziali) |
+| `REDSHIFT_SECRET_NAME` | no | con `diretta`: il secret con host, porta, utente e password. Senza, `SECRET_NAME` come nella v1 (arriva dal secret di ambiente) |
+| `MACHINES_FILE` | con `file` | JSON delle macchine attive: lista di targhe o `{"active": [...]}` |
+| `REDSHIFT_WORKGROUP` | con `data_api` e Serverless | il workgroup |
+| `REDSHIFT_CLUSTER_ID` | con `data_api` e un cluster | più `REDSHIFT_DB_USER` (credenziali IAM) oppure `REDSHIFT_SECRET_ARN` |
 | `MACHINES_QUERY` | **sì** | prima colonna = targa. La tabella è quella del vecchio `verify_active_TM`: `SELECT DISTINCT work_center_cd FROM <schema>.<tabella> WHERE work_center_usage_cd = 'TO'`. La predefinita (`work_centers`) è solo un segnaposto |
 | `MACHINES_TTL_S` | no | ogni quanti secondi si rilegge Redshift (900) |
 | `CIVIL_KNOWLEDGE_POINTER` | no | `current.json` della conoscenza civile (predefinito `Manufacturing AI/cv3/knowledge/civil/current.json`) |
 | `EJ200_KNOWLEDGE_POINTER` | no | `current.json` di EJ200 (predefinito `.../knowledge/ej200/current.json`); vuota = catalogo a chiave fissa `EJ200_CATALOG_KEY` |
 | `EJ200_VALIDATION_ENABLED` | no | `false` spegne i cicli militari |
-| `SECRET_NAME` | no | secret di Secrets Manager da cui prendere le variabili che mancano |
+| `SECRET_NAME` | no | con `CV_ENV_SECRET`: il secret di Redshift, come nella v1 (arriva dal secret di ambiente). Senza `CV_ENV_SECRET`: vecchio uso, il secret da cui prendere le variabili che mancano |
 | `KNOWLEDGE_WORKDIR` | no | cartella tutta sua dove scaricare la conoscenza (predefinita: nella cartella temporanea) |
 | `CYCLE_VALIDATION_CONFIG` | no | file delle impostazioni (`config/settings.yaml`) |
 | `CLOUDWATCH_METRICS` | no | `false` per non pubblicare il costo su CloudWatch |
@@ -113,9 +115,12 @@ e, se qualcosa non va, le elenca insieme con il nome.
 | `API_USER_HEADER`, `API_SERVICES_HEADER` | no | con `header`: header con utente e servizi (`X-User`, `X-Services`) |
 | `CV_ENV_SECRET` | no | nome del secret «di ambiente» (lo stesso della v1): le sue chiavi diventano variabili, senza sovrascrivere quelle già impostate. Senza, vale il vecchio `SECRET_NAME` |
 
-Il ruolo AWS deve poter usare `redshift-data:ExecuteStatement`, `DescribeStatement` e
-`GetStatementResult` (più `redshift:GetClusterCredentials` per un cluster con utente). Se
-Redshift all'inizio non è pronto, parti con `MACHINES_FILE`.
+Con `diretta` serve quello che usa già la v1: leggere il secret di Redshift e arrivare alla
+porta del cluster (rete del servizio), più la libreria `redshift_connector` (extra `redshift`,
+già nel Dockerfile). Dal PC aziendale il cluster non si raggiunge: in locale si usa `nessuna`.
+Con `data_api` il ruolo AWS deve poter usare `redshift-data:ExecuteStatement`,
+`DescribeStatement` e `GetStatementResult` (più `redshift:GetClusterCredentials` per un cluster
+con utente).
 
 **Chi è l'utente.** Con `API_AUTH=sdk` come nella v1: la libreria controlla il token del
 cookie (401 se manca o non vale) e i permessi di `permissions.json` (403; sotto
@@ -398,7 +403,8 @@ tre prompt e `paths: {prompts_dir: ...}`.
 | "meno di 100 caratteri di testo (è una scansione?)" | il PDF è una foto | `agent.transcribe_model` |
 | "Modulo sbagliato" su un file giusto | marcatori DR | 6.3, `dr_markers` |
 | molte targhe ERRATO | elenco macchine incompleto o scritto diverso | 6.3, "Attenzione alle targhe" |
-| molte targhe WARNING "Registro macchine non raggiungibile" | Redshift non risponde o query sbagliata | permessi `redshift-data`, `MACHINES_QUERY`; intanto `MACHINES_FILE` |
+| molte targhe WARNING "Registro macchine non raggiungibile" | Redshift non risponde o query sbagliata | con `diretta`: secret, rete verso il cluster, `REDSHIFT_DATABASE`, `MACHINES_QUERY`; con `data_api`: permessi `redshift-data`. Intanto `MACHINES_FILE` |
+| `MACHINES_SOURCE=diretta: serve redshift_connector` | installato senza l'extra `redshift` | `uv sync --extra aws --extra redshift` |
 | `conoscenza non leggibile` in un esperimento | `suite.yaml` non punta alla fotografia giusta | `conoscenza` e puntatori contro le cartelle della fotografia |
 | `Nessun caso rivisto`, `saltato ...: esiti attesi da rivedere` | casi ancora in bozza | revisione, punto 10 |
 | `verifiche del codice fallite` | test, ruff o mypy rossi | il dettaglio è stampato sopra; nessuna prova è partita |

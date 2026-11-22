@@ -115,6 +115,39 @@ def test_wrong_machine_settings_are_named(environ: dict[str, str], message: str)
         load_production_config(environ)
 
 
+def test_direct_like_the_v1_uses_the_v1_secret_name() -> None:
+    production = load_production_config(
+        {"MACHINES_SOURCE": "diretta", "REDSHIFT_DATABASE": "dwh", "SECRET_NAME": "rs"}
+    )
+    assert production.direct is not None
+    assert (production.direct.database, production.direct.secret_name) == ("dwh", "rs")
+    assert production.redshift is None and production.machines_file is None
+    chosen = load_production_config(
+        {
+            "MACHINES_SOURCE": "Diretta",
+            "REDSHIFT_DATABASE": "dwh",
+            "SECRET_NAME": "rs",
+            "REDSHIFT_SECRET_NAME": "altro",
+        }
+    )
+    assert chosen.direct is not None and chosen.direct.secret_name == "altro"
+
+
+@pytest.mark.parametrize(
+    ("environ", "message"),
+    [
+        ({"MACHINES_SOURCE": "diretta", "SECRET_NAME": "rs"}, "REDSHIFT_DATABASE"),
+        ({"MACHINES_SOURCE": "diretta", "REDSHIFT_DATABASE": "d"}, "REDSHIFT_SECRET_NAME"),
+        ({"MACHINES_SOURCE": "forse"}, "MACHINES_SOURCE: usa"),
+        ({"MACHINES_SOURCE": "file"}, "serve MACHINES_FILE"),
+        ({"MACHINES_SOURCE": "nessuna", "MACHINES_FILE": "m.json"}, "una sola"),
+    ],
+)
+def test_wrong_machine_source_is_named(environ: dict[str, str], message: str) -> None:
+    with pytest.raises(ConfigError, match=message):
+        load_production_config(environ)
+
+
 # ------------------------------------------------------------ montaggio
 
 
@@ -176,6 +209,121 @@ def test_cost_goes_to_cloudwatch_when_a_client_is_given(tmp_path: Path) -> None:
 
     assert isinstance(_assemble(tmp_path, cloudwatch=Client()).metrics, CloudWatchMetrics)
     assert not isinstance(_assemble(tmp_path).metrics, CloudWatchMetrics)
+
+
+def test_no_machines_for_local_tests_makes_every_tag_not_verifiable(tmp_path: Path) -> None:
+    production = ProductionConfig(
+        settings_file=SETTINGS, knowledge_workdir=tmp_path / "k", no_machines=True
+    )
+    services = assemble_services(
+        _app_config(ej200_enabled=False),
+        production,
+        store=_published(),
+        session_factory=_session,
+    )
+    with pytest.raises(SourceUnavailableError, match="non verificabile"):
+        services.runner._deps_for("mos").machines.is_active("TM-1001")
+
+
+class Secrets:
+    def __init__(self) -> None:
+        self.reads: list[str] = []
+
+    def get_secret_value(self, SecretId: str) -> dict[str, str]:
+        self.reads.append(SecretId)
+        return {"SecretString": json.dumps({"host": "h.example", "username": "u", "password": "p"})}
+
+
+class Driver:
+    def __init__(self, rows: list[tuple[str]]) -> None:
+        self.rows = rows
+        self.calls: list[dict[str, Any]] = []
+
+    def connect(self, **kwargs: Any) -> Any:
+        self.calls.append(kwargs)
+        rows = self.rows
+
+        class Cursor:
+            def execute(self, sql: str) -> None:
+                pass
+
+            def fetchall(self) -> list[tuple[str]]:
+                return rows
+
+            def close(self) -> None:
+                pass
+
+        class Connection:
+            def cursor(self) -> Cursor:
+                return Cursor()
+
+            def close(self) -> None:
+                pass
+
+        return Connection()
+
+
+def test_direct_reads_the_secret_and_connects_like_the_v1(tmp_path: Path) -> None:
+    production = ProductionConfig(
+        settings_file=SETTINGS,
+        knowledge_workdir=tmp_path / "k",
+        direct=load_production_config(
+            {"MACHINES_SOURCE": "diretta", "REDSHIFT_DATABASE": "dwh", "SECRET_NAME": "rs"}
+        ).direct,
+    )
+    secrets, driver = Secrets(), Driver([("TM-1001",)])
+    services = assemble_services(
+        _app_config(ej200_enabled=False),
+        production,
+        store=_published(),
+        session_factory=_session,
+        secrets=secrets,
+        redshift_driver=driver,
+    )
+    machines = services.runner._deps_for("mos").machines
+    assert machines.is_active("TM-1001") and not machines.is_active("TM-2002")
+    assert secrets.reads == ["rs"]  # una lettura: l'elenco resta in memoria fino al TTL
+    assert driver.calls == [
+        {
+            "host": "h.example",
+            "port": 5439,
+            "database": "dwh",
+            "user": "u",
+            "password": "p",
+            "timeout": 20,
+        }
+    ]
+    with pytest.raises(ConfigError, match="redshift_connector"):
+        assemble_services(
+            _app_config(ej200_enabled=False),
+            production,
+            store=_published(),
+            session_factory=_session,
+        )
+
+
+def test_direct_failure_is_a_source_problem(tmp_path: Path) -> None:
+    class Down(Driver):
+        def connect(self, **kwargs: Any) -> Any:
+            raise OSError("timeout")
+
+    production = ProductionConfig(
+        settings_file=SETTINGS,
+        knowledge_workdir=tmp_path / "k",
+        direct=load_production_config(
+            {"MACHINES_SOURCE": "diretta", "REDSHIFT_DATABASE": "dwh", "SECRET_NAME": "rs"}
+        ).direct,
+    )
+    services = assemble_services(
+        _app_config(ej200_enabled=False),
+        production,
+        store=_published(),
+        session_factory=_session,
+        secrets=Secrets(),
+        redshift_driver=Down([]),
+    )
+    with pytest.raises(SourceUnavailableError, match="OSError"):
+        services.runner._deps_for("mos").machines.is_active("TM-1001")
 
 
 # ------------------------------------------------------------ Redshift Data API

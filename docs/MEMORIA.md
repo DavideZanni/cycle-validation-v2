@@ -4,7 +4,7 @@ Qui c'è tutto quello che sappiamo già: com'è il PC aziendale, cosa si può fa
 v2, il frontend, i problemi già visti e le decisioni prese. Serve a non rifare le stesse analisi.
 
 **Claude la legge prima di ogni lavoro sulle prove e la aggiorna quando impara qualcosa di
-nuovo.** Ultimo aggiornamento: 22-11-2026.
+nuovo.** Ultimo aggiornamento: 22-11-2026 (notte).
 
 Il repository è pubblico: qui non ci sono mai valori veri (bucket, account, host, matricola,
 codici di manuali, numeri DR, serial number, part number, codici dei cicli, contenuti EJ200).
@@ -39,20 +39,24 @@ sugli errori veri aspetta i manuali nella conoscenza.
   locale, costruzione dell'immagine (sezione 9).
 - **Una sola pipeline** per MOS, DR ed EJ200; il pulsante militare lo decide già il frontend
   con `permissions.json` (sezione 9).
+- **Macchine attive dal PC: non si leggono** (prova del 22-11 notte). La Data API risponde
+  `AccessDeniedException` su `ExecuteStatement` (il ruolo SSO non ha il permesso) e la
+  connessione diretta dà `OperationalError` (il PC non arriva al cluster; i tunnel di
+  centralizer non c'entrano). In locale la v2 parte con `MACHINES_SOURCE=nessuna` (targhe
+  WARNING); in servizio legge Redshift come la v1 (`MACHINES_SOURCE=diretta`, sezione 5).
 
 **Da chiudere, in ordine.** Chi: C = Claude, U = utente.
 
 | # | Cosa | Perché serve | Come si chiude | Chi |
 |---|---|---|---|---|
-| 1 | Macchine attive sul PC | senza, tutte le targhe escono `ERRORE_TECNICO` e il ciclo è `parziale` | COPILOT 5.1: il comando ora segue il database fino a `get_db_credentials` della v1 | U |
-| 2 | Misura sugli errori veri | oggi la v2 trova 0 dei 10 errori dei cicli «con errori», perché mancano i manuali | ingestion del manuale citato, poi COPILOT 5.3; Claude confronta con i 10 errori | U, poi C |
-| 3 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Da provare: COPILOT 5.2 | U |
-| 4 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto per l'avvio** (22-11 sera): `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets`. Manca Redshift in servizio: come la v1, con `SECRET_NAME`, `get_db_credentials` e `redshift_connector` (stessa rete, nessun permesso nuovo), dopo 5.1 | C |
-| 5 | Prova in locale | è il passo prima di develop | COPILOT 5.2: libreria nella v2, configurazione in `launch.json`, prova dal frontend con login | U |
-| 6 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | Dockerfile della v2 come quello della v1 (Python 3.14, certificato, libreria in `vendor/`); su develop `cd app_cycle_validation_v2` nel buildspec. Per tornare indietro si rimette la riga | C, poi U |
-| 7 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 4.1 | U |
-| 8 | Prova EJ200 | i dati EJ200 non escono da AWS | dopo il punto 6, dal frontend QA | U |
-| 9 | Domande agli esperti | P1, P2, P6 (P4 per chi cura l'indice) | quando capita | U |
+| 1 | Misura sugli errori veri | oggi la v2 trova 0 dei 10 errori dei cicli «con errori», perché mancano i manuali | ingestion del manuale citato, poi COPILOT 5.2; Claude confronta con i 10 errori | U, poi C |
+| 2 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Da provare: COPILOT 5.1 | U |
+| 3 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto nel codice**: `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets` (22-11 sera); macchine attive come la v1 con `MACHINES_SOURCE=diretta`: `redshift_connector` con il secret `SECRET_NAME` (22-11 notte). Da provare in QA | C, poi U |
+| 4 | Prova in locale | è il passo prima di develop | COPILOT 5.1: libreria nella v2, configurazione in `launch.json` (`MACHINES_SOURCE=nessuna`), prova dal frontend con login | U |
+| 5 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | Dockerfile della v2 come quello della v1 (Python 3.14, certificato, libreria in `vendor/`, extra `aws` e `redshift`) con le righe `ENV` aziendali (D1); su develop `cd app_cycle_validation_v2` nel buildspec. Per tornare indietro si rimette la riga. Il blocco di aggiornamento non copia `pyproject.toml`, `uv.lock` e `Dockerfile`: vanno copiati qui | C, poi U |
+| 6 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 4.1 | U |
+| 7 | Prova in QA: EJ200 e targhe | i dati EJ200 non escono da AWS; Redshift si raggiunge solo da AWS | dopo il punto 5, dal frontend QA | U |
+| 8 | Domande agli esperti | P1, P2, P6 (P4 per chi cura l'indice); P7 facoltativa | quando capita | U |
 
 **Decisioni da prendere:**
 
@@ -60,9 +64,12 @@ sugli errori veri aspetta i manuali nella conoscenza.
   codice; nel repository personale (pubblico) non si può. Fatto così (22-11 sera, da
   confermare dall'utente): la v2 lo legge dalla variabile `CV_ENV_SECRET`; in locale la mette
   `launch.json`, nel container una riga `ENV` nel Dockerfile della copia aziendale (il blocco
-  di aggiornamento non copia il Dockerfile).
-- **D2. Quando passare a QA.** Proposta: dopo i punti 1-5 e una prova in locale riuscita con
-  centralizer e login.
+  di aggiornamento non copia il Dockerfile). Nello stesso Dockerfile vanno anche
+  `MACHINES_SOURCE=diretta`, `REDSHIFT_DATABASE` (il database scritto nel file delle credenziali
+  della v1) e `MACHINES_QUERY` (la query di `verify_active_TM`), a meno che non stiano già nel
+  secret di ambiente.
+- **D2. Quando passare a QA.** Proposta: dopo i punti 2-4 e una prova in locale riuscita con
+  centralizer e login. La misura sugli errori (punto 1) può andare avanti in parallelo.
 
 **Non serve per la consegna** (`MIGLIORIE.md`, «Da fare»): chiamata diretta a Bedrock (B1), più
 concorrenza (B4), varianti proposte dal modello (E1), togliere le rotte storiche (D).
@@ -137,7 +144,11 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
   `work_center_cd` (la targa) e `work_center_usage_cd`, filtro `= 'TO'`. Le credenziali sono
   in un secret di Secrets Manager (`SECRET_NAME` in `config.py`). Se la query fallisce la v1
   salta il controllo; la v2 dà WARNING `ERRORE_TECNICO` e il ciclo è `parziale`.
-  - **In servizio** la v2 usa la Data API (`REDSHIFT_*`, `MACHINES_QUERY`, `AZIENDA.md`).
+  - **In servizio** la v2 fa come la v1 (dal 22-11 notte): `MACHINES_SOURCE=diretta`,
+    `redshift_connector` con host, porta, utente e password del secret `SECRET_NAME` (riletto
+    a ogni aggiornamento dell'elenco, ogni 15 minuti), database da `REDSHIFT_DATABASE`, query
+    da `MACHINES_QUERY`, 20 secondi al massimo per collegarsi. Resta possibile la Data API
+    (`MACHINES_SOURCE=data_api`, `AZIENDA.md`).
   - **Sul PC** (dal 22-11): `cycle-validation macchine --v1 ..\app_cycle_validation`
     scrive `data\macchine_attive.json`; poi `run --machines data\macchine_attive.json`.
     Nella v1 il nome del secret di Redshift non è nel codice: `config.py` ha
@@ -161,10 +172,12 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
     `username`, `password` presi dal secret e **`database` scritto nel codice**, e restituisce
     i quattro valori. Il comando segue anche il dizionario. Se il database non si trova, prova
     quello creato con il cluster (`describe_clusters`, `DBName`).
-  - **Data API dal PC:** la prima prova ha dato `ClientError` (codice non stampato allora; ora
-    l'errore dice codice e passo). Alternativa: `macchine --diretto`, connessione diretta come
-    la v1 (`redshift_connector`, porta del secret), con
-    `uv run --with redshift_connector`.
+  - **Dal PC non si legge (prova del 22-11 notte).** Il comando trova tutto (secret, tabella,
+    database scritto nel codice), ma la Data API risponde `AccessDeniedException` su
+    `ExecuteStatement` (manca il permesso al ruolo SSO: P7, facoltativa) e la connessione
+    diretta (`macchine --diretto`) dà `OperationalError`: il PC non arriva alla porta del
+    cluster. Copilot ha controllato: lo script dei tunnel di centralizer non c'è nel workspace e
+    comunque apre solo i tunnel di OpenSearch. La v1 legge Redshift solo quando gira su AWS.
   - **Perché Redshift e non il documento delle targhe su S3:** il documento dice se una targa
     esiste e che macchina è; Redshift dice se la macchina è in uso oggi. Una macchina dismessa
     che è ancora nel documento è un errore. Alternativa possibile: l'ingestion copia ogni
@@ -381,7 +394,9 @@ quando funziona, push su `develop` (QA) e poi su `main` (produzione).
 
 **In locale.** Un solo `launch.json`, nella radice del workspace. La configurazione composta
 «CV» avvia insieme login, backend della v1 e frontend; prima lancia il task «Centralizer
-prerequisites» (`tasks.json`, lo script che apre i tunnel verso OpenSearch).
+prerequisites» (`tasks.json`, lo script che apre i tunnel verso OpenSearch). Copilot (22-11
+notte): lo script `scripts\ensure-opensearch-tunnels.ps1` non c'è nel workspace, è solo
+descritto in una guida; comunque apre solo OpenSearch, non Redshift.
 
 | | Backend v1 | Login | Frontend (centralizer) |
 |---|---|---|---|
@@ -457,7 +472,7 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   CORS; l'utente va in `request.state.user`); `chatbot_ai_sdk.auth.middleware.current_user(request)
   -> VerifiedUser`; `chatbot_ai_sdk.auth.validator.IntrospectionValidator(settings, *,
   transport, clock)`. Variabili lette direttamente: `AUTH_CACHE_TTL_S`, `ENVIRONMENT`,
-  `LOG_LEVEL`. `ServiceAccessMiddleware` e `S3PermissionsSource` non sono usciti: COPILOT 5.2.
+  `LOG_LEVEL`. `ServiceAccessMiddleware` e `S3PermissionsSource` non sono usciti: COPILOT 5.1.
 - **Come la v1 usa la libreria (C21).** Import: `from chatbot_ai_sdk.auth import
   AuthMiddleware, AuthSettings, IntrospectionValidator, current_user, ServiceAccessMiddleware,
   S3PermissionsSource` (in `routes.py` anche `VerifiedUser`). Chiamata:
@@ -476,7 +491,7 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   `validation/options` e `validation/upload` non offrono il militare; i cicli militari passano
   da `/cycle_validation/ej200/...`, come nel frontend di oggi. Senza la libreria installata la
   v2 non parte (meglio che partire senza controllo). `API_AUTH=header` resta per le prove.
-- La libreria nella v2: `uv pip install` del `.whl` della v1 (COPILOT 5.2). `uv run` la
+- La libreria nella v2: `uv pip install` del `.whl` della v1 (COPILOT 5.1). `uv run` la
   lascia; `uv sync` la toglierebbe (va reinstallata).
 - `GET /validation/options` della v2 mostra il pulsante militare solo a chi ha `cv_ej200` o
   `all` (per un frontend futuro; quello di oggi usa `/login/permissions`).
@@ -550,7 +565,8 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | Cosa si vede | Perché | Cosa fare |
 |---|---|---|
 | Tanti WARNING `FONTE_ASSENTE` | i manuali dei motori non sono ingestionati | niente: è giusto |
-| Stato `parziale`, targhe WARNING `ERRORE_TECNICO` | macchine attive (Redshift) non collegate | niente, finché non si collegano |
+| Stato `parziale`, targhe WARNING `ERRORE_TECNICO` | macchine attive (Redshift) non collegate: dal PC Redshift non si raggiunge | niente: in locale è giusto. In QA la v2 legge Redshift come la v1 |
+| `macchine`: `AccessDeniedException, ExecuteStatement` e poi `OperationalError` con `--diretto` | dal PC: manca il permesso della Data API e la rete non arriva al cluster | niente da fare sul PC (P7 facoltativa). I tunnel di centralizer non c'entrano |
 | La stessa descrizione a volte ERRATO, a volte CORRETTO | il modello non risponde sempre uguale (op. 060 del DR: ERRATO 2 volte su 3) | c'è già la conferma con 2 domande in più. Prima di «correggere» un ERRATO, rifare la prova 3 volte |
 | Esiti diversi tra lettura del modello e del parser | il modello legge il PDF in modo diverso | usare il parser |
 | Dubbio: `Accept as is` deve bloccare il DR? | le procedure DR pubblicate parlano solo di riparazione | sì: la guida della v1 dice che con `Accept as is` o `Reject` un ciclo di riparazione è sbagliato. Confermato dall'utente il 22-11-2026 |
@@ -569,7 +585,7 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | I documenti tolti restano sul PC | `robocopy` copia ma non cancella | il blocco di aggiornamento li cancella per nome |
 | `macchine`: «Nel secret mancano host o database» | il secret di Redshift della v1 non ha il database: la v1 lo scrive nella connessione | il comando lo cerca nel codice della v1; se no `--database` |
 | Un blocco Python si ferma su un modulo della libreria standard | un file con lo stesso nome (`inspect.py`) nella cartella TEMP | lo script gira in una cartella sua con `python -I` |
-| Blocco della libreria: mancano delle classi | probabilmente ha preso un altro `.whl` | usare quello in `app_cycle_validation\vendor` (COPILOT 5.2) |
+| Blocco della libreria: mancano delle classi | probabilmente ha preso un altro `.whl` | usare quello in `app_cycle_validation\vendor` (COPILOT 5.1) |
 
 ## 12. Decisioni prese
 

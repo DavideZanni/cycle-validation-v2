@@ -591,20 +591,12 @@ def _redshift_connector() -> Any:
 
 def _direct_fetch(values: dict[str, Any], database: str | None, query: str) -> list[str]:
     """Come la v1 (`RedshiftConnector`): host, porta, utente e password dal secret."""
-    from cycle_validation.services.redshift import fetch_active_machines
+    from cycle_validation.services.redshift import fetch_active_machines, secret_connection
 
     if not database:
         raise CycleValidationError("Manca il nome del database: indicalo con --database.")
-    connector = _redshift_connector()
     return fetch_active_machines(
-        lambda: connector.connect(
-            host=str(values.get("host") or ""),
-            port=int(values.get("port") or 5439),
-            database=database,
-            user=str(values.get("username") or ""),
-            password=str(values.get("password") or ""),
-        ),
-        query,
+        secret_connection(lambda: values, _redshift_connector(), database), query
     )
 
 

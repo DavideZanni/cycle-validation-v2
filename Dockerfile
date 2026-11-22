@@ -7,7 +7,7 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 COPY config ./config
 COPY prompts ./prompts
-RUN pip install --upgrade pip && pip install gunicorn ".[aws]"
+RUN pip install --upgrade pip && pip install gunicorn ".[aws,redshift]"
 
 EXPOSE 8000
 # Un worker per processo, come oggi: le cache (catalogo, dati TM/SP) sono per processo.

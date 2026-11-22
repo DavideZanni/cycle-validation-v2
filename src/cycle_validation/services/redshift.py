@@ -59,6 +59,34 @@ def redshift_machine_registry(
     return LazyMachineRegistry(lambda: fetch_active_machines(connect, query), ttl_s, clock)
 
 
+def secret_connection(
+    read_secret: Callable[[], Mapping[str, Any]],
+    driver: Any,
+    database: str,
+    *,
+    timeout_s: int = 20,
+) -> Callable[[], Any]:
+    """Come la v1 (`RedshiftConnector`): a ogni lettura dell'elenco rilegge il secret (una
+    password ruotata funziona senza riavvio) e apre una connessione con host, porta, utente e
+    password del secret. `driver` è il modulo `redshift_connector`."""
+
+    def connect() -> Any:
+        values = read_secret()
+        host = str(values.get("host") or "").strip()
+        if not host:
+            raise SourceUnavailableError("Nel secret di Redshift manca host.")
+        return driver.connect(
+            host=host,
+            port=int(values.get("port") or 5439),
+            database=database,
+            user=str(values.get("username") or ""),
+            password=str(values.get("password") or ""),
+            timeout=timeout_s,
+        )
+
+    return connect
+
+
 def _first_column(record: list[dict[str, Any]]) -> str | None:
     if not record or record[0].get("isNull"):
         return None
