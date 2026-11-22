@@ -414,6 +414,13 @@ def compare_cycles(
     secondo: Annotated[Path, typer.Argument(help="PDF dello stesso ciclo con errori.")],
     profile: Annotated[str, typer.Option(help="mos | dr | ej200")] = "mos",
     config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
+    primo_senza_riordino: Annotated[
+        bool,
+        typer.Option(
+            help="Legge la prima stampa senza rimettere in ordine le righe: con la stessa stampa "
+            "due volte mostra cosa cambia il riordino."
+        ),
+    ] = False,
 ) -> None:
     """Confronta due stampe dello stesso ciclo (la giusta e quella «con errori») con il parser
     di layout, senza modello (zero token): dice in quali operazioni e in quali campi sono
@@ -425,9 +432,13 @@ def compare_cycles(
     except CycleValidationError as error:
         raise _fail(error) from error
     cycles: list[Cycle] = []
-    for which, path in (("primo (giusto)", primo), ("secondo (con errori)", secondo)):
+    readings = (
+        ("primo (giusto)", primo, not primo_senza_riordino),
+        ("secondo (con errori)", secondo, True),
+    )
+    for which, path, reorder in readings:
         try:
-            cycles.append(parse_pvrm320(read_pdf(path, limits)))
+            cycles.append(parse_pvrm320(read_pdf(path, limits, reorder=reorder)))
         except CycleValidationError as error:
             typer.echo(f"il {which} non è letto dal parser: {_masked_quotes(str(error))}")
     if len(cycles) < 2:
@@ -554,6 +565,10 @@ def _aws_error(error: Exception) -> str:
     return code or type(error).__name__
 
 
+def _field_names(values: dict[str, Any]) -> str:
+    return ", ".join(sorted(key for key in values if not key.startswith("__"))) or "nessuno"
+
+
 @app.command("macchine")
 def export_machines(
     v1: Annotated[
@@ -582,20 +597,39 @@ def export_machines(
     found = find_in_v1(v1) if v1 is not None else None
     if found is not None:
         typer.echo(
-            f"Dalla v1: nome del secret {'trovato' if found.secret else 'NON trovato'}, "
+            f"Dalla v1: nome del secret {'trovato' if found.secret else 'NON trovato'} nel "
+            f"codice, secret di ambiente {'trovato' if found.env_secret else 'NON trovato'}, "
             f"tabella {'trovata' if found.table else 'NON trovata'}."
         )
+    secrets = _aws_client("secretsmanager", regione)
+
+    def read(name: str, what: str) -> dict[str, Any]:
+        try:
+            reply = secrets.get_secret_value(SecretId=name)
+            values = json.loads(reply["SecretString"])
+        except Exception as error:  # qualunque errore AWS diventa un messaggio corto
+            raise _fail(CycleValidationError(f"{what} non letto: {_aws_error(error)}.")) from error
+        if not isinstance(values, dict):
+            raise _fail(CycleValidationError(f"{what}: non è un elenco di campi."))
+        values["__arn__"] = reply.get("ARN", name)
+        return values
+
     secret = secret or (found.secret if found else None)
+    if not secret and found is not None and found.env_secret:
+        # come la v1: il nome del secret di Redshift sta nel secret di ambiente
+        environment = read(found.env_secret, "Secret di ambiente della v1")
+        secret = str(environment.get("SECRET_NAME") or "") or None
+        typer.echo(
+            "Nel secret di ambiente: SECRET_NAME "
+            + ("trovato." if secret else "NON trovato. Campi: " + _field_names(environment))
+        )
     tabella = tabella or (found.table if found else None)
     if not secret or not tabella:
         raise _fail(CycleValidationError("Servono il nome del secret e la tabella delle macchine."))
+    values = read(secret, "Secret di Redshift")
+    arn = str(values.pop("__arn__"))
     try:
-        reply = _aws_client("secretsmanager", regione).get_secret_value(SecretId=secret)
-        values = json.loads(reply["SecretString"])
-    except Exception as error:  # qualunque errore AWS diventa un messaggio corto
-        raise _fail(CycleValidationError(f"Secret non letto: {_aws_error(error)}.")) from error
-    try:
-        region, parameters = data_api_target(values, reply["ARN"])
+        region, parameters = data_api_target(values, arn)
         client = _aws_client("redshift-data", region or regione)
         tags = sorted(set(fetch_with_data_api(client, parameters, machines_query(tabella))))
     except CycleValidationError as error:

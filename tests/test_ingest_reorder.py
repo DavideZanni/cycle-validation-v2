@@ -93,3 +93,22 @@ def test_leggi_breve_with_and_without_reordering(tmp_path: Path) -> None:
     assert reordered[1] == "  operazioni: 5 · parser: letto · pagine rimesse in ordine: 2"
     plain = runner.invoke(cli.app, ["leggi", str(printed), "--breve", "--senza-riordino"])
     assert plain.output.splitlines()[1].endswith("pagine rimesse in ordine: nessuna")
+
+
+def test_confronta_shows_what_reordering_changes_in_the_same_print(tmp_path: Path) -> None:
+    from typer.testing import CliRunner
+
+    from cycle_validation import cli
+
+    pages = civil_pages()
+    printed = tmp_path / "e.pdf"
+    printed.write_bytes(
+        build_positioned_pdf(
+            [_pieces(pages[0]), _edited(pages[1], "RITIRO"), *(_pieces(p) for p in pages[2:])]
+        )
+    )
+    same = ["confronta", str(printed), str(printed)]
+    runner = CliRunner()
+    assert runner.invoke(cli.app, same).output.startswith("operazioni: 5 e 5 · differenze: 0")
+    changed = runner.invoke(cli.app, [*same, "--primo-senza-riordino"]).output
+    assert "differenze: 0" not in changed.splitlines()[0]

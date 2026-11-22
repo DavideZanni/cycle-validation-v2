@@ -123,3 +123,31 @@ def test_macchine_prints_only_the_aws_error_code(
     assert result.exit_code != 0
     assert "AccessDeniedException" in result.output
     assert "123" not in result.output
+
+
+def test_the_redshift_secret_name_can_come_from_the_v1_environment_secret(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Come la v1: `SECRET_NAME = os.getenv("SECRET_NAME")` senza valore nel codice, e
+    `load_secrets("<ambiente>")` all'avvio mette SECRET_NAME nelle variabili d'ambiente."""
+    (tmp_path / "config.py").write_text('SECRET_NAME = os.getenv("SECRET_NAME")\n', "utf-8")
+    (tmp_path / "app_backend.py").write_text('load_secrets("ambiente/v1")\n', "utf-8")
+    (tmp_path / "machines.py").write_text(V1_QUERY, encoding="utf-8")
+    found = find_in_v1(tmp_path)
+    assert (found.secret, found.env_secret) == (None, "ambiente/v1")
+
+    class Secrets:
+        def get_secret_value(self, SecretId: str) -> dict[str, str]:
+            if SecretId == "ambiente/v1":
+                values = {"SECRET_NAME": "nome/del-secret", "ALTRO": "x"}
+                return {"SecretString": json.dumps(values), "ARN": "arn:env"}
+            return FakeSecrets().get_secret_value(SecretId)
+
+    clients: dict[str, Any] = {"secretsmanager": Secrets(), "redshift-data": FakeDataApi()}
+    monkeypatch.setattr(cli, "_aws_client", lambda service, region: clients[service])
+    out = tmp_path / "m.json"
+    result = CliRunner().invoke(cli.app, ["macchine", "--v1", str(tmp_path), "--out", str(out)])
+    assert result.exit_code == 0, result.output
+    assert "Nel secret di ambiente: SECRET_NAME trovato." in result.output
+    assert json.loads(out.read_text(encoding="utf-8")) == ["TM-1", "TM-2"]
+    assert "nome/del-secret" not in result.output

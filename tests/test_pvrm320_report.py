@@ -434,3 +434,35 @@ def test_the_block_after_the_banner_completes_a_truncated_operation_with_its_she
     assert "CHECK THE TEST AREAS." in by_number["060"].operation_description
     # la 040 ha già la parte in inglese: non è un'operazione rimasta a metà
     assert by_number["040"].operation_description == "LAVAGGIO DEL PEZZO. / WASHING OF THE PART."
+
+
+def test_a_heading_block_between_two_operations_goes_to_the_next_one() -> None:
+    """Stampe vere: «***** OPERAZIONE EVENTUALE *****» sta in un blocco a sé, chiuso dal
+    tratteggio, e riguarda l'operazione dopo. Prima il parser si fermava («blocco senza numero
+    di operazione»)."""
+    body = block(["QQ/901"], "010", ["PRIMA OPERAZIONE", STARS, "FIRST OPERATION"])
+    body += [row(text="***** OPERAZIONE EVENTUALE *****"), SEP]
+    body += block(["QQ/902"], "020", ["SECONDA OPERAZIONE", STARS, "SECOND OPERATION"])
+    cycle = parse_pvrm320_report(as_document([page(1, body, FOOTER)]))
+    assert [op.operation_number for op in cycle.operations] == ["010", "020"]
+    assert cycle.operations[0].operation_description == "PRIMA OPERAZIONE / FIRST OPERATION"
+    assert cycle.operations[1].operation_description.startswith(
+        "***** OPERAZIONE EVENTUALE ***** SECONDA OPERAZIONE"
+    )
+
+
+def test_a_heading_at_the_end_of_a_page_goes_to_the_first_operation_of_the_next() -> None:
+    first = [
+        *block(["QQ/901"], "010", ["PRIMA OPERAZIONE"]),
+        row(text="***** OPERAZIONE EVENTUALE *****"),
+        SEP,
+    ]
+    second = block(["QQ/902"], "020", ["SECONDA OPERAZIONE"])
+    cycle = parse_pvrm320_report(as_document([page(1, first, FOOTER), page(2, second, FOOTER)]))
+    assert cycle.operations[1].operation_description.startswith("***** OPERAZIONE EVENTUALE")
+
+
+def test_ordinary_orphan_text_still_stops_the_parser() -> None:
+    body = [*block(["QQ/901"], "010", ["PRIMA OPERAZIONE"]), row(text="TESTO ORFANO"), SEP]
+    with pytest.raises(ExtractionError):
+        parse_pvrm320_report(as_document([page(1, body, FOOTER)]))

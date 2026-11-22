@@ -166,6 +166,20 @@ def _add_text(op: _Op, text: str) -> None:
     op.text.append(text)
 
 
+# Titolo in un blocco a sé, tra due tratteggi: «***** OPERAZIONE EVENTUALE *****». Riguarda
+# l'operazione che viene dopo (stampe MOS vere, 22-11-2026).
+_HEADING = re.compile(r"^\*{3,}[^*]+\*{3,}$")
+
+
+def _is_heading(pending: _Op) -> bool:
+    lines = [line for line in pending.text if line != _SECTION]
+    return (
+        bool(lines)
+        and not (pending.sheet or pending.sp_orig or pending.sp_fiat)
+        and all(_HEADING.match(line) for line in lines)
+    )
+
+
 def _no_orphan(pending: _Op) -> None:
     """Testo o scheda senza un numero di operazione a cui attaccarli: il layout non è quello
     atteso. Meglio fermarsi (e lasciare il passo all'estrattore di riserva) che perdere righe."""
@@ -314,6 +328,15 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
     # le righe senza numero in cima alla pagina dopo sono sue, con o senza il marcatore.
     carry: _Op | None = None
     oem: str | None = None
+    # titoli («***** OPERAZIONE EVENTUALE *****») in attesa della prossima operazione
+    heading: list[str] = []
+
+    def held(pending: _Op) -> bool:
+        if _is_heading(pending):
+            heading.extend(line for line in pending.text if line != _SECTION)
+            return True
+        return False
+
     for page in pdf.pages:
         body, footer = _body(page.text)
         if footer is not None and (m := _FOOTER.match(footer)) is not None:
@@ -330,11 +353,13 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
             if not line.strip() or _EQUALS.match(line):
                 continue
             if _DASHES.match(line):
-                _settle(pending, after_banner, _truncated(operations, page.number, continuing))
+                if not held(pending):
+                    _settle(pending, after_banner, _truncated(operations, page.number, continuing))
                 current, pending = None, _Op("", page.number)
                 continue
             if PAGE_END_BANNER.search(line):
-                _no_orphan(pending)
+                if not held(pending):
+                    _no_orphan(pending)
                 pending, after_banner = _Op("", page.number), True
                 continue
             match = _ROW.match(line)
@@ -361,6 +386,8 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
                 current = operations.setdefault(
                     number, _Op(number, page.number, repair=page_repair)
                 )
+                current.text.extend(heading)
+                heading.clear()
                 current.text.extend(pending.text)
                 current.merge_codes(pending)
                 current.sheet = current.sheet or pending.sheet
@@ -373,7 +400,8 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
                 # una macchina e non deve mai finire nel controllo delle macchine attive
                 target.tag = target.tag or left
             _add_text(target, text)
-        _settle(pending, after_banner, _truncated(operations, page.number, continuing))
+        if not held(pending):
+            _settle(pending, after_banner, _truncated(operations, page.number, continuing))
         carry = current if current is not None else continuing
     if not operations:
         raise ExtractionError("Nessuna operazione trovata nella stampa PVRM320.")

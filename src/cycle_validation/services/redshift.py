@@ -131,6 +131,9 @@ def data_api_registry(
 _SECRET_NAME = re.compile(
     r"""SECRET_NAME\s*[:=]\s*(?:[\w.]+\(\s*["']\w+["']\s*,\s*)?["']([^"']+)["']"""
 )
+# la v1 legge all'avvio un secret «di ambiente» che mette le sue chiavi (SECRET_NAME compreso)
+# nelle variabili d'ambiente: `load_secrets("<nome>")` in app_backend.py
+_LOAD_SECRETS = re.compile(r"""load_secrets\(\s*["']([^"']+)["']""")
 _FROM = re.compile(r"""\bFROM\s+([A-Za-z_"][\w."]*)""", re.IGNORECASE)
 _TABLE = re.compile(r"^[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*){0,2}$")
 _SKIP = {".venv", "venv", "node_modules", "__pycache__", ".git"}
@@ -140,12 +143,14 @@ _SKIP = {".venv", "venv", "node_modules", "__pycache__", ".git"}
 class V1Redshift:
     secret: str | None
     table: str | None
+    env_secret: str | None = None
 
 
 def find_in_v1(folder: Path) -> V1Redshift:
     """Nome del secret e tabella delle macchine, cercati nei file Python della v1."""
     secret: str | None = None
     table: str | None = None
+    env_secret: str | None = None
     for path in sorted(folder.rglob("*.py")):
         if _SKIP & set(path.parts):
             continue
@@ -155,13 +160,15 @@ def find_in_v1(folder: Path) -> V1Redshift:
             continue
         if secret is None and (match := _SECRET_NAME.search(text)) is not None:
             secret = match[1]
+        if env_secret is None and (match := _LOAD_SECRETS.search(text)) is not None:
+            env_secret = match[1]
         at = text.find("work_center_usage_cd")
         if table is None and at >= 0:
             before = _FROM.findall(text[max(0, at - 800) : at])
             after = _FROM.findall(text[at : at + 400])
             found = before[-1] if before else (after[0] if after else None)
             table = found.replace('"', "") if found else None
-    return V1Redshift(secret, table)
+    return V1Redshift(secret, table, env_secret)
 
 
 def machines_query(table: str) -> str:
