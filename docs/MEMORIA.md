@@ -317,16 +317,21 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
     tra le 94 schede.
 - **EJ200:** mai provato con i servizi veri (va fatto dentro AWS).
 - **Ciclo MOS «con errori»:** il PDF è in un'altra cartella di `ProgettoDocumenti` (corpus
-  delle prove di ingestion, insieme ad altri cicli MOS). Il blocco 5.2 ora lo cerca lì. Manca
+  delle prove di ingestion, insieme ad altri cicli MOS). Il blocco 5.1 di COPILOT ora lo cerca lì. Manca
   anche sapere quali sono gli errori (P3).
 - **Frontend:** Copilot ha letto il codice del frontend e della v1 il 22-11-2026 (domande
   C1-C14, sezione 8). La v2 è stata adattata. Mancano: la modifica del pulsante Confirm
   (collega) e dove gira la v1 (P5).
-- **DR senza serial number e condition (22-11):** le prime prove avevano preso la stampa
-  «SENZA sn» (il filtro `*sn.pdf` trova due PDF). Lì il campo `S/N:` è vuoto: la v2 non trova
-  niente (giusto, nessun falso serial number dalle frasi «REGISTRARE P/N E S/N...») e dà
-  WARNING `DR_NON_VERIFICATA` senza bloccare, anche con condition 2. Questo caso è a posto.
-  Da rifare sulla stampa «CON sn» (prova 5.1).
+- **DR senza serial number e condition (22-11): riuscita.**
+  - Stampa «SENZA sn» (campo `S/N:` vuoto): nessun serial number trovato, e nessuno preso per
+    sbaglio dalle frasi «REGISTRARE P/N E S/N...». WARNING `DR_NON_VERIFICATA`, ciclo non
+    bloccato, anche con condition 2.
+  - Stampa «CON sn»: `leggi --cerca "S/N"` trova un solo serial number (riga «APPLY ON S/N»).
+    - senza condition: ciclo parziale, 4 corretti, 16 warning, 0 errati, 18 N/A, DR WARNING
+      `DR_NON_VERIFICATA` (il serial number ha recommendation diverse, non si sa quale vale);
+    - condition 2: ciclo bloccato, 0 corretti, 37 warning, 1 errato, DR ERRATO
+      `DR_NON_APPLICABILE`. I 37 warning sono i controlli fermati (`BLOCCATO_A_MONTE`): il
+      frontend li mostra come `N/A` grigio e il motivo sta nella riga «DR Case» delle fonti.
 - **Tempi:** vedi sezione 8, «Tempi massimi».
 - **Salvataggio:** tutto è nel repository aziendale fino al 21-11-2026; codice e documenti del
   22-11-2026 sono da salvare.
