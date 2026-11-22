@@ -30,6 +30,7 @@ from cycle_validation.extract.base import CycleExtractor
 from cycle_validation.extract.factory import make_pdf_extractor
 from cycle_validation.extract.from_file import FileCycleExtractor
 from cycle_validation.extract.pvrm320 import parse_pvrm320
+from cycle_validation.extract.pvrm320_report import page_structure
 from cycle_validation.golden import GoldenCase, load_cases, run_golden
 from cycle_validation.ingest.pdf import read_pdf
 from cycle_validation.ingest.transcribe import make_transcriber
@@ -234,6 +235,13 @@ def read_cycles(
             "(lettere → A, cifre → 9), e i serial number trovati, mascherati."
         ),
     ] = None,
+    struttura: Annotated[
+        int | None,
+        typer.Option(
+            help="Stampa come il parser vede ogni riga di questa pagina (tipo di riga, numero "
+            "di operazione, prima parola), senza il testo: per capire un errore di layout."
+        ),
+    ] = None,
 ) -> None:
     """Legge i cicli con il parser di layout, senza modello né conoscenza (zero token), e
     stampa riparazione, fonti e task citati: serve a scegliere quali cicli provare. Con
@@ -249,6 +257,20 @@ def read_cycles(
             pdf = read_pdf(path, limits)
         except CycleValidationError as error:
             typer.echo(f"  non letto: {error}")
+            continue
+        if struttura is not None:
+            if not 1 <= struttura <= len(pdf.pages):
+                typer.echo(f"  pagina {struttura} non c'è (pagine: {len(pdf.pages)})")
+                continue
+            for number, shape in enumerate(page_structure(pdf.pages[struttura - 1].text), 1):
+                # solo la parola tra « » viene dal documento: si maschera quella
+                shape = re.sub(r"«([^»]*)»", lambda m: f"«{_masked(m[1])}»", shape)
+                typer.echo(f"  {number:3} | {shape}")
+            try:
+                parse_pvrm320(pdf)
+                typer.echo("  parser: letto")
+            except CycleValidationError as error:
+                typer.echo(f"  parser: {_masked(str(error))}")
             continue
         if cerca:
             # per capire cosa c'è nella stampa senza far vedere codici veri nelle foto
@@ -373,9 +395,16 @@ def compare_cycles(
     try:
         settings = load_settings(config)
         limits = load_profile(profile, settings.paths.profiles_dir).file_limits
-        cycles = [parse_pvrm320(read_pdf(path, limits)) for path in (primo, secondo)]
     except CycleValidationError as error:
         raise _fail(error) from error
+    cycles: list[Cycle] = []
+    for which, path in (("primo (giusto)", primo), ("secondo (con errori)", secondo)):
+        try:
+            cycles.append(parse_pvrm320(read_pdf(path, limits)))
+        except CycleValidationError as error:
+            typer.echo(f"il {which} non è letto dal parser: {_masked(str(error))}")
+    if len(cycles) < 2:
+        return
     lines = _cycle_differences(*cycles)
     typer.echo(
         f"operazioni: {len(cycles[0].operations)} e {len(cycles[1].operations)} · "

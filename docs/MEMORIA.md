@@ -342,13 +342,20 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 - **EJ200:** mai provato con i servizi veri (va fatto dentro AWS).
 - **Cicli MOS «con errori» (22-11):** sono 3 cicli diversi, ognuno in due cartelle di
   `ProgettoDocumenti` (una cartella di esempi e il corpus delle prove di ingestion). Chi li ha
-  dati non ha detto quali sono gli errori, e l'utente non lo sa. Il comando `confronta`
-  (stampa giusta contro stampa «con errori», zero token, codici mascherati) serve a trovarli.
-  - Prima prova (il ciclo «applicazione lubrificante»): ciclo parziale, 2 corretti, 15
-    warning, 0 errati, 16 N/A. La fonte è WARNING `FONTE_ASSENTE`: il manuale citato non è
-    nella conoscenza di prova, quindi la v2 non può confrontare le operazioni. Un solo task
-    code citato (op. 005), trovato.
-  - Da fare: confronto e prova sui tre cicli (COPILOT 5.1).
+  dati non ha detto quali sono gli errori, e l'utente non lo sa. Si chiamano qui con le prime
+  8 lettere dell'impronta SHA-256.
+  - `c5ff3cd6` («applicazione lubrificante»): il confronto con la stampa giusta trova 2
+    differenze: op. 030 scheda tolta; op. 040 un numero cambiato nella descrizione. La v2:
+    0 errati (1 corretto, 16 warning, 16 N/A; prima prova 2 corretti). La scheda tolta esce
+    N/A, come nella v1 (P6); la descrizione non si confronta perché il manuale non è nella
+    conoscenza di prova.
+  - `f355dc3c`: il confronto si ferma, il parser non legge una delle due stampe (pagina 6,
+    blocco senza numero di operazione). La v2: 5 corretti, 21 warning, **1 errato (op. 040,
+    descrizione)**, 12 N/A; una fonte trovata e due assenti.
+  - `298bc28e`: nessuna stampa giusta con lo stesso nome. La v2: 0 corretti, 24 warning,
+    0 errati; le tre fonti assenti.
+  - **7-9 `ERRORE_TECNICO` per ciclo**: troppi, da capire prima di giudicare (COPILOT 5.1,
+    blocco A).
 - **Frontend:** Copilot ha letto il codice del frontend e della v1 il 22-11-2026 (domande
   C1-C14, sezione 8). La v2 è stata adattata. Mancano: la modifica del pulsante Confirm
   (collega) e dove gira la v1 (P5).

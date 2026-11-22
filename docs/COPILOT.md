@@ -27,16 +27,15 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ---
 
-## 1. Cosa fare adesso (22-11-2026, sera)
+## 1. Cosa fare adesso (22-11-2026, notte)
 
-Il salvataggio nel repository aziendale è fatto. I PDF «con errori» sono 3 cicli diversi (ognuno
-in due cartelle) e nessuno sa quali sono gli errori: un comando nuovo li trova confrontando ogni
-stampa «con errori» con la stessa stampa giusta, se c'è.
+La prova sui tre cicli «con errori» è fatta. Prima di giudicarla servono tre controlli gratis
+(sezione 5.1): troppi errori tecnici, una stampa che il parser non legge, una stampa giusta da
+trovare.
 
-1. In Copilot passa ad **Ask** (in basso nella chat). Nelle foto è ancora su **Agent** con
-   **Allow all** acceso.
+1. In Copilot passa ad **Ask** (in basso nella chat).
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
-3. Lancia la **sezione 5.1**: prima il passo A (gratis), poi il passo B (qualche centesimo).
+3. Lancia la **sezione 5.1**: tre blocchi, uno alla volta, tutti gratis.
 4. Fai a Copilot le **domande C15-C17** (sezione 3): chi vede il pulsante militare.
 5. Lancia **Salvare nel repository aziendale** (sezione 6).
 6. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
@@ -114,6 +113,10 @@ Claude la risposta a parole (senza codici veri).
 - **P4. Targa «90» nell'indice** (per chi cura knowledge-index). Nel file delle targhe la
   `90` ha come funzione una frase sbagliata e le lettere accentate rovinate. Va corretta
   nell'indice (i passi sono in `MEMORIA.md`, «Da correggere nell'indice»).
+- **P6. Scheda mancante.** In un ciclo «con errori» l'errore è una scheda tolta da
+  un'operazione. Quando un'operazione deve avere per forza una scheda? C'è una regola (tipo di
+  lavorazione, targa, parola nella descrizione)? Oggi la v2 una scheda assente la segna N/A,
+  come la v1: senza una regola non può sapere che manca.
 - **P5. Dove gira la v1** (per chi gestisce AWS o il gateway). Il backend della v1 è
   un'immagine Docker in ECR, ma dove gira (ECS o altro)? Chi configura il gateway che manda
   `/cycle_validation` al backend? Serve per mettere la v2 accanto e provare i cicli EJ200
@@ -144,43 +147,57 @@ stessa risposta.
 
 ## 5. Prove da lanciare
 
-### 5.1 I tre cicli MOS «con errori»
+### 5.1 I tre cicli MOS «con errori»: tre controlli
 
-**Passo A: dove sono gli errori.** Per ogni stampa «con errori» cerca in `ProgettoDocumenti` la
-stampa con lo stesso nome senza `con errori` e le confronta con il comando `confronta`: dice in
-quali operazioni e in quali campi sono diverse. Non chiama il modello e non costa niente. I
-codici escono mascherati (lettere → `A`, cifre → `9`); delle descrizioni stampa solo i pezzi che
-cambiano.
+Tutti e tre gratis: leggono i risultati già fatti o i PDF, senza modello.
+
+**Blocco A: gli errori tecnici.** Nella prova ogni ciclo ha 7-9 controlli con `ERRORE_TECNICO`:
+sono troppi. Questo blocco dice su quali controlli e perché (il motivo è un messaggio tecnico,
+senza testo del ciclo).
+
+```powershell
+$env:UV_PYTHON = "3.14"
+foreach ($r in Get-ChildItem runs -Directory -Filter "mos-errori-*") { $j = Get-Content "$($r.FullName)/report.json" -Raw | ConvertFrom-Json; "=== $($r.Name)"; $j.results | Where-Object { $_.reason -eq 'ERRORE_TECNICO' } | Group-Object check | ForEach-Object { "  errore tecnico su $($_.Name): $($_.Count)" }; $j.pipeline_errors | Group-Object { $_.message.Substring(0, [Math]::Min(150, $_.message.Length)) } | ForEach-Object { "  $($_.Count) volte: $($_.Name)" } }
+```
+
+**Deve uscire:** per ogni ciclo, su quali controlli c'è l'errore tecnico e i messaggi (per
+esempio un tempo scaduto o un limite di Bedrock).
+
+**Manda a Claude:** la foto.
+
+**Blocco B: la stampa giusta di ogni ciclo.** Per ogni stampa «con errori» cerca le stampe che
+cominciano con lo stesso codice e non hanno `con errori` nel nome, e le confronta. Se il parser
+non legge una delle due, lo dice.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 $radice = (Resolve-Path "..\..").Path
 $errati = Get-ChildItem $radice -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-"Cicli con errori diversi: " + @($errati).Count
-foreach ($e in $errati) { $nome = $e.Name -replace '\s*con errori', ''; $giusto = Get-ChildItem $radice -Recurse -Filter $nome -ErrorAction SilentlyContinue | Select-Object -First 1; "=== " + (Get-FileHash $e.FullName).Hash.Substring(0, 8).ToLower(); if ($giusto) { uv run cycle-validation confronta $giusto.FullName $e.FullName --profile mos } else { "  manca la stampa giusta" } }
+foreach ($e in $errati) { $codice = ($e.Name -split ' ')[0]; "=== con errori " + (Get-FileHash $e.FullName).Hash.Substring(0, 8).ToLower(); Get-ChildItem $radice -Recurse -Filter "$codice*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch 'con errori' } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $g = $_.Group[0]; "--- giusto? " + (Get-FileHash $g.FullName).Hash.Substring(0, 8).ToLower() + "  " + $g.Name.Length + " lettere nel nome"; uv run cycle-validation confronta $g.FullName $e.FullName --profile mos } }
 ```
 
-**Deve uscire:** `Cicli con errori diversi: 3`, poi per ognuno una riga `=== ` con l'impronta e
-sotto `operazioni: N e N · differenze: K` con l'elenco delle differenze (fonte o operazione,
-campo, valori mascherati). Se esce `manca la stampa giusta`, per quel ciclo il confronto non si
-può fare.
+**Deve uscire:** per ogni ciclo «con errori», una o più righe `--- giusto?` con sotto il
+confronto. Poche differenze = è la sua stampa giusta; tante differenze = è un altro ciclo con
+un codice simile. Se esce `il primo (giusto) non è letto dal parser` o `il secondo (con
+errori) non è letto dal parser`, il blocco C dice perché.
 
 **Manda a Claude:** la foto di tutto l'output (anche in più foto).
 
-**Passo B: cosa trova la v2 sui tre cicli.** Costa qualche centesimo per ciclo.
+**Blocco C: perché il parser non legge una stampa.** Mostra come il parser vede le righe della
+pagina 6 del ciclo `f355dc3c` e della sua stampa giusta: tipo di riga, numero di operazione,
+prima parola del testo (mascherata). Il testo del ciclo non esce.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
 $radice = (Resolve-Path "..\..").Path
-$errati = Get-ChildItem $radice -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-foreach ($e in $errati) { $out = "runs/mos-errori-" + (Get-FileHash $e.FullName).Hash.Substring(0, 8).ToLower(); "=== $out"; uv run cycle-validation run $e.FullName --profile mos --knowledge $v --config data/settings.yaml --out $out; $j = Get-Content "$out/report.json" -Raw | ConvertFrom-Json; "  fonti: " + (($j.results | Where-Object { $_.check -eq 'source' } | ForEach-Object { "$($_.verdict) $($_.reason)" }) -join ', '); "  errati: " + (($j.results | Where-Object { $_.verdict -eq 'ERRATO' } | ForEach-Object { "$($_.target.label) $($_.check)" }) -join ', '); "  warning: " + (($j.results | Where-Object { $_.verdict -eq 'WARNING' } | Group-Object reason | ForEach-Object { "$($_.Name) $($_.Count)" }) -join ', ') }
+$e = Get-ChildItem $radice -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Where-Object { (Get-FileHash $_.FullName).Hash.ToLower().StartsWith("f355dc3c") } | Select-Object -First 1
+$giusto = if ($e) { Get-ChildItem $radice -Recurse -Filter ($e.Name -replace '\s*con errori', '') -ErrorAction SilentlyContinue | Select-Object -First 1 }
+foreach ($f in @($giusto, $e)) { if ($f) { "=== " + (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); uv run cycle-validation leggi $f.FullName --profile mos --struttura 6 } }
 ```
 
-**Deve uscire:** per ognuno dei 3 cicli una riga `=== runs/mos-errori-...`, la riga `Ciclo ...`
-con i conteggi, e tre righe: esito delle fonti, operazioni segnate ERRATO (con il controllo),
-warning contati per motivo.
+**Deve uscire:** per una o due stampe una riga `=== ` e poi le righe numerate della pagina 6
+(`op 040, ...`, `senza numero, testo «...» + N parole`, `TRATTEGGIO`, `BANNER`...) e alla fine
+`parser: letto` oppure `parser: ...` con l'errore.
 
 **Manda a Claude:** la foto di tutto l'output (anche in più foto).
 

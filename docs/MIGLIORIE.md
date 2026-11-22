@@ -75,6 +75,7 @@ aziendale.
 | G4 | risposta adattata al frontend di oggi (22-11-2026, dalle risposte di Copilot sul codice del frontend): `N/A` esatto per i campi vuoti e per i controlli fermati dal DR (bollino grigio, come la v1), `N/A - motivo` per quelli esclusi da una regola (bollino azzurro `Info`); esito DR nella riga della fonte DR con `DRCase` e `serialNumber` (il frontend non legge `drRecommendationFeedback`); `scheda.tabNumber`; passo DR della conversazione accettato anche con i due campi vuoti |
 | G5 | (22-11-2026) serial number dalla stampa in più forme (`S/N:`, `S / N.`, con trattino); con più serial number vale quello che ha recommendation nei dati DR. `leggi --cerca` stampa le righe con un testo e i codici mascherati. `scheda.task` = codice dopo «SP.ORIG.» nei cicli civili, come la v1 |
 | G6 | (22-11-2026) comando `confronta <giusto.pdf> <con errori.pdf>`: confronta due stampe dello stesso ciclo con il parser (zero token) e dice in quali fonti, operazioni e campi sono diverse, con i codici mascherati e solo i pezzi di descrizione che cambiano. Serve a sapere dove sono gli errori dei cicli «con errori» e a misurare se la v2 li trova |
+| G7 | (22-11-2026) `leggi --struttura N`: come il parser vede ogni riga della pagina N (tipo di riga, numero di operazione, prima parola mascherata), senza il testo del ciclo. `confronta` dice quale delle due stampe il parser non legge |
 
 ---
 

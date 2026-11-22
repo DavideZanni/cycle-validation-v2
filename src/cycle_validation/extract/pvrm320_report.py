@@ -232,6 +232,55 @@ def _body(page_text: str) -> tuple[list[str], str | None]:
     return body, footer
 
 
+def page_structure(page_text: str) -> list[str]:
+    """Come il parser vede ogni riga della tabella di una pagina, senza il testo: tipo di riga,
+    numero di operazione, se c'è una targa o una scheda, prima parola e numero di parole del
+    testo. Serve a capire un errore di layout da una foto senza far vedere il documento."""
+    body, footer = _body(page_text)
+    if not body and footer is None:
+        return ["(pagina senza intestazione C.RESP: non è una pagina della tabella)"]
+    shapes: list[str] = []
+    for raw in body:
+        line = raw.rstrip()
+        if not line.strip():
+            kind = "vuota"
+        elif _EQUALS.match(line):
+            kind = "riga di ="
+        elif _DASHES.match(line):
+            kind = "TRATTEGGIO (chiude l'operazione)"
+        elif PAGE_END_BANNER.search(line):
+            kind = "BANNER «continua»"
+        elif (match := _ROW.match(line)) is None:
+            if _SHEET_LINE.match(line):
+                kind = "riga SCHEDA fuori tabella"
+            elif _SP_LINE.match(line.strip()):
+                kind = "riga SP fuori tabella"
+            else:
+                kind = f"fuori tabella, {len(line.split())} parole"
+        else:
+            left = match["left"].strip()
+            text = _right(match["right"])
+            words = text.split()
+            parts = [f"op {match['num']}" if match["num"] else "senza numero"]
+            if _SHEET.match(left):
+                parts.append("scheda")
+            elif left:
+                parts.append("colonna sinistra piena")
+            if _CONTINUED_FROM.search(text):
+                parts.append("«continuazione dalla pagina precedente»")
+            elif _CONTINUES_ON.search(text):
+                parts.append("«continua alla pagina seguente»")
+            elif _STAR_RULE.match(" ".join(words)):
+                parts.append("riga di asterischi")
+            elif words:
+                parts.append(f"testo «{words[0][:20]}» + {len(words) - 1} parole")
+            kind = ", ".join(parts)
+        shapes.append(kind)
+    if footer is not None:
+        shapes.append("piè di pagina (RIP/OEM)")
+    return shapes
+
+
 def _header_fields(pdf: PdfDocument) -> dict[str, str]:
     fields: dict[str, str] = {}
     patterns = {

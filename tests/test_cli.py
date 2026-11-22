@@ -453,3 +453,32 @@ def test_word_changes_show_only_the_changed_pieces_masked() -> None:
         "«99» → «99» (stessa forma: cambia qualche lettera o cifra)",
         "«CHIAVE» → «PINZA»",
     ]
+
+
+def test_confronta_says_which_print_the_parser_cannot_read(tmp_path: Path) -> None:
+    from pvrm320_report_fixtures import civil_pages
+
+    from cycle_validation.testing.pdf import build_pdf
+
+    good = tmp_path / "giusto.pdf"
+    good.write_bytes(build_pdf(civil_pages()))
+    other = write_cycle_pdf(tmp_path / "altro.pdf", example_cycle())
+    result = runner.invoke(cli.app, ["confronta", str(good), str(other)])
+    assert result.exit_code == 0, result.output
+    assert result.output.startswith("il secondo (con errori) non è letto dal parser:")
+
+
+def test_leggi_struttura_shows_the_layout_without_the_text(tmp_path: Path) -> None:
+    from pvrm320_report_fixtures import civil_pages
+
+    from cycle_validation.testing.pdf import build_pdf
+
+    printed = tmp_path / "stampa.pdf"
+    printed.write_bytes(build_pdf(civil_pages()))
+    result = runner.invoke(cli.app, ["leggi", str(printed), "--struttura", "2"])
+    assert result.exit_code == 0, result.output
+    output = result.output
+    assert "op 005, colonna sinistra piena, testo «APPLICARE» + 6 parole" in output
+    assert "TRATTEGGIO" in output
+    assert output.rstrip().endswith("parser: letto")
+    assert "RIVESTIMENTO" not in output  # solo la prima parola del testo
