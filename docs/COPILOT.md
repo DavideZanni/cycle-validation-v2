@@ -139,25 +139,31 @@ configurazione finale e le correzioni fatte sono in `AZIENDA.md`, sezione 7.
 
 ### 5.2 Dopo l'ingestion: i tre cicli «con errori»
 
-Da lanciare **dopo** l'ingestion del manuale, quando la nuova versione è pubblicata. Fa una
-fotografia nuova della conoscenza civile di prova (solo la prima volta), poi rilancia i tre
-cicli «con errori» e stampa, per ognuno, il riepilogo e le righe ERRATO (operazione e
-controllo, niente testi). Qualche centesimo per ciclo.
+Da lanciare **dopo** l'ingestion del manuale, quando la nuova versione è pubblicata. Questo
+blocco **non fa l'ingestion**: la fai tu con l'ingestion aziendale, prima. Il blocco fa una
+fotografia nuova della conoscenza civile di prova (ogni volta, con data e ora), stampa la
+versione pubblicata accanto a quella del 21-11 (se sono uguali, l'ingestion non è ancora
+pubblicata), poi rilancia i tre cicli «con errori» e stampa, per ognuno, il riepilogo e le
+righe ERRATO (operazione e controllo, niente testi). Qualche centesimo per ciclo.
+
+Prima prova (22-11, sera): 0 errati e quasi tutto WARNING nei tre cicli, come senza il manuale.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$foto = "eval/casi/aziendali/conoscenza/foto-20261122"
-if (-not (Test-Path "$foto/Manufacturing AI")) { uv run cycle-validation eval fotografia --bucket (Get-Content data/bucket.txt) --prefisso "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/" --out $foto --regione eu-south-1 }
+$foto = "eval/casi/aziendali/conoscenza/foto-" + (Get-Date -Format "yyyyMMdd-HHmm")
+uv run cycle-validation eval fotografia --bucket (Get-Content data/bucket.txt) --prefisso "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/" --out $foto --regione eu-south-1
 $kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
+$prima = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/current.json"
+"versione pubblicata: " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path + " · il 21-11: " + $(if (Test-Path $prima) { (Get-Content $prima | ConvertFrom-Json).path } else { "?" })
 $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
 $radice = (Resolve-Path "..\..").Path
 $errati = Get-ChildItem $radice -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
 foreach ($f in $errati) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); "$h " + (@(uv run cycle-validation run $f.FullName --profile mos --knowledge $v --config data/settings.yaml --out "runs/errori-$h") -match '^Ciclo' | Select-Object -First 1); if (Test-Path "runs/errori-$h/report.json") { (Get-Content "runs/errori-$h/report.json" -Raw | ConvertFrom-Json).results | Where-Object { $_.verdict -eq 'ERRATO' } | ForEach-Object { "    ERRATO op $(if ($_.target.kind -eq 'operation') { $_.target.label } else { $_.target.kind }) · $($_.check) · $($_.reason)" } } }
 ```
 
-**Deve uscire:** la riga `Fotografia in ...` (solo la prima volta), poi per ognuno dei tre
-cicli una riga `<impronta> Ciclo ...: N corretti, ...` e sotto le righe `ERRATO op ...`.
+**Deve uscire:** la riga `Fotografia in ...`, la riga `versione pubblicata: ... · il 21-11:
+...` (devono essere **diverse**), poi per ognuno dei tre cicli una riga `<impronta> Ciclo ...: N corretti, ...` e sotto le righe `ERRATO op ...`.
 Claude le confronta con i 10 errori trovati da `confronta` (`MEMORIA.md`, sezione 10).
 
 **Manda a Claude:** la foto, e scrivi a parole quanti manuali hai ingestionato.

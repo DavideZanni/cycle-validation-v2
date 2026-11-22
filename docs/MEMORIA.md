@@ -606,6 +606,11 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
   frontend) è nel ramo `feature/cycle-validation-v2` del repository aziendale. Da salvare:
   riordino delle stampe, `confronta`, `macchine`, documenti riordinati (COPILOT 6).
 
+- **Tre cicli «con errori», 22-11 sera (COPILOT 5.2, senza ingestion nuova).** Fotografia del
+  22-11 (16 oggetti), poi i tre cicli: 0 errati in tutti e tre (0-3 corretti, 16-19 warning,
+  15-18 non applicabili), come prima. Il blocco non fa l'ingestion: ora stampa la versione
+  pubblicata accanto a quella del 21-11 per vedere se l'ingestion è arrivata.
+
 ## 11. Problemi già visti e cosa fare
 
 | Cosa si vede | Perché | Cosa fare |
