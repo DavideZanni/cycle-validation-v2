@@ -156,10 +156,15 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
     Il comando `macchine` segue il valore fino a quella funzione (analisi del codice Python, solo
     la struttura) e trova la chiave che legge; poi cerca la chiave nei due secret e
     nell'ambiente. Stampa solo il nome della chiave. Se non basta: `--database`.
-  - **Prova del 22-11 sera:** la chiave è `database` e non c'è in nessuno dei due secret (né
-    nell'ambiente). Da capire come la v1 la legge (`[...]` o `.get()`): con `.get()` la v1
-    passa nessun database e Redshift usa il suo predefinito. Il comando ora prende il database
-    creato con il cluster (`describe_clusters`, `DBName`), se le credenziali lo permettono.
+  - **Il file delle credenziali (visto dall'utente, 22-11 sera):** `get_db_credentials` legge
+    il secret `SECRET_NAME` (regione `REGION_NAME`), costruisce un dizionario con `host`,
+    `username`, `password` presi dal secret e **`database` scritto nel codice**, e restituisce
+    i quattro valori. Il comando segue anche il dizionario. Se il database non si trova, prova
+    quello creato con il cluster (`describe_clusters`, `DBName`).
+  - **Data API dal PC:** la prima prova ha dato `ClientError` (codice non stampato allora; ora
+    l'errore dice codice e passo). Alternativa: `macchine --diretto`, connessione diretta come
+    la v1 (`redshift_connector`, porta del secret), con
+    `uv run --with redshift_connector`.
   - **Perché Redshift e non il documento delle targhe su S3:** il documento dice se una targa
     esiste e che macchina è; Redshift dice se la macchina è in uso oggi. Una macchina dismessa
     che è ancora nel documento è un errore. Alternativa possibile: l'ingestion copia ogni

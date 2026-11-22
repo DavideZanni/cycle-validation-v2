@@ -295,3 +295,80 @@ def test_without_the_key_the_database_comes_from_the_cluster(
     assert "database letto dalla chiave database con .get()" in result.output
     assert "Database del cluster: trovato." in result.output
     assert "db_cluster" not in result.output
+
+
+def test_the_database_written_in_the_credentials_dictionary_is_found(tmp_path: Path) -> None:
+    """Come la v1 (foto del 22-11): `credentials = {..., 'database': '<nome>'}` e la funzione
+    restituisce `credentials['database']`."""
+    (tmp_path / "credentials.py").write_text(
+        "def get_db_credentials():\n"
+        "    secret = json.loads(raw)\n"
+        "    credentials = {'host': secret['host'], 'database': 'db_scritto'}\n"
+        "    return credentials['host'], credentials['database']\n",
+        "utf-8",
+    )
+    (tmp_path / "tm.py").write_text(
+        "import redshift_connector\n"
+        "H, REDSHIFT_DBNAME = get_db_credentials()\n"
+        "c = redshift_connector.connect(host=H, database=REDSHIFT_DBNAME)\n",
+        "utf-8",
+    )
+    found = find_in_v1(tmp_path)
+    assert (found.database, found.database_key) == ("db_scritto", None)
+
+
+def test_data_api_errors_say_the_aws_code_and_the_step() -> None:
+    from cycle_validation.errors import SourceUnavailableError
+    from cycle_validation.services.redshift import fetch_with_data_api
+
+    class Denied(Exception):
+        def __init__(self, message: str) -> None:
+            super().__init__(message)
+            self.response = {"Error": {"Code": "AccessDeniedException", "Message": message}}
+
+    class Client:
+        def execute_statement(self, **_: Any) -> None:
+            raise Denied("arn:aws:iam::123:x")
+
+    with pytest.raises(SourceUnavailableError) as error:
+        fetch_with_data_api(Client(), {"Database": "d"}, "SELECT 1")
+    assert "AccessDeniedException, ExecuteStatement" in str(error.value)
+    assert "123" not in str(error.value)
+
+
+def test_direct_connection_like_the_v1(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: dict[str, Any] = {}
+
+    class Cursor:
+        def execute(self, sql: str) -> None:
+            seen["sql"] = sql
+
+        def fetchall(self) -> list[tuple[str]]:
+            return [("TM-2",), ("TM-1",)]
+
+        def close(self) -> None:
+            pass
+
+    class Connection:
+        def cursor(self) -> Cursor:
+            return Cursor()
+
+        def close(self) -> None:
+            pass
+
+    class Connector:
+        @staticmethod
+        def connect(**kwargs: Any) -> Connection:
+            seen.update(kwargs)
+            return Connection()
+
+    monkeypatch.setattr(cli, "_redshift_connector", lambda: Connector)
+    monkeypatch.setattr(cli, "_aws_client", lambda service, region: FakeSecrets())
+    out = tmp_path / "m.json"
+    result = CliRunner().invoke(
+        cli.app, ["macchine", "--v1", str(_v1(tmp_path)), "--out", str(out), "--diretto"]
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(out.read_text(encoding="utf-8")) == ["TM-1", "TM-2"]
+    assert (seen["database"], seen["port"]) == ("db", 5439)
+    assert "Macchine attive: 2 (Redshift connessione diretta)" in result.output

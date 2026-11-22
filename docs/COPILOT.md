@@ -132,32 +132,32 @@ stessa risposta.
 Serve a controllare le targhe come la v1 (cos'è Redshift e perché: `MEMORIA.md`, sezione 5).
 Su Redshift non devi creare niente.
 
-**Blocco A: scaricare l'elenco.** L'ultima volta il comando ha trovato la chiave da cui la v1
-prende il database (`database`), ma quella chiave non c'è in nessuno dei due secret. Ora dice
-anche **come** la v1 la legge e, se non la trova, chiede ad AWS il database creato con il
-cluster Redshift (`DBName`). Stampa solo il numero di macchine. Gratis.
+**Blocco A: scaricare l'elenco.** Dal file delle credenziali della v1 (foto del 22-11): il
+database è scritto nel codice, dentro l'elenco delle credenziali. Ora il comando lo trova da
+solo. L'ultima volta la Data API ha risposto con un errore senza dettagli: ora l'errore dice il
+codice AWS e il passo. Se la Data API non va, la seconda riga prova la **connessione diretta**,
+come fa la v1 (scarica una volta la libreria `redshift_connector`). Stampa solo il numero di
+macchine. Gratis.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 uv run cycle-validation macchine --v1 ..\app_cycle_validation
+if (-not (Test-Path data/macchine_attive.json)) { uv run --with redshift_connector cycle-validation macchine --v1 ..\app_cycle_validation --diretto }
 ```
 
-**Deve uscire:** `Dalla v1: ... database letto dalla chiave database con ...`, `Nel secret di
-ambiente: SECRET_NAME trovato.`, `Chiave database del database: NON trovata...`, poi
-`Database del cluster: trovato.` e infine `Macchine attive: N (Redshift cluster). Scritte in
-data\macchine_attive.json`.
+**Deve uscire:** `Dalla v1: ... database scritto nel codice.`, `Nel secret di ambiente:
+SECRET_NAME trovato.` e poi `Macchine attive: N (Redshift cluster)` oppure, se la Data API non
+va, un errore `Registro macchine non raggiungibile (ClientError: <codice>, <passo>)` e sotto,
+dalla seconda riga, `Macchine attive: N (Redshift connessione diretta)`.
 
 Se esce un errore:
 
-- `Database del cluster non letto: AccessDeniedException`: le tue credenziali non possono
-  leggere i dati del cluster. Due strade: apri tu il file `src\config\credentials.py` della v1
-  (Copilot non può, tu sì), guarda nella funzione `get_db_credentials` da dove viene il
-  database e scrivi a Claude a parole come lo legge (senza valori); se il nome lo vedi,
-  rilancia con `--database <nome>` (resta sul tuo schermo). Oppure la domanda P7 (sezione 4);
+- con la connessione diretta, `Registro macchine non raggiungibile (InterfaceError)` o
+  simili, dopo circa 20 secondi: il PC non arriva a Redshift. Prova con lo stesso terminale
+  dopo aver avviato da Run and Debug il task dei prerequisiti di centralizer (apre dei
+  tunnel); se non basta, manda la foto;
 - `ExpiredToken` o simili: `aws sso login`, poi rilancia;
-- `ResourceNotFoundException`: rilancia aggiungendo `--regione eu-west-1` (o la regione che usa
-  la v1);
-- `AccessDeniedException` sul secret o su Redshift: è la domanda P7 (sezione 4).
+- `AccessDeniedException` sul secret: è la domanda P7 (sezione 4).
 
 **Manda a Claude:** la foto.
 

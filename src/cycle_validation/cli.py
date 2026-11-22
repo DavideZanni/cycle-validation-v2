@@ -578,6 +578,36 @@ def _field_names(values: dict[str, Any]) -> str:
     return ", ".join(sorted(key for key in values if not key.startswith("__"))) or "nessuno"
 
 
+def _redshift_connector() -> Any:
+    try:
+        import redshift_connector  # type: ignore[import-not-found]
+    except ImportError as error:
+        raise CycleValidationError(
+            "Per --diretto serve redshift_connector: lancia il comando con "
+            "`uv run --with redshift_connector cycle-validation macchine ...`."
+        ) from error
+    return redshift_connector
+
+
+def _direct_fetch(values: dict[str, Any], database: str | None, query: str) -> list[str]:
+    """Come la v1 (`RedshiftConnector`): host, porta, utente e password dal secret."""
+    from cycle_validation.services.redshift import fetch_active_machines
+
+    if not database:
+        raise CycleValidationError("Manca il nome del database: indicalo con --database.")
+    connector = _redshift_connector()
+    return fetch_active_machines(
+        lambda: connector.connect(
+            host=str(values.get("host") or ""),
+            port=int(values.get("port") or 5439),
+            database=database,
+            user=str(values.get("username") or ""),
+            password=str(values.get("password") or ""),
+        ),
+        query,
+    )
+
+
 @app.command("macchine")
 def export_machines(
     v1: Annotated[
@@ -592,6 +622,13 @@ def export_machines(
     database: Annotated[
         str | None, typer.Option(help="Database di Redshift. Vuoto = dalla v1 o dal secret.")
     ] = None,
+    diretto: Annotated[
+        bool,
+        typer.Option(
+            help="Connessione diretta come la v1 (redshift_connector, porta del secret) invece "
+            "della Data API."
+        ),
+    ] = False,
     out: Annotated[Path, typer.Option(help="File da scrivere.")] = Path(
         "data/macchine_attive.json"
     ),
@@ -606,6 +643,7 @@ def export_machines(
         find_in_v1,
         host_region,
         machines_query,
+        secret_database,
     )
 
     found = find_in_v1(v1) if v1 is not None else None
@@ -674,6 +712,7 @@ def export_machines(
                     else ""
                 )
             )
+    database = database or secret_database(values)
     host = str(values.get("host") or "")
     cluster = values.get("dbClusterIdentifier") or (
         host.split(".")[0] if host and "redshift-serverless" not in host else None
@@ -688,9 +727,14 @@ def export_machines(
         else:
             typer.echo("Database del cluster: " + ("trovato." if database else "NON trovato."))
     try:
-        region, parameters = data_api_target(values, arn, database)
-        client = _aws_client("redshift-data", region or regione)
-        tags = sorted(set(fetch_with_data_api(client, parameters, machines_query(tabella))))
+        if diretto:
+            kind = "connessione diretta"
+            tags = sorted(set(_direct_fetch(values, database, machines_query(tabella))))
+        else:
+            region, parameters = data_api_target(values, arn, database)
+            client = _aws_client("redshift-data", region or regione)
+            tags = sorted(set(fetch_with_data_api(client, parameters, machines_query(tabella))))
+            kind = "serverless" if "WorkgroupName" in parameters else "cluster"
     except CycleValidationError as error:
         raise _fail(error) from error
     except Exception as error:
@@ -699,7 +743,6 @@ def export_machines(
         raise _fail(CycleValidationError("La query non ha restituito nessuna macchina attiva."))
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(tags, indent=0), encoding="utf-8")
-    kind = "serverless" if "WorkgroupName" in parameters else "cluster"
     typer.echo(f"Macchine attive: {len(tags)} (Redshift {kind}). Scritte in {out}.")
 
 

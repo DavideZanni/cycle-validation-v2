@@ -77,8 +77,10 @@ def fetch_with_data_api(
 ) -> list[str]:
     """Esegue la query con la Data API, aspetta la fine e legge tutte le pagine.
     `parameters`: Database e WorkgroupName, oppure ClusterIdentifier con DbUser o SecretArn."""
+    step = "ExecuteStatement"
     try:
         statement = client.execute_statement(**parameters, Sql=query)["Id"]
+        step = "DescribeStatement"
         waited = 0.0
         while True:
             status = client.describe_statement(Id=statement)
@@ -97,6 +99,7 @@ def fetch_with_data_api(
             waited += poll_s
         tags: list[str] = []
         token: str | None = None
+        step = "GetStatementResult"
         while True:
             page = client.get_statement_result(
                 Id=statement, **({"NextToken": token} if token else {})
@@ -108,8 +111,12 @@ def fetch_with_data_api(
     except SourceUnavailableError:
         raise
     except Exception as exc:
+        # solo il codice dell'errore AWS: il messaggio può contenere ARN e account
+        response = getattr(exc, "response", None)
+        code = response.get("Error", {}).get("Code") if isinstance(response, dict) else None
+        kind = f"{type(exc).__name__}: {code}" if code else type(exc).__name__
         raise SourceUnavailableError(
-            f"Registro macchine non raggiungibile ({type(exc).__name__})."
+            f"Registro macchine non raggiungibile ({kind}, {step})."
         ) from exc
 
 
@@ -221,6 +228,11 @@ def _resolve(node: ast.AST, scope: ast.AST, functions: dict[str, Any], depth: in
     if (literal := _text(node)) is not None:
         return literal, None, None
     if isinstance(node, ast.Subscript) and (key := _text(node.slice)) is not None:
+        # `credentials["database"]` con `credentials = {..., "database": "..."}` (la v1)
+        if isinstance(node.value, ast.Name):
+            entry = _dict_entry(node.value.id, key, scope)
+            if entry is not None:
+                return _resolve(entry, scope, functions, depth + 1)
         return None, key, "[...]"
     if isinstance(node, ast.Call) and node.args and (key := _text(node.args[0])) is not None:
         name = (
@@ -246,6 +258,20 @@ def _resolve(node: ast.AST, scope: ast.AST, functions: dict[str, Any], depth: in
                     if node.id in names:
                         return _from_tuple(value, names.index(node.id), scope, functions, depth)
     return None, None, None
+
+
+def _dict_entry(name: str, key: str, scope: ast.AST) -> ast.AST | None:
+    """Il valore di `key` nel dizionario scritto assegnato a `name`, se c'è."""
+    for node in ast.walk(scope):
+        if (
+            isinstance(node, ast.Assign)
+            and any(isinstance(t, ast.Name) and t.id == name for t in node.targets)
+            and isinstance(node.value, ast.Dict)
+        ):
+            for item_key, value in zip(node.value.keys, node.value.values, strict=True):
+                if _text(item_key) == key:
+                    return value
+    return None
 
 
 def _from_tuple(
@@ -278,6 +304,18 @@ def cluster_database(client: Any, cluster: str) -> str | None:
     return str(name) if name else None
 
 
+def secret_database(values: Mapping[str, Any]) -> str | None:
+    """Il database scritto nel secret, se c'è (i nomi dei campi cambiano da secret a secret)."""
+    return next(
+        (
+            str(values[key])
+            for key in ("dbname", "database", "db_name", "dbName")
+            if values.get(key)
+        ),
+        None,
+    )
+
+
 def host_region(host: str) -> str | None:
     match = re.search(r"\.([a-z]{2}(?:-[a-z]+)+-\d)\.redshift", host)
     return match[1] if match else None
@@ -296,14 +334,7 @@ def data_api_target(
     `database` vale più del secret (la v1 può averlo nel codice o nel secret di ambiente).
     I valori non si stampano mai: nell'errore ci sono solo i nomi dei campi."""
     host = str(values.get("host") or values.get("hostname") or "")
-    database = database or next(
-        (
-            str(values[key])
-            for key in ("dbname", "database", "db_name", "dbName")
-            if values.get(key)
-        ),
-        None,
-    )
+    database = database or secret_database(values)
     fields = ", ".join(sorted(values)) or "nessuno"
     if not host:
         raise CycleValidationError(f"Nel secret manca host. Campi presenti: {fields}.")
