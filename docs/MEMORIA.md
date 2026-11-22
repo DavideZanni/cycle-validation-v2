@@ -70,8 +70,9 @@ sugli errori veri aspetta i manuali nella conoscenza.
   della v1) e `MACHINES_QUERY` (la query di `verify_active_TM`), a meno che non stiano già nel
   secret di ambiente.
 - **D2. Quando passare a QA.** **Deciso dall'utente (22-11 notte):** prima altre prove in
-  locale dal frontend (COPILOT 5.3), poi QA quando lo dice lui. Il blocco 7.1 non va lanciato
-  prima: cambia il `buildspec.yml`. La misura sugli errori (punto 1) può andare avanti in parallelo.
+  locale dal frontend (COPILOT 5.3), poi QA quando lo dice lui. Il blocco 7.1 e il salvataggio
+  sul ramo `feature/cycle-validation-v2` si fanno subito; solo la pull request verso `develop`
+  aspetta (è quella che fa passare QA alla v2). La misura sugli errori (punto 1) può andare avanti in parallelo.
 
 **Non serve per la consegna** (`MIGLIORIE.md`, «Da fare»): chiamata diretta a Bedrock (B1), più
 concorrenza (B4), varianti proposte dal modello (E1), togliere le rotte storiche (D).

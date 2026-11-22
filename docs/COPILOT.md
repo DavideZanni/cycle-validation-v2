@@ -39,8 +39,9 @@ Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i pas
 4. **Ingestion del manuale** trovato prima (uno solo), poi **5.2**: i tre cicli «con errori».
 5. **Salvare** (sezione 6) quando vuoi: salva sul ramo `feature/cycle-validation-v2`, non su
    `develop`.
-6. **Pubblicare in QA** (sezione 7): **non ancora**, quando lo decidi tu. Non lanciare il
-   blocco 7.1 prima: cambia il `buildspec.yml`.
+6. **Pubblicare in QA** (sezione 7): il blocco **7.1** si può lanciare e salvare (resta sul
+   ramo `feature/cycle-validation-v2`); la **pull request verso `develop`** aspetta, quando lo
+   decidi tu.
 7. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
 
 ---
@@ -252,7 +253,10 @@ salvato: lancia lo stesso il push.
 
 ## 7. Pubblicare in QA
 
-**Non ancora** (22-11): prima le prove in locale (5.3). Quando lo decidi tu.
+**Decisione dell'utente (22-11):** il blocco 7.1 e il salvataggio si fanno; la pull request
+verso `develop` più avanti, dopo le prove in locale (5.3). Finché il ramo non arriva su
+`develop`, QA resta sulla v1. Se prima di allora serve portare su `develop` altro lavoro dello
+stesso ramo, lancia prima `qa --torna-alla-v1` (fine sezione 7.2) e salva.
 
 La v2 prende il posto della v1 in QA. Oggi `buildspec.yml` (nella radice del repository)
 costruisce l'immagine dalla cartella della v1. Il comando `cycle-validation qa` prepara tutto
