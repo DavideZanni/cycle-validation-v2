@@ -1,7 +1,9 @@
 # Istruzioni per Claude
 
-Prima di lavorare con l'utente sulle prove aziendali leggi `docs/AMBIENTE_AZIENDALE.md`: chi fa
-cosa, com'è il PC aziendale, cosa è permesso. Le regole che non si discutono:
+Prima di lavorare con l'utente sulle prove aziendali leggi `docs/AMBIENTE_AZIENDALE.md`: è la
+memoria del progetto (chi fa cosa, PC aziendale, Copilot, pipeline, frontend, stato delle prove,
+problemi già visti e cosa fare). Prima di analizzare un problema guarda lì se è già risolto;
+quando impari qualcosa di nuovo, aggiungilo lì. Le regole che non si discutono:
 
 - Si lavora su `main` del repository personale: niente branch.
 - Claude non ha accesso al PC aziendale: l'utente lancia nel terminale di VS Code (PowerShell 7)
