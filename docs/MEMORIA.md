@@ -316,9 +316,15 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
   - Descrizioni: 4 CORRETTO, 5 WARNING `EVIDENZA_NON_TROVATA`; la scheda dell'op. 050 non è
     tra le 94 schede.
 - **EJ200:** mai provato con i servizi veri (va fatto dentro AWS).
-- **Ciclo MOS «con errori»:** il PDF è in un'altra cartella di `ProgettoDocumenti` (corpus
-  delle prove di ingestion, insieme ad altri cicli MOS). Il blocco 5.1 di COPILOT ora lo cerca lì. Manca
-  anche sapere quali sono gli errori (P3).
+- **Ciclo MOS «con errori» (22-11):** il PDF è in un'altra cartella di `ProgettoDocumenti`
+  (corpus delle prove di ingestion, insieme ad altri cicli MOS). La ricerca trova 6 PDF con
+  «con errori» nel nome: la prova ha usato il primo, da capire se è quello giusto (COPILOT
+  5.1, impronte dei file).
+  - Esito: ciclo parziale, 2 corretti, 15 warning, 0 errati, 16 N/A.
+  - La fonte è WARNING `FONTE_ASSENTE`: il manuale citato non è nella conoscenza di prova.
+    Senza il manuale la v2 non può confrontare le operazioni, quindi non trova errori.
+  - Task code: uno solo citato (op. 005) e trovato; le altre operazioni non ne citano.
+  - Per giudicare la prova servono il manuale nella conoscenza e la lista degli errori (P3).
 - **Frontend:** Copilot ha letto il codice del frontend e della v1 il 22-11-2026 (domande
   C1-C14, sezione 8). La v2 è stata adattata. Mancano: la modifica del pulsante Confirm
   (collega) e dove gira la v1 (P5).

@@ -29,12 +29,12 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ## 1. Cosa fare adesso (22-11-2026, sera)
 
-La prova DR senza serial number e condition è riuscita: è stata tolta.
+La prova DR senza serial number e condition è riuscita. Il ciclo MOS «con errori» è partito, ma
+i PDF con `con errori` nel nome sono 6: va capito quale ha preso.
 
 1. In Copilot passa ad **Ask** (in basso nella chat). Nelle foto è ancora su **Agent** con
    **Allow all** acceso.
-2. Lancia il **ciclo MOS «con errori»** (sezione 5.1). Il blocco cerca il PDF anche nelle altre
-   cartelle di `ProgettoDocumenti`: non serve spostarlo.
+2. Lancia **quale PDF «con errori» è stato usato** (sezione 5.1). Non costa niente.
 3. Lancia **Salvare nel repository aziendale** (sezione 6). Prima lancia **Aggiornare il codice
    sul PC** (sezione 2), così arrivano anche questi documenti.
 4. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
@@ -91,7 +91,9 @@ Claude la risposta a parole (senza codici veri).
   `runs\dr-condition-3\report.md`: fallo guardare a chi conosce il ciclo, non mandarlo a
   Claude.
 - **P3. Ciclo MOS «con errori».** Questo ciclo è stato dato già segnato come sbagliato. Quali
-  sono gli errori, e in quali operazioni? Serve per capire se la v2 li trova.
+  sono gli errori, e in quali operazioni? Il manuale che cita è nella conoscenza di prova?
+  (Il 22-11 la v2 non l'ha trovato, quindi non ha potuto confrontare le operazioni con il
+  manuale.) Serve per capire se la v2 trova gli errori.
 - **P4. Targa «90» nell'indice** (per chi cura knowledge-index). Nel file delle targhe la
   `90` ha come funzione una frase sbagliata e le lettere accentate rovinate. Va corretta
   nell'indice (i passi sono in `MEMORIA.md`, «Da correggere nell'indice»).
@@ -125,27 +127,25 @@ stessa risposta.
 
 ## 5. Prove da lanciare
 
-### 5.1 Il ciclo MOS «con errori»
+### 5.1 Quale PDF «con errori» è stato usato
 
-Passa alla v2 il PDF del ciclo MOS «con errori» e mostra cosa dice su fonti e task. Il PDF lo
-cerca, con le parole `con errori` nel nome, in tutte le cartelle di `ProgettoDocumenti` (lo
-legge soltanto, non lo sposta) e in `Downloads`. Costa qualche centesimo.
+La prova del 22-11 ha trovato 6 PDF con `con errori` nel nome e ha usato il primo. Questo blocco
+mostra un'impronta del PDF usato e di ognuno dei 6 (le prime 8 lettere dell'impronta SHA-256,
+come la scrive la v2 nel report). Due PDF con la stessa impronta sono lo stesso file copiato.
+Non chiama il modello e non costa niente.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-$ciclo = (Get-ChildItem "..\..", "$HOME\Downloads" -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
-"PDF con errori trovati: " + @(Get-ChildItem "..\..", "$HOME\Downloads" -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue).Count
-if ($ciclo) { uv run cycle-validation run $ciclo --profile mos --knowledge $v --config data/settings.yaml --out runs/mos-con-errori } else { "FERMO: PDF con errori non trovato, mettilo in docs\Esempio ciclo mos\ con 'con errori' nel nome" }
-if ($ciclo) { (Get-Content runs/mos-con-errori/report.json -Raw | ConvertFrom-Json).results | Where-Object { $_.check -in 'source', 'task_code' } | Format-Table @{n='controllo'; e={$_.check}}, @{n='riga'; e={$_.target.label}}, verdict, reason, @{n='motivo'; e={$_.rationale}} -Wrap }
+$radice = (Resolve-Path "..\..").Path
+"Usato nella prova: " + (Get-Content runs/mos-con-errori/report.json -Raw | ConvertFrom-Json).meta.pdf_sha256.Substring(0, 8).ToLower()
+Get-ChildItem $radice, "$HOME\Downloads" -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | ForEach-Object { (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() + "  " + $_.FullName.Replace($radice, "") }
 ```
 
-**Deve uscire:** `PDF con errori trovati: 1` (la ricerca può durare qualche secondo), una riga
-`Ciclo ...` con i conteggi e il costo, poi una tabella con le fonti e
-i task: esito, motivo e spiegazione. Se esce `FERMO`, sposta il PDF e rilancia.
+**Deve uscire:** la riga `Usato nella prova: ...` e poi 6 righe: impronta e cartella di ogni PDF.
 
-**Manda a Claude:** la foto della riga dei conteggi e della tabella (anche in due foto).
+**Manda a Claude:** la foto, e scrivi a parole quale dei 6 è il ciclo «con errori» che ti hanno
+dato (per esempio «quello in `Extra\cicli MOS`»). Se è un altro da quello usato, Claude
+prepara il blocco per lanciare quello.
 
 ---
 
