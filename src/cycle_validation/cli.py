@@ -1,7 +1,8 @@
-"""CLI: `run`, `leggi`, `golden`, `kb-check` ed `eval` (esperimenti: `eval esegui`,
+"""CLI: `run`, `leggi`, `confronta`, `golden`, `kb-check` ed `eval` (esperimenti: `eval esegui`,
 `eval classifica`)."""
 
 import asyncio
+import difflib
 import json
 import re
 from collections import Counter
@@ -16,6 +17,7 @@ from cycle_validation.agent.sdk_session import SdkAgentSession
 from cycle_validation.agent.session import AgentSession
 from cycle_validation.config import AgentSettings, Settings, load_profile, load_settings
 from cycle_validation.domain.check import CheckName
+from cycle_validation.domain.cycle import Cycle
 from cycle_validation.errors import CycleValidationError
 from cycle_validation.evaluation.draft import draft_case
 from cycle_validation.evaluation.leaderboard import build_leaderboard, render_leaderboard
@@ -279,6 +281,108 @@ def read_cycles(
             f"operazioni: {len(cycle.operations)}"
         )
         typer.echo(f"  task: {', '.join(tasks) or '-'}")
+
+
+def _changed(first: str, second: str, quote: str = "") -> str:
+    """Due valori diversi, con i codici mascherati. Se la forma mascherata è la stessa lo dice:
+    vuol dire che cambia solo qualche lettera o cifra di un codice."""
+    a, b = _masked(first) or "-", _masked(second) or "-"
+    if quote:
+        a, b = f"«{a}»", f"«{b}»"
+    same_shape = " (stessa forma: cambia qualche lettera o cifra)" if a == b else ""
+    return f"{a} → {b}{same_shape}"
+
+
+def _word_changes(first: str, second: str, limit: int = 5) -> list[str]:
+    """I pezzi di testo che cambiano tra due descrizioni, mascherati e corti: dicono dove è la
+    differenza senza stampare la descrizione."""
+    words_a, words_b = first.split(), second.split()
+    matcher = difflib.SequenceMatcher(a=words_a, b=words_b, autojunk=False)
+    changes = [
+        _changed(" ".join(words_a[i1:i2]), " ".join(words_b[j1:j2]), quote="«")
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes()
+        if tag != "equal"
+    ]
+    extra = len(changes) - limit
+    return changes[:limit] + ([f"... e altre {extra}"] if extra > 0 else [])
+
+
+def _cycle_differences(first: Cycle, second: Cycle) -> list[str]:
+    lines: list[str] = []
+    for name in (
+        "cycle_code",
+        "cycle_description",
+        "engine_model",
+        "operation_type",
+        "repair_code",
+    ):
+        a, b = getattr(first, name) or "", getattr(second, name) or ""
+        if a != b:
+            lines.append(f"  ciclo, {name}: {_changed(a, b)}")
+    for index in range(max(len(first.sources), len(second.sources))):
+        a = first.sources[index] if index < len(first.sources) else None
+        b = second.sources[index] if index < len(second.sources) else None
+        label = f"  fonte {index + 1}"
+        if a is None or b is None:
+            lines.append(f"{label}: c'è solo nel {'secondo' if a is None else 'primo'}")
+            continue
+        for name in ("manual", "task", "repair_code", "issue"):
+            value_a, value_b = getattr(a, name) or "", getattr(b, name) or ""
+            if value_a != value_b:
+                lines.append(f"{label}, {name}: {_changed(value_a, value_b)}")
+    ops_a = {op.operation_number: op for op in first.operations}
+    ops_b = {op.operation_number: op for op in second.operations}
+    for number in dict.fromkeys([*ops_a, *ops_b]):
+        a_op, b_op = ops_a.get(number), ops_b.get(number)
+        label = f"  op {number}"
+        if a_op is None or b_op is None:
+            lines.append(f"{label}: c'è solo nel {'secondo' if a_op is None else 'primo'}")
+            continue
+        if a_op.operation_description != b_op.operation_description:
+            lines.append(f"{label}, descrizione:")
+            lines += [
+                f"      {item}"
+                for item in _word_changes(a_op.operation_description, b_op.operation_description)
+            ]
+        pairs = {
+            "task code": (", ".join(a_op.task_codes), ", ".join(b_op.task_codes)),
+            "targa": (a_op.machine_tag or "", b_op.machine_tag or ""),
+            "scheda": (
+                a_op.process_sheet.code if a_op.process_sheet else "",
+                b_op.process_sheet.code if b_op.process_sheet else "",
+            ),
+            "riparazione": (a_op.repair_code or "", b_op.repair_code or ""),
+        }
+        for name, (value_a, value_b) in pairs.items():
+            if value_a != value_b:
+                lines.append(f"{label}, {name}: {_changed(value_a, value_b)}")
+    return lines
+
+
+@app.command("confronta")
+def compare_cycles(
+    primo: Annotated[Path, typer.Argument(help="PDF del ciclo giusto.")],
+    secondo: Annotated[Path, typer.Argument(help="PDF dello stesso ciclo con errori.")],
+    profile: Annotated[str, typer.Option(help="mos | dr | ej200")] = "mos",
+    config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
+) -> None:
+    """Confronta due stampe dello stesso ciclo (la giusta e quella «con errori») con il parser
+    di layout, senza modello (zero token): dice in quali operazioni e in quali campi sono
+    diverse. I codici escono mascherati (lettere → A, cifre → 9), così si possono mandare foto
+    senza codici veri; delle descrizioni stampa solo i pezzi che cambiano."""
+    try:
+        settings = load_settings(config)
+        limits = load_profile(profile, settings.paths.profiles_dir).file_limits
+        cycles = [parse_pvrm320(read_pdf(path, limits)) for path in (primo, secondo)]
+    except CycleValidationError as error:
+        raise _fail(error) from error
+    lines = _cycle_differences(*cycles)
+    typer.echo(
+        f"operazioni: {len(cycles[0].operations)} e {len(cycles[1].operations)} · "
+        f"differenze: {len(lines) - sum(line.startswith('      ') for line in lines)}"
+    )
+    for line in lines:
+        typer.echo(line)
 
 
 def _session_for(name: str) -> Callable[[AgentSettings, Path | None], AgentSession]:

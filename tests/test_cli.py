@@ -409,3 +409,47 @@ def test_leggi_cerca_prints_matching_lines_with_masked_codes(tmp_path: Path) -> 
     assert "AAAA1CCC" not in result.output and "01000002" not in result.output
     assert "APPLY ON S/N AAAA9AAA" in result.output
     assert "  serial number trovati: 1 (AAAA9AAA)" in result.output.splitlines()
+
+
+def test_confronta_says_where_two_prints_of_a_cycle_differ(tmp_path: Path) -> None:
+    """Stampa giusta e stampa «con errori»: operazione e campo diversi, codici mascherati."""
+    from pvrm320_report_fixtures import civil_pages
+
+    from cycle_validation.testing.pdf import build_pdf
+
+    good = tmp_path / "giusto.pdf"
+    good.write_bytes(build_pdf(civil_pages()))
+    wrong = tmp_path / "con errori.pdf"
+    pages = [text.replace("72-00-00", "72-00-01") for text in civil_pages()]
+    wrong.write_bytes(build_pdf(pages))
+    result = runner.invoke(cli.app, ["confronta", str(good), str(wrong)])
+    assert result.exit_code == 0, result.output
+    same = " (stessa forma: cambia qualche lettera o cifra)"
+    assert result.output.splitlines() == [
+        "operazioni: 5 e 5 · differenze: 3",
+        f"  fonte 1, task: 99-99-99 REPAIR 999 → 99-99-99 REPAIR 999{same}",
+        "  op 005, descrizione:",
+        f"      «99-99-99» → «99-99-99»{same}",
+        f"      «99-99-99» → «99-99-99»{same}",
+        f"  op 005, task code: 99-99-99 REPAIR 999 → 99-99-99 REPAIR 999{same}",
+    ]
+
+
+def test_confronta_on_the_same_print_finds_no_difference(tmp_path: Path) -> None:
+    from pvrm320_report_fixtures import civil_pages
+
+    from cycle_validation.testing.pdf import build_pdf
+
+    good = tmp_path / "giusto.pdf"
+    good.write_bytes(build_pdf(civil_pages()))
+    result = runner.invoke(cli.app, ["confronta", str(good), str(good)])
+    assert result.exit_code == 0, result.output
+    assert result.output.splitlines()[0].endswith("differenze: 0")
+
+
+def test_word_changes_show_only_the_changed_pieces_masked() -> None:
+    changes = cli._word_changes("SERRARE A 25 NM CON CHIAVE", "SERRARE A 30 NM CON PINZA")
+    assert changes == [
+        "«99» → «99» (stessa forma: cambia qualche lettera o cifra)",
+        "«CHIAVE» → «PINZA»",
+    ]

@@ -316,15 +316,15 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
   - Descrizioni: 4 CORRETTO, 5 WARNING `EVIDENZA_NON_TROVATA`; la scheda dell'op. 050 non è
     tra le 94 schede.
 - **EJ200:** mai provato con i servizi veri (va fatto dentro AWS).
-- **Ciclo MOS «con errori» (22-11):** il PDF è in un'altra cartella di `ProgettoDocumenti`
-  (corpus delle prove di ingestion, insieme ad altri cicli MOS). La ricerca trova 6 PDF con
-  «con errori» nel nome: la prova ha usato il primo, da capire se è quello giusto (COPILOT
-  5.1, impronte dei file).
-  - Esito: ciclo parziale, 2 corretti, 15 warning, 0 errati, 16 N/A.
-  - La fonte è WARNING `FONTE_ASSENTE`: il manuale citato non è nella conoscenza di prova.
-    Senza il manuale la v2 non può confrontare le operazioni, quindi non trova errori.
-  - Task code: uno solo citato (op. 005) e trovato; le altre operazioni non ne citano.
-  - Per giudicare la prova servono il manuale nella conoscenza e la lista degli errori (P3).
+- **Cicli MOS «con errori» (22-11):** sono 3 cicli diversi, ognuno in due cartelle di
+  `ProgettoDocumenti` (una cartella di esempi e il corpus delle prove di ingestion). Chi li ha
+  dati non ha detto quali sono gli errori, e l'utente non lo sa. Il comando `confronta`
+  (stampa giusta contro stampa «con errori», zero token, codici mascherati) serve a trovarli.
+  - Prima prova (il ciclo «applicazione lubrificante»): ciclo parziale, 2 corretti, 15
+    warning, 0 errati, 16 N/A. La fonte è WARNING `FONTE_ASSENTE`: il manuale citato non è
+    nella conoscenza di prova, quindi la v2 non può confrontare le operazioni. Un solo task
+    code citato (op. 005), trovato.
+  - Da fare: confronto e prova sui tre cicli (COPILOT 5.1).
 - **Frontend:** Copilot ha letto il codice del frontend e della v1 il 22-11-2026 (domande
   C1-C14, sezione 8). La v2 è stata adattata. Mancano: la modifica del pulsante Confirm
   (collega) e dove gira la v1 (P5).
@@ -339,8 +339,9 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
       `DR_NON_APPLICABILE`. I 37 warning sono i controlli fermati (`BLOCCATO_A_MONTE`): il
       frontend li mostra come `N/A` grigio e il motivo sta nella riga «DR Case» delle fonti.
 - **Tempi:** vedi sezione 8, «Tempi massimi».
-- **Salvataggio:** tutto è nel repository aziendale fino al 21-11-2026; codice e documenti del
-  22-11-2026 sono da salvare.
+- **Salvataggio:** il lavoro fino al 22-11-2026 (regole DR, risposta adattata al frontend,
+  documenti riorganizzati) è nel ramo `feature/cycle-validation-v2` del repository aziendale.
+  Il comando `confronta` è da salvare.
 
 ## 10. Problemi già visti e cosa fare
 
