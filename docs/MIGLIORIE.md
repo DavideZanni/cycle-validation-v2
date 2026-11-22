@@ -121,6 +121,24 @@ ha gli esiti attesi; il modello fa solo **la proposta**.
 - Prima servono i casi aziendali rivisti: sui sintetici la concordanza è già 99,5-100%. Dopo tre
   giri senza proposte ammesse, si toglie.
 
+### Idee tecniche nate dalle prove sul PC (22-11-2026)
+
+Da decidere: nessuna è necessaria per la consegna. In ordine di valore.
+
+| Id | Idea | Perché (cosa si è visto) | Costo |
+|---|---|---|---|
+| H1 | **Macchine attive come file su S3.** Un job pianificato (per esempio ogni notte: Redshift `UNLOAD`, o una Lambda) scrive l'elenco delle macchine attive accanto alla conoscenza; la v2 lo legge come le targhe (`MACHINES_SOURCE=file`, già pronto) | dal PC Redshift non si raggiunge (Data API senza permesso, nessuna rete verso il cluster): oggi le targhe sul PC escono sempre WARNING. Con il file: niente driver, niente password nel secret, prove complete anche sul PC. Una macchina dismessa non cambia di ora in ora | piccolo lato v2 (c'è già); il job lo fa chi gestisce il datalake |
+| H2 | **Ingestion guidata dalla domanda.** Il servizio conta i manuali `FONTE_ASSENTE` e scrive ogni giorno la classifica dei più chiesti (S3 o CloudWatch); l'ingestion parte da lì | ingestionare tutto costa troppo (circa 2000 file), e i cicli «con errori» non sono misurabili senza i loro manuali. Il comando `manuali` lo fa a mano sul PC | piccolo |
+| H3 | **`kb-check` dentro l'ingestion**, prima di spostare `current.json` | oggi la v2 rifiuta all'avvio una conoscenza rotta (B7): meglio che una versione rotta non venga mai pubblicata. Errori come la targa «90» si vedrebbero subito | piccolo, lato knowledge-index |
+| H4 | **Prova «ombra» in QA:** la v2 riceve una copia delle richieste della v1, l'utente vede solo la v1, i due esiti si confrontano | misura la v2 su cicli veri senza rischio e senza chiedere niente agli utenti; oggi la misura dipende da pochi cicli preparati a mano | medio: un secondo servizio e un confronto |
+| H5 | **Validazione come lavoro in coda:** il POST risponde subito con un numero, il frontend chiede lo stato (o riceve l'avanzamento, «operazione 12 di 40»); i lavori in una coda (SQS) con più worker | oggi una richiesta HTTP resta aperta fino a 10 minuti con un worker solo: T1 sparisce e si regge più traffico | medio-grande: serve anche il frontend |
+| H6 | **Il ciclo dai dati strutturati invece che dal PDF**, se il sistema che stampa PVRM320 ha le stesse informazioni in una tabella (forse nel datalake) | metà dei problemi visti sono di lettura: stampe modificate a mano, righe fuori ordine, colonne tolte. Da chiedere (domanda per le persone) | dipende da dove sono i dati |
+| H7 | **Gli esperimenti dentro AWS** (CodeBuild o un task ECS) invece che sul PC: stessi comandi `eval`, fuori escono solo le misure | EJ200 non si può provare fuori da AWS, Redshift nemmeno; sul PC ogni prova passa da foto | medio |
+| H8 | **Il feedback del frontend diventa un caso di prova:** una risposta segnata sbagliata dall'utente finisce in una cartella per `eval prepara` | i casi aziendali rivisti sono la cosa che manca di più agli esperimenti (vedi «Ordine consigliato») | piccolo-medio |
+| H9 | **OpenSearch solo come riserva**, non al posto della ricerca per codice: quando il task non c'è o la fonte non ha task (F4, LEAP), la ricerca propone i passi candidati, e la citazione si controlla sempre come oggi | la ricerca per codice dà citazioni verificabili, che è il punto della v2; una ricerca per somiglianza da sola riporterebbe il problema della v1 (passi «simili» ma non quelli giusti). Da misurare con le varianti | medio, più il costo del cluster |
+| H10 | **Prompt caching di Bedrock** per le parti uguali tra le sessioni dello stesso ciclo (istruzioni, stesso capitolo per più operazioni), e **batch di Bedrock** per gli esperimenti | meno costo e meno tempo; da verificare quanto la cache funziona già con l'agente | piccolo, dopo B1 |
+| H11 | **Python 3.14 in `.python-version`** | tutti i PC e il Dockerfile della v1 usano 3.14: ogni blocco di COPILOT ripete `$env:UV_PYTHON` | piccolo: provare la suite su 3.14 prima |
+
 ### Punti aperti lato knowledge-index (lì, non qui)
 
 - `aliases.json`: i nomi con cui i cicli veri citano manuali e documenti, LEAP compresi.
@@ -141,6 +159,8 @@ Prima di tutto la consegna: i punti di `MEMORIA.md`, sezione 1. Poi, per miglior
 5. F4: quando c'è un ciclo LEAP vero.
 6. D, rotte storiche, quando il frontend è pronto.
 7. E1, dopo i casi aziendali rivisti.
+8. Le idee H: H1 e H3 sono le più semplici e tolgono problemi visti; H4 e H5 dopo il
+   passaggio in produzione.
 
 ---
 
