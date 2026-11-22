@@ -313,6 +313,9 @@ def test_pdfium_is_never_entered_by_two_threads_at_once(monkeypatch: pytest.Monk
         def get_text_bounded(self) -> str:
             return TEXT
 
+        def count_chars(self) -> int:
+            return 0
+
         def close(self) -> None:
             return None
 

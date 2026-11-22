@@ -29,6 +29,34 @@ def build_pdf(pages: list[str]) -> bytes:
         objects.append(page.encode())
         objects.append(b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream")
 
+    return _assemble(objects)
+
+
+def build_positioned_pdf(pages: list[list[tuple[int, int, str]]]) -> bytes:
+    """PDF con testo a posizioni fisse, in Courier 10 (6 punti per carattere, 12 per riga).
+    Ogni pezzo è (riga, colonna, testo) e i pezzi finiscono nel PDF nell'ordine dato: così
+    si imita una stampa modificata a mano, dove le righe toccate finiscono in fondo."""
+    objects: list[bytes] = []
+    kids = " ".join(f"{4 + 2 * index} 0 R" for index in range(len(pages)))
+    objects.append(b"<< /Type /Catalog /Pages 2 0 R >>")
+    objects.append(f"<< /Type /Pages /Kids [{kids}] /Count {len(pages)} >>".encode())
+    objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>")
+    for index, pieces in enumerate(pages):
+        operators = ["BT", "/F1 10 Tf"]
+        for row, column, text in pieces:
+            operators.append(f"1 0 0 1 {20 + 6 * column} {780 - 12 * row} Tm ({_escape(text)}) Tj")
+        operators.append("ET")
+        stream = "\n".join(operators).encode("latin-1")
+        page = (
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+            f"/Resources << /Font << /F1 3 0 R >> >> /Contents {5 + 2 * index} 0 R >>"
+        )
+        objects.append(page.encode())
+        objects.append(b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream")
+    return _assemble(objects)
+
+
+def _assemble(objects: list[bytes]) -> bytes:
     output = bytearray(b"%PDF-1.4\n")
     offsets: list[int] = []
     for number, body in enumerate(objects, start=1):

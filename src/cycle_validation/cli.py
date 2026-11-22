@@ -211,6 +211,11 @@ _DR_CASE = re.compile(r"D\.\s*R\.\s*CASE\s*#?\s*(\d{6,})", re.IGNORECASE)
 _CODE_TOKEN = re.compile(r"\S*\d\S*")
 
 
+def _masked_quotes(text: str) -> str:
+    """Un messaggio del programma: si mascherano solo i pezzi di documento tra « »."""
+    return re.sub(r"«([^»]*)»", lambda m: f"«{_masked(m[1])}»", text)
+
+
 def _masked(text: str) -> str:
     """Le parole con almeno una cifra diventano forme: «AB12-3C» → «AA99-9A». Le altre restano."""
 
@@ -258,19 +263,23 @@ def read_cycles(
         except CycleValidationError as error:
             typer.echo(f"  non letto: {error}")
             continue
+        reordered = [str(page.number) for page in pdf.pages if page.reordered]
+        if reordered:
+            typer.echo(f"  pagine rimesse nell'ordine della pagina: {', '.join(reordered)}")
         if struttura is not None:
             if not 1 <= struttura <= len(pdf.pages):
                 typer.echo(f"  pagina {struttura} non c'è (pagine: {len(pdf.pages)})")
                 continue
+            if pdf.pages[struttura - 1].reordered:
+                typer.echo("  (righe rimesse nell'ordine della pagina: stampa modificata a mano)")
             for number, shape in enumerate(page_structure(pdf.pages[struttura - 1].text), 1):
                 # solo la parola tra « » viene dal documento: si maschera quella
-                shape = re.sub(r"«([^»]*)»", lambda m: f"«{_masked(m[1])}»", shape)
-                typer.echo(f"  {number:3} | {shape}")
+                typer.echo(f"  {number:3} | {_masked_quotes(shape)}")
             try:
                 parse_pvrm320(pdf)
                 typer.echo("  parser: letto")
             except CycleValidationError as error:
-                typer.echo(f"  parser: {_masked(str(error))}")
+                typer.echo(f"  parser: {_masked_quotes(str(error))}")
             continue
         if cerca:
             # per capire cosa c'è nella stampa senza far vedere codici veri nelle foto
@@ -402,7 +411,7 @@ def compare_cycles(
         try:
             cycles.append(parse_pvrm320(read_pdf(path, limits)))
         except CycleValidationError as error:
-            typer.echo(f"il {which} non è letto dal parser: {_masked(str(error))}")
+            typer.echo(f"il {which} non è letto dal parser: {_masked_quotes(str(error))}")
     if len(cycles) < 2:
         return
     lines = _cycle_differences(*cycles)

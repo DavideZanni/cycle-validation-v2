@@ -2,6 +2,8 @@
 
 import hashlib
 import threading
+from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +30,8 @@ class PdfPage(BaseModel):
 
     number: int
     text: str
+    # True se le righe sono state rimesse nell'ordine in cui si vedono (stampa modificata)
+    reordered: bool = False
 
 
 class PdfDocument(BaseModel):
@@ -47,16 +51,91 @@ class PdfDocument(BaseModel):
         return sum(len(page.text) for page in self.pages)
 
 
-def _page_text(document: Any, index: int) -> str:
+@dataclass
+class _Segment:
+    """Una riga del testo come PDFium la scrive, con la sua posizione sulla pagina."""
+
+    text: str
+    bottom: float
+    left: float
+    right: float
+    height: float
+    char_width: float
+
+
+def _segments(textpage: Any) -> list[_Segment]:
+    count = textpage.count_chars()
+    full: str = textpage.get_text_range(0, count) if count else ""
+    segments: list[_Segment] = []
+    start = 0
+    for end in range(len(full) + 1):
+        if end < len(full) and full[end] not in "\r\n":
+            continue
+        boxes = [
+            textpage.get_charbox(i) for i in range(start, min(end, count)) if not full[i].isspace()
+        ]
+        if boxes:
+            widths = [box[2] - box[0] for box in boxes]
+            segments.append(
+                _Segment(
+                    text=full[start:end].rstrip(),
+                    bottom=boxes[0][1],
+                    left=boxes[0][0],
+                    right=boxes[-1][2],
+                    height=max(box[3] - box[1] for box in boxes),
+                    char_width=sorted(widths)[len(widths) // 2] or 1.0,
+                )
+            )
+        start = end + 1
+    return segments
+
+
+def _rows(segments: list[_Segment]) -> list[list[_Segment]]:
+    """Segmenti raggruppati per riga visiva, dall'alto in basso (y del PDF che scende)."""
+    tolerance = max(2.0, 0.4 * sorted(s.height for s in segments)[len(segments) // 2])
+    rows: list[list[_Segment]] = []
+    for segment in sorted(segments, key=lambda s: -s.bottom):
+        if rows and abs(rows[-1][0].bottom - segment.bottom) <= tolerance:
+            rows[-1].append(segment)
+        else:
+            rows.append([segment])
+    return rows
+
+
+def _in_reading_order(segments: list[_Segment]) -> bool:
+    if len(segments) < 2:
+        return True
+    tolerance = max(2.0, 0.4 * sorted(s.height for s in segments)[len(segments) // 2])
+    return all(later.bottom <= earlier.bottom + tolerance for earlier, later in pairwise(segments))
+
+
+def _merged_row(row: list[_Segment]) -> str:
+    """I pezzi della stessa riga, da sinistra a destra, con gli spazi che li separano."""
+    pieces = sorted(row, key=lambda s: s.left)
+    text = pieces[0].text
+    for before, piece in pairwise(pieces):
+        gap = round((piece.left - before.right) / max(before.char_width, 1.0))
+        text += " " * max(gap, 1) + piece.text.lstrip()
+    return text
+
+
+def _page_text(document: Any, index: int) -> tuple[str, bool]:
+    """Testo della pagina. Se le righe nel PDF non sono nell'ordine in cui si vedono (una
+    stampa modificata a mano mette in fondo le righe toccate), si rimettono in ordine di
+    posizione, unendo i pezzi della stessa riga. Altrimenti il testo resta quello di PDFium."""
     page = document[index]
     textpage = page.get_textpage()
     try:
         raw: str = textpage.get_text_bounded()
+        segments = _segments(textpage)
+        reordered = not _in_reading_order(segments)
+        if reordered:
+            raw = "\n".join(_merged_row(row) for row in _rows(segments))
     finally:
         textpage.close()
         page.close()
     lines = raw.replace("\r\n", "\n").replace("\r", "\n").split("\n")
-    return "\n".join(line.rstrip() for line in lines).strip()
+    return "\n".join(line.rstrip() for line in lines).strip(), reordered
 
 
 def read_pdf_bytes(data: bytes, name: str, limits: FileLimits) -> PdfDocument:
@@ -82,7 +161,10 @@ def read_pdf_bytes(data: bytes, name: str, limits: FileLimits) -> PdfDocument:
             texts = [_page_text(document, index) for index in range(n_pages)]
         finally:
             document.close()
-    pages = tuple(PdfPage(number=number, text=text) for number, text in enumerate(texts, 1))
+    pages = tuple(
+        PdfPage(number=number, text=text, reordered=reordered)
+        for number, (text, reordered) in enumerate(texts, 1)
+    )
     result = PdfDocument(
         name=name, sha256=hashlib.sha256(data).hexdigest(), size_bytes=len(data), pages=pages
     )
