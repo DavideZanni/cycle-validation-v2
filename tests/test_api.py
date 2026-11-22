@@ -190,6 +190,22 @@ def test_conversation_accepts_a_serial_number_without_condition(env: Env) -> Non
     assert response.json()["is_dr"] is True
 
 
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"dr_serial_number": "", "dr_condition": []},
+        {"dr_serial_number": None, "dr_condition": None},
+        {"dr_serial_number": "   ", "dr_condition": ""},
+    ],
+)
+def test_conversation_accepts_the_dr_step_with_empty_fields(env: Env, body: dict[str, Any]) -> None:
+    """Il frontend, tolto l'obbligo, manda il passo DR con i due campi vuoti."""
+    response = env.client.post(f"{BASE}/conversation", json=body, headers=env.auth())
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["is_dr"] is True and "pdf" in data["next_message"].lower()
+
+
 @pytest.mark.parametrize("condition", ["1", "1,2", "[1,2]"])
 def test_dr_upload_accepts_every_condition_format(env: Env, condition: str) -> None:
     response = upload_civil(
@@ -245,8 +261,8 @@ def test_ej200_upload_matches_the_recorded_shape(env: Env) -> None:
     assert not same_shape(body, recorded("upload_success_ej200.json"))
     assert body["job_id"] and body["finished_at"].endswith("+00:00")
     assert (
-        body["result"]["payload"]["operations"][0]["schedaFeedback"]
-        == "N/A - Nessuna scheda indicata."
+        # campo assente: `N/A` esatto, che il frontend mostra grigio come nella v1
+        body["result"]["payload"]["operations"][0]["schedaFeedback"] == "N/A"
     )
 
 

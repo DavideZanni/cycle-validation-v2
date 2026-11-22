@@ -253,7 +253,7 @@ def test_mos_with_the_published_civil_format(tmp_path: Path) -> None:
     assert feedback == [
         ("No er", "No er", "No er"),
         ("Error", "No er", "No er"),
-        ("No er", "Error", "N/A -"),
+        ("No er", "Error", "N/A"),
     ]
 
 
@@ -483,8 +483,8 @@ def test_ej200_from_the_print_to_the_frontend_payload(tmp_path: Path) -> None:
         None,
         None,
         None,
-        {"code": "PG 900", "sp_orig": "X1Y00000002Z000ZZ"},
-        {"code": "16", "sp_orig": "X1Y00000003Z000ZZ"},
+        {"code": "PG 900", "sp_orig": "X1Y00000002Z000ZZ", "tabNumber": "PG 900"},
+        {"code": "16", "sp_orig": "X1Y00000003Z000ZZ", "tabNumber": "16"},
         None,
     ]
     assert ops[3]["operationDescription"].endswith("RACCORDATURA 0.50MM;")
@@ -500,14 +500,15 @@ def test_ej200_from_the_print_to_the_frontend_payload(tmp_path: Path) -> None:
         None,
     ]
     # si cercano nel testo della RDR citata: trovato solo quello della 030
+    # senza task code: `N/A` esatto, grigio nel frontend come nella v1
     assert [op["taskCodeFeedback"][:5] for op in ops] == [
-        "N/A -",
-        "N/A -",
-        "N/A -",
+        "N/A",
+        "N/A",
+        "N/A",
         "Warni",
         "No er",
         "Warni",
-        "N/A -",
+        "N/A",
     ]
 
     # fonte: la RDR citata con la issue 01; nel catalogo c'è la 02, quindi un avviso. Il
@@ -529,7 +530,7 @@ def test_ej200_from_the_print_to_the_frontend_payload(tmp_path: Path) -> None:
         "No er",
     ]
     assert [op["targaCRespFeedback"][:5] for op in ops] == [
-        "N/A -",
+        "N/A",
         "No er",
         "No er",
         "No er",
@@ -537,7 +538,11 @@ def test_ej200_from_the_print_to_the_frontend_payload(tmp_path: Path) -> None:
         "No er",
         "Error",
     ]
-    assert {op["schedaFeedback"][:5] for op in ops} == {"N/A -"}
+    # scheda presente: «N/A - motivo», azzurro «Info» come «N/A, non verificato per EJ200»
+    # della v1; scheda assente: `N/A` grigio
+    assert [op["schedaFeedback"][:5] for op in ops] == [
+        "N/A" if op["scheda"] is None else "N/A -" for op in ops
+    ]
     assert payload["cycle_errors_count"] == 2
     assert payload["cycle_status"] == "completo"
     assert payload["_pipeline_errors"] == []

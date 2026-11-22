@@ -90,7 +90,12 @@ def test_feedback_prefixes() -> None:
     assert feedback_text(ok) == "No errors found."
     assert feedback_text(RESULTS[2]) == "Error found: TM-1 non attiva"
     assert feedback_text(RESULTS[1]) == "Warning: T2 assente"
-    assert feedback_text(RESULTS[3]) == "N/A - nessuna scheda"
+    # campo assente: `N/A` esatto (grigio nel frontend, come nella v1)
+    assert feedback_text(RESULTS[3]) == "N/A"
+    excluded = res(CheckName.PROCESS_SHEET, op(0), Reason.NON_VERIFICATO_PER_PROFILO, "EJ200")
+    assert feedback_text(excluded) == "N/A - EJ200"
+    blocked = res(CheckName.TASK_CODE, op(0), Reason.BLOCCATO_A_MONTE, "DR")
+    assert feedback_text(blocked) == "N/A"
     assert feedback_text(None) == "N/A"
 
 
@@ -156,6 +161,61 @@ def test_payload_adds_cycle_level_check_feedback_when_present() -> None:
     assert payload["drRecommendationFeedback"] == "Error found: Reject"
 
 
+def _dr_payload(reason: Reason, key: str, serial: str | None = "SN-1") -> dict[str, object]:
+    dr = make_result(
+        CheckName.DR_RECOMMENDATION,
+        Target.cycle(),
+        reason,
+        "motivo DR",
+        evidence=[Evidence(document_key=key, quote="Repair")],
+    )
+    meta = META.model_copy(update={"selectors": {"serial_number": serial, "conditions": []}})
+    built = build_report(
+        meta, CYCLE, [*RESULTS, dr], timings_ms={}, pipeline_errors=[], blocked=False
+    )
+    return build_legacy_payload(built)
+
+
+def test_dr_outcome_goes_in_the_source_that_cites_the_dr() -> None:
+    """Il frontend non legge `drRecommendationFeedback`: l'esito DR va nella riga della fonte
+    (colonna Type «DR Case» quando c'è `DRCase`)."""
+    payload = _dr_payload(Reason.DR_NON_VERIFICATA, "m1")
+    (source,) = payload["sources"]  # type: ignore[misc]
+    assert source["DRCase"] == "M1" and source["serialNumber"] == "SN-1"
+    assert source["sourceFeedback"] == "Warning: motivo DR"
+
+
+def test_dr_error_comes_first_and_keeps_the_source_warning() -> None:
+    cycle_results = [
+        res(CheckName.SOURCE, Target.source(0, CYCLE.sources[0]), Reason.FONTE_ASSENTE, "manca")
+    ]
+    dr = make_result(
+        CheckName.DR_RECOMMENDATION,
+        Target.cycle(),
+        Reason.DR_NON_APPLICABILE,
+        "Reject",
+        evidence=[Evidence(document_key="M1")],
+    )
+    built = build_report(
+        META, CYCLE, [*cycle_results, dr], timings_ms={}, pipeline_errors=[], blocked=True
+    )
+    (source,) = build_legacy_payload(built)["sources"]
+    assert source["sourceFeedback"] == "Error found: Reject | Warning: manca"
+
+
+def test_dr_outcome_gets_its_own_row_when_no_source_cites_the_dr() -> None:
+    payload = _dr_payload(Reason.DR_NESSUNA_CORRISPONDENZA, "DR-999")
+    first, second = payload["sources"]  # type: ignore[misc]
+    assert first["DRCase"] == "DR-999" and first["serialNumber"] == "SN-1"
+    assert first["sourceFeedback"] == "Error found: motivo DR"
+    assert "DRCase" not in second and second["sourceFeedback"] == "No errors found."
+
+
+def test_payload_sheet_has_the_tab_number_the_frontend_shows() -> None:
+    first = build_legacy_payload(report())["operations"][0]
+    assert first["scheda"]["tabNumber"] == "SP-1" and first["scheda"]["code"] == "SP-1"
+
+
 def test_markdown_has_one_row_per_operation_and_a_column_per_check() -> None:
     text = render_markdown(report())
     assert "Operazione" in text
@@ -213,7 +273,7 @@ def test_ej200_payload_has_the_columns_of_the_results_table() -> None:
         "operationDescription": "LAVAGGIO DEL COMPONENTE SECONDO SCHEDA PROCESSO.",
         "targaCResp": "IM0294",
         "taskCodeCited": None,
-        "scheda": {"code": "PG 300", "sp_orig": "X1Y22300001Z999ZZ"},
+        "scheda": {"code": "PG 300", "sp_orig": "X1Y22300001Z999ZZ", "tabNumber": "PG 300"},
         "operationFeedback": "N/A",
         "targaCRespFeedback": "N/A",
         "taskCodeFeedback": "N/A",

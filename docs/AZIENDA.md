@@ -215,6 +215,11 @@ Se il file non è del tipo scelto la risposta è 422 "Modulo sbagliato". Le rott
 risponde `Errore interno (<Tipo>).`; `state: succeeded` non vuol dire che ogni controllo sia
 stato fatto, contano i WARNING e `_pipeline_errors`.
 
+Il frontend di oggi usa le rotte storiche (`/conversation`, `/upload`, `/ej200/…`) e legge i
+testi come la v1: la v2 manda `N/A` esatto per i campi vuoti, mette l'esito DR nella riga della
+fonte DR (`DRCase`, `serialNumber`) e accetta il passo DR con i due campi vuoti. Il dettaglio è
+in `MEMORIA.md`, sezione 8.
+
 ## 8. Confronto con il sistema attuale
 
 Gli stessi cicli passano dal sistema attuale e da questo; per ogni differenza: uguale, meglio o

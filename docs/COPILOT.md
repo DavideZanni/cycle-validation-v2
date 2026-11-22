@@ -5,7 +5,7 @@ Questo è il file da usare sul PC. Dentro ci sono:
 1. cosa fare adesso;
 2. i comandi da lanciare (blocchi da copiare e incollare);
 3. le domande per Copilot;
-4. le domande per le persone che conoscono i cicli.
+4. le domande per le persone e il messaggio per il collega del frontend.
 
 Tutto quello che sappiamo già (PC, regole, problemi risolti) è in `docs/MEMORIA.md`.
 
@@ -27,14 +27,19 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ---
 
-## 1. Cosa fare adesso (22-11-2026)
+## 1. Cosa fare adesso (22-11-2026, pomeriggio)
 
-1. Lancia **Aggiornare il codice sul PC** (sezione 2): ci sono le regole DR nuove.
-2. Lancia la **prova del ciclo DR senza serial number e condition** (sezione 5.1).
-3. Fai le **domande a Copilot** (sezione 3) e manda a Claude le foto delle risposte.
-4. Lancia **Salvare nel repository aziendale** (sezione 6).
-5. Quando hai tempo: lancia la **prova del ciclo MOS «con errori»** (sezione 5.2).
-6. Quando capita: fai le **domande alle persone** (sezione 4).
+1. In Copilot passa ad **Ask** (in basso nella chat). Nelle ultime foto era su **Agent** con
+   **Allow all** acceso: così può cambiare file e lanciare comandi senza chiedere.
+2. Lancia **Aggiornare il codice sul PC** (sezione 2): la v2 ora manda le risposte come le
+   legge il frontend.
+3. Lancia la **prova del ciclo DR senza serial number e condition** (sezione 5.1).
+4. Lancia **Quanto dura una validazione** (sezione 5.3): non costa niente.
+5. Lancia **Salvare nel repository aziendale** (sezione 6).
+6. Fai a Copilot le **domande C13 e C14** (sezione 3).
+7. Manda al collega del frontend il **messaggio** della sezione 4.1.
+8. Quando hai tempo: lancia la **prova del ciclo MOS «con errori»** (sezione 5.2).
+9. Quando capita: fai le **domande alle persone** (sezione 4).
 
 ---
 
@@ -67,8 +72,8 @@ uv run pytest -q
 
 ## 3. Domande per Copilot
 
-Copilot può leggere il codice del repository aziendale (la v1, forse anche il frontend). Queste
-domande servono a collegare la v2 al frontend senza sorprese.
+Copilot può leggere il codice del repository aziendale. Alle domande C1-C12 ha già risposto il
+22-11-2026 (le risposte sono in `MEMORIA.md`, sezione 8). Ne restano due.
 
 **Prima di cominciare, due cose importanti:**
 
@@ -83,58 +88,33 @@ Poi incolla questo messaggio:
 Fai solo il consulente: non eseguire comandi, non creare, modificare o cancellare file, non
 fare commit. Puoi solo leggere i file del workspace.
 
-Apri app_cycle_validation_v2/docs/COPILOT.md, sezione "3. Domande per Copilot", e rispondi a
-ogni domanda da C1 a C12, nell'ordine, cercando nel codice di tutto il repository (v1 in
-app_cycle_validation/, frontend se c'è, file di deploy).
+Apri app_cycle_validation_v2/docs/COPILOT.md, sezione "3. Domande per Copilot", e rispondi
+alle domande C13 e C14, cercando nel codice della v1 (app_cycle_validation/) e, se lo vedi,
+del frontend.
 
 Per ogni risposta: numero della domanda, file e funzione (percorso esatto), il pezzo di codice
-che conta (breve) e la risposta in due o tre righe, in modo semplice. Se non lo trovi o non sei
-sicuro, scrivi "non trovato": non supporre. Non scrivere valori di segreti, account AWS, ARN,
-URL o host interni, nomi di bucket: al loro posto <omesso>. I nomi delle variabili invece sì.
+o di prompt che conta (breve) e la risposta in due o tre righe, in modo semplice. Se non lo
+trovi o non sei sicuro, scrivi "non trovato": non supporre. Non scrivere valori di segreti,
+account AWS, ARN, URL o host interni, nomi di bucket, codici veri di manuali, cicli o DR: al
+loro posto <omesso>. I nomi delle variabili invece sì.
 ```
 
-**Manda a Claude:** le foto di tutte le risposte. Se Copilot si ferma a metà, scrivigli
-«continua dalla domanda C…».
+**Manda a Claude:** le foto delle risposte.
 
 **Le domande** (Copilot le legge da qui, tu non devi copiarle):
 
-- **C1. Dov'è il frontend?** In quale cartella c'è il codice della pagina *Cycle Validation*
-  (quella che chiede «Which cycle do you want to validate?»)? Se non è in questo repository,
-  dillo.
-- **C2. Come sceglie il bollino?** Quale funzione guarda il testo di un risultato e decide se
-  mostrare `OK`, `Warning`, `Error`, `N/A` o `Info`? Incollala. Quando esce `Info` e quando
-  `N/A` grigio? Un testo che comincia con `"N/A - "` che bollino dà?
-- **C3. Passed o Errors?** Quando la pagina scrive «Validation Passed» e quando «Completed with
-  Errors»? Da dove prende il numero «N errors» e il «1 err» vicino all'operazione? (un campo
-  come `cycle_errors_count`, oppure conta i testi che cominciano con «Error found»?)
-- **C4. Quali campi legge?** Elenca i campi della risposta che il frontend usa (quelli in alto,
-  quelli di `sources` e quelli di `operations`) e dove li mostra. Da dove vengono la colonna
-  *Type* («Manual») e le etichette «MOS Cycle» / «EJ200 Cycle»? Usa anche `cycle_status`,
-  `drRecommendationFeedback` o `_pipeline_errors`?
-- **C5. Serial number e condition: come li manda?** Per un ciclo DR, con quale indirizzo e con
-  quali nomi il frontend manda `Serial Number (S/N)` e `DR Condition Numbers`? Come testo
-  (`"1,2"`) o come lista? Se sono vuoti, il pulsante CONFIRM si può premere lo stesso?
-- **C6. Serial number e condition nella v1.** Cosa ci fa la v1? Legge il serial number anche
-  dal PDF? Cosa fa se lo stesso serial number ha più recommendation?
-- **C7. Quali indirizzi chiama?** Quali rotte chiama il frontend in tutto il percorso (inizio,
-  scelta del tipo, caricamento del PDF, elenco delle chat a sinistra, pollice su/giù,
-  download), e con quali campi? Con quale variabile si sceglie l'indirizzo del backend? (il
-  nome, non il valore)
-- **C8. Cosa scarica?** Il pulsante di download in alto a destra cosa scarica (JSON, PDF,
-  Excel…)? Lo prepara il frontend o lo chiede al backend?
-- **C9. Quanto aspetta?** Il frontend ha un tempo massimo di attesa per la validazione? Quanti
-  secondi? E il gateway o il backend della v1?
-- **C10. Macchine attive nella v1.** Come legge la v1 l'elenco delle macchine attive (Redshift
-  o altro)? Nomi delle variabili e colonne usate dalla query, senza valori.
-- **C11. «non verificato per EJ200».** Dove nasce questo testo sulle schede EJ200? Il frontend
-  lo tratta in modo speciale?
-- **C12. Come gira la v1?** Come viene messa in funzione la v1 dietro il gateway (Dockerfile,
-  buildspec, ECS, Lambda, SageMaker…)? Elenca i file e cosa fanno, in breve. Serve per mettere
-  la v2 nello stesso posto e provarci i cicli EJ200.
+- **C13. La scheda nella v1.** Il frontend mostra `scheda.tabNumber`, `scheda.task` e
+  `scheda.class`. Cosa ci mette la v1 in questi tre campi, per un ciclo civile (MOS/DR) e per
+  uno EJ200? Da quale colonna o scritta della stampa vengono? Incolla il pezzo del prompt di
+  estrazione o del codice che li riempie.
+- **C14. DR fermo nella v1.** Quando la validazione DR si ferma (`Reject`, `Accept as is`,
+  nessuna recommendation per quelle condition), in quale campo della risposta la v1 scrive il
+  motivo che l'utente vede? E i campi `DRCase` e `serialNumber` delle `sources`: chi li
+  riempie e con cosa (dal PDF, dai dati DR, da quello che scrive l'utente)?
 
 ---
 
-## 4. Domande per le persone che conoscono i cicli
+## 4. Domande per le persone
 
 Queste Copilot non le sa: la risposta non è nel codice. Chiedile quando capita e scrivi a
 Claude la risposta a parole (senza codici veri).
@@ -150,6 +130,31 @@ Claude la risposta a parole (senza codici veri).
 - **P4. Targa «90» nell'indice** (per chi cura knowledge-index). Nel file delle targhe la
   `90` ha come funzione una frase sbagliata e le lettere accentate rovinate. Va corretta
   nell'indice (i passi sono in `MEMORIA.md`, «Da correggere nell'indice»).
+- **P5. Dove gira la v1** (per chi gestisce AWS o il gateway). Il backend della v1 è
+  un'immagine Docker in ECR, ma dove gira (ECS o altro)? Chi configura il gateway che manda
+  `/cycle_validation` al backend? Serve per mettere la v2 accanto e provare i cicli EJ200
+  dentro AWS.
+
+### 4.1 Messaggio per il collega del frontend
+
+Oggi il pulsante **Confirm** resta spento se serial number o condition sono vuoti. La v2 non
+ne ha più bisogno. Mandagli questo messaggio (Teams o mail):
+
+```text
+Ciao! Per la v2 di Cycle Validation il serial number e le DR condition diventano facoltativi
+(il serial number, se manca, si prende dalla stampa del ciclo).
+
+In CycleValidationPage.tsx il pulsante Confirm resta spento se uno dei due campi è vuoto: si
+può lasciarlo attivo anche con i campi vuoti? Le due caselle possono restare, con la scritta
+"facoltativo".
+
+Il backend v2 accetta dr_serial_number e dr_condition vuoti (stringa vuota, null o lista
+vuota) sia in POST /cycle_validation/conversation sia nel form di
+POST /cycle_validation/upload. Tutto il resto resta uguale: stessi indirizzi, stessi campi,
+stessa risposta.
+```
+
+**Scrivi a Claude** la risposta del collega, a parole.
 
 ---
 
@@ -205,13 +210,29 @@ tabella con le fonti e i task: esito, motivo e spiegazione.
 
 **Manda a Claude:** la foto della riga dei conteggi e della tabella (anche in due foto).
 
+### 5.3 Quanto dura una validazione
+
+Il frontend aspetta al massimo 660 secondi l'upload e il backend della v1 ferma tutto dopo 600
+secondi. Questo blocco legge i report delle prove già fatte e mostra quanto è durata ognuna.
+Non chiama il modello e non costa niente.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+Get-ChildItem runs -Directory | ForEach-Object { $f = Join-Path $_.FullName "report.json"; if (Test-Path $f) { $j = Get-Content $f -Raw | ConvertFrom-Json; [pscustomobject]@{ prova = $_.Name; operazioni = @($j.cycle.operations).Count; secondi = [math]::Round($j.timings_ms.total / 1000) } } } | Sort-Object secondi -Descending | Format-Table -AutoSize
+```
+
+**Deve uscire:** una tabella con il nome della prova, il numero di operazioni e i secondi.
+Tutto sotto 600 va bene.
+
+**Manda a Claude:** la foto della tabella.
+
 ---
 
 ## 6. Salvare nel repository aziendale
 
-Da lanciare quando Claude dice che ci sono cose nuove da salvare (**adesso sì**: regole DR e
-documenti nuovi del 22-11-2026). Prima lancia **Aggiornare il codice sul PC**, poi questi due blocchi,
-uno alla volta.
+Da lanciare quando Claude dice che ci sono cose nuove da salvare (**adesso sì**: regole DR,
+risposte adattate al frontend e documenti nuovi del 22-11-2026). Prima lancia **Aggiornare il
+codice sul PC**, poi questi due blocchi, uno alla volta.
 
 Salva solo codice, test, documenti e casi di prova della v2. I dati aziendali (`data/`,
 `runs/`, `eval/casi/aziendali/`, i PDF) restano fuori: git li ignora.
@@ -221,7 +242,7 @@ Salva solo codice, test, documenti e casi di prova della v2. I dati aziendali (`
 ```powershell
 git add src tests docs eval/casi/sintetici
 git status --short
-git commit -m "v2: DR, serial number e condition facoltativi, accept as is blocca; documenti riorganizzati"
+git commit -m "v2: DR con serial number e condition facoltativi, accept as is blocca; risposta adattata al frontend; documenti riorganizzati"
 ```
 
 **Deve uscire:** in `git status` solo righe sotto `src/`, `tests/`, `docs/`,

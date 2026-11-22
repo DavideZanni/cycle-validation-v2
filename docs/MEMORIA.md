@@ -83,9 +83,14 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
     `CIVIL_KNOWLEDGE_POINTER` quando si configura il servizio);
   - `retrieval_output/`: la conoscenza della v1.
 - **Macchine attive**: in azienda vengono da Redshift. Non sono ancora collegate, quindi le
-  targhe escono WARNING `ERRORE_TECNICO` e il ciclo è `parziale`. La v1 le prende da una
-  tabella con il filtro `work_center_usage_cd = 'TO'` e la targa in `work_center_cd`; il nome
-  della tabella va in `MACHINES_QUERY` sul server (non nel repository).
+  targhe escono WARNING `ERRORE_TECNICO` e il ciclo è `parziale`. La v1 le legge in
+  `verify_active_TM` con `redshift_connector` (porta 5439): colonne `work_center_cd` (la
+  targa) e `work_center_usage_cd`, filtro `work_center_usage_cd = 'TO'`. Le credenziali
+  vengono da `get_db_credentials()`, in un file che Copilot non può leggere; `config.py` ha una
+  variabile `SECRET_NAME` sotto «Redshift Configuration». Se la query fallisce, la v1 salta il
+  controllo (la v2 invece dà WARNING: più prudente). La v2 non usa la connessione diretta ma la
+  Redshift Data API (`AZIENDA.md`). Il nome della tabella va in `MACHINES_QUERY` sul server
+  (non nel repository).
 - **Frontend**: il gateway QA aziendale (pagina *Cycle Validation*) oggi parla con la v1. La v2
   non è ancora collegata.
 
@@ -180,37 +185,99 @@ frontend meno macchinoso):
 | condition non data, recommendation diverse (`Repair` e `Accept as is`/`Reject`) | WARNING `DR_NON_VERIFICATA`; si va avanti con le sole `Repair` |
 | condition non data, nessuna `Repair` | ERRATO, ciclo bloccato |
 
-Il frontend può quindi togliere le due domande; finché le fa, i valori dati si usano come
-prima. Il serial number è scritto solo in alcune stampe; la condition mai.
+Il frontend può quindi togliere l'obbligo delle due domande (oggi il pulsante Confirm resta
+spento se sono vuote: sezione 8); finché le fa, i valori dati si usano come prima. Il serial
+number è scritto solo in alcune stampe; la condition mai.
 
 ## 8. Il frontend della v1
 
-Visto dalle foto il 22-11-2026.
+Visto dalle foto e dal codice (risposte di Copilot, 22-11-2026).
 
-- **Percorso:** «Which cycle do you want to validate?» → *Civil cycle (DR/MOS)* oppure *EJ200
-  cycle (military)*.
-  - Civile → «Devi validare un ciclo DR?» → *Yes*: chiede `Serial Number (S/N)` e `DR Condition
-    Numbers` (una o più, con le virgole), poi il PDF. *No (MOS)*: chiede subito il PDF.
-  - EJ200: chiede subito il PDF.
-  - Durante il lavoro: «Validating...».
-- **Risultato:** in alto il nome del file e le etichette (codice ciclo, descrizione, tipo,
-  `RC`, «MOS Cycle» o «EJ200 Cycle»). Poi la tabella *Sources* (Repair Code, Type, Reference,
-  Task, Feedback) e la tabella *Operations* (Op #, Description, Targa C.Resp, Task Code,
-  Scheda, Op. Feedback, TM Feedback, Task Code Feedback, Scheda Feedback). Pulsante di
-  download, pollice su/giù, «New validation».
-- **Intestazione:** «Validation Passed» (verde) se non ci sono errori, **anche se ci sono
-  Warning**. «Completed with Errors» (arancione) con «N errors» se c'è almeno un errore, e
-  «1 err» vicino all'operazione.
-- **Bollini:** `OK` verde con «No errors found»; `Warning` giallo con la spiegazione; `Error`
-  rosso con «Error found: …»; `N/A` grigio senza testo; `Info` azzurro con un testo (per
-  esempio «N/A, non verificato per EJ200» sulle schede EJ200).
-- La v2 manda gli stessi campi e gli stessi inizi di testo. **Ancora da capire:** la v2 manda
-  `N/A - <motivo>` per ogni N/A; se il frontend mostra `Info` per ogni N/A con un testo, le
-  celle che oggi sono grigie diventano azzurre (domanda C2 in `COPILOT.md`).
-- **La v1 non è un riferimento.** Dà errori falsi (su un ciclo EJ200, due «Error» con valori
-  che rispettano il limite) e giudizi diversi per casi uguali (stesso task, pezzi dello stesso
-  tipo: OK in un ciclo, Warning nell'altro). Per sapere se la v2 ha ragione serve chi conosce
-  i cicli.
+**Dove sta.** Non nel repository della v1: è nel repository del frontend del collega. La
+pagina con le domande è `CycleValidationPage.tsx`, i risultati li mostra
+`CycleValidationResultDisplay.tsx`. L'indirizzo del backend viene dalla variabile
+`VITE_BACKEND_URL`.
+
+**Percorso.** «Which cycle do you want to validate?» → *Civil cycle (DR/MOS)* oppure *EJ200
+cycle (military)*.
+
+- Civile: `GET /cycle_validation/flow/start?session_id=…`, poi «Devi validare un ciclo DR?»
+  → `POST /cycle_validation/conversation` con `{answer: "yes"|"no"}`. Se è DR, chiede
+  `Serial Number (S/N)` e `DR Condition Numbers` e li manda con un secondo
+  `POST /cycle_validation/conversation` `{dr_serial_number, dr_condition: [1, 2]}`.
+- Poi il PDF: `POST /cycle_validation/upload?session_id=…`, form con `file`, `is_dr`,
+  `dr_serial_number`, `dr_condition` (qui come testo `"1,2"`).
+- **Il pulsante Confirm resta spento se serial number o condition sono vuoti.** Per togliere
+  le due domande il collega deve cambiare questo (messaggio pronto in `COPILOT.md`). La v2 è
+  già pronta: accetta i due campi vuoti in tutti e due i passi.
+- EJ200: rotte sotto `/cycle_validation/ej200/…`; l'upload ha solo `file`.
+- Altre rotte: elenco, apertura, salvataggio e cancellazione delle chat
+  (`/cycle_validation/sessions…`), pollice su/giù (`POST /cycle_validation/feedback`).
+  L'header `sso` porta l'utente.
+
+**Risposta letta.** `{state, result: {file_name, payload, error}, error, error_info,
+finished_at, job_id}`. Dal `payload`:
+
+- in alto: `cycleCode`, `cycleDescription`, `operationType`, `repairCode`,
+  `cycle_errors_count`, `_pipeline_errors`;
+- `sources`: `repairCode`, `DRCase`, `manual`, `serialNumber`, `task`, `sourceFeedback`. La
+  colonna *Type* dice «DR Case» se la riga ha `DRCase`, altrimenti «Manual»;
+- `operations`: `operationNumber`, `operationDescription`, `repairCode`, `targaCResp`,
+  `taskCodeCited`, `scheda.tabNumber`, `scheda.task`, `scheda.class` e i quattro feedback;
+- **non legge** `cycle_status` né `drRecommendationFeedback`. `_pipeline_errors` va nel
+  riquadro «Pipeline issues»;
+- l'etichetta «MOS Cycle», «DR Cycle», «EJ200 Cycle» la sceglie il frontend dal percorso.
+
+**Bollini** (funzione `feedbackSeverity`, guarda solo l'inizio del testo, maiuscole non
+contano):
+
+| Testo | Bollino |
+|---|---|
+| vuoto, oppure esattamente `N/A` | `N/A` grigio |
+| comincia con `error` | `Error` rosso |
+| comincia con `warning` | `Warning` giallo |
+| comincia con `no error` | `OK` verde |
+| qualsiasi altro testo (anche `N/A - motivo`) | `Info` azzurro |
+
+**Intestazione.** «Validation Failed» se `state` è `failed`. «Completed with Errors» se
+`cycle_errors_count > 0` oppure `_pipeline_errors` non è vuoto. Altrimenti «Validation
+Passed», **anche con dei Warning**. Il «N errors» in alto è `cycle_errors_count`; il «1 err»
+vicino all'operazione lo conta il frontend (feedback dell'operazione che cominciano con
+`error`). Nella v1, quando il DR ferma il ciclo, `cycle_errors_count = 1`.
+
+**Download.** Un CSV fatto dal browser (`cycle_validation_<nome>_<data>.csv`): metadati, fonti,
+operazioni. Il backend non è chiamato.
+
+**Tempi massimi.** Frontend: 300 s per le chiamate normali, **660 s per l'upload**. Backend v1:
+gunicorn con `--timeout 600`. Un commento parla di 650 s nel gateway nginx, ma nei file non
+c'è. **La v2 deve finire una validazione in meno di 10 minuti** (da misurare: prova 5.3 in
+`COPILOT.md`).
+
+**«N/A, non verificato per EJ200».** Nasce nel backend v1 (`ej200/validation.py`) e va in
+`schedaFeedback` quando un'operazione EJ200 ha una scheda. Il frontend lo mostra `Info`
+azzurro perché non è esattamente `N/A`.
+
+**Come la v2 si adatta** (dal 22-11-2026, `report/legacy_payload.py`):
+
+- `N/A` esatto (grigio) quando il campo manca o il controllo non è partito perché il DR ha
+  fermato il ciclo; `N/A - motivo` (azzurro) quando il controllo è escluso per una regola o
+  per il tipo di ciclo, come fa la v1 con le schede EJ200;
+- l'esito DR va nella riga della fonte che cita il DR (con `DRCase` e `serialNumber`); se
+  nessuna fonte lo cita, si aggiunge una riga DR in cima alle fonti. Se la fonte ha anche un
+  suo avviso, si mostra prima il più grave e poi l'altro, separati da ` | `;
+- la scheda ha anche `tabNumber` (= il codice). Cosa mettere in `scheda.task` e
+  `scheda.class` è da capire (domanda C13).
+
+**La v1 non è un riferimento.** Dà errori falsi (su un ciclo EJ200, due «Error» con valori che
+rispettano il limite) e giudizi diversi per casi uguali. Per sapere se la v2 ha ragione serve
+chi conosce i cicli.
+
+**Come gira la v1.** Nel repository c'è solo la costruzione dell'immagine: `buildspec.yml`
+(immagine Docker pubblicata in ECR, tag del commit e `latest`), `Dockerfile` (Python 3.14,
+gunicorn `app_backend:app` sulla porta 8000), `app_backend.py` (all'avvio legge le variabili da
+Secrets Manager), `vite.config.ts` (solo in locale manda `/cycle_validation/` alla porta
+8003). **Il deploy (ECS o altro) e il gateway che collega `/cycle_validation` non sono nel
+repository**: vanno chiesti a chi li gestisce (P5).
 
 ## 9. Stato delle prove (22-11-2026)
 
@@ -227,7 +294,11 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 - **EJ200:** mai provato con i servizi veri (va fatto dentro AWS).
 - **Ciclo MOS «con errori»:** blocco pronto in `COPILOT.md`; manca sapere quali sono gli
   errori (domanda P3).
-- **Salvataggio:** tutto è nel repository aziendale fino al 21-11-2026; i documenti del
+- **Frontend:** Copilot ha letto il codice del frontend e della v1 il 22-11-2026 (sezione 8). La
+  v2 è stata adattata. Mancano: cosa va in `scheda.task` e `scheda.class` (C13), dove la v1
+  mostra lo stop DR (C14), il tempo vero di una validazione (prova 5.3), la modifica del
+  pulsante Confirm (collega), dove gira la v1 (P5).
+- **Salvataggio:** tutto è nel repository aziendale fino al 21-11-2026; codice e documenti del
   22-11-2026 sono da salvare.
 
 ## 10. Problemi già visti e cosa fare
@@ -246,7 +317,7 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | `PermissionError [WinError 5]` | antivirus | il codice riprova; un test può fallire una volta: si rilancia |
 | Copilot rifiuta un comando o un file | blocco su `data/` | lancia l'utente, non aggirare |
 | Copilot spiega invece di rispondere | gli è stato incollato un testo senza domande | usare il messaggio pronto in `COPILOT.md` |
-| Copilot in modalità Agent | scelta in basso nella chat | passare ad Ask |
+| Copilot in modalità Agent (anche con «Allow all» acceso) | scelta in basso nella chat | passare ad Ask. Il 22-11 ha risposto alle domande in Agent senza cambiare niente, ma in Agent potrebbe |
 | Il bucket si vede in una foto | è aperto `data/bucket.txt` | non ripeterlo; chiedere di chiudere il file |
 | Un esito della v1 sembra sbagliato | la v1 sbaglia | non usarla come riferimento |
 | I documenti tolti restano sul PC | `robocopy` copia ma non cancella | il blocco di aggiornamento li cancella per nome |
@@ -286,7 +357,13 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezioni 3 
 - **Descrizione:** copiata dal PDF così com'è. L'op. 005 (riga NOTE) resta. L'RC
   dell'operazione è quello della testata della pagina.
 - **`needs_review` nell'indice:** è un promemoria per chi cura l'indice; il programma lo ignora.
-- **Frontend:** lo gestisce un collega.
+- **Frontend:** lo gestisce un collega. La v2 manda i testi come li vuole il frontend di
+  oggi (sezione 8): `N/A` grigio per i campi vuoti, esito DR nella riga della fonte DR.
+- **DR nella v1** (per confronto): serial number letto anche dal PDF, ma sostituito da quello
+  scritto dall'utente; con più recommendation tiene quelle con almeno una condition in comune,
+  se non ne resta nessuna si ferma con errore; con una sola recommendation la usa senza
+  guardare la condition. La v2 fa lo stesso, e in più funziona senza serial number e
+  condition.
 - **Repository:** si lavora su `main`; un codice vero rimasto in un vecchio messaggio di commit
   si lascia così (nessuna riscrittura della storia).
 
