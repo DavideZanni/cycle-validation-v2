@@ -34,11 +34,10 @@ Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i pas
 1. In Copilot passa ad **Ask** (in basso nella chat): nelle foto è ancora su **Agent** con
    **Allow all**.
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
-3. **5.1** la v2 in locale con login e frontend, al posto della v1. Blocco A e passo B fatti.
-   Ora il **Controllo del passo B** (sistema il nome del secret e la voce composta), poi il
-   **passo C**. Le macchine attive dal PC non si leggono (Redshift non si raggiunge), quindi in
-   locale le targhe escono WARNING «non verificabile». È giusto così: in QA la v2 legge
-   Redshift come la v1.
+3. **5.1** la v2 in locale con login e frontend, al posto della v1. Blocco A, passo B e
+   controllo fatti: la v2 parte. Ora il **passo C**: la prova dal frontend
+   (`http://localhost:3000`), non aprendo direttamente la porta 8003. In locale le targhe
+   escono WARNING «non verificabile» (Redshift dal PC non si raggiunge): è giusto così.
 4. **Ingestion del manuale** trovato prima (uno solo), poi **5.2**: i tre cicli «con errori».
 5. Lancia **Salvare nel repository aziendale** (sezione 6).
 6. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
@@ -173,35 +172,9 @@ terminale. **Questi valori non vanno mandati a Claude** e non vanno nel reposito
 }
 ```
 
-**Controllo del passo B.** Foto del 22-11: in `launch.json` ci sono due cose da sistemare.
-
-1. `CV_ENV_SECRET` ha un nome diverso da quello della v1: all'avvio esce `Secret '...' non
-   leggibile o non valido (ResourceNotFoundException)`.
-2. La voce composta «CV» avvia insieme la v1 e la v2: tutte e due vogliono la porta 8003.
-
-Il blocco confronta il nome con quello in `load_secrets` della v1 (senza stamparli) e se serve
-mette quello della v1; toglie la v2 da «CV» (che torna come prima: login, v1, frontend) e
-aggiunge una voce composta **«CV v2»** con login, frontend e v2. Prima di scrivere fa una
-copia, `launch.json.prima-di-cv2`. Gratis.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-$launch = Join-Path (Resolve-Path "..\..").Path ".vscode\launch.json"
-$testo = Get-Content $launch -Raw
-$v1 = [regex]::Match((Get-Content ..\app_cycle_validation\app_backend.py -Raw), 'load_secrets\(\s*["'']([^"'']+)').Groups[1].Value
-$m = [regex]::Match($testo, '"CV_ENV_SECRET"\s*:\s*"([^"]*)"')
-"nome della v1 trovato: $([bool]$v1) · CV_ENV_SECRET in launch.json: $($m.Success) · uguali: $($m.Success -and $m.Groups[1].Value -eq $v1)"
-$nuovo = $testo
-if ($v1 -and $m.Success -and $m.Groups[1].Value -ne $v1) { $nuovo = $nuovo.Remove($m.Groups[1].Index, $m.Groups[1].Length).Insert($m.Groups[1].Index, $v1); "CV_ENV_SECRET: messo il nome della v1." }
-$nuovo = $nuovo -replace ',\s*"CV v2 \(porta 8003\)"(?=\s*\])', ''
-$c = [regex]::Match($nuovo, '"compounds"\s*:\s*\[')
-if ($c.Success -and $nuovo -notmatch '"name"\s*:\s*"CV v2"') { $nuovo = $nuovo.Insert($c.Index + $c.Length, "`n    { `"name`": `"CV v2`", `"preLaunchTask`": `"Centralizer prerequisites`", `"configurations`": [`"login`", `"app_frontend`", `"CV v2 (porta 8003)`"] },"); "Aggiunta la voce composta CV v2." }
-if ($nuovo -ne $testo) { Copy-Item $launch "$launch.prima-di-cv2" -Force; Set-Content $launch $nuovo -NoNewline -Encoding utf8; "launch.json aggiornato (copia di prima: launch.json.prima-di-cv2)." } else { "launch.json era già a posto." }
-```
-
-**Deve uscire:** `nome della v1 trovato: True · CV_ENV_SECRET in launch.json: True · uguali:
-False`, poi `CV_ENV_SECRET: messo il nome della v1.`, `Aggiunta la voce composta CV v2.` e
-`launch.json aggiornato ...`. Se lo rilanci: `uguali: True` e `launch.json era già a posto.`
+**Controllo del passo B.** Fatto il 22-11: nome del secret uguale alla v1, voce composta «CV v2»
+a parte. La v2 parte (`Uvicorn running on http://127.0.0.1:8003`) e senza token risponde 401
+`Login richiesto.`, come la v1.
 
 `EJ200_VALIDATION_ENABLED` è spento perché in locale la conoscenza EJ200 verrebbe scaricata
 sul PC (regola: resta su AWS). Il pulsante militare il frontend lo mostra lo stesso a chi ha il

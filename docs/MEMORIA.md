@@ -490,6 +490,11 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   `dependencies=[Depends(current_user)]` e usa `user.sso`. `VerifiedUser` ha `sso` e
   `client_id`. **Nessuna rotta legge i servizi dell'utente** e non c'è `request.state` nel
   codice: il permesso lo controlla solo il middleware.
+- **Prima partenza della v2 in locale (22-11 notte).** Con la libreria 0.4.0rc2 `[auth]`, il
+  secret di ambiente della v1 in `CV_ENV_SECRET` e `MACHINES_SOURCE=nessuna` la v2 parte sulla
+  porta 8003. Aperta direttamente nel browser risponde 401 `Login richiesto.` e nel log
+  `chatbot_ai_sdk.auth.middleware ... Request rejected on /: no access token`: l'accesso
+  funziona come nella v1. La prova vera passa dal frontend (porta 3000) dopo il login.
 - **Cosa fa la v2 (dal 22-11 sera, `api/auth.py`).** `API_AUTH=sdk` (scelto da solo se c'è
   `AUTH_INTROSPECT_URL`, cioè con il secret della v1): gli stessi tre pezzi della v1 (token,
   permessi, utente) con gli stessi parametri; l'utente delle sessioni e dei feedback è
