@@ -189,7 +189,26 @@ com'è). Gratis.
 $launch = Join-Path (Resolve-Path "..\..").Path ".vscode\launch.json"; $testo = Get-Content $launch -Raw; $nuovo = $testo -replace '("name"\s*:\s*"CV v2"\s*,\s*)"preLaunchTask"\s*:\s*"[^"]*"\s*,\s*', '$1'; if ($nuovo -ne $testo) { Set-Content $launch $nuovo -NoNewline -Encoding utf8; "Tolto il task dalla voce CV v2." } else { "Niente da togliere." }
 ```
 
-Poi ferma tutto quello che è avviato in Run and Debug (quadrato rosso), scegli la voce composta
+**Correzione dell'origine (foto del 22-11).** Login e frontend funzionano, ma ogni richiesta
+della pagina esce `403 Origine non ammessa.` e nel log `cookie sent from a foreign origin`. La
+libreria accetta solo le richieste che arrivano dall'indirizzo in `FRONTEND_URL`: dal secret
+arriva quello del servizio, in locale il frontend è `http://localhost:3000` (lo stesso che ha il
+login in `launch.json`). Questo blocco aggiunge `FRONTEND_URL` alla configurazione CV v2 (vince
+sul secret) e stampa i **soli nomi** delle variabili nel `.env` della v1, per vedere cos'altro
+la v1 cambia in locale. Gratis.
+
+```powershell
+$launch = Join-Path (Resolve-Path "..\..").Path ".vscode\launch.json"; $testo = Get-Content $launch -Raw
+$m = [regex]::Match($testo, '"CV_ENV_SECRET"\s*:\s*"[^"]*"\s*,')
+if ($m.Success -and $testo -notmatch '"CV_ENV_SECRET"[^}]*"FRONTEND_URL"') { Set-Content $launch ($testo.Insert($m.Index + $m.Length, ' "FRONTEND_URL": "http://localhost:3000",')) -NoNewline -Encoding utf8; "Aggiunto FRONTEND_URL alla configurazione CV v2." } else { "FRONTEND_URL: niente da aggiungere." }
+if (Test-Path ..\app_cycle_validation\.env) { Get-Content ..\app_cycle_validation\.env | ForEach-Object { if ($_ -match '^\s*([A-Za-z_]\w*)\s*=') { "v1 .env: " + $Matches[1] } } } else { "la v1 non ha .env" }
+```
+
+**Deve uscire:** `Aggiunto FRONTEND_URL alla configurazione CV v2.` e l'elenco `v1 .env: <NOME>`
+(solo nomi, nessun valore).
+
+Poi ferma tutto quello che è avviato in Run and Debug (quadrato rosso), riavvia CV v2 (legge
+`launch.json` solo all'avvio), scegli la voce composta
 **«CV v2»** e premi play: avvia login, frontend e v2 (non la v1).
 Nel frontend: entra con il tuo utente, scegli il ciclo civile, MOS, carica la stampa di esempio
 MOS.
