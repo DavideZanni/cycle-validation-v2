@@ -34,11 +34,11 @@ Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i pas
 1. In Copilot passa ad **Ask** (in basso nella chat): nelle foto è ancora su **Agent** con
    **Allow all**.
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
-3. **5.1** la v2 in locale con login e frontend, al posto della v1. Per ora solo il
-   blocco A fatto; passo B fatto, ma il nome del secret era sbagliato: lancia il
-   **Controllo del passo B**, poi il passo C. Le macchine attive dal
-   PC non si leggono (prova del 22-11: Redshift non si raggiunge), quindi in locale le targhe
-   escono WARNING «non verificabile». È giusto così: in QA la v2 legge Redshift come la v1.
+3. **5.1** la v2 in locale con login e frontend, al posto della v1. Blocco A e passo B fatti.
+   Ora il **Controllo del passo B** (sistema il nome del secret e la voce composta), poi il
+   **passo C**. Le macchine attive dal PC non si leggono (Redshift non si raggiunge), quindi in
+   locale le targhe escono WARNING «non verificabile». È giusto così: in QA la v2 legge
+   Redshift come la v1.
 4. **Ingestion del manuale** trovato prima (uno solo), poi **5.2**: i tre cicli «con errori».
 5. Lancia **Salvare nel repository aziendale** (sezione 6).
 6. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
@@ -173,11 +173,16 @@ terminale. **Questi valori non vanno mandati a Claude** e non vanno nel reposito
 }
 ```
 
-**Controllo del passo B.** Prima prova (22-11): all'avvio `Secret '...' non leggibile o non
-valido (ResourceNotFoundException)`. Il nome in `CV_ENV_SECRET` non è quello della v1. Questo
-blocco lo confronta con il nome in `load_secrets` della v1 senza stamparli e, se sono diversi,
-mette in `launch.json` quello della v1 (prima ne fa una copia, `launch.json.prima-di-cv2`).
-Gratis.
+**Controllo del passo B.** Foto del 22-11: in `launch.json` ci sono due cose da sistemare.
+
+1. `CV_ENV_SECRET` ha un nome diverso da quello della v1: all'avvio esce `Secret '...' non
+   leggibile o non valido (ResourceNotFoundException)`.
+2. La voce composta «CV» avvia insieme la v1 e la v2: tutte e due vogliono la porta 8003.
+
+Il blocco confronta il nome con quello in `load_secrets` della v1 (senza stamparli) e se serve
+mette quello della v1; toglie la v2 da «CV» (che torna come prima: login, v1, frontend) e
+aggiunge una voce composta **«CV v2»** con login, frontend e v2. Prima di scrivere fa una
+copia, `launch.json.prima-di-cv2`. Gratis.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -186,20 +191,26 @@ $testo = Get-Content $launch -Raw
 $v1 = [regex]::Match((Get-Content ..\app_cycle_validation\app_backend.py -Raw), 'load_secrets\(\s*["'']([^"'']+)').Groups[1].Value
 $m = [regex]::Match($testo, '"CV_ENV_SECRET"\s*:\s*"([^"]*)"')
 "nome della v1 trovato: $([bool]$v1) · CV_ENV_SECRET in launch.json: $($m.Success) · uguali: $($m.Success -and $m.Groups[1].Value -eq $v1)"
-if ($v1 -and $m.Success -and $m.Groups[1].Value -ne $v1) { Copy-Item $launch "$launch.prima-di-cv2"; Set-Content $launch ($testo.Remove($m.Groups[1].Index, $m.Groups[1].Length).Insert($m.Groups[1].Index, $v1)) -NoNewline -Encoding utf8; "CV_ENV_SECRET corretto con il nome della v1." }
+$nuovo = $testo
+if ($v1 -and $m.Success -and $m.Groups[1].Value -ne $v1) { $nuovo = $nuovo.Remove($m.Groups[1].Index, $m.Groups[1].Length).Insert($m.Groups[1].Index, $v1); "CV_ENV_SECRET: messo il nome della v1." }
+$nuovo = $nuovo -replace ',\s*"CV v2 \(porta 8003\)"(?=\s*\])', ''
+$c = [regex]::Match($nuovo, '"compounds"\s*:\s*\[')
+if ($c.Success -and $nuovo -notmatch '"name"\s*:\s*"CV v2"') { $nuovo = $nuovo.Insert($c.Index + $c.Length, "`n    { `"name`": `"CV v2`", `"preLaunchTask`": `"Centralizer prerequisites`", `"configurations`": [`"login`", `"app_frontend`", `"CV v2 (porta 8003)`"] },"); "Aggiunta la voce composta CV v2." }
+if ($nuovo -ne $testo) { Copy-Item $launch "$launch.prima-di-cv2" -Force; Set-Content $launch $nuovo -NoNewline -Encoding utf8; "launch.json aggiornato (copia di prima: launch.json.prima-di-cv2)." } else { "launch.json era già a posto." }
 ```
 
 **Deve uscire:** `nome della v1 trovato: True · CV_ENV_SECRET in launch.json: True · uguali:
-False` e `CV_ENV_SECRET corretto con il nome della v1.` (oppure `uguali: True`: era già
-giusto). Poi riavvia **CV v2 (porta 8003)** in Run and Debug.
+False`, poi `CV_ENV_SECRET: messo il nome della v1.`, `Aggiunta la voce composta CV v2.` e
+`launch.json aggiornato ...`. Se lo rilanci: `uguali: True` e `launch.json era già a posto.`
 
 `EJ200_VALIDATION_ENABLED` è spento perché in locale la conoscenza EJ200 verrebbe scaricata
 sul PC (regola: resta su AWS). Il pulsante militare il frontend lo mostra lo stesso a chi ha il
 permesso: se lo premi, la v2 risponde che l'EJ200 è spento. È giusto così.
 
-**Passo C: la prova.** In Run and Debug avvia, come per la v1, **login**, **frontend** e
-**CV v2 (porta 8003)** (non il backend della v1). Se per la v1 usi la voce composta «CV», qui
-avvia le tre voci una per una.
+**Passo C: la prova.** Ferma tutto quello che è avviato in Run and Debug (quadrato rosso). Poi
+scegli la voce composta **«CV v2»** e premi play: avvia login, frontend e v2 (non la v1). Se si
+ferma sul task «Centralizer prerequisites», avvia a mano le tre voci **login**,
+**app_frontend** e **CV v2 (porta 8003)**.
 Nel frontend: entra con il tuo utente, scegli il ciclo civile, MOS, carica la stampa di esempio
 MOS.
 
