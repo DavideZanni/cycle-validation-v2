@@ -303,6 +303,30 @@ Secrets Manager), `vite.config.ts` (solo in locale manda `/cycle_validation/` al
 8003). **Il deploy (ECS o altro) e il gateway che collega `/cycle_validation` non sono nel
 repository**: vanno chiesti a chi li gestisce (P5).
 
+### Accesso ai cicli militari (22-11-2026)
+
+Cosa vuole l'utente: chi entra con l'SSO ed è autorizzato ai cicli militari vede i pulsanti
+civile (MOS, DR) e militare (EJ200). Gli altri vedono solo MOS e DR. La pipeline è la stessa per
+tutti e tre.
+
+- **Pipeline:** è già la stessa (`run_validation`). Cambiano solo le impostazioni del profilo:
+  - EJ200 cita pubblicazioni intere, non task di un manuale;
+  - le schede EJ200 non si verificano;
+  - la conoscenza EJ200 resta su AWS EU;
+  - il DR aggiunge il controllo della recommendation, che blocca.
+- **Permessi nella v2:**
+  - il backend legge utente e servizi da due header messi dal frontend (`API_USER_HEADER`,
+    `API_SERVICES_HEADER`);
+  - EJ200 chiede il servizio `cv_ej200` o `all`;
+  - `GET /validation/options` mostra il pulsante militare solo a chi ha uno dei due servizi.
+- **Da sapere (C15-C17):**
+  - come il frontend decide chi vede il pulsante EJ200;
+  - se manda un header con i servizi (oggi sappiamo solo di `sso`);
+  - se la v1 controlla i permessi.
+
+  Se il frontend manda solo `sso`, la v2 risponde 403 a tutti finché non si decide da dove
+  prendere i servizi.
+
 ## 9. Stato delle prove (22-11-2026)
 
 Con Bedrock Haiku 5.5 e la conoscenza di prova:
@@ -365,30 +389,6 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | DR senza dati: `serial number trovato: no` | il blocco ha preso la stampa «SENZA sn» (`*sn.pdf` ne trova due), oppure il serial number è scritto in un modo non previsto | usare `*CON sn.pdf`; `leggi <pdf> --profile dr --cerca "S/N"` mostra le righe con i codici mascherati |
 | Un blocco va avanti anche se il file non c'è (`Missing argument 'pdf'`) | le righe incollate partono una alla volta | mettere il comando dentro `if ($ciclo) { ... }` sulla stessa riga |
 | I documenti tolti restano sul PC | `robocopy` copia ma non cancella | il blocco di aggiornamento li cancella per nome |
-
-### Accesso ai cicli militari (22-11-2026)
-
-Cosa vuole l'utente: chi entra con l'SSO ed è autorizzato ai cicli militari vede i pulsanti
-civile (MOS, DR) e militare (EJ200). Gli altri vedono solo MOS e DR. La pipeline è la stessa per
-tutti e tre.
-
-- **Pipeline:** è già la stessa (`run_validation`). Cambiano solo le impostazioni del profilo:
-  - EJ200 cita pubblicazioni intere, non task di un manuale;
-  - le schede EJ200 non si verificano;
-  - la conoscenza EJ200 resta su AWS EU;
-  - il DR aggiunge il controllo della recommendation, che blocca.
-- **Permessi nella v2:**
-  - il backend legge utente e servizi da due header messi dal frontend (`API_USER_HEADER`,
-    `API_SERVICES_HEADER`);
-  - EJ200 chiede il servizio `cv_ej200` o `all`;
-  - `GET /validation/options` mostra il pulsante militare solo a chi ha uno dei due servizi.
-- **Da sapere (C15-C17):**
-  - come il frontend decide chi vede il pulsante EJ200;
-  - se manda un header con i servizi (oggi sappiamo solo di `sso`);
-  - se la v1 controlla i permessi.
-
-  Se il frontend manda solo `sso`, la v2 risponde 403 a tutti finché non si decide da dove
-  prendere i servizi.
 
 ## 11. Decisioni prese
 
