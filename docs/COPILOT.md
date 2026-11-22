@@ -141,7 +141,7 @@ dei conteggi e della tabella (anche in due foto, se è lunga).
      per EJ200», sulle schede EJ200).
    Dubbio: la v2 manda `N/A - <motivo>` per **ogni** N/A (anche «Nessuna scheda indicata»):
    se il frontend fa `Info` di ogni N/A con un testo, le celle vuote della v1 diventano tutte
-   `Info`. Serve la regola del frontend (domanda a Copilot sotto) prima di decidere.
+   `Info`. Serve la regola del frontend (da chiedere a Copilot, che il codice lo può leggere).
 2. Prima prova di un ciclo **EJ200**: non è ancora mai stata fatta con servizi veri. Documenti
    e output EJ200 devono restare su AWS EU, quindi niente copia della conoscenza EJ200 sul PC e
    niente report EJ200 in `runs\`. Prima di lanciare, Claude scrive il blocco che legge la
