@@ -49,7 +49,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
 
 | # | Cosa | Perché serve | Come si chiude | Chi |
 |---|---|---|---|---|
-| 1 | Misura sugli errori veri | oggi la v2 trova 0 dei 10 errori dei cicli «con errori», perché mancano i manuali | ingestion del manuale citato, poi COPILOT 4.2; Claude confronta con i 10 errori | U, poi C |
+| 1 | Misura sugli errori veri | oggi la v2 trova 0 dei 10 errori dei cicli «con errori», perché mancano i manuali | ingestion del manuale citato, poi COPILOT 4.2 (lista dei manuali, comando `manuali`) e 4.3; Claude confronta con i 10 errori | U, poi C |
 | 2 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Provato in locale il 22-11 (punto 4); da provare in QA | U |
 | 3 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto nel codice**: `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets` (22-11 sera); macchine attive come la v1 con `MACHINES_SOURCE=diretta`: `redshift_connector` con il secret `SECRET_NAME` (22-11 notte). Da provare in QA | C, poi U |
 | 4 | Prova in locale | è il passo prima di develop | **fatto** (22-11 notte): login, frontend e v2 da Run and Debug; ciclo MOS di esempio `Validation Passed` in circa 20 s, con accesso e permessi della v1. Configurazione in `AZIENDA.md`, sezione 7 | — |
@@ -198,7 +198,10 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
 - 23 recommendation DR (17 serial number, 5 con più recommendation).
 
 I **manuali dei motori non ci sono**: le righe che ne hanno bisogno escono WARNING
-`FONTE_ASSENTE`, ed è giusto. **Decisione del 21-11-2026: per ora non si ingestiona altro.**
+`FONTE_ASSENTE`, ed è giusto. Decisione del 21-11-2026: per ora non si ingestiona altro.
+**Cambiata il 22-11 notte:** l'utente ingestiona solo i manuali (e i capitoli) citati dai tre
+cicli «con errori», presi dalla lista del comando `manuali` (COPILOT 4.2), per misurare la v2
+sui 10 errori noti.
 
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
@@ -465,7 +468,7 @@ nell'immagine: arriva dal secret letto da `load_secrets`, con lo stesso nome nei
 - **Pulizia del progetto (22-11 notte).** Tolti dal codice due pezzi mai usati
   (`RemoteKnowledge.structured`, il contatore `text_reads` di EJ200). `COPILOT.md` riscritto corto:
   solo il punto in cui siamo, cosa manca e i blocchi; sezioni nuove: 2 Aggiornare, 3 Salvare, 4
-  prove in locale (4.1 frontend, 4.2 dopo l'ingestion), 5 domande e messaggio, 6 QA. Il blocco
+  prove in locale (4.1 frontend, 4.2 lista dei manuali, 4.3 dopo l'ingestion), 5 domande e messaggio, 6 QA. Il blocco
   Aggiornare ora toglie sul PC i file che nel repository personale non ci sono più (prima
   `robocopy /E` copiava e basta, quindi i file vecchi restavano e finivano nel commit) e copia
   anche `eval/varianti`, `eval/modelli` e `.gitignore`.
@@ -628,7 +631,7 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
   frontend) è nel ramo `feature/cycle-validation-v2` del repository aziendale. Da salvare:
   riordino delle stampe, `confronta`, `macchine`, documenti riordinati.
 
-- **Tre cicli «con errori», 22-11 sera (COPILOT 4.2, senza ingestion nuova).** Fotografia del
+- **Tre cicli «con errori», 22-11 sera (oggi COPILOT 4.3, senza ingestion nuova).** Fotografia del
   22-11 (16 oggetti), poi i tre cicli: 0 errati in tutti e tre (0-3 corretti, 16-19 warning,
   15-18 non applicabili), come prima. Il blocco non fa l'ingestion: ora stampa la versione
   pubblicata accanto a quella del 21-11 per vedere se l'ingestion è arrivata.

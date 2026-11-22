@@ -1,4 +1,4 @@
-"""CLI: `run`, `leggi`, `confronta`, `macchine`, `qa`, `golden`, `kb-check` ed `eval` (esperimenti: `eval esegui`,
+"""CLI: `run`, `leggi`, `confronta`, `manuali`, `macchine`, `qa`, `golden`, `kb-check` ed `eval` (esperimenti: `eval esegui`,
 `eval classifica`)."""
 
 import asyncio
@@ -37,6 +37,7 @@ from cycle_validation.ingest.pdf import read_pdf
 from cycle_validation.ingest.transcribe import make_transcriber
 from cycle_validation.kb.local import load_local_knowledge
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
+from cycle_validation.report.manuals import file_lines, needed_manuals, parse_errors, screen_lines
 from cycle_validation.resolve.dr import SERIAL_IN_TEXT, parse_selectors, serials_in_text
 from cycle_validation.services.machines import load_machine_registry
 
@@ -459,6 +460,47 @@ def compare_cycles(
     )
     for line in lines:
         typer.echo(line)
+
+
+@app.command("manuali")
+def list_manuals(
+    cartelle: Annotated[
+        list[Path], typer.Argument(help="Cartelle delle prove già fatte (con report.json).")
+    ],
+    errori: Annotated[
+        list[str] | None,
+        typer.Option(help="Operazioni con un errore noto: impronta=op,op (si può ripetere)."),
+    ] = None,
+    out: Annotated[Path, typer.Option(help="File con i codici veri (resta sul PC).")] = Path(
+        "runs/manuali-da-ingestionare.txt"
+    ),
+) -> None:
+    """I manuali da mettere nella conoscenza, letti dai risultati delle prove già fatte (zero
+    token): se c'erano, in quanti cicli, per quali errori noti servono. Sullo schermo M1, M2,
+    ...; i codici veri, i capitoli e i task nel file `--out`."""
+    try:
+        errors = parse_errors(errori or [])
+        reports: dict[str, dict[str, Any]] = {}
+        for folder in cartelle:
+            path = folder / "report.json" if folder.is_dir() else folder
+            name = path.parent.name
+            try:
+                reports[name] = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError) as error:
+                typer.echo(f"{name}: report.json non letto ({type(error).__name__}), saltato.")
+        if not reports:
+            raise CycleValidationError("Nessun report.json letto: niente da elencare.")
+    except CycleValidationError as error:
+        raise _fail(error) from error
+    result = needed_manuals(reports, errors)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(file_lines(result)) + "\n", encoding="utf-8")
+    typer.echo(f"Manuali citati in {len(result.cycles)} cicli: {len(result.manuals)}.")
+    for line in screen_lines(result):
+        typer.echo(line)
+    for line in result.unmatched:
+        typer.echo(f"senza manuale: {line}")
+    typer.echo(f"Codici veri, capitoli e task: {out}")
 
 
 def _session_for(name: str) -> Callable[[AgentSettings, Path | None], AgentSession]:

@@ -34,7 +34,8 @@ sul ciclo MOS di esempio). Il comando `qa` ha scritto un Dockerfile e un buildsp
 1. **Aggiornare** (sezione 2). Questa volta toglie anche i file vecchi rimasti sul PC.
 2. **Salvare** (sezione 3), sul ramo feature. QA non cambia.
 3. **Prove in locale dal frontend** (4.1).
-4. **Ingestion del manuale** (la fai tu, con l'ingestion aziendale), poi **4.2**.
+4. **Lista dei manuali** da ingestionare (4.2), poi l'**ingestion** (la fai tu, con l'ingestion
+   aziendale), poi **4.3**.
 5. **Messaggio** al collega del frontend (5.1), se non l'hai già mandato.
 6. **Più avanti, quando lo decidi tu:** pull request verso `develop` e prova in QA
    (sezione 6).
@@ -129,7 +130,7 @@ sempre WARNING e non contano: dal PC Redshift non si raggiunge.
 Prove, nell'ordine (salta quelle che non puoi fare):
 
 1. **I tre cicli «con errori»**, MOS. Conta corretti, warning ed errati: devono essere come
-   nel blocco 4.2.
+   nel blocco 4.3.
 2. **Il ciclo MOS più lungo** che hai: misura il tempo dall'invio al risultato. Deve stare sotto
    i 10 minuti, perché il frontend aspetta al massimo 11.
 3. **Un DR con serial number e condition**, poi **lo stesso DR senza**. Se il pulsante Confirm
@@ -144,7 +145,39 @@ Prove, nell'ordine (salta quelle che non puoi fare):
 scrivi a parole il tempo della prova 2. Se qualcosa non va, manda la foto del frontend e quella
 del log di CV v2 nel terminale.
 
-### 4.2 Dopo l'ingestion: i tre cicli «con errori»
+### 4.2 La lista dei manuali da ingestionare
+
+Gratis: non chiama il modello e non va su AWS. Legge i risultati dei tre cicli «con errori»
+lanciati il 22-11 (cartelle `runs\errori-...`) e, per ogni manuale citato, dice:
+
+- se nella conoscenza di prova c'era (`c'è`, `manca` o `in parte`);
+- in quanti cicli è citato, quanti task e capitoli;
+- per quali dei 10 errori noti serve (la scheda tolta dell'op. 030 di `c5ff3cd6` non c'entra:
+  è la domanda P6).
+
+Sullo schermo i manuali escono come M1, M2, ... (senza codici). I codici veri, l'edizione, i
+capitoli e i task finiscono nel file `runs\manuali-da-ingestionare.txt`, che il blocco apre in
+VS Code: è la lista per l'ingestion. Il file resta sul PC (git ignora `runs/`).
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+$prove = (Get-ChildItem runs -Directory -Filter "errori-*").FullName; "prove trovate: " + @($prove).Count
+uv run cycle-validation manuali $prove --errori 298bc28e=005,035 --errori c5ff3cd6=040 --errori f355dc3c=010,030,040,050
+code runs\manuali-da-ingestionare.txt
+```
+
+**Deve uscire:** `prove trovate: 3`, poi `Manuali citati in 3 cicli: N.` e una riga per manuale
+(`M1: manca · ... · serve per N errori (...)`). In cima ci sono quelli che servono per gli
+errori. Forse qualche riga `senza manuale: ...`: è un'operazione con errore che non cita un task
+delle fonti del ciclo. Si apre il file con i codici veri.
+
+**Cosa ingestionare:** prima i manuali con `serve per ... errori` e stato `manca` o `in parte`,
+solo i capitoli scritti nel file. Se ne resta il tempo, gli altri con `manca`, dall'alto.
+
+**Manda a Claude:** la foto dello schermo (non quella del file).
+
+### 4.3 Dopo l'ingestion: i tre cicli «con errori»
 
 Da lanciare **dopo** l'ingestion del manuale, quando la nuova versione è pubblicata. Il blocco
 **non fa l'ingestion**: quella la fai prima tu.
