@@ -267,7 +267,6 @@ class Ej200KnowledgeBase:
         self._documents: dict[str, DocumentInfo] = {}
         self._building: dict[str, threading.Lock] = {}
         self._data: StructuredData | None = None
-        self.text_reads = 0
 
     @property
     def version(self) -> str:
@@ -319,8 +318,6 @@ class Ej200KnowledgeBase:
         path = self._workdir / "ej200" / digest(cache_key) / file_name(entry.key)
         path.parent.mkdir(parents=True, exist_ok=True)
         if full:
-            with self._lock:
-                self.text_reads += 1
             body = self._read_text(entry) or f"{entry.title or entry.code}: nessun testo su S3."
         else:
             body = f"{entry.code} issue {entry.issue or 'n/d'}: testo non caricato."

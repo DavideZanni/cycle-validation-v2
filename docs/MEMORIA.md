@@ -49,12 +49,12 @@ sugli errori veri aspetta i manuali nella conoscenza.
 
 | # | Cosa | Perché serve | Come si chiude | Chi |
 |---|---|---|---|---|
-| 1 | Misura sugli errori veri | oggi la v2 trova 0 dei 10 errori dei cicli «con errori», perché mancano i manuali | ingestion del manuale citato, poi COPILOT 5.2; Claude confronta con i 10 errori | U, poi C |
-| 2 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Da provare: COPILOT 5.1 | U |
+| 1 | Misura sugli errori veri | oggi la v2 trova 0 dei 10 errori dei cicli «con errori», perché mancano i manuali | ingestion del manuale citato, poi COPILOT 4.2; Claude confronta con i 10 errori | U, poi C |
+| 2 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Provato in locale il 22-11 (punto 4); da provare in QA | U |
 | 3 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto nel codice**: `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets` (22-11 sera); macchine attive come la v1 con `MACHINES_SOURCE=diretta`: `redshift_connector` con il secret `SECRET_NAME` (22-11 notte). Da provare in QA | C, poi U |
 | 4 | Prova in locale | è il passo prima di develop | **fatto** (22-11 notte): login, frontend e v2 da Run and Debug; ciclo MOS di esempio `Validation Passed` in circa 20 s, con accesso e permessi della v1. Configurazione in `AZIENDA.md`, sezione 7 | — |
-| 5 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | **pronto nel codice** (22-11 notte): `cycle-validation qa` sul PC scrive il Dockerfile della v2 da quello della v1 (base, certificati), copia la libreria in `vendor/`, mette i valori aziendali nelle righe `ENV`, copia le impostazioni in `config/settings.azienda.yaml` e sposta il buildspec sulla v2. Primo passaggio con EJ200 spento. COPILOT 7 | U, poi C |
-| 6 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 4.1 | U |
+| 5 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | **pronto nel codice** (22-11 notte): `cycle-validation qa` sul PC scrive il Dockerfile della v2 da quello della v1 (base, certificati), copia la libreria in `vendor/`, mette i valori aziendali nelle righe `ENV`, copia le impostazioni in `config/settings.azienda.yaml` e sposta il buildspec sulla v2. Primo passaggio con EJ200 spento. Dockerfile e buildspec scritti sul PC e controllati (22-11). Manca la pull request verso develop: COPILOT 6 | U |
+| 6 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 5.1 | U |
 | 7 | Prova in QA: EJ200 e targhe | i dati EJ200 non escono da AWS; Redshift si raggiunge solo da AWS | dopo il punto 5, dal frontend QA | U |
 | 8 | Domande agli esperti | P1, P2, P6 (P4 per chi cura l'indice); P7 facoltativa | quando capita | U |
 
@@ -70,7 +70,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
   della v1) e `MACHINES_QUERY` (la query di `verify_active_TM`), a meno che non stiano già nel
   secret di ambiente.
 - **D2. Quando passare a QA.** **Deciso dall'utente (22-11 notte):** prima altre prove in
-  locale dal frontend (COPILOT 5.3), poi QA quando lo dice lui. Il blocco 7.1 e il salvataggio
+  locale dal frontend (COPILOT 4.1), poi QA quando lo dice lui. Il comando `qa` e il salvataggio
   sul ramo `feature/cycle-validation-v2` si fanno subito; solo la pull request verso `develop`
   aspetta (è quella che fa passare QA alla v2). La misura sugli errori (punto 1) può andare avanti in parallelo.
 
@@ -127,7 +127,7 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
 - Allega da solo il file aperto nell'editor: se è un file con accessi o password, va tolto
   dalla chat (la **x**) prima di scrivere.
 - Se gli si incolla un testo senza domande, lo spiega e basta: le domande vanno scritte chiare
-  (vedi la sezione 3 di `COPILOT.md`).
+  («Rispondi solo leggendo il codice, senza modificare né eseguire niente», poi la domanda).
 
 ## 5. I servizi
 
@@ -462,6 +462,13 @@ nell'immagine: arriva dal secret letto da `load_secrets`, con lo stesso nome nei
 - **Seconda prova (22-11 notte): giusta.** `buildspec: percorsi spostati sulla v2: 1` (la copia
   del certificato), tutte le righe del buildspec con `app_cycle_validation_v2`; impostazioni
   copiate con i testi su disco spenti; Dockerfile come previsto. Da salvare sul ramo feature.
+- **Pulizia del progetto (22-11 notte).** Tolti dal codice due pezzi mai usati
+  (`RemoteKnowledge.structured`, il contatore `text_reads` di EJ200). `COPILOT.md` riscritto corto:
+  solo il punto in cui siamo, cosa manca e i blocchi; sezioni nuove: 2 Aggiornare, 3 Salvare, 4
+  prove in locale (4.1 frontend, 4.2 dopo l'ingestion), 5 domande e messaggio, 6 QA. Il blocco
+  Aggiornare ora toglie sul PC i file che nel repository personale non ci sono più (prima
+  `robocopy /E` copiava e basta, quindi i file vecchi restavano e finivano nel commit) e copia
+  anche `eval/varianti`, `eval/modelli` e `.gitignore`.
 - **Perché così:** il repository personale è pubblico; la configurazione resta quella della v1
   (stesso secret di ambiente, stesso nome in QA e in produzione); nessun valore nuovo da
   chiedere a nessuno.
@@ -470,7 +477,7 @@ nell'immagine: arriva dal secret letto da `load_secrets`, con lo stesso nome nei
   aggiornamento ora copia anche `config/`, `prompts/`, `pyproject.toml`, `uv.lock`, `README.md`.
 - **EJ200 spento al primo passaggio:** all'avvio la v2 scarica la conoscenza pubblicata e, se un
   file non è valido, non parte. La conoscenza EJ200 non si può controllare dal PC (resta su
-  AWS), quindi prima si prova il civile, poi si accende EJ200 (COPILOT 7.3).
+  AWS), quindi prima si prova il civile, poi si accende EJ200 (COPILOT 6.3).
 - **Produzione:** passa alla v2 quando il ramo arriva su `main`. Prima serve una prova QA
   riuscita.
 - **Da verificare in QA:** che il ruolo del servizio possa usare Bedrock con il modello delle
@@ -522,7 +529,7 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   ha `ServiceAccessMiddleware` e `S3PermissionsSource`; la 0.3.0 no. Sul PC il `.venv` della
   v1 ha ancora la 0.3.0 (non aggiornato dai requirements): il backend v1 in locale con quel
   `.venv` non ha i pezzi che importa. La v2 installa la riga dei requirements della v1
-  (COPILOT 5.1, blocco A) e nel Dockerfile farà lo stesso.
+  (`AZIENDA.md`, sezione 7) e nel Dockerfile farà lo stesso.
 - **Come la v1 usa la libreria (C21).** Import: `from chatbot_ai_sdk.auth import
   AuthMiddleware, AuthSettings, IntrospectionValidator, current_user, ServiceAccessMiddleware,
   S3PermissionsSource` (in `routes.py` anche `VerifiedUser`). Chiamata:
@@ -551,7 +558,7 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   `validation/options` e `validation/upload` non offrono il militare; i cicli militari passano
   da `/cycle_validation/ej200/...`, come nel frontend di oggi. Senza la libreria installata la
   v2 non parte (meglio che partire senza controllo). `API_AUTH=header` resta per le prove.
-- La libreria nella v2: `uv pip install` del `.whl` della v1 (COPILOT 5.1). `uv run` la
+- La libreria nella v2: `uv pip install` del `.whl` della v1 (`AZIENDA.md`, sezione 7). `uv run` la
   lascia; `uv sync` la toglierebbe (va reinstallata).
 - `GET /validation/options` della v2 mostra il pulsante militare solo a chi ha `cv_ej200` o
   `all` (per un frontend futuro; quello di oggi usa `/login/permissions`).
@@ -587,7 +594,7 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
     descrizioni non confrontate). La scheda tolta esce N/A come nella v1 (P6). Per misurare la
     v2 su questi errori servono quei manuali nella conoscenza.
   - Gli `ERRORE_TECNICO` (7-9 per ciclo) sono tutti sulla targa: sul PC il registro delle
-    macchine non è collegato. Dal 22-11 c'è il comando `macchine` (COPILOT 5.1).
+    macchine non è collegato. Dal 22-11 c'è il comando `macchine`
   - **Lettura di tutte le stampe** (esempi MOS e DR e cartelle `cicli MOS`, `leggi --breve`,
     22-11): **il parser le legge tutte**, tranne `8e6c9c8d` che non ha il layout PVRM320 (la
     legge il modello). Il riordino fa leggere `298bc28e`, `38960731`, `5ff17062`, `f355dc3c`
@@ -619,9 +626,9 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 - **Tempi:** vedi sezione 9, «Tempi massimi».
 - **Salvataggio:** il lavoro fino al 22-11-2026 mattina (regole DR, risposta adattata al
   frontend) è nel ramo `feature/cycle-validation-v2` del repository aziendale. Da salvare:
-  riordino delle stampe, `confronta`, `macchine`, documenti riordinati (COPILOT 6).
+  riordino delle stampe, `confronta`, `macchine`, documenti riordinati.
 
-- **Tre cicli «con errori», 22-11 sera (COPILOT 5.2, senza ingestion nuova).** Fotografia del
+- **Tre cicli «con errori», 22-11 sera (COPILOT 4.2, senza ingestion nuova).** Fotografia del
   22-11 (16 oggetti), poi i tre cicli: 0 errati in tutti e tre (0-3 corretti, 16-19 warning,
   15-18 non applicabili), come prima. Il blocco non fa l'ingestion: ora stampa la versione
   pubblicata accanto a quella del 21-11 per vedere se l'ingestion è arrivata.
@@ -651,17 +658,17 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | I documenti tolti restano sul PC | `robocopy` copia ma non cancella | il blocco di aggiornamento li cancella per nome |
 | `macchine`: «Nel secret mancano host o database» | il secret di Redshift della v1 non ha il database: la v1 lo scrive nella connessione | il comando lo cerca nel codice della v1; se no `--database` |
 | Un blocco Python si ferma su un modulo della libreria standard | un file con lo stesso nome (`inspect.py`) nella cartella TEMP | lo script gira in una cartella sua con `python -I` |
-| Dal frontend locale ogni POST della v2 dà 403 `Origine non ammessa.` (log: `cookie sent from a foreign origin`) | la libreria accetta solo l'`Origin` uguale a `FRONTEND_URL`; dal secret arriva l'indirizzo del servizio, in locale il frontend è `http://localhost:3000` | `FRONTEND_URL` nella configurazione CV v2 di `launch.json` (COPILOT 5.1, passo C) |
+| Dal frontend locale ogni POST della v2 dà 403 `Origine non ammessa.` (log: `cookie sent from a foreign origin`) | la libreria accetta solo l'`Origin` uguale a `FRONTEND_URL`; dal secret arriva l'indirizzo del servizio, in locale il frontend è `http://localhost:3000` | `FRONTEND_URL` nella configurazione CV v2 di `launch.json` (`AZIENDA.md`, sezione 7) |
 | Nel terminale del frontend: `[vite] http proxy error: /prc/sessions/...`, `/mrb/...`, `/me/...`, `/psr/...` `ECONNREFUSED` | il frontend chiede le sessioni anche ai backend di altri progetti, che in locale non sono accesi | niente: non riguarda Cycle Validation |
-| `git status` mostra `?? ../src/`, `../tests/`, `../docs/`, `../eval/` | un blocco di aggiornamento lanciato dalla radice del repository invece che dalla cartella della v2 | blocco Pulizia (COPILOT 2); controllare sempre che il terminale finisca con `app_cycle_validation_v2>` |
-| Avviando una voce composta: `ensure-opensearch-tunnels.ps1 ... non esiste`, exit code 1 | il task «Centralizer prerequisites» chiama uno script che sul PC non c'è | la voce «CV v2» senza il task (COPILOT 5.1, passo C); oppure avviare le voci una per una |
-| Avviando «CV» partono v1 e v2 insieme | la v2 aggiunta alla voce composta della v1: tutte e due sulla porta 8003 | voce composta a parte «CV v2» (login, frontend, v2): COPILOT 5.1, «Controllo del passo B» |
-| Avvio della v2 in locale: `Secret '...' non leggibile o non valido (ResourceNotFoundException)` | in `CV_ENV_SECRET` un nome diverso da quello della v1 (per esempio con `_v2` in fondo) | lo stesso nome di `load_secrets` della v1: COPILOT 5.1, «Controllo del passo B» |
-| Blocco della libreria: mancano delle classi (`libreria pronta: False`) | in `vendor` ci sono la 0.3.0 e la 0.4.0rc2; era stata presa la 0.3.0 | installare la riga dei requirements della v1, 0.4.0rc2 con `[auth]` (COPILOT 5.1) |
+| `git status` mostra `?? ../src/`, `../tests/`, `../docs/`, `../eval/` | un blocco di aggiornamento lanciato dalla radice del repository invece che dalla cartella della v2 | tolte il 22-11 (blocco Pulizia); ora il blocco Aggiornare si ferma con `FERMO` se il terminale non è nella cartella della v2; controllare sempre che il terminale finisca con `app_cycle_validation_v2>` |
+| Avviando una voce composta: `ensure-opensearch-tunnels.ps1 ... non esiste`, exit code 1 | il task «Centralizer prerequisites» chiama uno script che sul PC non c'è | la voce «CV v2» senza il task (`AZIENDA.md`, sezione 7); oppure avviare le voci una per una |
+| Avviando «CV» partono v1 e v2 insieme | la v2 aggiunta alla voce composta della v1: tutte e due sulla porta 8003 | voce composta a parte «CV v2» (login, frontend, v2): `AZIENDA.md`, sezione 7 |
+| Avvio della v2 in locale: `Secret '...' non leggibile o non valido (ResourceNotFoundException)` | in `CV_ENV_SECRET` un nome diverso da quello della v1 (per esempio con `_v2` in fondo) | lo stesso nome di `load_secrets` della v1: `AZIENDA.md`, sezione 7 |
+| Blocco della libreria: mancano delle classi (`libreria pronta: False`) | in `vendor` ci sono la 0.3.0 e la 0.4.0rc2; era stata presa la 0.3.0 | installare la riga dei requirements della v1, 0.4.0rc2 con `[auth]` (`AZIENDA.md`, sezione 7) |
 
 ## 12. Decisioni prese
 
-Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezioni 3 e 4).
+Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 5).
 
 - **Task citato che il manuale non ha:** WARNING `FONTE_ASSENTE` subito, senza chiamare il
   modello (interruttore `agent.skip_missing_task`, acceso).
@@ -735,8 +742,11 @@ stessa targa compare in tre righe (pagine 14, 17, 18) con funzioni diverse. Come
   `Get-Content -Raw` prima di `ConvertFrom-Json`; in `aws s3 ls` il nome del file comincia alla
   colonna 31; i PDF si cercano con una parte del nome (`Get-ChildItem -Filter`), mai con il
   codice vero nel blocco.
-- Un file tolto da `docs/` va aggiunto alla riga `Remove-Item` del blocco di aggiornamento,
-  perché `robocopy` non cancella.
+- Il blocco di aggiornamento toglie da solo sul PC i file che nel repository personale non ci
+  sono più (`src`, `tests`, `prompts`, `eval/casi/sintetici`, `eval/varianti` e i `.md` di
+  `docs`): un file tolto qui sparisce anche lì al primo aggiornamento, e Salvare lo registra come
+  `D`. Il blocco si ferma (`FERMO`) se il download non riesce o il terminale non è nella cartella
+  della v2.
 
 ## 15. Le stampe PVRM320 viste finora
 

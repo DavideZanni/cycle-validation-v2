@@ -50,7 +50,7 @@ uv run mypy
 uv run cycle-validation kb-check examples/sintetico/knowledge
 ```
 
-Devi vedere: `771 passed, 2 skipped` (saltati: la prova con il modello vero e quella sulle
+Devi vedere: tutti `passed` e `2 skipped` (saltati: la prova con il modello vero e quella sulle
 stampe di esempio in `docs/Esempio*/`, che parte solo se le cartelle ci sono),
 `All checks passed!`, `Success: no issues found` e un elenco che finisce con
 `recommendation_dr_incerte: 0`. Qui non serve né la rete né una credenziale.
@@ -230,7 +230,7 @@ istruzioni sui certificati, la libreria `chatbot_ai_sdk` dei requirements (copia
 `vendor/`) e i valori che la v1 ha nel codice (secret di ambiente, database e tabella delle
 macchine), che mette nelle righe `ENV`; copia `data/settings.yaml` in
 `config/settings.azienda.yaml`; sposta il buildspec sulla v2 (`--torna-alla-v1` lo rimette).
-Passi e controlli: `COPILOT.md`, sezione 7.
+Passi e controlli: `COPILOT.md`, sezione 6.
 
 **In locale con login e frontend (provato il 22-11-2026).** Come per la v1, da Run and Debug.
 

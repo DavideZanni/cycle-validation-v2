@@ -96,8 +96,3 @@ class RemoteKnowledgeBase:
             "schede": len(data.process_sheets),
             "recommendation_dr": len(data.dr_recommendations),
         }
-
-    def structured(self) -> StructuredData:
-        """Dati strutturati caricati (per l'esportazione verso la cartella locale)."""
-        with self._lock:
-            return self._load()
