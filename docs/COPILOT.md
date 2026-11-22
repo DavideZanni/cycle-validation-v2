@@ -180,10 +180,17 @@ a parte. La v2 parte (`Uvicorn running on http://127.0.0.1:8003`) e senza token 
 sul PC (regola: resta su AWS). Il pulsante militare il frontend lo mostra lo stesso a chi ha il
 permesso: se lo premi, la v2 risponde che l'EJ200 è spento. È giusto così.
 
-**Passo C: la prova.** Ferma tutto quello che è avviato in Run and Debug (quadrato rosso). Poi
-scegli la voce composta **«CV v2»** e premi play: avvia login, frontend e v2 (non la v1). Se si
-ferma sul task «Centralizer prerequisites», avvia a mano le tre voci **login**,
-**app_frontend** e **CV v2 (porta 8003)**.
+**Passo C: la prova.** Il task «Centralizer prerequisites» non funziona sul PC: lo script
+`scripts/ensure-opensearch-tunnels.ps1` non c'è (foto del 22-11), quindi una voce composta con
+quel task si ferma subito. Questa riga lo toglie dalla voce «CV v2» (la «CV» della v1 resta
+com'è). Gratis.
+
+```powershell
+$launch = Join-Path (Resolve-Path "..\..").Path ".vscode\launch.json"; $testo = Get-Content $launch -Raw; $nuovo = $testo -replace '("name"\s*:\s*"CV v2"\s*,\s*)"preLaunchTask"\s*:\s*"[^"]*"\s*,\s*', '$1'; if ($nuovo -ne $testo) { Set-Content $launch $nuovo -NoNewline -Encoding utf8; "Tolto il task dalla voce CV v2." } else { "Niente da togliere." }
+```
+
+Poi ferma tutto quello che è avviato in Run and Debug (quadrato rosso), scegli la voce composta
+**«CV v2»** e premi play: avvia login, frontend e v2 (non la v1).
 Nel frontend: entra con il tuo utente, scegli il ciclo civile, MOS, carica la stampa di esempio
 MOS.
 
