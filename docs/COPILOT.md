@@ -149,6 +149,8 @@ dei conteggi e della tabella (anche in due foto, se è lunga).
   operazioni? con «reject» un ciclo di riparazione è sempre sbagliato?
 - l'ERRATO dell'op. 060 (in `runs\dr-condition-3\report.md`) aveva ragione? Non mandare il
   file.
+- il ciclo MOS «con errori» è stato dato già segnato come errato: quali sono gli errori, e in
+  quali operazioni? Serve la risposta giusta per giudicare la v2 (la v1 non fa da riferimento).
 
 ---
 
