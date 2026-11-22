@@ -32,12 +32,13 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 1. In Copilot passa ad **Ask** (in basso nella chat). Nelle foto è ancora su **Agent** con
    **Allow all** acceso.
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
-3. Lancia la **prova del ciclo DR senza serial number e condition** (sezione 5.1): prima il
-   passo A, poi il passo B.
+3. Rilancia la **prova del ciclo DR senza serial number e condition** (sezione 5.1): prima il
+   passo A, poi il passo B. Ieri il blocco aveva preso la stampa «SENZA sn»: ora prende la
+   stampa «CON sn».
 4. Lancia **Salvare nel repository aziendale** (sezione 6).
 5. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
-6. Quando hai tempo: **ciclo MOS «con errori»** (sezione 5.2). Il blocco non ha trovato il PDF:
-   copialo in `docs\Esempio ciclo mos\` e mettigli nel nome le parole `con errori`.
+6. Lancia il **ciclo MOS «con errori»** (sezione 5.2). Ora il blocco cerca il PDF anche nelle
+   altre cartelle di `ProgettoDocumenti`, dove l'hai trovato: non serve spostarlo.
 7. Quando capita: fai le **domande alle persone** (sezione 4).
 
 ---
@@ -127,21 +128,22 @@ stessa risposta.
 
 ### 5.1 Ciclo DR senza serial number e condition
 
-Il 22-11 la v2 non ha trovato il serial number nella stampa. Ora lo cerca in più modi e, se ne
-trova più d'uno, tiene quello che ha recommendation nei dati DR. Due passi.
+Il 22-11 il blocco ha preso per sbaglio la stampa «SENZA sn» (nella cartella ci sono due PDF che
+finiscono con `sn`): lì il serial number non c'è davvero, e la v2 ha risposto giusto (WARNING,
+gli altri controlli vanno avanti). Ora i blocchi prendono la stampa «CON sn». Due passi.
 
 **Passo A: cosa c'è scritto vicino a «S/N».** Non chiama il modello e non costa niente. I codici
 escono mascherati (lettere → `A`, cifre → `9`), così nella foto non si vedono quelli veri.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-$ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*sn.pdf" | Select-Object -First 1).FullName
-"PDF che finiscono con sn: " + @(Get-ChildItem "docs/Esempio ciclo dr/*sn.pdf").Count
-uv run cycle-validation leggi $ciclo --profile dr --cerca "S/N"
+$ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*CON sn.pdf" | Select-Object -First 1).FullName
+"PDF CON sn: " + @(Get-ChildItem "docs/Esempio ciclo dr/*CON sn.pdf").Count
+if ($ciclo) { uv run cycle-validation leggi $ciclo --profile dr --cerca "S/N" }
 ```
 
-**Deve uscire:** `PDF che finiscono con sn: 1`, il nome del file, alcune righe `p.N | ...` con
-la scritta `S/N`, e alla fine `serial number trovati: N (...)`.
+**Deve uscire:** `PDF CON sn: 1`, il nome del file (finisce con `CON sn.pdf`), alcune righe
+`p.N | ...` con la scritta `S/N`, e alla fine `serial number trovati: 1 (...)`.
 
 **Manda a Claude:** la foto di tutto l'output.
 
@@ -151,9 +153,9 @@ la scritta `S/N`, e alla fine `serial number trovati: N (...)`.
 $env:UV_PYTHON = "3.14"
 $kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
 $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-$ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*sn.pdf" | Select-Object -First 1).FullName
-uv run cycle-validation run $ciclo --profile dr --knowledge $v --config data/settings.yaml --out runs/dr-senza-dati
-uv run cycle-validation run $ciclo --profile dr --condition 2 --knowledge $v --config data/settings.yaml --out runs/dr-condition-2
+$ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*CON sn.pdf" | Select-Object -First 1).FullName
+if ($ciclo) { uv run cycle-validation run $ciclo --profile dr --knowledge $v --config data/settings.yaml --out runs/dr-senza-dati }
+if ($ciclo) { uv run cycle-validation run $ciclo --profile dr --condition 2 --knowledge $v --config data/settings.yaml --out runs/dr-condition-2 }
 foreach ($r in "dr-senza-dati", "dr-condition-2") { $j = Get-Content "runs/$r/report.json" -Raw | ConvertFrom-Json; $d = $j.results | Where-Object { $_.check -eq 'dr_recommendation' }; "$r : stato $($j.status), DR $($d.verdict) $($d.reason), serial number trovato: $(if ($j.meta.selectors.serial_number) { 'sì' } else { 'no' })" }
 ```
 
@@ -164,25 +166,27 @@ foreach ($r in "dr-senza-dati", "dr-condition-2") { $j = Get-Content "runs/$r/re
   altri controlli vanno avanti con la riparazione);
 - `dr-condition-2 : stato bloccato, DR ERRATO DR_NON_APPLICABILE, serial number trovato: sì`.
 
-**Manda a Claude:** la foto delle due righe `Ciclo ...` e delle due righe finali. Se esce
-ancora `serial number trovato: no`, basta la foto del passo A.
+**Manda a Claude:** la foto delle due righe `Ciclo ...` e delle due righe finali. Se il passo A
+dice `serial number trovati: 0`, non lanciare il passo B: basta la foto del passo A.
 
 ### 5.2 Il ciclo MOS «con errori»
 
 Passa alla v2 il PDF del ciclo MOS «con errori» e mostra cosa dice su fonti e task. Il PDF lo
-cerca in `docs\` e in `Downloads`, con le parole `con errori` nel nome: se non c'è, copialo in
-`docs\Esempio ciclo mos\` e rinominalo. Costa qualche centesimo.
+cerca, con le parole `con errori` nel nome, in tutte le cartelle di `ProgettoDocumenti` (lo
+legge soltanto, non lo sposta) e in `Downloads`. Costa qualche centesimo.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 $kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
 $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-$ciclo = (Get-ChildItem docs, "$HOME\Downloads" -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+$ciclo = (Get-ChildItem "..\..", "$HOME\Downloads" -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+"PDF con errori trovati: " + @(Get-ChildItem "..\..", "$HOME\Downloads" -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue).Count
 if ($ciclo) { uv run cycle-validation run $ciclo --profile mos --knowledge $v --config data/settings.yaml --out runs/mos-con-errori } else { "FERMO: PDF con errori non trovato, mettilo in docs\Esempio ciclo mos\ con 'con errori' nel nome" }
 if ($ciclo) { (Get-Content runs/mos-con-errori/report.json -Raw | ConvertFrom-Json).results | Where-Object { $_.check -in 'source', 'task_code' } | Format-Table @{n='controllo'; e={$_.check}}, @{n='riga'; e={$_.target.label}}, verdict, reason, @{n='motivo'; e={$_.rationale}} -Wrap }
 ```
 
-**Deve uscire:** una riga `Ciclo ...` con i conteggi e il costo, poi una tabella con le fonti e
+**Deve uscire:** `PDF con errori trovati: 1` (la ricerca può durare qualche secondo), una riga
+`Ciclo ...` con i conteggi e il costo, poi una tabella con le fonti e
 i task: esito, motivo e spiegazione. Se esce `FERMO`, sposta il PDF e rilancia.
 
 **Manda a Claude:** la foto della riga dei conteggi e della tabella (anche in due foto).

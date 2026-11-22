@@ -316,15 +316,17 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
   - Descrizioni: 4 CORRETTO, 5 WARNING `EVIDENZA_NON_TROVATA`; la scheda dell'op. 050 non è
     tra le 94 schede.
 - **EJ200:** mai provato con i servizi veri (va fatto dentro AWS).
-- **Ciclo MOS «con errori»:** il blocco non ha trovato il PDF (non è in `docs\` né in
-  `Downloads` con «con errori» nel nome). Manca anche sapere quali sono gli errori (P3).
+- **Ciclo MOS «con errori»:** il PDF è in un'altra cartella di `ProgettoDocumenti` (corpus
+  delle prove di ingestion, insieme ad altri cicli MOS). Il blocco 5.2 ora lo cerca lì. Manca
+  anche sapere quali sono gli errori (P3).
 - **Frontend:** Copilot ha letto il codice del frontend e della v1 il 22-11-2026 (domande
   C1-C14, sezione 8). La v2 è stata adattata. Mancano: la modifica del pulsante Confirm
   (collega) e dove gira la v1 (P5).
-- **DR senza serial number e condition (22-11):** prima prova con `serial number trovato: no`
-  in tutte e due le prove (WARNING `DR_NON_VERIFICATA`, 0 corretti, 20 warning). Ricerca resa
-  più tollerante e, con più serial number, scelta di quello noto ai dati DR. Da riprovare
-  (prova 5.1, passo A per vedere cosa c'è scritto).
+- **DR senza serial number e condition (22-11):** le prime prove avevano preso la stampa
+  «SENZA sn» (il filtro `*sn.pdf` trova due PDF). Lì il campo `S/N:` è vuoto: la v2 non trova
+  niente (giusto, nessun falso serial number dalle frasi «REGISTRARE P/N E S/N...») e dà
+  WARNING `DR_NON_VERIFICATA` senza bloccare, anche con condition 2. Questo caso è a posto.
+  Da rifare sulla stampa «CON sn» (prova 5.1).
 - **Tempi:** vedi sezione 8, «Tempi massimi».
 - **Salvataggio:** tutto è nel repository aziendale fino al 21-11-2026; codice e documenti del
   22-11-2026 sono da salvare.
@@ -348,7 +350,7 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | Copilot in modalità Agent (anche con «Allow all» acceso) | scelta in basso nella chat | passare ad Ask. Il 22-11 ha risposto alle domande in Agent senza cambiare niente, ma in Agent potrebbe |
 | Il bucket si vede in una foto | è aperto `data/bucket.txt` | non ripeterlo; chiedere di chiudere il file |
 | Un esito della v1 sembra sbagliato | la v1 sbaglia | non usarla come riferimento |
-| DR senza dati: `serial number trovato: no` | la stampa scrive il serial number in un modo non previsto, o ci sono più numeri dopo «S/N» | `leggi <pdf> --profile dr --cerca "S/N"` mostra le righe con i codici mascherati |
+| DR senza dati: `serial number trovato: no` | il blocco ha preso la stampa «SENZA sn» (`*sn.pdf` ne trova due), oppure il serial number è scritto in un modo non previsto | usare `*CON sn.pdf`; `leggi <pdf> --profile dr --cerca "S/N"` mostra le righe con i codici mascherati |
 | Un blocco va avanti anche se il file non c'è (`Missing argument 'pdf'`) | le righe incollate partono una alla volta | mettere il comando dentro `if ($ciclo) { ... }` sulla stessa riga |
 | I documenti tolti restano sul PC | `robocopy` copia ma non cancella | il blocco di aggiornamento li cancella per nome |
 
