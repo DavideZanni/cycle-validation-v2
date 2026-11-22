@@ -40,7 +40,8 @@ Redshift, e un controllo su come si leggono tutte le stampe.
 4. Lancia la **sezione 5.2** (gratis): come si leggono tutte le stampe.
 5. Lancia la **sezione 5.3** (gratis): la libreria dei permessi della v1.
 6. Lancia **Salvare nel repository aziendale** (sezione 6).
-7. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
+7. Manda i tre **messaggi** della sezione 4: al collega del frontend (4.1), a chi gestisce AWS
+   e il gateway (4.2), a chi fa l'ingestion dei manuali (4.3, prima lancia il suo blocco).
 
 ---
 
@@ -90,11 +91,6 @@ Claude la risposta a parole (senza codici veri).
   l'operazione 060 del ciclo DR (condition 3). Era davvero sbagliata? Il dettaglio è in
   `runs\dr-condition-3\report.md`: fallo guardare a chi conosce il ciclo, non mandarlo a
   Claude.
-- **P3. Cicli MOS «con errori»** (a chi li ha dati). Sono 3 cicli dati già segnati come
-  sbagliati, e non sappiamo quali sono gli errori. Se il confronto con la stampa giusta (prova
-  5.1, passo A) li trova, questa domanda non serve. Altrimenti: quali sono gli errori, e in
-  quali operazioni? E i manuali che citano sono nella conoscenza di prova? (Il 22-11 la v2 non
-  ha trovato quello del primo ciclo, quindi non ha potuto confrontare le operazioni.)
 - **P4. Targa «90» nell'indice** (per chi cura knowledge-index). Nel file delle targhe la
   `90` ha come funzione una frase sbagliata e le lettere accentate rovinate. Va corretta
   nell'indice (i passi sono in `MEMORIA.md`, «Da correggere nell'indice»).
@@ -130,6 +126,46 @@ stessa risposta.
 ```
 
 **Scrivi a Claude** la risposta del collega, a parole.
+
+### 4.2 Messaggio per chi gestisce AWS e il gateway (P5 e P7)
+
+```text
+Ciao! Sto preparando la v2 del backend di Cycle Validation e vorrei metterla accanto alla v1
+per provarla, senza toccare la v1. Mi servono tre informazioni:
+
+1. Dove gira il backend v1 (l'immagine in ECR): ECS, App Runner o altro? Con quale ruolo IAM?
+2. Chi configura il gateway che manda /cycle_validation al backend? Si può aggiungere un
+   secondo indirizzo per la v2 (per esempio /cycle_validation_v2) solo per alcuni utenti?
+3. La v2 legge le macchine attive da Redshift con la Data API, con lo stesso secret della v1.
+   Il ruolo della v2 (e, per le prove, il mio utente SSO) può avere la lettura di quel secret
+   e i permessi redshift-data:ExecuteStatement, DescribeStatement e GetStatementResult?
+```
+
+**Scrivi a Claude** la risposta, a parole (senza nomi di servizi, account o indirizzi).
+
+### 4.3 Messaggio per chi fa l'ingestion dei manuali
+
+I tre cicli «con errori» citano manuali che non sono nella conoscenza di prova: senza, la v2 non
+può trovare gli errori. Questo blocco stampa i manuali citati dai tre cicli, da incollare nel
+messaggio (restano sul tuo schermo e nel messaggio interno, non mandarli a Claude). Gratis.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+$radice = (Resolve-Path "..\..").Path
+$errati = Get-ChildItem $radice -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
+($errati | ForEach-Object { uv run cycle-validation leggi $_.FullName --profile mos } | Select-String 'fonti: (.+?) ·' | ForEach-Object { $_.Matches[0].Groups[1].Value -split ', ' } | Sort-Object -Unique) -join "`n"
+```
+
+```text
+Ciao! Per provare la v2 di Cycle Validation mi servono nella conoscenza civile anche questi
+manuali (li citano tre cicli di prova che oggi non si possono verificare):
+
+<incolla qui l'elenco uscito dal blocco>
+
+Quando sono dentro, mi dici la nuova versione della conoscenza (current.json)?
+```
+
+**Scrivi a Claude** la risposta, a parole.
 
 ---
 
