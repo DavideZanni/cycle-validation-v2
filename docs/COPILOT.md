@@ -103,6 +103,29 @@ uv run pytest -q
 
 ---
 
+## Prova: il ciclo MOS «con errori» nella v2
+
+La v1 nel frontend (22-11-2026) su questo ciclo dà «Validation Passed» con 3 Warning: la
+prima fonte e il task code delle op. 025 e 030 citano il task generico invece di quello per i
+pezzi rotanti. Il blocco passa lo stesso PDF alla v2 e mostra gli esiti di fonti e task code,
+da confrontare con la v1. Cerca il PDF in `docs\` e in `Downloads`. Costa qualche centesimo.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
+$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+$ciclo = (Get-ChildItem docs, "$HOME\Downloads" -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+if ($ciclo) { "Trovato: " + (Split-Path $ciclo -Leaf) } else { "FERMO: PDF con errori non trovato, mettilo in docs\Esempio ciclo mos\" }
+uv run cycle-validation run $ciclo --profile mos --knowledge $v --config data/settings.yaml --out runs/mos-con-errori
+(Get-Content runs/mos-con-errori/report.json -Raw | ConvertFrom-Json).results | Where-Object { $_.check -in 'source', 'task_code' } | Format-Table @{n='controllo'; e={$_.check}}, @{n='riga'; e={$_.target.label}}, verdict, reason, @{n='motivo'; e={$_.rationale}} -Wrap
+```
+
+**Deve uscire:** `Trovato: ...`, la riga `Ciclo ...` con i conteggi e il costo, poi una tabella
+con le fonti e i task code: esito, motivo e spiegazione. **Manda a Claude** la foto della riga
+dei conteggi e della tabella (anche in due foto, se è lunga).
+
+---
+
 ## Da fare nei prossimi giorni
 
 1. Frontend visto (22-11-2026, foto della v1 in QA): scelta civile/EJ200, poi DR sì/no; per il
