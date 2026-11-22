@@ -26,8 +26,10 @@ V2_FOLDER = "app_cycle_validation_v2"
 SETTINGS_FILE = "config/settings.azienda.yaml"
 _CERTS = re.compile(r"ca-certificates|CA_BUNDLE|SSL_CERT|update-ca-certificates", re.IGNORECASE)
 _WHEEL = re.compile(r"(chatbot_ai_sdk-[^\s\[#;]+\.whl)(\[[^\]]+\])?")
-_CD = re.compile(rf"(\bcd\s+(?:\./)?){V1_FOLDER}(?![\w-])")
-_CD_V2 = re.compile(rf"(\bcd\s+(?:\./)?){V2_FOLDER}(?![\w-])")
+# la cartella come pezzo di percorso: `cd app_cycle_validation`, `app_cycle_validation/x.crt`
+_V1_PATH = re.compile(rf"(?<![\w-]){V1_FOLDER}(?![\w-])")
+_V2_PATH = re.compile(rf"(?<![\w-]){V2_FOLDER}(?![\w-])")
+_TRANSCRIPTS = re.compile(r"^(\s*save_transcripts\s*:\s*)\S+", re.MULTILINE)
 _LONG_NUMBER = re.compile(r"\d{6,}")
 
 CMD = (
@@ -119,11 +121,17 @@ def render_dockerfile(image: V1Image, wheel: str, extras: str, env: dict[str, st
 
 
 def switch_buildspec(text: str, *, to_v2: bool = True) -> tuple[str, int]:
-    """`cd app_cycle_validation` diventa `cd app_cycle_validation_v2` (o il contrario).
-    Restituisce il testo nuovo e quante righe sono cambiate."""
+    """Ogni percorso con la cartella della v1 (`cd app_cycle_validation`, la copia del
+    certificato in `app_cycle_validation/`) passa alla v2, o il contrario.
+    Restituisce il testo nuovo e quanti percorsi sono cambiati."""
     if to_v2:
-        return _CD.subn(rf"\g<1>{V2_FOLDER}", text)
-    return _CD_V2.subn(rf"\g<1>{V1_FOLDER}", text)
+        return _V1_PATH.subn(V2_FOLDER, text)
+    return _V2_PATH.subn(V1_FOLDER, text)
+
+
+def service_settings(text: str) -> str:
+    """Le impostazioni per il servizio: senza testi delle sessioni su disco."""
+    return _TRANSCRIPTS.sub(r"\g<1>false", text)
 
 
 def mentions(text: str, word: str) -> list[str]:

@@ -449,6 +449,16 @@ nell'immagine: arriva dal secret letto da `load_secrets`, con lo stesso nome nei
   copia `data/settings.yaml` in `config/settings.azienda.yaml` e cambia nel buildspec
   `cd app_cycle_validation` in `cd app_cycle_validation_v2`. Stampa il Dockerfile con i tre
   valori aziendali coperti. `--torna-alla-v1` rimette il buildspec com'era.
+- **Prima prova del comando (22-11 notte):** dalla v1 base
+  `public.ecr.aws/docker/library/python:3.14.10-slim` e 2 istruzioni sui certificati (`COPY
+  ca-certificates.crt /etc/ssl/certs/ca-certificates.crt` e un `ENV` con `SSL_CERT_FILE` e
+  `REQUESTS_CA_BUNDLE`); libreria 0.4.0rc2 `[auth]`; secret, database e tabella trovati; modello
+  `eu.anthropic.claude-haiku-5-5`. Il buildspec copia il certificato della macchina di build con
+  `cp ... app_cycle_validation/ca-certificates.crt` **prima** del `cd`: la prima versione del
+  comando cambiava solo il `cd`, e il certificato sarebbe finito nella cartella della v1
+  (build della v2 fallita su `COPY ca-certificates.crt`). Corretto: ora cambia ogni percorso
+  con la cartella. Le impostazioni del PC avevano `save_transcripts: true`: nella copia per il
+  servizio il comando lo spegne.
 - **Perché così:** il repository personale è pubblico; la configurazione resta quella della v1
   (stesso secret di ambiente, stesso nome in QA e in produzione); nessun valore nuovo da
   chiedere a nessuno.
@@ -640,6 +650,7 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | Un blocco Python si ferma su un modulo della libreria standard | un file con lo stesso nome (`inspect.py`) nella cartella TEMP | lo script gira in una cartella sua con `python -I` |
 | Dal frontend locale ogni POST della v2 dà 403 `Origine non ammessa.` (log: `cookie sent from a foreign origin`) | la libreria accetta solo l'`Origin` uguale a `FRONTEND_URL`; dal secret arriva l'indirizzo del servizio, in locale il frontend è `http://localhost:3000` | `FRONTEND_URL` nella configurazione CV v2 di `launch.json` (COPILOT 5.1, passo C) |
 | Nel terminale del frontend: `[vite] http proxy error: /prc/sessions/...`, `/mrb/...`, `/me/...`, `/psr/...` `ECONNREFUSED` | il frontend chiede le sessioni anche ai backend di altri progetti, che in locale non sono accesi | niente: non riguarda Cycle Validation |
+| `git status` mostra `?? ../src/`, `../tests/`, `../docs/`, `../eval/` | un blocco di aggiornamento lanciato dalla radice del repository invece che dalla cartella della v2 | blocco Pulizia (COPILOT 2); controllare sempre che il terminale finisca con `app_cycle_validation_v2>` |
 | Avviando una voce composta: `ensure-opensearch-tunnels.ps1 ... non esiste`, exit code 1 | il task «Centralizer prerequisites» chiama uno script che sul PC non c'è | la voce «CV v2» senza il task (COPILOT 5.1, passo C); oppure avviare le voci una per una |
 | Avviando «CV» partono v1 e v2 insieme | la v2 aggiunta alla voce composta della v1: tutte e due sulla porta 8003 | voce composta a parte «CV v2» (login, frontend, v2): COPILOT 5.1, «Controllo del passo B» |
 | Avvio della v2 in locale: `Secret '...' non leggibile o non valido (ResourceNotFoundException)` | in `CV_ENV_SECRET` un nome diverso da quello della v1 (per esempio con `_v2` in fondo) | lo stesso nome di `load_secrets` della v1: COPILOT 5.1, «Controllo del passo B» |

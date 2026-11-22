@@ -1,6 +1,5 @@
 """Pubblicazione in QA: il Dockerfile della v2 costruito sul PC da quello della v1 (`qa`)."""
 
-import shutil
 from pathlib import Path
 
 import pytest
@@ -53,8 +52,8 @@ BUILDSPEC = """version: 0.2
 phases:
   build:
     commands:
+      - cp /etc/ssl/certs/ca-certificates.crt app_cycle_validation/ca-certificates.crt
       - cd app_cycle_validation
-      - cp /etc/ssl/certs/ca-certificates.crt .
       - docker build -t $ECR_REPO_NAME:latest .
 """
 
@@ -82,9 +81,13 @@ def test_the_wheel_is_the_one_in_the_requirements() -> None:
 
 def test_buildspec_goes_to_the_v2_and_back() -> None:
     v2, count = switch_buildspec(BUILDSPEC)
-    assert count == 1 and "cd app_cycle_validation_v2\n" in v2
+    assert count == 2 and "cd app_cycle_validation_v2\n" in v2
+    assert "app_cycle_validation_v2/ca-certificates.crt" in v2  # il certificato va nella v2
     assert switch_buildspec(v2) == (v2, 0)  # già sulla v2: niente
-    assert switch_buildspec(v2, to_v2=False) == (BUILDSPEC, 1)
+    assert switch_buildspec(v2, to_v2=False) == (BUILDSPEC, 2)
+    # a metà (prima versione del comando: solo `cd`): si sposta il resto
+    half = BUILDSPEC.replace("cd app_cycle_validation", "cd app_cycle_validation_v2")
+    assert switch_buildspec(half) == (v2, 1)
 
 
 def _company(tmp_path: Path) -> Path:
@@ -99,7 +102,10 @@ def _company(tmp_path: Path) -> Path:
     v2 = tmp_path / "app_cycle_validation_v2"
     (v2 / "data").mkdir(parents=True)
     (v2 / "config").mkdir()
-    shutil.copyfile("config/settings.yaml", v2 / "data" / "settings.yaml")
+    settings = Path("config/settings.yaml").read_text(encoding="utf-8")
+    (v2 / "data" / "settings.yaml").write_text(
+        settings.replace("save_transcripts: false", "save_transcripts: true"), encoding="utf-8"
+    )
     (tmp_path / "buildspec.yml").write_text(BUILDSPEC, encoding="utf-8")
     return v2
 
@@ -123,12 +129,13 @@ def test_qa_writes_the_company_dockerfile_and_hides_the_values(
     assert 'EJ200_VALIDATION_ENABLED="false"' in dockerfile
     assert 'CYCLE_VALIDATION_CONFIG="config/settings.azienda.yaml"' in dockerfile
     assert (v2 / "vendor" / WHEEL).read_bytes() == b"PK finto"
-    assert (v2 / "config" / "settings.azienda.yaml").is_file()
+    settings = (v2 / "config" / "settings.azienda.yaml").read_text(encoding="utf-8")
+    assert "save_transcripts: false" in settings
     assert "cd app_cycle_validation_v2" in (tmp_path / "buildspec.yml").read_text(encoding="utf-8")
 
     for value in ("ambiente-finto", "db_finto", "tabella_y"):
         assert value not in result.output
-    assert "buildspec: righe spostate sulla v2: 1." in result.output
+    assert "buildspec: percorsi spostati sulla v2: 2." in result.output
     assert "Dockerfile scritto" in result.output
 
     back = CliRunner().invoke(cli.app, ["qa", "--torna-alla-v1"])

@@ -633,6 +633,7 @@ def prepare_qa(
         read_v1_image,
         read_v1_wheel,
         render_dockerfile,
+        service_settings,
         switch_buildspec,
     )
     from cycle_validation.deploy import mentions as lines_with
@@ -646,7 +647,7 @@ def prepare_qa(
             back, count = switch_buildspec(spec, to_v2=False)
             if count:
                 buildspec.write_text(back, encoding="utf-8")
-            typer.echo(f"buildspec: righe rimesse sulla v1: {count}.")
+            typer.echo(f"buildspec: percorsi rimessi sulla v1: {count}.")
             for line in lines_with(back, V1_FOLDER):
                 typer.echo(f"  {line}")
             return
@@ -671,7 +672,10 @@ def prepare_qa(
         ]
         if missing:
             raise CycleValidationError("Nel codice della v1 non trovo: " + ", ".join(missing) + ".")
-        settings = load_settings(impostazioni)
+        settings_text = service_settings(impostazioni.read_text(encoding="utf-8"))
+        Path(SETTINGS_FILE).parent.mkdir(parents=True, exist_ok=True)
+        Path(SETTINGS_FILE).write_text(settings_text, encoding="utf-8")
+        settings = load_settings(Path(SETTINGS_FILE))
         env = {
             "CV_ENV_SECRET": str(found.env_secret),
             "MACHINES_SOURCE": "diretta",
@@ -688,13 +692,12 @@ def prepare_qa(
         if not source.is_file():
             raise CycleValidationError(f"Il .whl dei requirements non è in {v1 / 'vendor'}.")
         switched, count = switch_buildspec(spec)
-        if not count and V1_FOLDER + "_v2" not in spec:
+        if not count and f"cd {V1_FOLDER}_v2" not in spec:
             raise CycleValidationError("Nel buildspec non trovo `cd app_cycle_validation`.")
     except (CycleValidationError, OSError) as error:
         raise _fail(error) from error
     Path("vendor").mkdir(exist_ok=True)
     shutil.copyfile(source, Path("vendor") / wheel)
-    Path(SETTINGS_FILE).write_text(impostazioni.read_text(encoding="utf-8"), encoding="utf-8")
     Path("Dockerfile").write_text(dockerfile, encoding="utf-8")
     if count:
         buildspec.write_text(switched, encoding="utf-8")
@@ -702,10 +705,11 @@ def prepare_qa(
         f"Dalla v1: base e {len(image.certificates)} istruzioni sui certificati; libreria "
         f"{wheel}{extras} copiata in vendor; secret di ambiente, database e tabella trovati."
     )
-    typer.echo(f"Impostazioni: {impostazioni} -> {SETTINGS_FILE} (modello {settings.agent.model}).")
-    if settings.agent.save_transcripts:
-        typer.echo("Attenzione: nelle impostazioni save_transcripts è acceso (testi su disco).")
-    typer.echo(f"buildspec: righe spostate sulla v2: {count}.")
+    typer.echo(
+        f"Impostazioni: {impostazioni} -> {SETTINGS_FILE} (modello {settings.agent.model}, "
+        "testi delle sessioni su disco spenti)."
+    )
+    typer.echo(f"buildspec: percorsi spostati sulla v2: {count}.")
     for line in lines_with(switched, V1_FOLDER) + lines_with(switched, "ca-certificates"):
         typer.echo(f"  {line}")
     typer.echo("Dockerfile scritto (valori aziendali coperti):")

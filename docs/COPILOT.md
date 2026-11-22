@@ -33,15 +33,14 @@ Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i pas
 
 1. In Copilot passa ad **Ask** (in basso nella chat): nelle foto è ancora su **Agent** con
    **Allow all**.
-2. Lancia **Aggiornare il codice sul PC** (sezione 2).
-3. **5.3** prove in locale dal frontend (la lista è lì): prima di QA, decisione dell'utente
-   del 22-11.
-4. **Ingestion del manuale** trovato prima (uno solo), poi **5.2**: i tre cicli «con errori».
-5. **Salvare** (sezione 6) quando vuoi: salva sul ramo `feature/cycle-validation-v2`, non su
-   `develop`.
-6. **Pubblicare in QA** (sezione 7): il blocco **7.1** si può lanciare e salvare (resta sul
-   ramo `feature/cycle-validation-v2`); la **pull request verso `develop`** aspetta, quando lo
-   decidi tu.
+2. Lancia **Aggiornare il codice sul PC** (sezione 2), poi **una volta** il blocco **Pulizia**
+   (sotto, sezione 2).
+3. Rilancia **7.1**: la prima volta il certificato nel buildspec restava nella cartella della v1
+   (corretto). Manda la foto, poi **Salvare** (sezione 6).
+4. **5.3** prove in locale dal frontend (la lista è lì).
+5. **Ingestion del manuale** (la fai tu, con l'ingestion aziendale), poi **5.2**. Il 22-11 la
+   versione pubblicata era ancora quella del 19-11: l'ingestion non era arrivata.
+6. **Pull request verso `develop`**: più avanti, quando lo decidi tu.
 7. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
 
 ---
@@ -75,6 +74,20 @@ uv run pytest -q
 
 **Manda a Claude:** la foto solo se c'è un `failed`.
 
+
+**Pulizia (una volta).** Nella foto del 22-11 `git status` mostra quattro cartelle non salvate
+**fuori** dalla cartella della v2 (`../src`, `../tests`, `../docs`, `../eval`): sono copie della
+v2 finite nella radice del repository (un blocco di aggiornamento lanciato dalla cartella
+sbagliata). Il blocco le toglie solo se non sono nel repository e sembrano copie della v2;
+altrimenti le lascia e lo scrive.
+
+```powershell
+foreach ($d in "src", "tests", "docs", "eval") { $p = "..\$d"; if (Test-Path $p) { $salvata = git ls-files -- $p; $copia = (Test-Path "$p\cycle_validation") -or (Test-Path "$p\COPILOT.md") -or (Test-Path "$p\test_api.py") -or (Test-Path "$p\casi"); if (-not $salvata -and $copia) { Remove-Item -Recurse -Force $p; "tolta la copia sbagliata: ..\$d" } else { "lasciata: ..\$d (è nel repository o non sembra una copia della v2)" } } }
+git status --short ..
+```
+
+**Deve uscire:** `tolta la copia sbagliata: ...` per le cartelle che c'erano, e in `git status`
+nessuna riga `?? ../src/`, `?? ../tests/`, `?? ../docs/`, `?? ../eval/`.
 ---
 
 ## 3. Domande per Copilot
@@ -283,8 +296,8 @@ uv run cycle-validation qa --conoscenza-civile "Manufacturing AI/ingestion-v2-te
 
 **Deve uscire:** `Dalla v1: base e N istruzioni sui certificati; libreria ... copiata in vendor;
 secret di ambiente, database e tabella trovati.`, `Impostazioni: ... (modello ...)`,
-`buildspec: righe spostate sulla v2: 1.` con le righe del buildspec che parlano della cartella e
-del certificato, poi il Dockerfile.
+`buildspec: percorsi spostati sulla v2: N.` con le righe del buildspec che parlano della cartella
+e del certificato (tutte con `app_cycle_validation_v2`), poi il Dockerfile.
 
 **Manda a Claude:** la foto (tutta l'uscita, anche in due foto). Claude controlla il Dockerfile
 prima del salvataggio.
@@ -311,7 +324,7 @@ $env:UV_PYTHON = "3.14"
 uv run cycle-validation qa --torna-alla-v1
 ```
 
-**Deve uscire:** `buildspec: righe rimesse sulla v1: 1.`
+**Deve uscire:** `buildspec: percorsi rimessi sulla v1: N.`
 
 **7.3 Accendere i cicli militari** (dopo 7.2 riuscita). Stesso comando con la conoscenza EJ200,
 poi Salvare e pull request:
