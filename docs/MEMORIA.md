@@ -459,6 +459,9 @@ nell'immagine: arriva dal secret letto da `load_secrets`, con lo stesso nome nei
   (build della v2 fallita su `COPY ca-certificates.crt`). Corretto: ora cambia ogni percorso
   con la cartella. Le impostazioni del PC avevano `save_transcripts: true`: nella copia per il
   servizio il comando lo spegne.
+- **Seconda prova (22-11 notte): giusta.** `buildspec: percorsi spostati sulla v2: 1` (la copia
+  del certificato), tutte le righe del buildspec con `app_cycle_validation_v2`; impostazioni
+  copiate con i testi su disco spenti; Dockerfile come previsto. Da salvare sul ramo feature.
 - **Perché così:** il repository personale è pubblico; la configurazione resta quella della v1
   (stesso secret di ambiente, stesso nome in QA e in produzione); nessun valore nuovo da
   chiedere a nessuno.

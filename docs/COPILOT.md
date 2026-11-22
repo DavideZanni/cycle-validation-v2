@@ -33,10 +33,10 @@ Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i pas
 
 1. In Copilot passa ad **Ask** (in basso nella chat): nelle foto è ancora su **Agent** con
    **Allow all**.
-2. Lancia **Aggiornare il codice sul PC** (sezione 2), poi **una volta** il blocco **Pulizia**
-   (sotto, sezione 2).
-3. Rilancia **7.1**: la prima volta il certificato nel buildspec restava nella cartella della v1
-   (corretto). Manda la foto, poi **Salvare** (sezione 6).
+2. Pulizia e 7.1 fatti e controllati (22-11): Dockerfile e buildspec giusti. Ora **Salvare**
+   (sezione 6): salva anche Dockerfile, `vendor/`, `config/settings.azienda.yaml` e
+   `../buildspec.yml`, sul ramo feature (QA non cambia).
+3. Lancia **Aggiornare il codice sul PC** (sezione 2) quando Claude cambia qualcosa.
 4. **5.3** prove in locale dal frontend (la lista è lì).
 5. **Ingestion del manuale** (la fai tu, con l'ingestion aziendale), poi **5.2**. Il 22-11 la
    versione pubblicata era ancora quella del 19-11: l'ingestion non era arrivata.
