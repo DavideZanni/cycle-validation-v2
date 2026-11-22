@@ -119,7 +119,7 @@ def _merged_row(row: list[_Segment]) -> str:
     return text
 
 
-def _page_text(document: Any, index: int) -> tuple[str, bool]:
+def _page_text(document: Any, index: int, reorder: bool = True) -> tuple[str, bool]:
     """Testo della pagina. Se le righe nel PDF non sono nell'ordine in cui si vedono (una
     stampa modificata a mano mette in fondo le righe toccate), si rimettono in ordine di
     posizione, unendo i pezzi della stessa riga. Altrimenti il testo resta quello di PDFium."""
@@ -128,7 +128,7 @@ def _page_text(document: Any, index: int) -> tuple[str, bool]:
     try:
         raw: str = textpage.get_text_bounded()
         segments = _segments(textpage)
-        reordered = not _in_reading_order(segments)
+        reordered = reorder and not _in_reading_order(segments)
         if reordered:
             raw = "\n".join(_merged_row(row) for row in _rows(segments))
     finally:
@@ -138,7 +138,9 @@ def _page_text(document: Any, index: int) -> tuple[str, bool]:
     return "\n".join(line.rstrip() for line in lines).strip(), reordered
 
 
-def read_pdf_bytes(data: bytes, name: str, limits: FileLimits) -> PdfDocument:
+def read_pdf_bytes(
+    data: bytes, name: str, limits: FileLimits, *, reorder: bool = True
+) -> PdfDocument:
     """Valida e legge un PDF già in memoria. Solleva IngestError con il codice HTTP adatto."""
     if not data:
         raise IngestError(f"Il file {name} è vuoto.", http_status=400)
@@ -158,7 +160,7 @@ def read_pdf_bytes(data: bytes, name: str, limits: FileLimits) -> PdfDocument:
                 raise IngestError(
                     f"Il PDF {name} ha {n_pages} pagine: il limite è {limits.max_pages}."
                 )
-            texts = [_page_text(document, index) for index in range(n_pages)]
+            texts = [_page_text(document, index, reorder) for index in range(n_pages)]
         finally:
             document.close()
     pages = tuple(
@@ -187,9 +189,9 @@ def check_required_text(document: PdfDocument, limits: FileLimits) -> None:
         )
 
 
-def read_pdf(path: Path, limits: FileLimits) -> PdfDocument:
+def read_pdf(path: Path, limits: FileLimits, *, reorder: bool = True) -> PdfDocument:
     try:
         data = path.read_bytes()
     except OSError as exc:
         raise IngestError(f"Impossibile leggere {path}: {exc}", http_status=400) from exc
-    return read_pdf_bytes(data, path.name, limits)
+    return read_pdf_bytes(data, path.name, limits, reorder=reorder)

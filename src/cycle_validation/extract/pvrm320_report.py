@@ -345,6 +345,10 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
                     target.take_codes(line)
                 elif current is not None and _SP_LINE.match(line):
                     current.take_codes(line)
+                elif page.reordered and current is not None:
+                    # stampa modificata a mano: la riga toccata può aver perso le colonne
+                    # TARGA e NUM. OPER, ma sulla pagina sta dentro l'operazione in corso
+                    _add_text(current, _right(line.strip().lstrip("*").strip()))
                 continue
             left = match["left"].strip()
             text = _right(match["right"])

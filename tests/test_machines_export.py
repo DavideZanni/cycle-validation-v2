@@ -1,0 +1,125 @@
+"""Elenco delle macchine attive da Redshift per le prove sul PC (comando `macchine`)."""
+
+import json
+from pathlib import Path
+from typing import Any
+
+import pytest
+from typer.testing import CliRunner
+
+from cycle_validation import cli
+from cycle_validation.errors import CycleValidationError
+from cycle_validation.services.redshift import data_api_target, find_in_v1, machines_query
+
+V1_CONFIG = 'import os\n# Redshift Configuration\nSECRET_NAME = os.getenv("SECRET_NAME", "nome/del-secret")\n'
+V1_QUERY = (
+    "def verify_active_TM(tags):\n"
+    '    sql = """SELECT work_center_cd\n'
+    "             FROM schema_x.tabella_y\n"
+    '             WHERE work_center_usage_cd = \'TO\'"""\n'
+)
+
+
+def _v1(tmp_path: Path) -> Path:
+    (tmp_path / "config.py").write_text(V1_CONFIG, encoding="utf-8")
+    (tmp_path / "tools").mkdir()
+    (tmp_path / "tools" / "machines.py").write_text(V1_QUERY, encoding="utf-8")
+    return tmp_path
+
+
+def test_secret_name_and_table_come_from_the_v1_code(tmp_path: Path) -> None:
+    found = find_in_v1(_v1(tmp_path))
+    assert found.secret == "nome/del-secret"
+    assert found.table == "schema_x.tabella_y"
+
+
+def test_query_is_the_v1_rule_and_refuses_odd_table_names() -> None:
+    assert machines_query("s.t") == (
+        "SELECT DISTINCT work_center_cd FROM s.t WHERE work_center_usage_cd = 'TO'"
+    )
+    with pytest.raises(CycleValidationError):
+        machines_query("t; DROP TABLE x")
+
+
+def test_cluster_and_region_come_from_the_secret_host() -> None:
+    values = {"host": "mio-cluster.abc.eu-west-1.redshift.amazonaws.com", "dbname": "db"}
+    region, parameters = data_api_target(values, "arn:secret")
+    assert region == "eu-west-1"
+    assert parameters == {
+        "Database": "db",
+        "SecretArn": "arn:secret",
+        "ClusterIdentifier": "mio-cluster",
+    }
+
+
+def test_serverless_host_gives_the_workgroup() -> None:
+    values = {"host": "wg.123.eu-south-1.redshift-serverless.amazonaws.com", "database": "db"}
+    _, parameters = data_api_target(values, "arn")
+    assert parameters["WorkgroupName"] == "wg"
+
+
+def test_missing_fields_are_named_without_values() -> None:
+    with pytest.raises(CycleValidationError) as error:
+        data_api_target({"username": "u", "password": "segretissima"}, "arn")
+    assert "password, username" in str(error.value)
+    assert "segretissima" not in str(error.value)
+
+
+class FakeSecrets:
+    def get_secret_value(self, SecretId: str) -> dict[str, str]:
+        assert SecretId == "nome/del-secret"
+        values = {"host": "c1.x.eu-south-1.redshift.amazonaws.com", "dbname": "db", "password": "p"}
+        return {"SecretString": json.dumps(values), "ARN": "arn:secret"}
+
+
+class FakeDataApi:
+    def __init__(self) -> None:
+        self.sql = ""
+
+    def execute_statement(self, **kwargs: Any) -> dict[str, str]:
+        self.sql = kwargs["Sql"]
+        assert kwargs["ClusterIdentifier"] == "c1"
+        return {"Id": "q1"}
+
+    def describe_statement(self, Id: str) -> dict[str, str]:
+        return {"Status": "FINISHED"}
+
+    def get_statement_result(self, Id: str, **_: Any) -> dict[str, Any]:
+        rows = ["TM-2", "TM-1", "TM-2"]
+        return {"Records": [[{"stringValue": tag}] for tag in rows]}
+
+
+def test_macchine_writes_the_active_machines_and_prints_only_the_count(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data_api = FakeDataApi()
+    clients: dict[str, Any] = {"secretsmanager": FakeSecrets(), "redshift-data": data_api}
+    monkeypatch.setattr(cli, "_aws_client", lambda service, region: clients[service])
+    out = tmp_path / "data" / "macchine_attive.json"
+    result = CliRunner().invoke(
+        cli.app, ["macchine", "--v1", str(_v1(tmp_path)), "--out", str(out)]
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(out.read_text(encoding="utf-8")) == ["TM-1", "TM-2"]
+    assert "tabella_y" in data_api.sql
+    assert "Macchine attive: 2 (Redshift cluster)" in result.output
+    assert "c1" not in result.output and "nome/del-secret" not in result.output
+
+
+def test_macchine_prints_only_the_aws_error_code(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class Denied(Exception):
+        def __init__(self, message: str) -> None:
+            super().__init__(message)
+            self.response = {"Error": {"Code": "AccessDeniedException", "Message": message}}
+
+    class NoSecrets:
+        def get_secret_value(self, SecretId: str) -> None:
+            raise Denied("arn:aws:iam::123:x")
+
+    monkeypatch.setattr(cli, "_aws_client", lambda service, region: NoSecrets())
+    result = CliRunner().invoke(cli.app, ["macchine", "--v1", str(_v1(tmp_path))])
+    assert result.exit_code != 0
+    assert "AccessDeniedException" in result.output
+    assert "123" not in result.output

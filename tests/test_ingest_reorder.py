@@ -57,3 +57,39 @@ def test_leggi_says_which_pages_were_put_back_in_order(tmp_path: Path) -> None:
     result = CliRunner().invoke(cli.app, ["leggi", str(printed)])
     assert result.exit_code == 0, result.output
     assert "  pagine rimesse nell'ordine della pagina: 2" in result.output.splitlines()
+
+
+def test_an_edited_row_without_the_table_columns_stays_in_its_operation() -> None:
+    pages = civil_pages()
+    lines = pages[1].split("\n")
+    at = next(index for index, line in enumerate(lines) if "PICK UP AND MARK" in line)
+    row = lines[at]
+    cut = row.index("*", row.index("*") + 1) + 1
+    edited = [piece for piece in _pieces(pages[1]) if piece[0] != at] + [(at, cut, row[cut:])]
+    pdf = read_pdf_bytes(
+        build_positioned_pdf([_pieces(pages[0]), edited, *(_pieces(p) for p in pages[2:])]),
+        "e.pdf",
+        LIMITS,
+    )
+    clean = read_pdf_bytes(build_positioned_pdf([_pieces(p) for p in pages]), "c.pdf", LIMITS)
+    assert pdf.pages[1].reordered
+    assert parse_pvrm320(pdf) == parse_pvrm320(clean)
+
+
+def test_leggi_breve_with_and_without_reordering(tmp_path: Path) -> None:
+    from typer.testing import CliRunner
+
+    from cycle_validation import cli
+
+    pages = civil_pages()
+    printed = tmp_path / "e.pdf"
+    printed.write_bytes(
+        build_positioned_pdf(
+            [_pieces(pages[0]), _edited(pages[1], "RITIRO"), *(_pieces(p) for p in pages[2:])]
+        )
+    )
+    runner = CliRunner()
+    reordered = runner.invoke(cli.app, ["leggi", str(printed), "--breve"]).output.splitlines()
+    assert reordered[1] == "  operazioni: 5 · parser: letto · pagine rimesse in ordine: 2"
+    plain = runner.invoke(cli.app, ["leggi", str(printed), "--breve", "--senza-riordino"])
+    assert plain.output.splitlines()[1].endswith("pagine rimesse in ordine: nessuna")

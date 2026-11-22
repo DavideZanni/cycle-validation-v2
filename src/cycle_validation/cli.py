@@ -1,4 +1,4 @@
-"""CLI: `run`, `leggi`, `confronta`, `golden`, `kb-check` ed `eval` (esperimenti: `eval esegui`,
+"""CLI: `run`, `leggi`, `confronta`, `macchine`, `golden`, `kb-check` ed `eval` (esperimenti: `eval esegui`,
 `eval classifica`)."""
 
 import asyncio
@@ -8,7 +8,7 @@ import re
 from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 
@@ -240,6 +240,16 @@ def read_cycles(
             "(lettere → A, cifre → 9), e i serial number trovati, mascherati."
         ),
     ] = None,
+    breve: Annotated[
+        bool,
+        typer.Option(help="Una riga per stampa: operazioni, pagine rimesse in ordine, parser."),
+    ] = False,
+    senza_riordino: Annotated[
+        bool,
+        typer.Option(
+            help="Legge il testo nell'ordine del PDF, senza rimettere in ordine le righe."
+        ),
+    ] = False,
     struttura: Annotated[
         int | None,
         typer.Option(
@@ -259,11 +269,19 @@ def read_cycles(
     for path in pdfs:
         typer.echo(path.name)
         try:
-            pdf = read_pdf(path, limits)
+            pdf = read_pdf(path, limits, reorder=not senza_riordino)
         except CycleValidationError as error:
-            typer.echo(f"  non letto: {error}")
+            typer.echo(f"  non letto: {_masked_quotes(str(error))}")
             continue
         reordered = [str(page.number) for page in pdf.pages if page.reordered]
+        if breve:
+            try:
+                parsed = parse_pvrm320(pdf)
+                state = f"operazioni: {len(parsed.operations)} · parser: letto"
+            except CycleValidationError as error:
+                state = f"parser: NON LETTO ({_masked_quotes(str(error))})"
+            typer.echo(f"  {state} · pagine rimesse in ordine: {', '.join(reordered) or 'nessuna'}")
+            continue
         if reordered:
             typer.echo(f"  pagine rimesse nell'ordine della pagina: {', '.join(reordered)}")
         if struttura is not None:
@@ -301,7 +319,7 @@ def read_cycles(
         try:
             cycle = parse_pvrm320(pdf)
         except CycleValidationError as error:
-            typer.echo(f"  non letto dal parser: {error}")
+            typer.echo(f"  non letto dal parser: {_masked_quotes(str(error))}")
             continue
         sources = ", ".join(
             source.manual + (f" {source.task}" if source.task else "") for source in cycle.sources
@@ -520,6 +538,76 @@ def eval_leaderboard(
     except CycleValidationError as error:
         raise _fail(error) from error
     typer.echo(text)
+
+
+def _aws_client(service: str, region: str | None) -> Any:
+    """Punto di sostituzione per i test."""
+    import boto3
+
+    return boto3.client(service, region_name=region)
+
+
+def _aws_error(error: Exception) -> str:
+    """Solo il codice dell'errore AWS: il messaggio può contenere ARN e numero di account."""
+    response = getattr(error, "response", None)
+    code = response.get("Error", {}).get("Code") if isinstance(response, dict) else None
+    return code or type(error).__name__
+
+
+@app.command("macchine")
+def export_machines(
+    v1: Annotated[
+        Path | None,
+        typer.Option(help="Cartella della v1: da lì si prendono nome del secret e tabella."),
+    ] = None,
+    secret: Annotated[str | None, typer.Option(help="Nome o ARN del secret di Redshift.")] = None,
+    tabella: Annotated[str | None, typer.Option(help="Tabella delle macchine.")] = None,
+    regione: Annotated[
+        str | None, typer.Option(help="Regione del secret. Vuoto = ambiente.")
+    ] = None,
+    out: Annotated[Path, typer.Option(help="File da scrivere.")] = Path(
+        "data/macchine_attive.json"
+    ),
+) -> None:
+    """Scarica da Redshift l'elenco delle macchine attive (come la v1: `work_center_usage_cd =
+    'TO'`) e lo scrive in un file JSON da passare a `run --machines`. Stampa solo il numero di
+    macchine: niente nomi, host o valori del secret."""
+    from cycle_validation.services.redshift import (
+        data_api_target,
+        fetch_with_data_api,
+        find_in_v1,
+        machines_query,
+    )
+
+    found = find_in_v1(v1) if v1 is not None else None
+    if found is not None:
+        typer.echo(
+            f"Dalla v1: nome del secret {'trovato' if found.secret else 'NON trovato'}, "
+            f"tabella {'trovata' if found.table else 'NON trovata'}."
+        )
+    secret = secret or (found.secret if found else None)
+    tabella = tabella or (found.table if found else None)
+    if not secret or not tabella:
+        raise _fail(CycleValidationError("Servono il nome del secret e la tabella delle macchine."))
+    try:
+        reply = _aws_client("secretsmanager", regione).get_secret_value(SecretId=secret)
+        values = json.loads(reply["SecretString"])
+    except Exception as error:  # qualunque errore AWS diventa un messaggio corto
+        raise _fail(CycleValidationError(f"Secret non letto: {_aws_error(error)}.")) from error
+    try:
+        region, parameters = data_api_target(values, reply["ARN"])
+        client = _aws_client("redshift-data", region or regione)
+        tags = sorted(set(fetch_with_data_api(client, parameters, machines_query(tabella))))
+    except CycleValidationError as error:
+        raise _fail(error) from error
+    except Exception as error:
+        raise _fail(CycleValidationError(f"Redshift non letto: {_aws_error(error)}.")) from error
+    if not tags:
+        raise _fail(CycleValidationError("La query non ha restituito nessuna macchina attiva."))
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(tags, indent=0), encoding="utf-8")
+    kind = "serverless" if "WorkgroupName" in parameters else "cluster"
+    typer.echo(f"Macchine attive: {len(tags)} (Redshift {kind}). Scritte in {out}.")
 
 
 @eval_app.command("fotografia")

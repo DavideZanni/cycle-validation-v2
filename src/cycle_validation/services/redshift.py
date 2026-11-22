@@ -10,11 +10,14 @@ In alternativa `fetch_with_data_api` usa la Redshift Data API con un client boto
 `redshift-data`: nessun driver da installare, credenziali dal ruolo AWS.
 """
 
+import re
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
-from cycle_validation.errors import SourceUnavailableError
+from cycle_validation.errors import CycleValidationError, SourceUnavailableError
 from cycle_validation.services.machines import LazyMachineRegistry
 
 DEFAULT_TTL_S = 900.0
@@ -118,3 +121,80 @@ def data_api_registry(
 ) -> LazyMachineRegistry:
     """Come `redshift_machine_registry`, ma con la Data API."""
     return LazyMachineRegistry(lambda: fetch_with_data_api(client, parameters, query), ttl_s, clock)
+
+
+# --- elenco delle macchine attive per le prove sul PC ------------------------------------------
+# La v1 legge Redshift con `redshift_connector` e le credenziali di un secret (`SECRET_NAME`
+# in `config.py`). Per le prove sul PC la v2 prende dalla v1 il nome del secret e la tabella,
+# legge host e database dal secret e fa la query con la Data API (HTTPS: niente porta 5439).
+
+_SECRET_NAME = re.compile(
+    r"""SECRET_NAME\s*[:=]\s*(?:[\w.]+\(\s*["']\w+["']\s*,\s*)?["']([^"']+)["']"""
+)
+_FROM = re.compile(r"""\bFROM\s+([A-Za-z_"][\w."]*)""", re.IGNORECASE)
+_TABLE = re.compile(r"^[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*){0,2}$")
+_SKIP = {".venv", "venv", "node_modules", "__pycache__", ".git"}
+
+
+@dataclass(frozen=True)
+class V1Redshift:
+    secret: str | None
+    table: str | None
+
+
+def find_in_v1(folder: Path) -> V1Redshift:
+    """Nome del secret e tabella delle macchine, cercati nei file Python della v1."""
+    secret: str | None = None
+    table: str | None = None
+    for path in sorted(folder.rglob("*.py")):
+        if _SKIP & set(path.parts):
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        if secret is None and (match := _SECRET_NAME.search(text)) is not None:
+            secret = match[1]
+        at = text.find("work_center_usage_cd")
+        if table is None and at >= 0:
+            before = _FROM.findall(text[max(0, at - 800) : at])
+            after = _FROM.findall(text[at : at + 400])
+            found = before[-1] if before else (after[0] if after else None)
+            table = found.replace('"', "") if found else None
+    return V1Redshift(secret, table)
+
+
+def machines_query(table: str) -> str:
+    if not _TABLE.fullmatch(table):
+        raise CycleValidationError("Nome della tabella delle macchine non valido.")
+    return f"SELECT DISTINCT work_center_cd FROM {table} WHERE work_center_usage_cd = 'TO'"
+
+
+def data_api_target(
+    values: Mapping[str, Any], secret_arn: str
+) -> tuple[str | None, dict[str, str]]:
+    """Regione e parametri della Data API dai campi del secret della v1 (host e database).
+    I valori non si stampano mai: nell'errore ci sono solo i nomi dei campi."""
+    host = str(values.get("host") or values.get("hostname") or "")
+    database = next(
+        (
+            str(values[key])
+            for key in ("dbname", "database", "db_name", "dbName")
+            if values.get(key)
+        ),
+        None,
+    )
+    if not host or not database:
+        raise CycleValidationError(
+            "Nel secret mancano host o database. Campi presenti: "
+            + (", ".join(sorted(values)) or "nessuno")
+            + "."
+        )
+    region = re.search(r"\.([a-z]{2}(?:-[a-z]+)+-\d)\.redshift", host)
+    parameters = {"Database": database, "SecretArn": secret_arn}
+    if "redshift-serverless" in host:
+        parameters["WorkgroupName"] = host.split(".")[0]
+    else:
+        cluster = values.get("dbClusterIdentifier") or host.split(".")[0]
+        parameters["ClusterIdentifier"] = str(cluster)
+    return (region[1] if region else None), parameters
