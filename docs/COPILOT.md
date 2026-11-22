@@ -35,7 +35,8 @@ Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i pas
    **Allow all**.
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
 3. **5.1** la v2 in locale con login e frontend, al posto della v1. Per ora solo il
-   **blocco A** (la libreria); se esce `mancano: []`, prosegui con i passi B e C. Le macchine attive dal
+   blocco A fatto; passo B fatto, ma il nome del secret era sbagliato: lancia il
+   **Controllo del passo B**, poi il passo C. Le macchine attive dal
    PC non si leggono (prova del 22-11: Redshift non si raggiunge), quindi in locale le targhe
    escono WARNING «non verificabile». È giusto così: in QA la v2 legge Redshift come la v1.
 4. **Ingestion del manuale** trovato prima (uno solo), poi **5.2**: i tre cicli «con errori».
@@ -140,31 +141,16 @@ Le macchine attive: dal PC Redshift non si raggiunge (prova del 22-11), quindi i
 parte con `MACHINES_SOURCE` = `nessuna` e ogni targa esce WARNING «non verificabile». In QA
 e in produzione la v2 legge Redshift come la v1 (`MACHINES_SOURCE` = `diretta`).
 
-**Blocco A: la libreria nella v2.** In `vendor` ci sono due versioni della libreria (0.3.0 e
-0.4.0rc2). La v1 in servizio usa quella scritta nei suoi requirements, la 0.4.0rc2 con
-l'aggiunta `[auth]`: solo questa ha tutti i pezzi. La 0.3.0 non li ha, ed è quella che c'era
-nella v2 (e che c'è ancora nel `.venv` della v1 sul PC). Il blocco installa nella v2 la stessa
-riga dei requirements della v1 e controlla. Gratis.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-$riga = Select-String -Path ..\app_cycle_validation\requirements*.txt -Pattern "chatbot_ai_sdk-[^\s\[]+\.whl(\[[^\]]+\])?" -ErrorAction SilentlyContinue | ForEach-Object { $_.Matches[0] } | Select-Object -First 1
-$whl = if ($riga) { Resolve-Path "..\app_cycle_validation\vendor\$($riga.Value -replace '\[.*$', '')" -ErrorAction SilentlyContinue }
-if ($whl) { uv pip install --quiet "chatbot_ai_sdk$($riga.Groups[1].Value) @ $(([Uri]$whl.Path).AbsoluteUri)" } else { "FERMO: nei requirements della v1 non trovo il .whl di chatbot_ai_sdk" }
-uv run python -c "import importlib.metadata as m, chatbot_ai_sdk.auth as a; print('versione', m.version('chatbot_ai_sdk'), '- mancano:', [n for n in ('AuthMiddleware', 'AuthSettings', 'IntrospectionValidator', 'current_user', 'ServiceAccessMiddleware', 'S3PermissionsSource') if not hasattr(a, n)])"
-```
-
-**Deve uscire:** `versione 0.4.0rc2 - mancano: []`.
-
-**Manda a Claude:** la foto. Se è giusta, vai avanti con il passo B.
+**Blocco A: la libreria nella v2.** Fatto il 22-11: `versione 0.4.0rc2 - mancano: []`.
 
 **Passo B: la configurazione in Run and Debug.** Apri `.vscode/launch.json` (quello nella
 radice di `ProgettoDocumenti`) e aggiungi questa configurazione dentro `"configurations": [`,
 dopo quella del backend della v1 (attenzione alle virgole tra una configurazione e l'altra). Al
 posto delle due scritte `<...>` metti gli stessi valori della v1: `AWS_PROFILE` lo copi dalla
 configurazione del backend v1; il nome del secret è quello tra virgolette in
-`load_secrets("...")` di `app_backend.py` della v1. **Questi valori non vanno mandati a
-Claude** e non vanno nel repository personale.
+`load_secrets("...")` di `app_backend.py` della v1, **identico**, senza aggiungere `_v2`: la
+v2 usa lo stesso secret della v1. La configurazione va scritta nel file `launch.json`, non nel
+terminale. **Questi valori non vanno mandati a Claude** e non vanno nel repository personale.
 
 ```json
 {
@@ -186,6 +172,26 @@ Claude** e non vanno nel repository personale.
   }
 }
 ```
+
+**Controllo del passo B.** Prima prova (22-11): all'avvio `Secret '...' non leggibile o non
+valido (ResourceNotFoundException)`. Il nome in `CV_ENV_SECRET` non è quello della v1. Questo
+blocco lo confronta con il nome in `load_secrets` della v1 senza stamparli e, se sono diversi,
+mette in `launch.json` quello della v1 (prima ne fa una copia, `launch.json.prima-di-cv2`).
+Gratis.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+$launch = Join-Path (Resolve-Path "..\..").Path ".vscode\launch.json"
+$testo = Get-Content $launch -Raw
+$v1 = [regex]::Match((Get-Content ..\app_cycle_validation\app_backend.py -Raw), 'load_secrets\(\s*["'']([^"'']+)').Groups[1].Value
+$m = [regex]::Match($testo, '"CV_ENV_SECRET"\s*:\s*"([^"]*)"')
+"nome della v1 trovato: $([bool]$v1) · CV_ENV_SECRET in launch.json: $($m.Success) · uguali: $($m.Success -and $m.Groups[1].Value -eq $v1)"
+if ($v1 -and $m.Success -and $m.Groups[1].Value -ne $v1) { Copy-Item $launch "$launch.prima-di-cv2"; Set-Content $launch $testo.Remove($m.Groups[1].Index, $m.Groups[1].Length).Insert($m.Groups[1].Index, $v1) -NoNewline -Encoding utf8; "CV_ENV_SECRET corretto con il nome della v1." }
+```
+
+**Deve uscire:** `nome della v1 trovato: True · CV_ENV_SECRET in launch.json: True · uguali:
+False` e `CV_ENV_SECRET corretto con il nome della v1.` (oppure `uguali: True`: era già
+giusto). Poi riavvia **CV v2 (porta 8003)** in Run and Debug.
 
 `EJ200_VALIDATION_ENABLED` è spento perché in locale la conoscenza EJ200 verrebbe scaricata
 sul PC (regola: resta su AWS). Il pulsante militare il frontend lo mostra lo stesso a chi ha il
