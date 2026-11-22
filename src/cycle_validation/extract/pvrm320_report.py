@@ -142,6 +142,12 @@ def _right(raw: str) -> str:
     return _TRAILING_STAR.sub("", raw, count=1).strip()
 
 
+_HAS_WORD = re.compile(r"[^\W_]")
+_FRAME = re.compile(r"^[\s*]+|[\s*]+$")
+# asterisco da solo in mezzo alla riga: cornice di un riquadro finita sulla stessa riga
+_LONE_STAR = re.compile(r"(?:^|\s)\*(?=\s|$)")
+
+
 def _add_text(op: _Op, text: str) -> None:
     # i puntini sono campi da compilare a mano: si tolgono, il resto della riga (che può
     # contenere limiti e valori) resta nella descrizione
@@ -151,8 +157,7 @@ def _add_text(op: _Op, text: str) -> None:
             op.text.append(_SECTION)
         return
     if (
-        not text
-        or text == "."
+        not _HAS_WORD.search(text)  # trattini, «/ .» e altri segni senza lettere né cifre
         or _CONTINUED_FROM.search(text)
         or _CONTINUES_ON.search(text)
         or _DT.match(text)
@@ -163,7 +168,7 @@ def _add_text(op: _Op, text: str) -> None:
     if _SP_LINE.match(text):
         op.take_codes(text)
         return
-    op.text.append(text)
+    op.text.append(" ".join(_LONE_STAR.sub(" ", text).split()))
 
 
 # Titolo in un blocco a sé, tra due tratteggi: «***** OPERAZIONE EVENTUALE *****». Riguarda
@@ -373,7 +378,7 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
                 elif page.reordered and current is not None:
                     # stampa modificata a mano: la riga toccata può aver perso le colonne
                     # TARGA e NUM. OPER, ma sulla pagina sta dentro l'operazione in corso
-                    _add_text(current, _right(line.strip().lstrip("*").strip()))
+                    _add_text(current, _FRAME.sub("", line))
                 continue
             left = match["left"].strip()
             text = _right(match["right"])

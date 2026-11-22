@@ -151,3 +151,74 @@ def test_the_redshift_secret_name_can_come_from_the_v1_environment_secret(
     assert "Nel secret di ambiente: SECRET_NAME trovato." in result.output
     assert json.loads(out.read_text(encoding="utf-8")) == ["TM-1", "TM-2"]
     assert "nome/del-secret" not in result.output
+
+
+def test_the_database_can_be_written_in_the_v1_connection(tmp_path: Path) -> None:
+    (tmp_path / "tm.py").write_text(
+        "import redshift_connector\n"
+        "conn = redshift_connector.connect(host=h, database='db_v1', port=5439)\n",
+        "utf-8",
+    )
+    found = find_in_v1(tmp_path)
+    assert (found.database, found.database_key) == ("db_v1", None)
+
+
+def test_the_database_can_be_a_key_read_by_the_v1(tmp_path: Path) -> None:
+    (tmp_path / "tm.py").write_text(
+        "import redshift_connector\n"
+        'conn = redshift_connector.connect(host=h, database=os.getenv("REDSHIFT_DB"))\n',
+        "utf-8",
+    )
+    assert find_in_v1(tmp_path).database_key == "REDSHIFT_DB"
+    (tmp_path / "tm.py").write_text(
+        "import redshift_connector\nc = redshift_connector.connect(database=config.DB_NAME)\n",
+        "utf-8",
+    )
+    assert find_in_v1(tmp_path).database_key == "DB_NAME"
+
+
+def test_a_missing_database_asks_for_the_option() -> None:
+    values = {"host": "c.x.eu-west-1.redshift.amazonaws.com", "password": "segretissima"}
+    with pytest.raises(CycleValidationError) as error:
+        data_api_target(values, "arn")
+    assert "--database" in str(error.value) and "segretissima" not in str(error.value)
+    _, parameters = data_api_target(values, "arn", "db")
+    assert parameters["Database"] == "db"
+
+
+def test_secret_without_database_takes_it_from_the_v1_environment_secret(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Come al PC aziendale: il secret di Redshift ha dbClusterIdentifier, host, porta e
+    credenziali ma non il database, che la v1 legge da una chiave del secret di ambiente."""
+    (tmp_path / "app_backend.py").write_text('load_secrets("ambiente/v1")\n', "utf-8")
+    (tmp_path / "machines.py").write_text(
+        V1_QUERY
+        + 'import redshift_connector\nc = redshift_connector.connect(database=os.getenv("RS_DB"))\n',
+        "utf-8",
+    )
+
+    class Secrets:
+        def get_secret_value(self, SecretId: str) -> dict[str, str]:
+            if SecretId == "ambiente/v1":
+                values = {"SECRET_NAME": "nome/del-secret", "RS_DB": "db"}
+            else:
+                values = {
+                    "dbClusterIdentifier": "c1",
+                    "engine": "redshift",
+                    "host": "c1.x.eu-south-1.redshift.amazonaws.com",
+                    "password": "p",
+                    "port": "5439",
+                    "username": "u",
+                }
+            return {"SecretString": json.dumps(values), "ARN": "arn:" + SecretId}
+
+    data_api = FakeDataApi()
+    clients: dict[str, Any] = {"secretsmanager": Secrets(), "redshift-data": data_api}
+    monkeypatch.setattr(cli, "_aws_client", lambda service, region: clients[service])
+    out = tmp_path / "m.json"
+    result = CliRunner().invoke(cli.app, ["macchine", "--v1", str(tmp_path), "--out", str(out)])
+    assert result.exit_code == 0, result.output
+    assert "database letto dalla chiave RS_DB" in result.output
+    assert "Chiave RS_DB del database: trovata." in result.output
+    assert json.loads(out.read_text(encoding="utf-8")) == ["TM-1", "TM-2"]

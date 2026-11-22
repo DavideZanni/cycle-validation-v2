@@ -112,3 +112,24 @@ def test_confronta_shows_what_reordering_changes_in_the_same_print(tmp_path: Pat
     assert runner.invoke(cli.app, same).output.startswith("operazioni: 5 e 5 · differenze: 0")
     changed = runner.invoke(cli.app, [*same, "--primo-senza-riordino"]).output
     assert "differenze: 0" not in changed.splitlines()[0]
+
+
+def test_framed_lines_without_columns_lose_the_frame_and_bare_rules_are_dropped() -> None:
+    """Stampe DR vere (22-11-2026): righe in cornice di asterischi in fondo al PDF, senza le
+    colonne della tabella, e righe di soli trattini."""
+    pages = civil_pages()
+    lines = pages[1].split("\n")
+    at = next(index for index, line in enumerate(lines) if "PICK UP AND MARK" in line)
+    cut = lines[at].index("*", lines[at].index("*") + 1) + 1
+    extra = [(at, cut, "* BLOW THE PART WITH CLEAN AND DRY AIR. *"), (len(lines) + 2, 0, "/ .")]
+    edited = [*_pieces(pages[1]), *extra]
+    pdf = read_pdf_bytes(
+        build_positioned_pdf([_pieces(pages[0]), edited, *(_pieces(p) for p in pages[2:])]),
+        "e.pdf",
+        LIMITS,
+    )
+    assert pdf.pages[1].reordered
+    descriptions = [op.operation_description for op in parse_pvrm320(pdf).operations]
+    joined = " ".join(descriptions)
+    assert "BLOW THE PART WITH CLEAN AND DRY AIR." in joined
+    assert "* BLOW" not in joined and "/ ." not in joined

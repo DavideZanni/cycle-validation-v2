@@ -4,6 +4,7 @@
 import asyncio
 import difflib
 import json
+import os
 import re
 from collections import Counter
 from collections.abc import Callable
@@ -433,8 +434,16 @@ def compare_cycles(
         raise _fail(error) from error
     cycles: list[Cycle] = []
     readings = (
-        ("primo (giusto)", primo, not primo_senza_riordino),
-        ("secondo (con errori)", secondo, True),
+        (
+            "primo (senza riordino)" if primo_senza_riordino else "primo (giusto)",
+            primo,
+            not primo_senza_riordino,
+        ),
+        (
+            "secondo (con riordino)" if primo_senza_riordino else "secondo (con errori)",
+            secondo,
+            True,
+        ),
     )
     for which, path, reorder in readings:
         try:
@@ -580,6 +589,9 @@ def export_machines(
     regione: Annotated[
         str | None, typer.Option(help="Regione del secret. Vuoto = ambiente.")
     ] = None,
+    database: Annotated[
+        str | None, typer.Option(help="Database di Redshift. Vuoto = dalla v1 o dal secret.")
+    ] = None,
     out: Annotated[Path, typer.Option(help="File da scrivere.")] = Path(
         "data/macchine_attive.json"
     ),
@@ -599,7 +611,15 @@ def export_machines(
         typer.echo(
             f"Dalla v1: nome del secret {'trovato' if found.secret else 'NON trovato'} nel "
             f"codice, secret di ambiente {'trovato' if found.env_secret else 'NON trovato'}, "
-            f"tabella {'trovata' if found.table else 'NON trovata'}."
+            f"tabella {'trovata' if found.table else 'NON trovata'}, database "
+            + (
+                "scritto nel codice"
+                if found.database
+                else f"letto dalla chiave {found.database_key}"
+                if found.database_key
+                else "NON trovato"
+            )
+            + "."
         )
     secrets = _aws_client("secretsmanager", regione)
 
@@ -614,10 +634,12 @@ def export_machines(
         values["__arn__"] = reply.get("ARN", name)
         return values
 
-    secret = secret or (found.secret if found else None)
-    if not secret and found is not None and found.env_secret:
-        # come la v1: il nome del secret di Redshift sta nel secret di ambiente
+    environment: dict[str, Any] = {}
+    if found is not None and found.env_secret and not (secret and (database or found.database)):
+        # come la v1: SECRET_NAME (e a volte il database) stanno nel secret di ambiente
         environment = read(found.env_secret, "Secret di ambiente della v1")
+    secret = secret or (found.secret if found else None)
+    if not secret and environment:
         secret = str(environment.get("SECRET_NAME") or "") or None
         typer.echo(
             "Nel secret di ambiente: SECRET_NAME "
@@ -628,8 +650,19 @@ def export_machines(
         raise _fail(CycleValidationError("Servono il nome del secret e la tabella delle macchine."))
     values = read(secret, "Secret di Redshift")
     arn = str(values.pop("__arn__"))
+    if not database and found is not None:
+        key = found.database_key
+        database = found.database or (
+            str(values.get(key) or environment.get(key) or os.environ.get(key) or "") or None
+            if key
+            else None
+        )
+        if key and not found.database:
+            typer.echo(
+                f"Chiave {key} del database: " + ("trovata." if database else "NON trovata.")
+            )
     try:
-        region, parameters = data_api_target(values, arn)
+        region, parameters = data_api_target(values, arn, database)
         client = _aws_client("redshift-data", region or regione)
         tags = sorted(set(fetch_with_data_api(client, parameters, machines_query(tabella))))
     except CycleValidationError as error:

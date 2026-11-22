@@ -137,6 +137,10 @@ _LOAD_SECRETS = re.compile(r"""load_secrets\(\s*["']([^"']+)["']""")
 _FROM = re.compile(r"""\bFROM\s+([A-Za-z_"][\w."]*)""", re.IGNORECASE)
 _TABLE = re.compile(r"^[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*){0,2}$")
 _SKIP = {".venv", "venv", "node_modules", "__pycache__", ".git"}
+# il database della connessione: scritto nel codice (`database="..."`) oppure letto da una
+# chiave (`database=os.getenv("X")`, `database=secret["X"]`, ...)
+_DATABASE = re.compile(r"""\b(?:database|dbname|db_name)\s*=\s*(?:["']([^"'\s]+)["']|([^,)\n]+))""")
+_KEY = re.compile(r"""["'](\w+)["']|(\w+)\s*$""")
 
 
 @dataclass(frozen=True)
@@ -144,6 +148,8 @@ class V1Redshift:
     secret: str | None
     table: str | None
     env_secret: str | None = None
+    database: str | None = None
+    database_key: str | None = None
 
 
 def find_in_v1(folder: Path) -> V1Redshift:
@@ -151,6 +157,8 @@ def find_in_v1(folder: Path) -> V1Redshift:
     secret: str | None = None
     table: str | None = None
     env_secret: str | None = None
+    database: str | None = None
+    database_key: str | None = None
     for path in sorted(folder.rglob("*.py")):
         if _SKIP & set(path.parts):
             continue
@@ -168,7 +176,16 @@ def find_in_v1(folder: Path) -> V1Redshift:
             after = _FROM.findall(text[at : at + 400])
             found = before[-1] if before else (after[0] if after else None)
             table = found.replace('"', "") if found else None
-    return V1Redshift(secret, table, env_secret)
+        if (
+            database is None
+            and database_key is None
+            and "redshift_connector" in text
+            and (match := _DATABASE.search(text)) is not None
+        ):
+            key = _KEY.search(match[2] or "")
+            database = match[1]
+            database_key = (key[1] or key[2]) if key else None
+    return V1Redshift(secret, table, env_secret, database, database_key)
 
 
 def machines_query(table: str) -> str:
@@ -178,12 +195,13 @@ def machines_query(table: str) -> str:
 
 
 def data_api_target(
-    values: Mapping[str, Any], secret_arn: str
+    values: Mapping[str, Any], secret_arn: str, database: str | None = None
 ) -> tuple[str | None, dict[str, str]]:
     """Regione e parametri della Data API dai campi del secret della v1 (host e database).
+    `database` vale più del secret (la v1 può averlo nel codice o nel secret di ambiente).
     I valori non si stampano mai: nell'errore ci sono solo i nomi dei campi."""
     host = str(values.get("host") or values.get("hostname") or "")
-    database = next(
+    database = database or next(
         (
             str(values[key])
             for key in ("dbname", "database", "db_name", "dbName")
@@ -191,11 +209,13 @@ def data_api_target(
         ),
         None,
     )
-    if not host or not database:
+    fields = ", ".join(sorted(values)) or "nessuno"
+    if not host:
+        raise CycleValidationError(f"Nel secret manca host. Campi presenti: {fields}.")
+    if not database:
         raise CycleValidationError(
-            "Nel secret mancano host o database. Campi presenti: "
-            + (", ".join(sorted(values)) or "nessuno")
-            + "."
+            f"Manca il nome del database: non è nel secret (campi presenti: {fields}) né "
+            "nel codice della v1. Indicalo con --database."
         )
     region = re.search(r"\.([a-z]{2}(?:-[a-z]+)+-\d)\.redshift", host)
     parameters = {"Database": database, "SecretArn": secret_arn}
