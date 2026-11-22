@@ -53,7 +53,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
 | 2 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Da provare: COPILOT 5.1 | U |
 | 3 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto nel codice**: `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets` (22-11 sera); macchine attive come la v1 con `MACHINES_SOURCE=diretta`: `redshift_connector` con il secret `SECRET_NAME` (22-11 notte). Da provare in QA | C, poi U |
 | 4 | Prova in locale | è il passo prima di develop | COPILOT 5.1: libreria nella v2, configurazione in `launch.json` (`MACHINES_SOURCE=nessuna`), prova dal frontend con login | U |
-| 5 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | Dockerfile della v2 come quello della v1 (Python 3.14, certificato, libreria in `vendor/`, extra `aws` e `redshift`) con le righe `ENV` aziendali (D1); su develop `cd app_cycle_validation_v2` nel buildspec. Per tornare indietro si rimette la riga. Il blocco di aggiornamento non copia `pyproject.toml`, `uv.lock` e `Dockerfile`: vanno copiati qui | C, poi U |
+| 5 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | Dockerfile della v2 come quello della v1 (Python 3.14, certificato, libreria `chatbot_ai_sdk` 0.4.0rc2 con `[auth]` da `vendor/` come nei requirements della v1, extra `aws` e `redshift`) con le righe `ENV` aziendali (D1); su develop `cd app_cycle_validation_v2` nel buildspec. Per tornare indietro si rimette la riga. Il blocco di aggiornamento non copia `pyproject.toml`, `uv.lock` e `Dockerfile`: vanno copiati qui | C, poi U |
 | 6 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 4.1 | U |
 | 7 | Prova in QA: EJ200 e targhe | i dati EJ200 non escono da AWS; Redshift si raggiunge solo da AWS | dopo il punto 5, dal frontend QA | U |
 | 8 | Domande agli esperti | P1, P2, P6 (P4 per chi cura l'indice); P7 facoltativa | quando capita | U |
@@ -472,9 +472,14 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   CORS; l'utente va in `request.state.user`); `chatbot_ai_sdk.auth.middleware.current_user(request)
   -> VerifiedUser`; `chatbot_ai_sdk.auth.validator.IntrospectionValidator(settings, *,
   transport, clock)`. Variabili lette direttamente: `AUTH_CACHE_TTL_S`, `ENVIRONMENT`,
-  `LOG_LEVEL`. `ServiceAccessMiddleware` e `S3PermissionsSource` non sono usciti. Installando
-  nella v2 il primo `.whl` di `vendor` esce `libreria pronta: False` (22-11 notte): mancano
-  dei pezzi. Si confronta con la libreria della v1 (COPILOT 5.1, blocco A).
+  `LOG_LEVEL`.
+- **Le versioni della libreria (22-11 notte).** In `vendor` della v1 ci sono
+  `chatbot_ai_sdk-0.3.0` e `chatbot_ai_sdk-0.4.0rc2`. I requirements della v1 (quindi il
+  servizio) usano `./vendor/chatbot_ai_sdk-0.4.0rc2-py3-none-any.whl[auth]`. Solo la 0.4.0rc2
+  ha `ServiceAccessMiddleware` e `S3PermissionsSource`; la 0.3.0 no. Sul PC il `.venv` della
+  v1 ha ancora la 0.3.0 (non aggiornato dai requirements): il backend v1 in locale con quel
+  `.venv` non ha i pezzi che importa. La v2 installa la riga dei requirements della v1
+  (COPILOT 5.1, blocco A) e nel Dockerfile farà lo stesso.
 - **Come la v1 usa la libreria (C21).** Import: `from chatbot_ai_sdk.auth import
   AuthMiddleware, AuthSettings, IntrospectionValidator, current_user, ServiceAccessMiddleware,
   S3PermissionsSource` (in `routes.py` anche `VerifiedUser`). Chiamata:
@@ -587,7 +592,7 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | I documenti tolti restano sul PC | `robocopy` copia ma non cancella | il blocco di aggiornamento li cancella per nome |
 | `macchine`: «Nel secret mancano host o database» | il secret di Redshift della v1 non ha il database: la v1 lo scrive nella connessione | il comando lo cerca nel codice della v1; se no `--database` |
 | Un blocco Python si ferma su un modulo della libreria standard | un file con lo stesso nome (`inspect.py`) nella cartella TEMP | lo script gira in una cartella sua con `python -I` |
-| Blocco della libreria: mancano delle classi | probabilmente ha preso un altro `.whl` | usare quello in `app_cycle_validation\vendor` (COPILOT 5.1) |
+| Blocco della libreria: mancano delle classi (`libreria pronta: False`) | in `vendor` ci sono la 0.3.0 e la 0.4.0rc2; era stata presa la 0.3.0 | installare la riga dei requirements della v1, 0.4.0rc2 con `[auth]` (COPILOT 5.1) |
 
 ## 12. Decisioni prese
 

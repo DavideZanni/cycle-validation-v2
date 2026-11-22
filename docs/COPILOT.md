@@ -35,7 +35,7 @@ Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i pas
    **Allow all**.
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
 3. **5.1** la v2 in locale con login e frontend, al posto della v1. Per ora solo il
-   **blocco A** (la libreria): poi Claude completa il passo. Le macchine attive dal
+   **blocco A** (la libreria); se esce `mancano: []`, prosegui con i passi B e C. Le macchine attive dal
    PC non si leggono (prova del 22-11: Redshift non si raggiunge), quindi in locale le targhe
    escono WARNING «non verificabile». È giusto così: in QA la v2 legge Redshift come la v1.
 4. **Ingestion del manuale** trovato prima (uno solo), poi **5.2**: i tre cicli «con errori».
@@ -140,25 +140,23 @@ Le macchine attive: dal PC Redshift non si raggiunge (prova del 22-11), quindi i
 parte con `MACHINES_SOURCE` = `nessuna` e ogni targa esce WARNING «non verificabile». In QA
 e in produzione la v2 legge Redshift come la v1 (`MACHINES_SOURCE` = `diretta`).
 
-**Blocco A: la libreria nella v2.** Prima prova (22-11): `libreria pronta: False`. La
-libreria si carica, ma nel `.whl` preso mancano dei pezzi che la v1 usa: forse in `vendor` ci
-sono più versioni, o la v1 ne usa un'altra. Questo blocco mostra i `.whl` che ci sono, la riga
-dei requirements della v1, e per la v2 e per la v1 la versione della libreria e i pezzi che
-mancano. Non cambia niente. Gratis.
+**Blocco A: la libreria nella v2.** In `vendor` ci sono due versioni della libreria (0.3.0 e
+0.4.0rc2). La v1 in servizio usa quella scritta nei suoi requirements, la 0.4.0rc2 con
+l'aggiunta `[auth]`: solo questa ha tutti i pezzi. La 0.3.0 non li ha, ed è quella che c'era
+nella v2 (e che c'è ancora nel `.venv` della v1 sul PC). Il blocco installa nella v2 la stessa
+riga dei requirements della v1 e controlla. Gratis.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
-Get-ChildItem ..\app_cycle_validation\vendor -Filter "*.whl" -ErrorAction SilentlyContinue | ForEach-Object { "whl: $($_.Name)" }
-Select-String -Path ..\app_cycle_validation\requirements*.txt -Pattern "chatbot" -ErrorAction SilentlyContinue | ForEach-Object { "requirements: $($_.Line)" }
-$prova = "import importlib.metadata as m, chatbot_ai_sdk.auth as a; d = (m.packages_distributions().get('chatbot_ai_sdk') or ['?'])[0]; print(d, m.version(d) if d != '?' else '?', '- mancano:', [n for n in ('AuthMiddleware', 'AuthSettings', 'IntrospectionValidator', 'current_user', 'ServiceAccessMiddleware', 'S3PermissionsSource') if not hasattr(a, n)])"
-"v2: " + (uv run python -c $prova 2>&1 | Select-Object -Last 1)
-"v1: " + (& ..\app_cycle_validation\.venv\Scripts\python.exe -c $prova 2>&1 | Select-Object -Last 1)
+$riga = Select-String -Path ..\app_cycle_validation\requirements*.txt -Pattern "chatbot_ai_sdk-[^\s\[]+\.whl(\[[^\]]+\])?" -ErrorAction SilentlyContinue | ForEach-Object { $_.Matches[0] } | Select-Object -First 1
+$whl = if ($riga) { Resolve-Path "..\app_cycle_validation\vendor\$($riga.Value -replace '\[.*$', '')" -ErrorAction SilentlyContinue }
+if ($whl) { uv pip install --quiet "chatbot_ai_sdk$($riga.Groups[1].Value) @ $(([Uri]$whl.Path).AbsoluteUri)" } else { "FERMO: nei requirements della v1 non trovo il .whl di chatbot_ai_sdk" }
+uv run python -c "import importlib.metadata as m, chatbot_ai_sdk.auth as a; print('versione', m.version('chatbot_ai_sdk'), '- mancano:', [n for n in ('AuthMiddleware', 'AuthSettings', 'IntrospectionValidator', 'current_user', 'ServiceAccessMiddleware', 'S3PermissionsSource') if not hasattr(a, n)])"
 ```
 
-**Deve uscire:** una o più righe `whl: ...`, forse una riga `requirements: ...`, poi
-`v2: <nome> <versione> - mancano: [...]` e `v1: <nome> <versione> - mancano: []`.
+**Deve uscire:** `versione 0.4.0rc2 - mancano: []`.
 
-**Manda a Claude:** la foto. Claude scrive qui come installare la versione giusta.
+**Manda a Claude:** la foto. Se è giusta, vai avanti con il passo B.
 
 **Passo B: la configurazione in Run and Debug.** Apri `.vscode/launch.json` (quello nella
 radice di `ProgettoDocumenti`) e aggiungi questa configurazione dentro `"configurations": [`,
