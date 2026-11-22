@@ -98,7 +98,7 @@ uv run pytest -q
   c'è. Stato `parziale` per il registro macchine non collegato, come nelle altre condition.
   Questo ciclo cita il caso DR e le sue operazioni 040-060 seguono la procedura di riparazione:
   è un ciclo di riparazione, e con `Accept as is` il WARNING chiede giustamente di guardarlo.
-- **Salvataggio (21-11-2026)**: tutte le correzioni fin qui sono nel repository aziendale,
+- **Salvataggio (21-11-2026)**: tutte le correzioni fino al 21-11 sono nel repository aziendale,
   commit e push su `feature/cycle-validation-v2` riusciti, niente da mandare.
 
 ---
@@ -162,11 +162,73 @@ dei conteggi e della tabella (anche in due foto, se è lunga).
 
 ---
 
+## Domande per Copilot (legge il codice del repository aziendale)
+
+Dopo **Aggiornare il codice sul PC** questo file è anche sul PC, in
+`app_cycle_validation_v2/docs/COPILOT.md`, e Copilot lo può leggere. Apri la chat di Copilot in
+modalità **Ask** (non *Agent* né *Edit*: in Ask non può lanciare comandi né scrivere file) e
+incolla questo messaggio:
+
+```text
+Fai solo il consulente: non eseguire comandi, non creare, modificare o cancellare file, non
+fare commit. Puoi solo leggere i file del workspace.
+
+Apri app_cycle_validation_v2/docs/COPILOT.md, sezione "Domande per Copilot", e rispondi a ogni
+domanda da C1 a C12, nell'ordine, cercando nel codice di tutto il repository (v1 in
+app_cycle_validation/, frontend se c'è, file di deploy).
+
+Per ogni risposta: numero della domanda, file e funzione (percorso esatto), il pezzo di codice
+che conta (breve) e la risposta in due o tre righe. Se non lo trovi o non sei sicuro, scrivi
+"non trovato": non supporre. Non scrivere valori di segreti, account AWS, ARN, URL o host
+interni, nomi di bucket: al loro posto <omesso>; i nomi delle variabili invece sì.
+```
+
+**Manda a Claude** le foto delle risposte (anche tante). Se Copilot si ferma a metà, scrivigli
+«continua dalla domanda Cn».
+
+**Le domande**
+
+- **C1. Dov'è il frontend.** In quale cartella del repository c'è il codice della pagina
+  *Cycle Validation* (quella con «Which cycle do you want to validate?»)? Se non è in questo
+  repository, dillo.
+- **C2. I bollini.** Quale funzione decide, dal testo di un feedback, il bollino `OK`,
+  `Warning`, `Error`, `N/A` o `Info` e il testo sotto? Incolla la funzione. In particolare:
+  quando è `Info` e quando `N/A` grigio? Un feedback `"N/A - <motivo>"` che bollino dà?
+- **C3. L'intestazione.** Quando la pagina mostra «Validation Passed» e quando «Completed with
+  Errors»? Da dove vengono il numero «N errors» e «1 err» accanto all'operazione (un campo
+  come `cycle_errors_count`, o conta i testi che cominciano con «Error found»)?
+- **C4. I campi letti.** Elenca tutti i campi della risposta di validazione che il frontend
+  legge (in alto, `sources`, `operations`) e la colonna o l'etichetta che alimentano. Da dove
+  vengono la colonna *Type* («Manual») delle fonti e le etichette «MOS Cycle» / «EJ200 Cycle»?
+  Usa `cycle_status`, `drRecommendationFeedback` o `_pipeline_errors`?
+- **C5. Serial number e condition (DR).** Con quale rotta e con quali nomi di campo il
+  frontend manda `Serial Number (S/N)` e `DR Condition Numbers`? In che formato (testo "1,2" o
+  lista)? Il frontend li rende obbligatori (CONFIRM disattivato se vuoti)?
+- **C6. Serial number e condition nella v1.** Come li usa il backend della v1? Legge il serial
+  number anche dal PDF? Cosa fa se il serial number ha più recommendation?
+- **C7. Le rotte.** Quali rotte chiama il frontend in tutto il percorso (inizio, scelta del
+  tipo, caricamento del PDF, cronologia delle chat a sinistra, pollice su/giù, download) e con
+  quali campi? Con quale variabile di configurazione si sceglie l'indirizzo del backend (il
+  nome, non il valore)?
+- **C8. Il download.** Il pulsante di download in alto a destra cosa scarica (JSON, PDF,
+  Excel...)? Lo costruisce il frontend o lo chiede al backend?
+- **C9. Tempo massimo.** Il frontend ha un tempo massimo di attesa della validazione? Quanti
+  secondi? E il gateway o il backend della v1?
+- **C10. Macchine attive nella v1.** Come legge la v1 l'elenco delle macchine attive (Redshift
+  o altro)? Nomi delle variabili di configurazione e colonne che usa la query; niente valori.
+- **C11. EJ200 nella v1.** Dove nasce il testo «N/A, non verificato per EJ200» delle schede?
+  Il frontend lo tratta in modo speciale?
+- **C12. Il deploy.** Come va in esecuzione la v1 dietro il gateway (Dockerfile, buildspec,
+  ECS, Lambda, SageMaker...)? Elenca i file di deploy e cosa fanno, in breve. Serve per mettere
+  la v2 dietro lo stesso gateway QA e provarci i cicli EJ200.
+
+---
+
 ## Salvare le correzioni nel repository aziendale
 
-Da lanciare quando Claude dice che ci sono correzioni nuove da salvare (per ora è tutto
-salvato). Prima lancia **Aggiornare il codice sul PC**, poi questo; il messaggio del commit lo
-aggiorna Claude. Mette nel commit solo codice, test, documenti e
+Da lanciare quando Claude dice che ci sono correzioni nuove da salvare (**ora sì**: documenti
+nuovi del 22-11-2026, la memoria del progetto e questo file). Prima lancia **Aggiornare il
+codice sul PC**, poi questo; il messaggio del commit lo aggiorna Claude. Mette nel commit solo codice, test, documenti e
 casi sintetici della v2; `data/`, `runs/`, `eval/casi/aziendali/` e i PDF restano fuori perché
 git li ignora. Poi fa il push sul branch `feature/cycle-validation-v2`, ma solo se sei su quel
 branch e se nel commit non è entrato niente fuori da quelle cartelle.
@@ -178,7 +240,7 @@ Due blocchi: prima il commit, poi il push. Se il commit è già fatto, lancia so
 ```powershell
 git add src tests docs eval/casi/sintetici
 git status --short
-git commit -m "v2: correzioni dalle prove sul PC"
+git commit -m "v2: memoria del progetto, domande per Copilot, note sul frontend"
 ```
 
 **Deve uscire:** in `git status` solo righe `M ` e `A ` sotto `src/`, `tests/`, `docs/`,
