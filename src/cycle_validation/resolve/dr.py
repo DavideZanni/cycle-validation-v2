@@ -9,12 +9,15 @@ from cycle_validation.errors import CycleValidationError
 from cycle_validation.kb.port import DrRecommendation
 from cycle_validation.text import normalize_quote
 
-# Disposizioni del DR diverse da una riparazione. `Reject`: il pezzo si scarta, un ciclo di
-# riparazione è sbagliato. `Accept as is`: il pezzo si accetta senza riparazione, ma il ciclo
-# può avere comunque ispezioni e registrazioni, quindi non è un errore di per sé (domanda 17).
+# Disposizioni del DR diverse da una riparazione. `Reject`: il pezzo si scarta. `Accept as is`:
+# il pezzo si accetta così com'è. In tutti e due i casi un ciclo di riparazione non dovrebbe
+# esistere (come nella v1, confermato dall'utente il 22-11-2026).
 REJECT_PROCEDURES = ("reject",)
 ACCEPT_AS_IS_PROCEDURES = ("accept as is", "use as is")
 _INTEGER = re.compile(r"-?[0-9]+")
+# Serial number scritto nella stampa: "APPLY ON S/N XXXX0000". Almeno 6 caratteri, con almeno
+# una cifra: "S/N DEL PARTICOLARE" e "S/N:" vuoto non contano.
+SERIAL_IN_TEXT = re.compile(r"\bS/N\s*:?\s+(?=[A-Z0-9]*\d)([A-Z0-9]{6,})\b")
 
 
 class SelectorError(CycleValidationError):
@@ -23,8 +26,12 @@ class SelectorError(CycleValidationError):
 
 @dataclass(frozen=True)
 class DrSelectors:
-    serial_number: str
-    conditions: tuple[int, ...]
+    """Serial number e repair condition di un ciclo DR. Tutti e due facoltativi: il serial
+    number, se manca, si cerca nella stampa; la condition serve solo quando il serial number
+    ha più recommendation."""
+
+    serial_number: str | None = None
+    conditions: tuple[int, ...] = ()
 
 
 def normalize_conditions(value: object) -> list[int]:
@@ -63,19 +70,31 @@ def normalize_conditions(value: object) -> list[int]:
 def parse_selectors(
     *, is_dr: bool, serial_number: object = None, conditions: object = None
 ) -> DrSelectors | None:
-    """Applica la regola: senza DR i selettori sono vietati, con DR sono obbligatori."""
+    """Senza DR i selettori sono vietati. Con DR sono facoltativi (22-11-2026): quelli dati
+    si controllano, quelli che mancano restano vuoti."""
     has_serial = isinstance(serial_number, str) and bool(serial_number.strip())
     has_conditions = conditions is not None and conditions != "" and conditions != []
     if not is_dr:
         if has_serial or has_conditions:
             raise SelectorError("Serial number e repair condition valgono solo per i cicli DR.")
         return None
-    if not has_serial:
-        raise SelectorError("Per un ciclo DR serve il serial number.")
-    if not has_conditions:
-        raise SelectorError("Per un ciclo DR serve almeno una repair condition.")
-    assert isinstance(serial_number, str)
-    return DrSelectors(serial_number.strip(), tuple(normalize_conditions(conditions)))
+    serial = serial_number.strip() if isinstance(serial_number, str) and has_serial else None
+    parsed = tuple(normalize_conditions(conditions)) if has_conditions else ()
+    return DrSelectors(serial, parsed)
+
+
+def serial_in_text(text: str) -> str | None:
+    """Il serial number scritto nella stampa ("APPLY ON S/N ..."), se ce n'è uno solo."""
+    found = list(dict.fromkeys(SERIAL_IN_TEXT.findall(text)))
+    return found[0] if len(found) == 1 else None
+
+
+def with_serial_from_text(selectors: DrSelectors, text: str) -> DrSelectors:
+    """Se il serial number non è stato indicato, lo prende dalla stampa."""
+    if selectors.serial_number:
+        return selectors
+    found = serial_in_text(text)
+    return DrSelectors(found, selectors.conditions) if found else selectors
 
 
 def match_recommendations(

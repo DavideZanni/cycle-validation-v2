@@ -160,14 +160,28 @@ Più dettagli in `MIGLIORIE.md` e `AZIENDA.md`.
 | La DR dice | Esito del controllo DR | Gli altri controlli |
 |---|---|---|
 | `Repair` (ripara) | CORRETTO | vanno avanti, con i task e la procedura DR come riferimento |
-| `Accept as is` / `Use as is` (va bene così) | WARNING `DR_SENZA_RIPARAZIONE` | vanno avanti, ma **senza** la procedura di riparazione come riferimento |
+| `Accept as is` / `Use as is` (va bene così) | ERRATO: un ciclo di riparazione non dovrebbe esistere | si fermano |
 | `Reject` (scarta) | ERRATO | si fermano |
-| `Repair` e `Accept as is` insieme | CORRETTO con una nota | solo la `Repair` come riferimento |
+| `Repair` e `Accept as is` insieme (condition diverse) | CORRETTO, la parte `Accept as is` si salta | solo la `Repair` come riferimento |
 
-Il **serial number** serve a trovare la recommendation. La **condition** serve a scegliere
-quando lo stesso serial number ha più recommendation. Oggi sono obbligatori tutti e due
-(domanda P2 in `COPILOT.md`: si potrebbero rendere facoltativi). Il serial number è scritto
-solo in alcune stampe («APPLY ON S/N …»); la condition mai.
+È la regola della v1, confermata dall'utente il 22-11-2026 (prima, dal 21-11, `Accept as is`
+dava solo un WARNING).
+
+**Serial number e condition sono facoltativi** (decisione del 22-11-2026, per rendere il
+frontend meno macchinoso):
+
+| Cosa c'è | Cosa succede |
+|---|---|
+| serial number dato da chi carica | si usa quello |
+| serial number non dato, ma scritto nella stampa («APPLY ON S/N …») | si prende dalla stampa |
+| nessun serial number | WARNING `DR_NON_VERIFICATA`; gli altri controlli vanno avanti, senza la procedura DR |
+| condition non data, una sola recommendation | si usa quella |
+| condition non data, più recommendation tutte `Repair` | valgono tutte |
+| condition non data, recommendation diverse (`Repair` e `Accept as is`/`Reject`) | WARNING `DR_NON_VERIFICATA`; si va avanti con le sole `Repair` |
+| condition non data, nessuna `Repair` | ERRATO, ciclo bloccato |
+
+Il frontend può quindi togliere le due domande; finché le fa, i valori dati si usano come
+prima. Il serial number è scritto solo in alcune stampe; la condition mai.
 
 ## 8. Il frontend della v1
 
@@ -206,12 +220,13 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
   vengono dai manuali dei motori che mancano e dalle macchine attive non collegate.
 - **DR:** le tre condition del ciclo vero danno l'esito atteso.
   - `Repair`: 5 corretti, 0 errati, 0,006-0,011 USD, 9-11 chiamate al modello per prova.
-  - `Accept as is`: WARNING `DR_SENZA_RIPARAZIONE`, 0 errati, 0 USD.
+  - `Accept as is`: provata il 21-11 con la regola di allora (WARNING); dal 22-11 dà ERRATO
+    e ciclo bloccato. Da riprovare sul PC insieme al DR senza serial number e condition.
   - Descrizioni: 4 CORRETTO, 5 WARNING `EVIDENZA_NON_TROVATA`; la scheda dell'op. 050 non è
     tra le 94 schede.
 - **EJ200:** mai provato con i servizi veri (va fatto dentro AWS).
 - **Ciclo MOS «con errori»:** blocco pronto in `COPILOT.md`; manca sapere quali sono gli
-  errori (domanda P5).
+  errori (domanda P3).
 - **Salvataggio:** tutto è nel repository aziendale fino al 21-11-2026; i documenti del
   22-11-2026 sono da salvare.
 
@@ -223,7 +238,7 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | Stato `parziale`, targhe WARNING `ERRORE_TECNICO` | macchine attive (Redshift) non collegate | niente, finché non si collegano |
 | La stessa descrizione a volte ERRATO, a volte CORRETTO | il modello non risponde sempre uguale (op. 060 del DR: ERRATO 2 volte su 3) | c'è già la conferma con 2 domande in più. Prima di «correggere» un ERRATO, rifare la prova 3 volte |
 | Esiti diversi tra lettura del modello e del parser | il modello legge il PDF in modo diverso | usare il parser |
-| `Accept as is` bloccava tutto il DR | le procedure DR pubblicate parlano solo di riparazione | regola nuova (tabella DR sopra) |
+| Dubbio: `Accept as is` deve bloccare il DR? | le procedure DR pubblicate parlano solo di riparazione | sì: la guida della v1 dice che con `Accept as is` o `Reject` un ciclo di riparazione è sbagliato. Confermato dall'utente il 22-11-2026 |
 | Una ricerca nel testo della conoscenza non trova niente | si cercava riga per riga e le frasi vanno a capo | cercare nel testo intero (`Get-Content -Raw`) |
 | Previsto «completo», uscito `parziale` | dimenticate le macchine attive | ricordarsi che oggi è sempre `parziale` |
 | Test degli esiti attesi falliti sul PC | mancava la copia di `eval\casi\sintetici` | il blocco di aggiornamento la copia |
@@ -243,7 +258,7 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezioni 3 
 - **Task citato che il manuale non ha:** WARNING `FONTE_ASSENTE` subito, senza chiamare il
   modello (interruttore `agent.skip_missing_task`, acceso).
 - **Task del capitolo 70:** se non sono nei manuali citati, si cercano nel manuale SPM. Da
-  confermare (P3).
+  confermare (P1).
 - **Targa che non c'è da nessuna parte:** WARNING `TARGA_SCONOSCIUTA`. ERRATO solo per una
   targa che è nei dati TM ma non è attiva.
 - **Targa:** è la riga sopra nella colonna TARGA; la riga sotto (centro responsabile) non si
@@ -255,8 +270,11 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezioni 3 
   in `config/settings.yaml`.
 - **DR con `conditions: []`:** se il serial number ha più recommendation e una ha la lista
   vuota, WARNING «da controllare a mano». Una recommendation unica vale per ogni condition.
-- **DR `Accept as is`:** WARNING, gli altri controlli vanno avanti (tabella in sezione 7). Da
-  confermare (P1).
+- **DR `Accept as is`:** ERRATO e ciclo bloccato, come `Reject` (regola della v1, confermata il
+  22-11-2026).
+- **DR, serial number e condition:** facoltativi; il serial number si prende dalla stampa se
+  manca (sezione 7). Chi carica un DR li conosce, ma le domande rendono il frontend
+  macchinoso.
 - **`current.json`:** è il puntatore scritto da `publish.py`; il programma usa solo `version` e
   `path`.
 - **Fonti EJ200:** RDR, EF, RN, in quest'ordine. Si trovano con la sigla davanti o da sole.

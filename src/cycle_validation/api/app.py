@@ -327,7 +327,10 @@ def create_app(services: ApiServices) -> FastAPI:
             return {"is_dr": True, "next_message": "Dati DR ricevuti. Carica il PDF del ciclo."}
         return {
             "is_dr": True,
-            "next_message": "Indica il serial number e le repair condition del ciclo DR.",
+            "next_message": (
+                "Ok. Carica il PDF del ciclo DR. Serial number e repair condition sono "
+                "facoltativi: se mancano, il serial number si prende dalla stampa."
+            ),
         }
 
     @router.post("/upload")

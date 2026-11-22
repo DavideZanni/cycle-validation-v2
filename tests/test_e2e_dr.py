@@ -1,14 +1,13 @@
 import asyncio
 from pathlib import Path
 
-import pytest
 from kb_fixtures import BrokenKnowledge
 from support import example_cycle, make_deps
 
 from cycle_validation.domain.check import CheckName, Reason, Verdict
 from cycle_validation.golden import load_cases, run_golden
 from cycle_validation.pipeline import RunRequest, run_validation
-from cycle_validation.resolve.dr import DrSelectors, SelectorError
+from cycle_validation.resolve.dr import DrSelectors
 from cycle_validation.testing.pdf import synthetic_cycle_pdf
 
 GOLDEN = Path(__file__).parents[1] / "eval" / "casi" / "sintetici" / "dr"
@@ -82,9 +81,13 @@ def test_dr_data_not_loadable_blocks_with_a_warning_not_an_error(tmp_path: Path)
     assert report.counts.errato == 0
 
 
-def test_dr_profile_requires_selectors() -> None:
-    with pytest.raises(SelectorError):
-        run_validation(RunRequest(pdf_bytes=synthetic_cycle_pdf(dr_cycle())), make_deps("dr")[0])
+def test_dr_profile_runs_without_selectors() -> None:
+    report = run_validation(
+        RunRequest(pdf_bytes=synthetic_cycle_pdf(dr_cycle())), make_deps("dr")[0]
+    )
+    (row,) = [item for item in report.results if item.check is CheckName.DR_RECOMMENDATION]
+    assert row.reason is Reason.DR_NON_VERIFICATA
+    assert report.status.value != "bloccato"
 
 
 def test_payload_exposes_the_dr_feedback(tmp_path: Path) -> None:

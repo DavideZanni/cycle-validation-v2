@@ -169,11 +169,11 @@ def test_golden_command(tmp_path: Path) -> None:
     assert "concordanza 100.0%" in result.output
 
 
-def test_dr_profile_requires_selectors(pdf: Path, tmp_path: Path) -> None:
+def test_dr_profile_runs_without_serial_number_and_condition(pdf: Path, tmp_path: Path) -> None:
     args = [*base_args(pdf, tmp_path / "o"), "--profile", "dr"]
     result = runner.invoke(cli.app, args)
-    assert result.exit_code == 1
-    assert "serial" in result.output.lower()
+    assert result.exit_code == 0, result.output
+    assert "Ciclo" in result.output
 
 
 def test_dr_profile_blocks_on_not_applicable_recommendation(pdf: Path, tmp_path: Path) -> None:

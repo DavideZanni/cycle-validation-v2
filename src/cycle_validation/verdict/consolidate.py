@@ -59,9 +59,9 @@ def apply_integrity(
     return out
 
 
-# WARNING di un controllo bloccante che non ferma gli altri: il dubbio è sul ciclo intero e
-# gli altri controlli servono proprio a guardarlo (DR `Accept as is`).
-_NOT_BLOCKING = (Reason.DR_SENZA_RIPARAZIONE,)
+# WARNING di un controllo bloccante che non ferma gli altri: al DR mancano serial number o
+# condition, ma gli altri controlli si possono fare lo stesso.
+_NOT_BLOCKING = (Reason.DR_NON_VERIFICATA,)
 
 
 def is_blocking_failure(result: CheckResult) -> bool:

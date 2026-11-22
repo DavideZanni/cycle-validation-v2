@@ -29,11 +29,12 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ## 1. Cosa fare adesso (22-11-2026)
 
-1. Lancia **Aggiornare il codice sul PC** (sezione 2).
-2. Fai le **domande a Copilot** (sezione 3) e manda a Claude le foto delle risposte.
-3. Lancia **Salvare nel repository aziendale** (sezione 6): i documenti sono cambiati.
-4. Quando hai tempo: lancia la **prova del ciclo MOS «con errori»** (sezione 5).
-5. Quando capita: fai le **domande alle persone** (sezione 4).
+1. Lancia **Aggiornare il codice sul PC** (sezione 2): ci sono le regole DR nuove.
+2. Lancia la **prova del ciclo DR senza serial number e condition** (sezione 5.1).
+3. Fai le **domande a Copilot** (sezione 3) e manda a Claude le foto delle risposte.
+4. Lancia **Salvare nel repository aziendale** (sezione 6).
+5. Quando hai tempo: lancia la **prova del ciclo MOS «con errori»** (sezione 5.2).
+6. Quando capita: fai le **domande alle persone** (sezione 4).
 
 ---
 
@@ -138,26 +139,53 @@ URL o host interni, nomi di bucket: al loro posto <omesso>. I nomi delle variabi
 Queste Copilot non le sa: la risposta non è nel codice. Chiedile quando capita e scrivi a
 Claude la risposta a parole (senza codici veri).
 
-- **P1. DR «accept as is».** Quando la DR dice «accept as is» (il pezzo va bene così), si fa lo
-  stesso un ciclo di riparazione? Con quali operazioni? E quando dice «reject» (pezzo da
-  scartare), un ciclo di riparazione è sempre sbagliato?
-- **P2. Serial number e condition.** Chi carica un ciclo DR conosce sempre il serial number e
-  la condition? Dove li legge? (se non servono sempre, Claude può renderli facoltativi)
-- **P3. Task «70-».** I task che cominciano con `70-` stanno sempre nel manuale SPM (le pratiche
+- **P1. Task «70-».** I task che cominciano con `70-` stanno sempre nel manuale SPM (le pratiche
   standard)? C'è un altro gruppo di task con la stessa regola?
-- **P4. Operazione 060 del ciclo DR.** In una prova la v2 ha segnato come sbagliata
+- **P2. Operazione 060 del ciclo DR.** In una prova la v2 ha segnato come sbagliata
   l'operazione 060 del ciclo DR (condition 3). Era davvero sbagliata? Il dettaglio è in
   `runs\dr-condition-3\report.md`: fallo guardare a chi conosce il ciclo, non mandarlo a
   Claude.
-- **P5. Ciclo MOS «con errori».** Questo ciclo è stato dato già segnato come sbagliato. Quali
+- **P3. Ciclo MOS «con errori».** Questo ciclo è stato dato già segnato come sbagliato. Quali
   sono gli errori, e in quali operazioni? Serve per capire se la v2 li trova.
-- **P6. Targa «90» nell'indice** (per chi cura knowledge-index). Nel file delle targhe la
+- **P4. Targa «90» nell'indice** (per chi cura knowledge-index). Nel file delle targhe la
   `90` ha come funzione una frase sbagliata e le lettere accentate rovinate. Va corretta
   nell'indice (i passi sono in `MEMORIA.md`, «Da correggere nell'indice»).
 
 ---
 
-## 5. Prova: il ciclo MOS «con errori» nella v2
+## 5. Prove da lanciare
+
+### 5.1 Ciclo DR senza serial number e condition
+
+Dal 22-11-2026 il ciclo DR si può validare senza dire serial number e condition, e
+«accept as is» ferma il ciclo come «reject». Il blocco fa due prove sulla stampa DR che scrive
+il serial number:
+
+- **senza dati**: il serial number deve essere preso dalla stampa. Quel serial number ha
+  recommendation diverse (riparazione e «accept as is»), quindi senza condition deve uscire
+  WARNING `DR_NON_VERIFICATA` e gli altri controlli devono andare avanti;
+- **condition 2** («accept as is»): deve uscire ERRATO e il ciclo fermo.
+
+Costa qualche centesimo (solo la prima prova chiama il modello).
+
+```powershell
+$env:UV_PYTHON = "3.14"
+$kb = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
+$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+$ciclo = (Get-ChildItem "docs/Esempio ciclo dr/*sn.pdf" | Select-Object -First 1).FullName
+uv run cycle-validation run $ciclo --profile dr --knowledge $v --config data/settings.yaml --out runs/dr-senza-dati
+uv run cycle-validation run $ciclo --profile dr --condition 2 --knowledge $v --config data/settings.yaml --out runs/dr-condition-2
+foreach ($r in "dr-senza-dati", "dr-condition-2") { $j = Get-Content "runs/$r/report.json" -Raw | ConvertFrom-Json; $d = $j.results | Where-Object { $_.check -eq 'dr_recommendation' }; "$r : stato $($j.status), DR $($d.verdict) $($d.reason), serial number trovato: $(if ($j.meta.selectors.serial_number) { 'sì' } else { 'no' })" }
+```
+
+**Deve uscire:** due righe `Ciclo ...` con i conteggi, poi:
+
+- `dr-senza-dati : stato parziale, DR WARNING DR_NON_VERIFICATA, serial number trovato: sì`
+- `dr-condition-2 : stato bloccato, DR ERRATO DR_NON_APPLICABILE, serial number trovato: sì`
+
+**Manda a Claude:** la foto delle due righe `Ciclo ...` e delle due righe finali.
+
+### 5.2 Il ciclo MOS «con errori»
 
 Passa alla v2 il PDF del ciclo MOS «con errori» e mostra cosa dice su fonti e task. Il PDF lo
 cerca in `docs\` e in `Downloads`. Costa qualche centesimo.
@@ -181,8 +209,8 @@ tabella con le fonti e i task: esito, motivo e spiegazione.
 
 ## 6. Salvare nel repository aziendale
 
-Da lanciare quando Claude dice che ci sono cose nuove da salvare (**adesso sì**: documenti
-nuovi del 22-11-2026). Prima lancia **Aggiornare il codice sul PC**, poi questi due blocchi,
+Da lanciare quando Claude dice che ci sono cose nuove da salvare (**adesso sì**: regole DR e
+documenti nuovi del 22-11-2026). Prima lancia **Aggiornare il codice sul PC**, poi questi due blocchi,
 uno alla volta.
 
 Salva solo codice, test, documenti e casi di prova della v2. I dati aziendali (`data/`,
@@ -193,7 +221,7 @@ Salva solo codice, test, documenti e casi di prova della v2. I dati aziendali (`
 ```powershell
 git add src tests docs eval/casi/sintetici
 git status --short
-git commit -m "v2: documenti riorganizzati (COPILOT, MEMORIA, MIGLIORIE, AZIENDA)"
+git commit -m "v2: DR, serial number e condition facoltativi, accept as is blocca; documenti riorganizzati"
 ```
 
 **Deve uscire:** in `git status` solo righe sotto `src/`, `tests/`, `docs/`,

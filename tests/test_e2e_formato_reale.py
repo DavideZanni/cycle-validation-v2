@@ -257,8 +257,11 @@ def test_mos_with_the_published_civil_format(tmp_path: Path) -> None:
     ]
 
 
-def dr_run(tmp_path: Path, serial: str, conditions: tuple[int, ...]) -> Any:
+def dr_run(tmp_path: Path, serial: str | None, conditions: tuple[int, ...], note: str = "") -> Any:
     operation = MOS.operations[1].model_copy(update={"task_codes": [], "process_sheet": None})
+    if note:
+        description = f"{operation.operation_description} {note}"
+        operation = operation.model_copy(update={"operation_description": description})
     cycle = MOS.model_copy(
         update={"sources": [Source(manual="GEK0000")], "operations": [operation]}
     )
@@ -278,10 +281,18 @@ def test_dr_with_manual_null_and_empty_conditions(tmp_path: Path) -> None:
     assert "70-21-00-110-031" in request.prompt and "0.31 mm" in request.prompt
 
 
-def test_dr_accept_as_is_for_the_requested_condition_is_a_warning(tmp_path: Path) -> None:
+def test_dr_serial_number_comes_from_the_print_when_not_given(tmp_path: Path) -> None:
+    report, session = dr_run(tmp_path, None, (), note="APPLY ON S/N AAAA1CCC")
+    assert report.meta.selectors["serial_number"] == "AAAA1CCC"
+    assert reasons(report, CheckName.DR_RECOMMENDATION) == [Reason.VERIFICATO]
+    (request,) = session.planned
+    assert "70-21-00-110-031" in request.prompt
+
+
+def test_dr_accept_as_is_for_the_requested_condition_stops_the_cycle(tmp_path: Path) -> None:
     report, _ = dr_run(tmp_path / "a", "BBBB2DDD", (2,))
-    assert reasons(report, CheckName.DR_RECOMMENDATION) == [Reason.DR_SENZA_RIPARAZIONE]
-    assert report.status.value != "bloccato"
+    assert reasons(report, CheckName.DR_RECOMMENDATION) == [Reason.DR_NON_APPLICABILE]
+    assert report.status.value == "bloccato"
     report, _ = dr_run(tmp_path / "b", "BBBB2DDD", (1,))
     assert reasons(report, CheckName.DR_RECOMMENDATION) == [Reason.VERIFICATO]
 

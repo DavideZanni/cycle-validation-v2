@@ -29,6 +29,8 @@ from cycle_validation.resolve.dr import (
     SelectorError,
     normalize_conditions,
     parse_selectors,
+    serial_in_text,
+    with_serial_from_text,
 )
 from cycle_validation.services.machines import (
     MachineRegistry,
@@ -399,10 +401,23 @@ def test_selectors_policy() -> None:
     )
     with pytest.raises(SelectorError, match="solo per i cicli DR"):
         parse_selectors(is_dr=False, serial_number="SN-1")
-    with pytest.raises(SelectorError, match="serial number"):
-        parse_selectors(is_dr=True, conditions=[1])
-    with pytest.raises(SelectorError, match="repair condition"):
-        parse_selectors(is_dr=True, serial_number="SN-1")
+    # dal 22-11-2026 serial number e condition sono facoltativi
+    assert parse_selectors(is_dr=True) == DrSelectors()
+    assert parse_selectors(is_dr=True, conditions=[1]) == DrSelectors(None, (1,))
+    assert parse_selectors(is_dr=True, serial_number="SN-1", conditions="") == DrSelectors("SN-1")
+    with pytest.raises(SelectorError, match="non valida"):
+        parse_selectors(is_dr=True, serial_number="SN-1", conditions="uno")
+
+
+def test_serial_number_is_read_from_the_print() -> None:
+    text = "NOTE\nD.R. CASE #00000001 APPLY ON S/N AAAA1CCC\nS/N DEL PARTICOLARE"
+    assert serial_in_text(text) == "AAAA1CCC"
+    assert serial_in_text("S/N: \nS/N DEL PARTICOLARE") is None
+    # due serial number diversi: non si sceglie
+    assert serial_in_text("S/N AAAA1CCC e S/N BBBB2DDD") is None
+    assert with_serial_from_text(DrSelectors(None, (2,)), text) == DrSelectors("AAAA1CCC", (2,))
+    # quello indicato da chi carica vince sulla stampa
+    assert with_serial_from_text(DrSelectors("SN-1"), text) == DrSelectors("SN-1")
 
 
 def _dr(serial: str, *conditions: int, kb: KnowledgeBase | None = None) -> CheckResult:
@@ -416,12 +431,12 @@ def test_dr_multiple_recommendations_are_disambiguated_by_condition() -> None:
     assert "DR-DEMO-01" in result.rationale
 
 
-def test_dr_accept_as_is_is_a_warning_that_does_not_block() -> None:
+def test_dr_accept_as_is_stops_the_cycle_like_reject() -> None:
+    # come nella v1: con "accept as is" un ciclo di riparazione non dovrebbe esistere
     result = _dr("SN-DEMO-001", 2)
-    assert (result.reason, result.verdict) == (Reason.DR_SENZA_RIPARAZIONE, Verdict.WARNING)
-    assert "senza riparazione" in result.rationale
-    assert not is_blocking_failure(result)
-    # nessun contesto DR per le operazioni: la procedura è quella di riparazione
+    assert (result.reason, result.verdict) == (Reason.DR_NON_APPLICABILE, Verdict.ERRATO)
+    assert "così com'è" in result.rationale
+    assert is_blocking_failure(result)
     assert dr_tasks(memory_knowledge(), DrSelectors("SN-DEMO-001", (2,))) == []
 
 
@@ -433,7 +448,7 @@ def test_dr_accept_as_is_written_differently_is_recognised() -> None:
                 DrRecommendation(serial_number="SN-X", conditions=(1,), procedure=written)
             ],
         )
-        assert _dr("SN-X", 1, kb=kb).reason is Reason.DR_SENZA_RIPARAZIONE, written
+        assert _dr("SN-X", 1, kb=kb).reason is Reason.DR_NON_APPLICABILE, written
 
 
 def test_dr_repair_and_accept_as_is_together_keep_the_repair() -> None:
@@ -448,8 +463,51 @@ def test_dr_repair_and_accept_as_is_together_keep_the_repair() -> None:
     )
     result = _dr("SN-X", 1, 2, kb=kb)
     assert result.reason is Reason.VERIFICATO
-    assert "nessuna riparazione" in result.rationale
+    assert "Saltata la parte senza riparazione" in result.rationale
     assert dr_tasks(kb, DrSelectors("SN-X", (1, 2))) == [(None, "70-1")]
+
+
+def _two(second: str) -> IndexedKnowledgeBase:
+    return IndexedKnowledgeBase(
+        "t",
+        dr_recommendations=[
+            DrRecommendation(
+                serial_number="SN-X", conditions=(1,), procedure="Repair", tasks=("70-1",)
+            ),
+            DrRecommendation(
+                serial_number="SN-X", conditions=(2,), procedure=second, tasks=("70-2",)
+            ),
+        ],
+    )
+
+
+def test_dr_without_condition_and_only_repairs_uses_them_all() -> None:
+    kb = _two("Repair")
+    result = _dr("SN-X", kb=kb)
+    assert (result.reason, result.verdict) == (Reason.VERIFICATO, Verdict.CORRETTO)
+    assert dr_tasks(kb, DrSelectors("SN-X")) == [(None, "70-1"), (None, "70-2")]
+
+
+@pytest.mark.parametrize("second", ["Accept as is", "Reject"])
+def test_dr_without_condition_and_mixed_dispositions_is_a_warning(second: str) -> None:
+    kb = _two(second)
+    result = _dr("SN-X", kb=kb)
+    assert (result.reason, result.verdict) == (Reason.DR_NON_VERIFICATA, Verdict.WARNING)
+    assert second in result.rationale
+    assert not is_blocking_failure(result)
+    # si prosegue con la sola riparazione come riferimento
+    assert dr_tasks(kb, DrSelectors("SN-X")) == [(None, "70-1")]
+
+
+def test_dr_without_condition_and_no_repair_at_all_stops() -> None:
+    kb = IndexedKnowledgeBase(
+        "t",
+        dr_recommendations=[
+            DrRecommendation(serial_number="SN-X", conditions=(1,), procedure="Reject"),
+            DrRecommendation(serial_number="SN-X", conditions=(2,), procedure="Accept as is"),
+        ],
+    )
+    assert _dr("SN-X", kb=kb).reason is Reason.DR_NON_APPLICABILE
 
 
 def test_dr_reject_stops_even_with_a_single_recommendation() -> None:
@@ -496,9 +554,11 @@ def test_dr_data_unavailable_is_a_warning() -> None:
     assert _dr("SN-DEMO-001", 1, kb=BrokenKnowledge()).reason is Reason.ERRORE_TECNICO
 
 
-def test_dr_without_selectors_is_a_warning() -> None:
-    result = check_dr_recommendation(_ctx(profile_name="dr"))[0]
-    assert result.reason is Reason.ERRORE_TECNICO
+def test_dr_without_serial_number_is_a_warning_that_does_not_block() -> None:
+    for selectors in (None, DrSelectors(None, (1,))):
+        result = check_dr_recommendation(_ctx(profile_name="dr", selectors=selectors))[0]
+        assert (result.reason, result.verdict) == (Reason.DR_NON_VERIFICATA, Verdict.WARNING)
+        assert not is_blocking_failure(result)
 
 
 def test_dr_tasks_feed_the_context() -> None:

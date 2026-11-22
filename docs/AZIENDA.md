@@ -167,7 +167,8 @@ uv run cycle-validation run "docs/Esempio ciclo mos/<file>.pdf" --profile mos --
 
 Devi vedere `Ciclo completo: ...` e in `runs/ultimo` i file `report.json`, `report.md` e
 `payload.json`. `report.md` è il risultato leggibile. Per un DR aggiungi
-`--profile dr --serial-number <S/N> --condition 1`; per un EJ200 `--profile ej200`.
+`--profile dr` (serial number e condition sono facoltativi: `--serial-number <S/N> --condition 1`);
+per un EJ200 `--profile ej200`.
 
 ### 6.3 Cose scritte senza dati veri, da guardare una volta
 
@@ -207,7 +208,7 @@ partita finisce con la sua versione, e il report la indica (`knowledge_version`)
 | Rotta | Cosa fa |
 |---|---|
 | `GET /cycle_validation/validation/options` | quali pulsanti mostrare: civile o militare, poi MOS o DR |
-| `POST /cycle_validation/validation/upload` | `file`, `domain` (`civil`/`military`), `civil_type` (`mos`/`dr`), `dr_serial_number`, `dr_condition` |
+| `POST /cycle_validation/validation/upload` | `file`, `domain` (`civil`/`military`), `civil_type` (`mos`/`dr`), `dr_serial_number` e `dr_condition` (facoltativi) |
 
 Se il file non è del tipo scelto la risposta è 422 "Modulo sbagliato". Le rotte storiche
 (`/upload`, `/ej200/upload`) funzionano ancora. Per chi collega il frontend: un errore imprevisto
@@ -261,7 +262,7 @@ Per ogni ciclo vero una cartella con il PDF chiamato `ciclo.pdf`, poi la bozza:
 uv run cycle-validation eval prepara eval/casi/aziendali/mos/ciclo_rettifica_01
 ```
 
-Per un DR aggiungi `--serial-number SN-... --condition 1`. Il programma valida il ciclo una
+Per un DR puoi aggiungere `--serial-number SN-... --condition 1`. Il programma valida il ciclo una
 volta e scrive `ciclo.json` (il ciclo letto), `expected.json` (gli esiti proposti, con
 `"rivisto": false`) e `revisione.md` (ogni riga con spiegazione e citazione).
 
@@ -274,7 +275,7 @@ esperimenti saltano il caso. Se di una riga conta solo l'esito, togli `reason`.
 |---|---|
 | `CORRETTO` | `VERIFICATO` |
 | `ERRATO` | `CONTRADDIZIONE`, `MACCHINA_NON_ATTIVA`, `DR_NON_APPLICABILE`, `DR_NESSUNA_CORRISPONDENZA` |
-| `WARNING` | `FONTE_ASSENTE`, `TARGA_SCONOSCIUTA`, `EVIDENZA_NON_TROVATA`, `VERSIONE_DIVERSA`, `PUBBLICAZIONE_PARZIALE`, `DATO_INCERTO`, `RIFERIMENTO_AMBIGUO`, `CITAZIONE_NON_VERIFICATA`, `GIUDIZIO_INSTABILE`, `DR_SENZA_RIPARAZIONE`, `ESTRAZIONE_NON_CONFERMATA`, `BUDGET_ESAURITO`, `ERRORE_TECNICO`, `BLOCCATO_A_MONTE` |
+| `WARNING` | `FONTE_ASSENTE`, `TARGA_SCONOSCIUTA`, `EVIDENZA_NON_TROVATA`, `VERSIONE_DIVERSA`, `PUBBLICAZIONE_PARZIALE`, `DATO_INCERTO`, `RIFERIMENTO_AMBIGUO`, `CITAZIONE_NON_VERIFICATA`, `GIUDIZIO_INSTABILE`, `DR_NON_VERIFICATA`, `ESTRAZIONE_NON_CONFERMATA`, `BUDGET_ESAURITO`, `ERRORE_TECNICO`, `BLOCCATO_A_MONTE` |
 | `NON_APPLICABILE` | `CAMPO_ASSENTE`, `ESCLUSO_DA_REGOLA`, `NON_VERIFICATO_PER_PROFILO` |
 
 **Quanti casi.** Pochi ma vari: 5-10 MOS, 3-5 DR, 5 EJ200, con qualche ERRATO vero (macchina
@@ -390,7 +391,9 @@ e mai ERRATO.
 |---|---|
 | DR: un serial number con una sola recommendation vale per qualunque condition | si applica una recommendation a una condition non prevista |
 | DR: `Accept as is` (anche `Accept-as-is`, `Use as is`) e `Reject` riconosciuti per nome | un'altra parola per la stessa disposizione passa come riparazione normale |
-| DR: `Reject` = ERRATO e ciclo bloccato; `Accept as is` = WARNING `DR_SENZA_RIPARAZIONE`, gli altri controlli proseguono senza la procedura DR come riferimento (`MEMORIA.md`, sezione 7) | un ciclo con una riparazione non voluta non esce ERRATO da solo: lo dice il WARNING, va guardato a mano |
+| DR: `Reject` e `Accept as is` = ERRATO e ciclo bloccato, come nella v1 (`MEMORIA.md`, sezione 7) | un ciclo con `Accept as is` che contiene solo ispezioni esce ERRATO lo stesso |
+| DR: serial number non indicato = quello scritto nella stampa (`APPLY ON S/N`), se ce n'è uno solo | un altro numero scritto dopo `S/N` viene preso per serial number |
+| DR: condition non indicata e recommendation diverse per lo stesso serial number = WARNING `DR_NON_VERIFICATA`, si prosegue con le sole `Repair` | un pezzo da scartare passa con un WARNING invece di un ERRATO |
 | DR: nessuna recommendation trovata = ERRATO | dati DR incompleti danno ERRATO invece di WARNING |
 | Scheda presente ma famiglia del motore non riconosciuta = CORRETTO, con nota | passa una scheda di un'altra famiglia |
 | MOS: la fonte è l'OEM del piè di pagina più il task letto dalle NOTE | note scritte in altro modo danno fonti mancanti |

@@ -65,9 +65,10 @@ class GoldenCase:
         raw = self.expected.selectors
         if not raw:
             return None
-        conditions = raw["conditions"]
+        serial = raw.get("serial_number")
+        conditions = raw.get("conditions") or []
         assert isinstance(conditions, list)
-        return DrSelectors(str(raw["serial_number"]), tuple(int(x) for x in conditions))
+        return DrSelectors(str(serial) if serial else None, tuple(int(x) for x in conditions))
 
 
 def load_cases(directory: Path) -> list[GoldenCase]:

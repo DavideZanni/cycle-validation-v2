@@ -33,7 +33,7 @@ from cycle_validation.ingest.pdf import read_pdf
 from cycle_validation.ingest.transcribe import make_transcriber
 from cycle_validation.kb.local import load_local_knowledge
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
-from cycle_validation.resolve.dr import parse_selectors
+from cycle_validation.resolve.dr import SERIAL_IN_TEXT, parse_selectors
 from cycle_validation.services.machines import load_machine_registry
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, help="Validazione dei cicli.")
@@ -200,10 +200,9 @@ def run(
     typer.echo(f"Risultati in {out}")
 
 
-# Riferimenti DR scritti nel testo della stampa: "D.R. CASE #00000000", "APPLY ON S/N XXXX0000".
-# Un serial number ha almeno 6 caratteri: "S/N DEL PARTICOLARE" e "S/N:" vuoto non contano.
+# Caso DR scritto nel testo della stampa: "D.R. CASE #00000000". Il serial number
+# ("APPLY ON S/N XXXX0000") si cerca con `SERIAL_IN_TEXT`, lo stesso della validazione.
 _DR_CASE = re.compile(r"D\.\s*R\.\s*CASE\s*#?\s*(\d{6,})", re.IGNORECASE)
-_SERIAL = re.compile(r"\bS/N\s*:?\s+(?=[A-Z0-9]*\d)([A-Z0-9]{6,})\b")
 
 
 @app.command("leggi")
@@ -235,7 +234,7 @@ def read_cycles(
                 typer.echo(f"  {number:3} | {line}")
         # caso DR e serial number si cercano nel testo, anche se il parser non lo legge
         cases = list(dict.fromkeys(_DR_CASE.findall(pdf.text)))
-        serials = list(dict.fromkeys(_SERIAL.findall(pdf.text)))
+        serials = list(dict.fromkeys(SERIAL_IN_TEXT.findall(pdf.text)))
         if cases or serials:
             typer.echo(f"  dr: caso {', '.join(cases) or '-'} · S/N {', '.join(serials) or '-'}")
         try:

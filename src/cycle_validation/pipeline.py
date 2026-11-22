@@ -29,7 +29,7 @@ from cycle_validation.ingest.transcribe import PageTranscriber
 from cycle_validation.kb.port import KnowledgeBase
 from cycle_validation.module_kind import check_module_kind
 from cycle_validation.report.builder import build_report, write_outputs
-from cycle_validation.resolve.dr import DrSelectors, SelectorError
+from cycle_validation.resolve.dr import DrSelectors, SelectorError, with_serial_from_text
 from cycle_validation.services.machines import MachineRegistry
 from cycle_validation.verdict.consolidate import (
     apply_integrity,
@@ -100,11 +100,13 @@ def _read(
     return pdf, usage
 
 
-def _check_selectors(profile: ProfileConfig, selectors: DrSelectors | None) -> None:
-    if profile.requires_selectors and selectors is None:
-        raise SelectorError(f"Il profilo {profile.name} richiede serial number e repair condition.")
+def _check_selectors(profile: ProfileConfig, selectors: DrSelectors | None) -> DrSelectors | None:
+    """Un ciclo DR può arrivare senza serial number e condition: si parte vuoti."""
     if not profile.requires_selectors and selectors is not None:
         raise SelectorError(f"Il profilo {profile.name} non ammette selettori DR.")
+    if profile.requires_selectors and selectors is None:
+        return DrSelectors()
+    return selectors
 
 
 async def _run_sync(checks: Collection[CheckName], ctx: CheckContext) -> list[CheckResult]:
@@ -125,7 +127,7 @@ async def arun_validation(
         raise ProfileUnavailableError(
             f"Il profilo {profile.name} non è attivo: {profile.disabled_reason or 'disabilitato'}."
         )
-    _check_selectors(profile, request.selectors)
+    selectors = _check_selectors(profile, request.selectors)
     # Conoscenza che si aggiorna da sola (puntatore): la versione si fissa qui e vale per
     # tutta la validazione, anche se a metà ne viene pubblicata una nuova.
     current = getattr(type(deps.kb), "current", None)
@@ -147,19 +149,19 @@ async def arun_validation(
     cycle, extraction_usage = await deps.extractor.extract(pdf)
     if not cycle.operations:
         raise ExtractionError("Il ciclo estratto non contiene operazioni.")
-    if request.selectors is not None:
+    if selectors is not None:
+        # serial number non indicato: si prende dalla stampa ("APPLY ON S/N ...")
+        selectors = with_serial_from_text(selectors, pdf.text)
         record = {
             **(cycle.dr_record or {}),
-            "serial_number": request.selectors.serial_number,
-            "conditions": list(request.selectors.conditions),
+            "serial_number": selectors.serial_number,
+            "conditions": list(selectors.conditions),
         }
         cycle = cycle.model_copy(update={"dr_record": record})
     timings["extract"] = _ms(mark)
 
     integrity = check_extraction_integrity(cycle, pdf)
-    ctx = CheckContext(
-        cycle, deps.kb, deps.machines, profile, request.selectors, integrity.unconfirmed
-    )
+    ctx = CheckContext(cycle, deps.kb, deps.machines, profile, selectors, integrity.unconfirmed)
     active = [check for check in profile.checks if check not in request.skip_checks]
     results: list[CheckResult] = []
     pipeline_errors: list[PipelineError] = []
@@ -215,10 +217,10 @@ async def arun_validation(
         profile=profile.name,
         selectors=(
             {
-                "serial_number": request.selectors.serial_number,
-                "conditions": list(request.selectors.conditions),
+                "serial_number": selectors.serial_number,
+                "conditions": list(selectors.conditions),
             }
-            if request.selectors
+            if selectors
             else {}
         ),
         knowledge_version=deps.kb.version,

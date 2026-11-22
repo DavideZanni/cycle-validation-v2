@@ -6,40 +6,42 @@
       2
     ]
   },
-  "status": "completo",
+  "status": "bloccato",
   "rows": [
     {
       "check": "dr_recommendation",
       "kind": "cycle",
       "index": null,
-      "verdict": "WARNING",
-      "reason": "DR_SENZA_RIPARAZIONE"
+      "verdict": "ERRATO",
+      "reason": "DR_NON_APPLICABILE"
     },
     {
       "check": "task_code",
       "kind": "operation",
       "index": 0,
-      "verdict": "NON_APPLICABILE",
-      "reason": "CAMPO_ASSENTE"
+      "verdict": "WARNING",
+      "reason": "BLOCCATO_A_MONTE"
     },
     {
       "check": "machine_tag",
       "kind": "operation",
       "index": 0,
-      "verdict": "CORRETTO"
+      "verdict": "WARNING",
+      "reason": "BLOCCATO_A_MONTE"
     },
     {
       "check": "process_sheet",
       "kind": "operation",
       "index": 0,
-      "verdict": "CORRETTO"
+      "verdict": "WARNING",
+      "reason": "BLOCCATO_A_MONTE"
     },
     {
       "check": "operation_description",
       "kind": "operation",
       "index": 0,
       "verdict": "WARNING",
-      "reason": "FONTE_ASSENTE"
+      "reason": "BLOCCATO_A_MONTE"
     }
   ]
 }

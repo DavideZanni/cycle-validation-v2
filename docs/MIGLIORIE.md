@@ -70,7 +70,8 @@ aziendale.
 | F4 | documento LEAP intero come contesto quando la fonte non ha task. **Da verificare su un ciclo LEAP vero** |
 | — | servizio montato dalle variabili d'ambiente, Redshift con la Data API, secret all'avvio |
 | G1 | conferma delle contraddizioni: un ERRATO della descrizione si rifà con 2 sessioni uguali (`agent.confirm_contradiction`); se una non ritrova la contraddizione, WARNING `GIUDIZIO_INSTABILE`. Costa solo sugli ERRATO (21-11-2026, dopo l'op. 060 del ciclo DR vero) |
-| G2 | DR `Accept as is`: WARNING `DR_SENZA_RIPARAZIONE` senza blocco, al posto di ERRATO e ciclo bloccato. Le procedure DR pubblicate sono solo di riparazione e non citano «accept as is»: non fanno da riferimento. `Reject` resta ERRATO (21-11-2026, da confermare: domanda P1 in `COPILOT.md`) |
+| G2 | DR `Accept as is`: provato come WARNING senza blocco il 21-11-2026, **tolto il 22-11-2026**: l'utente ha confermato la regola della v1 (vedi G3) |
+| G3 | DR (22-11-2026): `Accept as is` torna ERRATO e ciclo bloccato come `Reject` (regola della v1). Serial number e condition facoltativi: il serial number, se manca, si prende dalla stampa (`APPLY ON S/N`); senza serial number, o senza la condition quando le recommendation sono diverse, WARNING `DR_NON_VERIFICATA` e gli altri controlli proseguono. Il frontend può togliere le due domande |
 
 ---
 

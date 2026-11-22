@@ -33,8 +33,9 @@ class Reason(StrEnum):
     CITAZIONE_NON_VERIFICATA = "CITAZIONE_NON_VERIFICATA"
     # una contraddizione che le verifiche di conferma non hanno ritrovato
     GIUDIZIO_INSTABILE = "GIUDIZIO_INSTABILE"
-    # DR `Accept as is`: nessuna riparazione prevista, il ciclo va guardato a mano
-    DR_SENZA_RIPARAZIONE = "DR_SENZA_RIPARAZIONE"
+    # DR senza serial number, o senza la condition che serve a scegliere: gli altri controlli
+    # proseguono, la recommendation va guardata a mano
+    DR_NON_VERIFICATA = "DR_NON_VERIFICATA"
     ESTRAZIONE_NON_CONFERMATA = "ESTRAZIONE_NON_CONFERMATA"
     BUDGET_ESAURITO = "BUDGET_ESAURITO"
     ERRORE_TECNICO = "ERRORE_TECNICO"

@@ -104,7 +104,6 @@ def test_conversation(env: Env, body: dict[str, Any], is_dr: bool, needs: str) -
         {"answer": "forse"},
         {"answer": "no", "dr_serial_number": "SN1"},
         {},
-        {"dr_serial_number": "SN1"},
     ],
 )
 def test_conversation_rejects_bad_requests(env: Env, body: dict[str, Any]) -> None:
@@ -165,14 +164,30 @@ def test_upload_rejections_use_the_historic_codes_and_error_shape(env: Env) -> N
 @pytest.mark.parametrize(
     "data",
     [
-        {"is_dr": "true"},
-        {"is_dr": "true", "dr_serial_number": "SN-DEMO-001"},
         {"is_dr": "false", "dr_serial_number": "SN-DEMO-001", "dr_condition": "1"},
         {"is_dr": "forse"},
+        {"is_dr": "true", "dr_condition": "uno"},
     ],
 )
 def test_dr_selector_policy_is_enforced_by_the_form(env: Env, data: dict[str, str]) -> None:
     assert upload_civil(env, **data).status_code == 422
+
+
+@pytest.mark.parametrize(
+    "data",
+    [{"is_dr": "true"}, {"is_dr": "true", "dr_serial_number": "SN-DEMO-001"}],
+)
+def test_dr_serial_number_and_condition_are_optional(env: Env, data: dict[str, str]) -> None:
+    response = upload_civil(env, **data)
+    assert response.status_code == 200, response.text
+    assert response.json()["state"] == "succeeded"
+
+
+def test_conversation_accepts_a_serial_number_without_condition(env: Env) -> None:
+    body = {"dr_serial_number": "SN1"}
+    response = env.client.post(f"{BASE}/conversation", json=body, headers=env.auth())
+    assert response.status_code == 200
+    assert response.json()["is_dr"] is True
 
 
 @pytest.mark.parametrize("condition", ["1", "1,2", "[1,2]"])
