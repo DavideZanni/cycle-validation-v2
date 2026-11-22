@@ -53,14 +53,15 @@ sugli errori veri aspetta i manuali nella conoscenza.
 | 2 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Da provare: COPILOT 5.1 | U |
 | 3 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto nel codice**: `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets` (22-11 sera); macchine attive come la v1 con `MACHINES_SOURCE=diretta`: `redshift_connector` con il secret `SECRET_NAME` (22-11 notte). Da provare in QA | C, poi U |
 | 4 | Prova in locale | è il passo prima di develop | **fatto** (22-11 notte): login, frontend e v2 da Run and Debug; ciclo MOS di esempio `Validation Passed` in circa 20 s, con accesso e permessi della v1. Configurazione in `AZIENDA.md`, sezione 7 | — |
-| 5 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | Dockerfile della v2 come quello della v1 (Python 3.14, certificato, libreria `chatbot_ai_sdk` 0.4.0rc2 con `[auth]` da `vendor/` come nei requirements della v1, extra `aws` e `redshift`) con le righe `ENV` aziendali (D1); su develop `cd app_cycle_validation_v2` nel buildspec. Per tornare indietro si rimette la riga. Il blocco di aggiornamento non copia `pyproject.toml`, `uv.lock` e `Dockerfile`: vanno copiati qui | C, poi U |
+| 5 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | **pronto nel codice** (22-11 notte): `cycle-validation qa` sul PC scrive il Dockerfile della v2 da quello della v1 (base, certificati), copia la libreria in `vendor/`, mette i valori aziendali nelle righe `ENV`, copia le impostazioni in `config/settings.azienda.yaml` e sposta il buildspec sulla v2. Primo passaggio con EJ200 spento. COPILOT 7 | U, poi C |
 | 6 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 4.1 | U |
 | 7 | Prova in QA: EJ200 e targhe | i dati EJ200 non escono da AWS; Redshift si raggiunge solo da AWS | dopo il punto 5, dal frontend QA | U |
 | 8 | Domande agli esperti | P1, P2, P6 (P4 per chi cura l'indice); P7 facoltativa | quando capita | U |
 
 **Decisioni da prendere:**
 
-- **D1. Dove scrivere il nome del secret «di ambiente» per la v2.** Nella v1 è scritto nel
+- **D1. Dove scrivere il nome del secret «di ambiente» per la v2.** **Confermato dall'utente
+  (22-11 notte).** Nella v1 è scritto nel
   codice; nel repository personale (pubblico) non si può. Fatto così (22-11 sera, da
   confermare dall'utente): la v2 lo legge dalla variabile `CV_ENV_SECRET`; in locale la mette
   `launch.json`, nel container una riga `ENV` nel Dockerfile della copia aziendale (il blocco
@@ -433,6 +434,33 @@ dice develop = QA, main = produzione). Le variabili di CodeBuild: `AWS_REGION`,
 `AWS_ACCOUNT_ID`, `ECR_REPO_NAME`, `CODEBUILD_RESOLVED_SOURCE_VERSION`. La configurazione non è
 nell'immagine: arriva dal secret letto da `load_secrets`, con lo stesso nome nei due ambienti
 (cambia l'account AWS).
+
+### Come si pubblica la v2 in QA (deciso il 22-11-2026, notte)
+
+- **Il comando `cycle-validation qa`** (`src/cycle_validation/deploy.py`) gira sul PC nella
+  cartella della v2 e legge la v1: dal suo Dockerfile la riga `FROM` e le istruzioni sui
+  certificati; dai requirements il `.whl` di `chatbot_ai_sdk` con le aggiunte; dal codice il
+  nome del secret di ambiente, il database e la tabella (come il comando `macchine`). Scrive il
+  Dockerfile della copia aziendale con le righe `ENV` (`CV_ENV_SECRET`,
+  `MACHINES_SOURCE=diretta`, `REDSHIFT_DATABASE`, `MACHINES_QUERY`, `CYCLE_VALIDATION_CONFIG`,
+  i due puntatori della conoscenza, `EJ200_VALIDATION_ENABLED`, `API_INCLUDE_TRACEBACK=false`),
+  copia `data/settings.yaml` in `config/settings.azienda.yaml` e cambia nel buildspec
+  `cd app_cycle_validation` in `cd app_cycle_validation_v2`. Stampa il Dockerfile con i tre
+  valori aziendali coperti. `--torna-alla-v1` rimette il buildspec com'era.
+- **Perché così:** il repository personale è pubblico; la configurazione resta quella della v1
+  (stesso secret di ambiente, stesso nome in QA e in produzione); nessun valore nuovo da
+  chiedere a nessuno.
+- **Il Dockerfile del repository personale** resta generico (Python 3.14, senza certificati e
+  senza libreria di accesso): in azienda vale quello scritto da `qa`. Il blocco di
+  aggiornamento ora copia anche `config/`, `prompts/`, `pyproject.toml`, `uv.lock`, `README.md`.
+- **EJ200 spento al primo passaggio:** all'avvio la v2 scarica la conoscenza pubblicata e, se un
+  file non è valido, non parte. La conoscenza EJ200 non si può controllare dal PC (resta su
+  AWS), quindi prima si prova il civile, poi si accende EJ200 (COPILOT 7.3).
+- **Produzione:** passa alla v2 quando il ramo arriva su `main`. Prima serve una prova QA
+  riuscita.
+- **Da verificare in QA:** che il ruolo del servizio possa usare Bedrock con il modello delle
+  impostazioni e leggere i prefissi della conoscenza v2 su S3; che `uvicorn.workers` ci sia
+  nella versione di uvicorn installata.
 
 ### Accesso ai cicli militari (22-11-2026, risposte C15-C17)
 

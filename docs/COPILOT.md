@@ -34,9 +34,10 @@ Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i pas
 1. In Copilot passa ad **Ask** (in basso nella chat): nelle foto è ancora su **Agent** con
    **Allow all**.
 2. Lancia **Aggiornare il codice sul PC** (sezione 2).
-3. **5.1** fatto: la v2 gira in locale con login e frontend, al posto della v1.
-4. **Ingestion del manuale** trovato prima (uno solo), poi **5.2**: i tre cicli «con errori».
-5. Lancia **Salvare nel repository aziendale** (sezione 6).
+3. **Pubblicare in QA** (sezione 7): blocco 7.1, foto a Claude, poi **Salvare** (sezione 6) e
+   la pull request verso `develop`.
+4. Dopo la pubblicazione: la prova dal frontend QA (7.2).
+5. **Ingestion del manuale** trovato prima (uno solo), poi **5.2**: i tre cicli «con errori».
 6. Se non l'hai già fatto: manda al collega del frontend il **messaggio** della sezione 4.1.
 
 ---
@@ -44,7 +45,8 @@ Dove siamo e cosa manca per la consegna: `MEMORIA.md`, sezione 1. Qui solo i pas
 ## 2. Aggiornare il codice sul PC
 
 Da lanciare **ogni volta che Claude dice di aver cambiato qualcosa**. Prende dal repository
-personale il codice, i test, i documenti e i casi di prova, li copia nella cartella della v2 e
+personale il codice, i test, i documenti, i casi di prova, le impostazioni predefinite, i
+prompt e le dipendenze (`pyproject.toml`, `uv.lock`), li copia nella cartella della v2 e
 lancia i test. Toglie anche i documenti vecchi che non servono più. Non tocca i dati
 aziendali.
 
@@ -57,6 +59,9 @@ robocopy "$tmp\src" src /E /XD __pycache__ /NFL /NDL /NJH /NJS /NP
 robocopy "$tmp\tests" tests /E /XD __pycache__ /NFL /NDL /NJH /NJS /NP
 robocopy "$tmp\docs" docs /E /NFL /NDL /NJH /NJS /NP
 robocopy "$tmp\eval\casi\sintetici" eval\casi\sintetici /E /NFL /NDL /NJH /NJS /NP
+robocopy "$tmp\config" config /E /NFL /NDL /NJH /NJS /NP
+robocopy "$tmp\prompts" prompts /E /NFL /NDL /NJH /NJS /NP
+Copy-Item "$tmp\pyproject.toml", "$tmp\uv.lock", "$tmp\README.md" . -Force
 Remove-Item docs\AMBIENTE_AZIENDALE.md, docs\DOMANDE_APERTE.md, docs\FORMATO_CONOSCENZA.md, docs\IMPORTAZIONE.md, docs\README_RADICE.md -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force $tmp
 uv run pytest -q
@@ -161,24 +166,26 @@ Claude le confronta con i 10 errori trovati da `confronta` (`MEMORIA.md`, sezion
 
 ## 6. Salvare nel repository aziendale
 
-Da lanciare quando Claude dice che ci sono cose nuove da salvare (**adesso sì**: lettura delle
-stampe modificate a mano, comandi `confronta` e `macchine`, accesso come la v1, macchine
-attive da Redshift come la v1, documenti riordinati). Prima lancia **Aggiornare il codice sul PC**, poi questi due blocchi, uno alla
-volta.
+Da lanciare quando Claude dice che ci sono cose nuove da salvare (**adesso sì**, dopo il
+blocco 7.1: tutto il lavoro del 22-11 e la preparazione per QA). Prima lancia **Aggiornare il
+codice sul PC**, poi questi due blocchi, uno alla volta.
 
-Salva solo codice, test, documenti e casi di prova della v2. I dati aziendali (`data/`,
-`runs/`, `eval/casi/aziendali/`, i PDF) restano fuori: git li ignora.
+Salva codice, test, documenti, casi di prova, impostazioni, prompt, dipendenze, il Dockerfile
+scritto da `qa`, la libreria in `vendor/` e il `buildspec.yml` della radice. I dati aziendali
+(`data/`, `runs/`, `eval/casi/aziendali/`, i PDF) restano fuori: git li ignora.
 
 **6.1 Commit**
 
 ```powershell
-git add src tests docs eval/casi/sintetici
+git add src tests docs eval/casi/sintetici config prompts pyproject.toml uv.lock README.md Dockerfile vendor ../buildspec.yml
 git status --short
-git commit -m "v2: accesso con chatbot_ai_sdk come la v1, secret di ambiente della v1 (CV_ENV_SECRET), macchine attive da Redshift come la v1 (MACHINES_SOURCE), stampe modificate a mano, comandi confronta e macchine, documenti riordinati"
+git commit -m "v2 pronta per QA: accesso con chatbot_ai_sdk come la v1, secret di ambiente della v1, macchine attive da Redshift come la v1, Dockerfile dalla v1 (cycle-validation qa), buildspec sulla v2, stampe modificate a mano, comandi confronta e macchine"
 ```
 
-**Deve uscire:** in `git status` solo righe sotto `src/`, `tests/`, `docs/`,
-`eval/casi/sintetici/` (`M` cambiato, `A` nuovo, `D` tolto); poi il riepilogo del commit.
+**Deve uscire:** in `git status` righe sotto `src/`, `tests/`, `docs/`, `eval/casi/sintetici/`,
+`config/`, `prompts/`, `vendor/`, più `pyproject.toml`, `uv.lock`, `README.md`, `Dockerfile` e
+`../buildspec.yml` (`M` cambiato, `A` nuovo, `D` tolto); poi il riepilogo del commit. Niente
+sotto `data/` o `runs/`.
 
 **6.2 Push**
 
@@ -187,7 +194,7 @@ dalle cartelle previste. Altrimenti scrive `FERMO` e non fa niente.
 
 ```powershell
 $branch = git branch --show-current
-$fuori = git show --name-only --format= HEAD | Where-Object { $_ -and $_ -notmatch '^app_cycle_validation_v2/(src|tests|docs|eval/casi/sintetici)/' }
+$fuori = git show --name-only --format= HEAD | Where-Object { $_ -and $_ -notmatch '^app_cycle_validation_v2/(src|tests|docs|eval/casi/sintetici|config|prompts|vendor)/|^app_cycle_validation_v2/(pyproject\.toml|uv\.lock|README\.md|Dockerfile)$|^buildspec\.yml$' }
 if ($branch -ne "feature/cycle-validation-v2") {
   "FERMO: sei sul branch '$branch', non su feature/cycle-validation-v2. Niente push."
 } elseif ($fuori) {
@@ -204,3 +211,70 @@ l'ultimo commit e `## feature/cycle-validation-v2...origin/feature/cycle-validat
 **Se esce `FERMO`, o il push è rifiutato** (`rejected`, `fetch first`): non insistere e non
 usare `--force`, manda la foto a Claude. Se il commit dice `nothing to commit`, era già tutto
 salvato: lancia lo stesso il push.
+
+---
+
+## 7. Pubblicare in QA
+
+La v2 prende il posto della v1 in QA. Oggi `buildspec.yml` (nella radice del repository)
+costruisce l'immagine dalla cartella della v1. Il comando `cycle-validation qa` prepara tutto
+sul PC, senza mettere valori aziendali nel repository personale:
+
+- scrive il `Dockerfile` della v2 partendo da quello della v1: stessa base Python, stesse
+  istruzioni sui certificati;
+- copia in `vendor/` la libreria di accesso dei requirements della v1 (0.4.0rc2 con `[auth]`);
+- mette nelle righe `ENV` del Dockerfile i valori che la v1 ha nel codice: il nome del secret
+  di ambiente, il database e la query delle macchine (Redshift come la v1);
+- copia `data/settings.yaml` (le impostazioni provate in locale, con l'id del modello) in
+  `config/settings.azienda.yaml`;
+- nel `buildspec.yml` cambia `cd app_cycle_validation` in `cd app_cycle_validation_v2`.
+
+La prima volta i cicli militari restano **spenti**: se la conoscenza EJ200 pubblicata avesse un
+problema, il servizio non partirebbe. Si accendono dopo la prima prova (7.3).
+
+**7.1 Preparare.** Gratis. Stampa solo nomi e il Dockerfile con i valori aziendali coperti.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+uv run cycle-validation qa --conoscenza-civile "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/current.json"
+```
+
+**Deve uscire:** `Dalla v1: base e N istruzioni sui certificati; libreria ... copiata in vendor;
+secret di ambiente, database e tabella trovati.`, `Impostazioni: ... (modello ...)`,
+`buildspec: righe spostate sulla v2: 1.` con le righe del buildspec che parlano della cartella e
+del certificato, poi il Dockerfile.
+
+**Manda a Claude:** la foto (tutta l'uscita, anche in due foto). Claude controlla il Dockerfile
+prima del salvataggio.
+
+**Poi:** **Salvare** (sezione 6) e, come fate di solito, la pull request da
+`feature/cycle-validation-v2` verso `develop`. Quando è unita, CodeBuild costruisce la v2 e QA
+la usa al posto della v1.
+
+**Attenzione:** quando `feature/cycle-validation-v2` (o `develop`) arriverà su `main`, anche la
+produzione passerà alla v2. Prima di farlo serve una prova QA riuscita.
+
+**7.2 La prova in QA.** Dal frontend QA (pagina *Cycle Validation*), con il tuo utente: un
+ciclo MOS e un ciclo DR, come in locale. Qui le targhe si controllano davvero (Redshift come la
+v1).
+
+**Manda a Claude:** la foto dell'intestazione dei risultati di tutti e due (esito, numero di
+errori) e, se ci sono, le righe delle targhe.
+
+**Se la v2 in QA non parte o non risponde:** si torna alla v1 così, poi Salvare e pull request
+verso `develop`:
+
+```powershell
+$env:UV_PYTHON = "3.14"
+uv run cycle-validation qa --torna-alla-v1
+```
+
+**Deve uscire:** `buildspec: righe rimesse sulla v1: 1.`
+
+**7.3 Accendere i cicli militari** (dopo 7.2 riuscita). Stesso comando con la conoscenza EJ200,
+poi Salvare e pull request:
+
+```powershell
+$env:UV_PYTHON = "3.14"
+uv run cycle-validation qa --conoscenza-civile "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/current.json" --ej200 --conoscenza-ej200 "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/ej200/current.json"
+```

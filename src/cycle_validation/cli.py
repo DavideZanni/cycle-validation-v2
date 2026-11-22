@@ -1,4 +1,4 @@
-"""CLI: `run`, `leggi`, `confronta`, `macchine`, `golden`, `kb-check` ed `eval` (esperimenti: `eval esegui`,
+"""CLI: `run`, `leggi`, `confronta`, `macchine`, `qa`, `golden`, `kb-check` ed `eval` (esperimenti: `eval esegui`,
 `eval classifica`)."""
 
 import asyncio
@@ -598,6 +598,122 @@ def _direct_fetch(values: dict[str, Any], database: str | None, query: str) -> l
     return fetch_active_machines(
         secret_connection(lambda: values, _redshift_connector(), database), query
     )
+
+
+_MASKED = ("CV_ENV_SECRET", "REDSHIFT_DATABASE", "MACHINES_QUERY")
+
+
+@app.command("qa")
+def prepare_qa(
+    conoscenza_civile: Annotated[
+        str | None, typer.Option(help="current.json della conoscenza civile su S3.")
+    ] = None,
+    v1: Annotated[Path, typer.Option(help="Cartella della v1.")] = Path("../app_cycle_validation"),
+    impostazioni: Annotated[
+        Path, typer.Option(help="Impostazioni provate in locale (copiate nell'immagine).")
+    ] = Path("data/settings.yaml"),
+    ej200: Annotated[bool, typer.Option(help="Cicli militari accesi nel servizio.")] = False,
+    conoscenza_ej200: Annotated[
+        str | None, typer.Option(help="current.json della conoscenza EJ200 su S3 (con --ej200).")
+    ] = None,
+    buildspec: Annotated[Path, typer.Option(help="buildspec.yml del repository aziendale.")] = Path(
+        "../buildspec.yml"
+    ),
+    torna_alla_v1: Annotated[
+        bool, typer.Option(help="Rimette nel buildspec la cartella della v1 e basta.")
+    ] = False,
+) -> None:
+    """Prepara la v2 per QA sul PC aziendale: Dockerfile dalla v1 con i valori aziendali,
+    libreria di accesso in vendor/, impostazioni nell'immagine, buildspec sulla v2."""
+    import shutil
+
+    from cycle_validation.deploy import (
+        SETTINGS_FILE,
+        V1_FOLDER,
+        read_v1_image,
+        read_v1_wheel,
+        render_dockerfile,
+        switch_buildspec,
+    )
+    from cycle_validation.deploy import mentions as lines_with
+    from cycle_validation.services.redshift import find_in_v1, machines_query
+
+    try:
+        if not buildspec.is_file():
+            raise CycleValidationError(f"buildspec non trovato: {buildspec}")
+        spec = buildspec.read_text(encoding="utf-8")
+        if torna_alla_v1:
+            back, count = switch_buildspec(spec, to_v2=False)
+            if count:
+                buildspec.write_text(back, encoding="utf-8")
+            typer.echo(f"buildspec: righe rimesse sulla v1: {count}.")
+            for line in lines_with(back, V1_FOLDER):
+                typer.echo(f"  {line}")
+            return
+        if not conoscenza_civile:
+            raise CycleValidationError("Manca --conoscenza-civile (current.json su S3).")
+        if ej200 and not conoscenza_ej200:
+            raise CycleValidationError("Con --ej200 serve anche --conoscenza-ej200.")
+        image = read_v1_image((v1 / "Dockerfile").read_text(encoding="utf-8"))
+        requirements = "\n".join(
+            path.read_text(encoding="utf-8") for path in sorted(v1.glob("requirements*.txt"))
+        )
+        wheel, extras = read_v1_wheel(requirements)
+        found = find_in_v1(v1)
+        missing = [
+            name
+            for name, value in (
+                ("secret di ambiente", found.env_secret),
+                ("database", found.database),
+                ("tabella delle macchine", found.table),
+            )
+            if not value
+        ]
+        if missing:
+            raise CycleValidationError("Nel codice della v1 non trovo: " + ", ".join(missing) + ".")
+        settings = load_settings(impostazioni)
+        env = {
+            "CV_ENV_SECRET": str(found.env_secret),
+            "MACHINES_SOURCE": "diretta",
+            "REDSHIFT_DATABASE": str(found.database),
+            "MACHINES_QUERY": machines_query(str(found.table)),
+            "CYCLE_VALIDATION_CONFIG": SETTINGS_FILE,
+            "CIVIL_KNOWLEDGE_POINTER": conoscenza_civile,
+            "EJ200_VALIDATION_ENABLED": "true" if ej200 else "false",
+            **({"EJ200_KNOWLEDGE_POINTER": conoscenza_ej200} if conoscenza_ej200 else {}),
+            "API_INCLUDE_TRACEBACK": "false",
+        }
+        dockerfile = render_dockerfile(image, wheel, extras, env)
+        source = v1 / "vendor" / wheel
+        if not source.is_file():
+            raise CycleValidationError(f"Il .whl dei requirements non è in {v1 / 'vendor'}.")
+        switched, count = switch_buildspec(spec)
+        if not count and V1_FOLDER + "_v2" not in spec:
+            raise CycleValidationError("Nel buildspec non trovo `cd app_cycle_validation`.")
+    except (CycleValidationError, OSError) as error:
+        raise _fail(error) from error
+    Path("vendor").mkdir(exist_ok=True)
+    shutil.copyfile(source, Path("vendor") / wheel)
+    Path(SETTINGS_FILE).write_text(impostazioni.read_text(encoding="utf-8"), encoding="utf-8")
+    Path("Dockerfile").write_text(dockerfile, encoding="utf-8")
+    if count:
+        buildspec.write_text(switched, encoding="utf-8")
+    typer.echo(
+        f"Dalla v1: base e {len(image.certificates)} istruzioni sui certificati; libreria "
+        f"{wheel}{extras} copiata in vendor; secret di ambiente, database e tabella trovati."
+    )
+    typer.echo(f"Impostazioni: {impostazioni} -> {SETTINGS_FILE} (modello {settings.agent.model}).")
+    if settings.agent.save_transcripts:
+        typer.echo("Attenzione: nelle impostazioni save_transcripts è acceso (testi su disco).")
+    typer.echo(f"buildspec: righe spostate sulla v2: {count}.")
+    for line in lines_with(switched, V1_FOLDER) + lines_with(switched, "ca-certificates"):
+        typer.echo(f"  {line}")
+    typer.echo("Dockerfile scritto (valori aziendali coperti):")
+    shown = dockerfile
+    for name in _MASKED:
+        shown = re.sub(rf'({name}=)"(?:[^"\\]|\\.)*"', r'\1"…"', shown)
+    for line in shown.splitlines():
+        typer.echo(f"  {line}")
 
 
 @app.command("macchine")

@@ -224,8 +224,13 @@ Prova: `http://127.0.0.1:8000/cycle_validation/health` risponde `{"status":"ok",
 **In azienda** (risposte C18-C20, `MEMORIA.md`, sezione 9): in locale la v1 gira sulla porta
 8003 (vite manda lì `/cycle_validation/`), quindi la v2 va avviata sulla 8003 al posto della v1.
 L'immagine la costruisce `buildspec.yml` dalla cartella della v1: per pubblicare la v2 si cambia
-la cartella nel buildspec, prima su develop (QA). Il Dockerfile della v2 va allineato a quello
-della v1 (Python 3.14, `ca-certificates.crt`, libreria `chatbot_ai_sdk` da `vendor/`).
+la cartella nel buildspec, prima su develop (QA). Il Dockerfile aziendale della v2 lo scrive
+`cycle-validation qa` sul PC, dalla cartella della v2: prende dalla v1 la base Python, le
+istruzioni sui certificati, la libreria `chatbot_ai_sdk` dei requirements (copiata in
+`vendor/`) e i valori che la v1 ha nel codice (secret di ambiente, database e tabella delle
+macchine), che mette nelle righe `ENV`; copia `data/settings.yaml` in
+`config/settings.azienda.yaml`; sposta il buildspec sulla v2 (`--torna-alla-v1` lo rimette).
+Passi e controlli: `COPILOT.md`, sezione 7.
 
 **In locale con login e frontend (provato il 22-11-2026).** Come per la v1, da Run and Debug.
 
