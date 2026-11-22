@@ -600,9 +600,11 @@ def export_machines(
     'TO'`) e lo scrive in un file JSON da passare a `run --machines`. Stampa solo il numero di
     macchine: niente nomi, host o valori del secret."""
     from cycle_validation.services.redshift import (
+        cluster_database,
         data_api_target,
         fetch_with_data_api,
         find_in_v1,
+        host_region,
         machines_query,
     )
 
@@ -613,7 +615,7 @@ def export_machines(
             f"codice, secret di ambiente {'trovato' if found.env_secret else 'NON trovato'}, "
             f"tabella {'trovata' if found.table else 'NON trovata'}, database "
             + (
-                f"letto dalla chiave {found.database_key}"
+                f"letto dalla chiave {found.database_key} con {found.database_read}"
                 if found.database_key
                 else "scritto nel codice"
                 if found.database
@@ -672,6 +674,19 @@ def export_machines(
                     else ""
                 )
             )
+    host = str(values.get("host") or "")
+    cluster = values.get("dbClusterIdentifier") or (
+        host.split(".")[0] if host and "redshift-serverless" not in host else None
+    )
+    if not database and cluster:
+        # la v1 non trova il database nei secret: si usa quello creato con il cluster
+        try:
+            client = _aws_client("redshift", host_region(host) or regione)
+            database = cluster_database(client, str(cluster))
+        except Exception as error:
+            typer.echo(f"Database del cluster non letto: {_aws_error(error)}.")
+        else:
+            typer.echo("Database del cluster: " + ("trovato." if database else "NON trovato."))
     try:
         region, parameters = data_api_target(values, arn, database)
         client = _aws_client("redshift-data", region or regione)

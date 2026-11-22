@@ -98,8 +98,9 @@ Claude la risposta a parole (senza codici veri).
   lavorazione, targa, parola nella descrizione)? Oggi la v2 una scheda assente la segna N/A,
   come la v1: senza una regola non può sapere che manca.
 - **P7. Redshift** (solo se la sezione 5.1 dà `AccessDeniedException`). Chi gestisce AWS
-  può darti la lettura dei due secret della v1 (quello «di ambiente» e quello di Redshift) e
-  l'uso della Data API di Redshift (`redshift-data`)? Serve solo per le prove sul PC.
+  può darti la lettura dei due secret della v1 (quello «di ambiente» e quello di Redshift),
+  la lettura dei dati del cluster (`redshift:DescribeClusters`) e l'uso della Data API di
+  Redshift (`redshift-data`)? Serve solo per le prove sul PC.
 
 ### 4.1 Messaggio per il collega del frontend
 
@@ -131,31 +132,32 @@ stessa risposta.
 Serve a controllare le targhe come la v1 (cos'è Redshift e perché: `MEMORIA.md`, sezione 5).
 Su Redshift non devi creare niente.
 
-**Blocco A: scaricare l'elenco.** L'ultima volta ha seguito la riga sbagliata. Nella v1 il nome
-del database lo dà la funzione `get_db_credentials` del file delle credenziali (C21): ora il
-comando segue il valore fino a lì e trova la chiave che la funzione legge. Di quel file (che
-Copilot non può aprire) usa solo la struttura e stampa solo il nome della chiave. Stampa solo il
-numero di macchine. Gratis.
+**Blocco A: scaricare l'elenco.** L'ultima volta il comando ha trovato la chiave da cui la v1
+prende il database (`database`), ma quella chiave non c'è in nessuno dei due secret. Ora dice
+anche **come** la v1 la legge e, se non la trova, chiede ad AWS il database creato con il
+cluster Redshift (`DBName`). Stampa solo il numero di macchine. Gratis.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 uv run cycle-validation macchine --v1 ..\app_cycle_validation
 ```
 
-**Deve uscire:** `Dalla v1: ... tabella trovata, database letto dalla chiave X` (oppure
-`scritto nel codice`), `Nel secret di ambiente: SECRET_NAME trovato.`, `Chiave X del database:
-trovata.` e infine `Macchine attive: N (Redshift cluster). Scritte in
+**Deve uscire:** `Dalla v1: ... database letto dalla chiave database con ...`, `Nel secret di
+ambiente: SECRET_NAME trovato.`, `Chiave database del database: NON trovata...`, poi
+`Database del cluster: trovato.` e infine `Macchine attive: N (Redshift cluster). Scritte in
 data\macchine_attive.json`.
 
 Se esce un errore:
 
-- `Chiave X del database: NON trovata` o `database NON trovato`: manda la foto. Se il nome
-  del database lo conosci (per esempio lo vedi tu nel file delle credenziali della v1),
-  rilancia aggiungendo `--database <nome>`: il nome resta sul tuo schermo;
+- `Database del cluster non letto: AccessDeniedException`: le tue credenziali non possono
+  leggere i dati del cluster. Due strade: apri tu il file `src\config\credentials.py` della v1
+  (Copilot non può, tu sì), guarda nella funzione `get_db_credentials` da dove viene il
+  database e scrivi a Claude a parole come lo legge (senza valori); se il nome lo vedi,
+  rilancia con `--database <nome>` (resta sul tuo schermo). Oppure la domanda P7 (sezione 4);
 - `ExpiredToken` o simili: `aws sso login`, poi rilancia;
 - `ResourceNotFoundException`: rilancia aggiungendo `--regione eu-west-1` (o la regione che usa
   la v1);
-- `AccessDeniedException`: è la domanda P7 (sezione 4).
+- `AccessDeniedException` sul secret o su Redshift: è la domanda P7 (sezione 4).
 
 **Manda a Claude:** la foto.
 

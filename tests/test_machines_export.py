@@ -219,7 +219,7 @@ def test_secret_without_database_takes_it_from_the_v1_environment_secret(
     out = tmp_path / "m.json"
     result = CliRunner().invoke(cli.app, ["macchine", "--v1", str(tmp_path), "--out", str(out)])
     assert result.exit_code == 0, result.output
-    assert "database letto dalla chiave RS_DB" in result.output
+    assert "database letto dalla chiave RS_DB con .getenv()" in result.output
     assert "Chiave RS_DB del database: trovata." in result.output
     assert json.loads(out.read_text(encoding="utf-8")) == ["TM-1", "TM-2"]
 
@@ -248,3 +248,50 @@ def test_the_database_is_followed_through_a_credentials_function(tmp_path: Path)
     )
     found = find_in_v1(tmp_path)
     assert (found.database, found.database_key) == ("predefinito", "db_x")
+
+
+def test_without_the_key_the_database_comes_from_the_cluster(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Prova del 22-11: la v1 legge la chiave `database`, che non c'è in nessun secret."""
+    (tmp_path / "app_backend.py").write_text('load_secrets("ambiente/v1")\n', "utf-8")
+    (tmp_path / "machines.py").write_text(
+        V1_QUERY
+        + "import redshift_connector\n"
+        + "c = redshift_connector.connect(database=secret.get('database'))\n",
+        "utf-8",
+    )
+
+    class Secrets:
+        def get_secret_value(self, SecretId: str) -> dict[str, str]:
+            if SecretId == "ambiente/v1":
+                values = {"SECRET_NAME": "nome/del-secret"}
+            else:
+                values = {
+                    "dbClusterIdentifier": "c1",
+                    "host": "c1.x.eu-south-1.redshift.amazonaws.com",
+                }
+            return {"SecretString": json.dumps(values), "ARN": "arn:" + SecretId}
+
+    class Redshift:
+        def describe_clusters(self, ClusterIdentifier: str) -> dict[str, Any]:
+            assert ClusterIdentifier == "c1"
+            return {"Clusters": [{"DBName": "db_cluster"}]}
+
+    class DataApi(FakeDataApi):
+        def execute_statement(self, **kwargs: Any) -> dict[str, str]:
+            assert kwargs["Database"] == "db_cluster"
+            return super().execute_statement(**kwargs)
+
+    clients: dict[str, Any] = {
+        "secretsmanager": Secrets(),
+        "redshift": Redshift(),
+        "redshift-data": DataApi(),
+    }
+    monkeypatch.setattr(cli, "_aws_client", lambda service, region: clients[service])
+    out = tmp_path / "m.json"
+    result = CliRunner().invoke(cli.app, ["macchine", "--v1", str(tmp_path), "--out", str(out)])
+    assert result.exit_code == 0, result.output
+    assert "database letto dalla chiave database con .get()" in result.output
+    assert "Database del cluster: trovato." in result.output
+    assert "db_cluster" not in result.output

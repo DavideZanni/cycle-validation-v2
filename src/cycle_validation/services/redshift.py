@@ -153,6 +153,8 @@ class V1Redshift:
     env_secret: str | None = None
     database: str | None = None
     database_key: str | None = None
+    # come la v1 legge la chiave: "[...]" (deve esserci), ".get()" o ".getenv()" (può mancare)
+    database_read: str | None = None
 
 
 def find_in_v1(folder: Path) -> V1Redshift:
@@ -180,11 +182,12 @@ def find_in_v1(folder: Path) -> V1Redshift:
             table = found.replace('"', "") if found else None
         with contextlib.suppress(SyntaxError, ValueError):
             trees.append(ast.parse(text))
-    database, database_key = _database_in(trees)
-    return V1Redshift(secret, table, env_secret, database, database_key)
+    database, database_key, database_read = _database_in(trees)
+    return V1Redshift(secret, table, env_secret, database, database_key, database_read)
 
 
-type _Found = tuple[str | None, str | None]
+# testo nel codice, chiave, come la v1 legge la chiave
+type _Found = tuple[str | None, str | None, str | None]
 
 
 def _database_in(trees: list[ast.Module]) -> _Found:
@@ -203,9 +206,9 @@ def _database_in(trees: list[ast.Module]) -> _Found:
             for keyword in node.keywords:
                 if keyword.arg in _DB_ARGS:
                     found = _resolve(keyword.value, tree, functions, 0)
-                    if found != (None, None):
+                    if found[:2] != (None, None):
                         return found
-    return None, None
+    return None, None, None
 
 
 def _text(node: ast.AST | None) -> str | None:
@@ -214,17 +217,17 @@ def _text(node: ast.AST | None) -> str | None:
 
 def _resolve(node: ast.AST, scope: ast.AST, functions: dict[str, Any], depth: int) -> _Found:
     if depth > 6:
-        return None, None
+        return None, None, None
     if (literal := _text(node)) is not None:
-        return literal, None
+        return literal, None, None
     if isinstance(node, ast.Subscript) and (key := _text(node.slice)) is not None:
-        return None, key
+        return None, key, "[...]"
     if isinstance(node, ast.Call) and node.args and (key := _text(node.args[0])) is not None:
         name = (
             node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", "")
         )
         if name in {"get", "getenv"}:
-            return (_text(node.args[1]) if len(node.args) > 1 else None), key
+            return (_text(node.args[1]) if len(node.args) > 1 else None), key, f".{name}()"
     if isinstance(node, ast.Name):
         for assign in ast.walk(scope):
             targets = (
@@ -242,7 +245,7 @@ def _resolve(node: ast.AST, scope: ast.AST, functions: dict[str, Any], depth: in
                     names = [getattr(item, "id", None) for item in target.elts]
                     if node.id in names:
                         return _from_tuple(value, names.index(node.id), scope, functions, depth)
-    return None, None
+    return None, None, None
 
 
 def _from_tuple(
@@ -262,9 +265,22 @@ def _from_tuple(
             for node in ast.walk(function):
                 if isinstance(node, ast.Return) and node.value is not None:
                     found = _from_tuple(node.value, index, function, functions, depth + 1)
-                    if found != (None, None):
+                    if found[:2] != (None, None):
                         return found
-    return None, None
+    return None, None, None
+
+
+def cluster_database(client: Any, cluster: str) -> str | None:
+    """Il database creato con il cluster (`DBName` di `describe_clusters`): quello da usare
+    quando la v1 non ne trova uno nei secret."""
+    clusters = client.describe_clusters(ClusterIdentifier=cluster).get("Clusters") or []
+    name = clusters[0].get("DBName") if clusters else None
+    return str(name) if name else None
+
+
+def host_region(host: str) -> str | None:
+    match = re.search(r"\.([a-z]{2}(?:-[a-z]+)+-\d)\.redshift", host)
+    return match[1] if match else None
 
 
 def machines_query(table: str) -> str:

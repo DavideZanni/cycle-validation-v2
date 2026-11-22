@@ -156,6 +156,10 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
     Il comando `macchine` segue il valore fino a quella funzione (analisi del codice Python, solo
     la struttura) e trova la chiave che legge; poi cerca la chiave nei due secret e
     nell'ambiente. Stampa solo il nome della chiave. Se non basta: `--database`.
+  - **Prova del 22-11 sera:** la chiave è `database` e non c'è in nessuno dei due secret (né
+    nell'ambiente). Da capire come la v1 la legge (`[...]` o `.get()`): con `.get()` la v1
+    passa nessun database e Redshift usa il suo predefinito. Il comando ora prende il database
+    creato con il cluster (`describe_clusters`, `DBName`), se le credenziali lo permettono.
   - **Perché Redshift e non il documento delle targhe su S3:** il documento dice se una targa
     esiste e che macchina è; Redshift dice se la macchina è in uso oggi. Una macchina dismessa
     che è ancora nel documento è un errore. Alternativa possibile: l'ingestion copia ogni
