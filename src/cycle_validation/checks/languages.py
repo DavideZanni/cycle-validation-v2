@@ -16,7 +16,10 @@ from decimal import Decimal, InvalidOperation
 
 # separatore tra le parti della descrizione (riga di asterischi), come la scrive il parser
 LANGUAGE_SEPARATOR = " / "
-_NUMBER = re.compile(r"(?<![\w.,])(?:\d+(?:[.,]\d+)?|[.,]\d+)")
+# Un codice fatto di cifre (part number «1234567/89», numeri di 5 cifre o più) non è una misura:
+# si lascia fuori, così non si spezza in numeri e non sposta l'allineamento (le due lingue lo
+# scrivono spesso in punti diversi della frase).
+_NUMBER = re.compile(r"(?<![\w.,/])(?:(?P<code>\d+(?:/\d+)+|\d{5,})|\d+(?:[.,]\d+)?|[.,]\d+)")
 _INCH = Decimal("25.4")
 
 
@@ -30,6 +33,8 @@ def _numbers(text: str) -> list[tuple[str, Decimal]]:
     found: list[tuple[str, Decimal]] = []
     for match in _NUMBER.finditer(text):
         raw = match.group()
+        if match["code"]:
+            continue
         try:
             found.append((raw, Decimal(raw.replace(",", "."))))
         except InvalidOperation:

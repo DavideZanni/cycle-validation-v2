@@ -37,9 +37,8 @@ L'indice va bene così. Mancano ancora dei documenti: i due REPAIR della sezione
 **In ordine:**
 
 1. **Aggiornare** (2.4).
-2. **Misure gratis** (2.0). Manda le foto e **aspetta Claude** prima di 2.1.
-3. Poi, quando lo dice Claude: **I cicli con errori** (2.1), **2.1b** e **I tre cicli giusti**
-   (2.1c).
+2. **Le due lingue** (2.0, gratis): se i cicli giusti sono puliti, continua.
+3. **I cicli con errori** (2.1), **2.1b** e **I tre cicli giusti** (2.1c).
 4. **Salvare** (2.5).
 5. **I file mancanti:** cercali dove prendi i manuali (i due REPAIR e il capitolo 70-23
    dell'SPM). Se li trovi: ingestion, poi 2.2, 2.3 e 2.1.
@@ -54,35 +53,26 @@ Quando Claude dice di aver cambiato il codice: prima **Aggiornare** (2.4).
 
 ## 2. Blocchi
 
-### 2.0 Misure gratis (prima di 2.1)
+### 2.0 Le due lingue (gratis, prima di 2.1)
 
-Gratis: non chiama il modello. Stampa:
-
-- per i 7 cicli «con errori» e i 3 giusti, le operazioni in cui la descrizione italiana e quella
-  inglese hanno **numeri diversi** (solo i numeri);
-- dai report di 2.1 e 2.1c: i task dell'op. 005 nella stampa giusta e in quella «con errori»
-  (298bc28e), l'esito dei codici, la spiegazione intera dell'op. 030 di f355dc3c e degli
-  ERRATO di 5ff17062.
+Gratis: non chiama il modello. Per i 7 cicli «con errori» e i 3 giusti stampa le operazioni in
+cui la descrizione italiana e quella inglese hanno **numeri diversi** (solo i numeri).
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
 $radice = (Resolve-Path "..\..").Path
 $dieci = Get-ChildItem $radice -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*errori*" -or (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in @("4e64d49a", "8bdb25d5", "04ecaabe") } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-foreach ($f in $dieci) { "== " + (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); uv run cycle-validation leggi $f.FullName --config data/settings.yaml --lingue | Select-Object -Skip 1 }
-$e = Get-Content runs/errori-298bc28e/report.json -Raw | ConvertFrom-Json; $g = Get-Content runs/giuste-4e64d49a/report.json -Raw | ConvertFrom-Json
-foreach ($r in @($g, $e)) { $o = $r.cycle.operations | Where-Object { $_.operation_number.TrimStart('0') -eq '5' } | Select-Object -First 1; "op 005 task: $($o.task_codes -join ', ')"; $r.results | Where-Object { $_.check -eq 'task_code' -and $_.target.label.TrimStart('0') -eq '5' } | ForEach-Object { "    codici: $($_.verdict) · $($_.reason) · $($_.rationale)" } }
-$f = Get-Content runs/errori-f355dc3c/report.json -Raw | ConvertFrom-Json; $f.results | Where-Object { $_.check -eq 'operation_description' -and $_.target.label.TrimStart('0') -eq '30' } | ForEach-Object { "f355dc3c op 030: $($_.reason) · $($_.rationale)" }
-$c = Get-Content runs/errori-5ff17062/report.json -Raw | ConvertFrom-Json; $c.results | Where-Object { $_.verdict -eq 'ERRATO' } | ForEach-Object { "5ff17062 op $($_.target.label): $($_.reason) · $($_.rationale)" }
+foreach ($f in $dieci) { "== " + (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); uv run cycle-validation leggi $f.FullName --config data/settings.yaml --lingue | Select-Object -Skip 1 | Where-Object { $_ -notmatch "rimesse" } }
 ```
 
 **Deve uscire:** per ognuno dei 10 cicli `== <impronta>`, le eventuali righe `op ...: italiano →
-inglese ...` e `operazioni con le due lingue: N su M`; poi le due righe `op 005 task:` (prima la
-giusta, poi quella con errori) con i `codici:`, la spiegazione di f355dc3c op 030 e quelle di
-5ff17062.
+inglese ...` e `operazioni con le due lingue: N su M`. Nei tre giusti (4e64d49a, 8bdb25d5,
+04ecaabe) **nessuna** riga `italiano → inglese`; in c5ff3cd6 la riga dell'op. 040.
 
-**Manda a Claude:** le foto (tutte le righe). Nei cicli giusti non deve uscire nessuna riga
-`italiano → inglese`: se esce, è un falso errore.
+**Se è così** continua con 2.1, 2.1b e 2.1c senza aspettare. **Se no** fermati e manda la foto.
+
+**Manda a Claude:** la foto (tutti e dieci i cicli).
 
 ### 2.1 I cicli con errori
 
@@ -282,6 +272,9 @@ codici veri).
 - **P7. Indicazione lineare nell'ispezione FPI** (ciclo f355dc3c e la sua stampa giusta, op.
   050): il ciclo dice «lunga almeno **4** volte la larghezza», l'SPM «**3** volte o più». Il ciclo
   segue un'altra regola (manuale del motore) o è da correggere? La v2 oggi lo segna ERRATO.
+- **P9. Subtask giusto?** (298bc28e op. 005): la stampa con errori cita in più un subtask SPM di
+  raccordatura «del titanio su parti rotanti». Per questa pala va bene o è un altro lavoro? Se c'è
+  una regola (materiale del pezzo → subtask), la v2 la può controllare.
 - **P8. Riparazione senza task in testata** (c5ff3cd6, nota «applicazione lubrificante secco»;
   298bc28e): quale task del manuale vale per le operazioni che non ne citano uno?
 

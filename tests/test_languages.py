@@ -5,6 +5,22 @@ import pytest
 from cycle_validation.checks.languages import language_parts, number_mismatches
 
 
+def test_a_number_changed_next_to_a_part_number_is_found() -> None:
+    description = (
+        "SPESSORE 13-38 MICRON SU PROVINI P/N 1234567/89 / "
+        "ON TEST PIECES P/N 1234567/89, THICKNESS 13-58 MICRON"
+    )
+    assert number_mismatches(description) == [("38", "58")]
+
+
+def test_two_numbers_changed_in_one_language_are_found() -> None:
+    description = (
+        "RACCORDARE AD ALMENO 30 VOLTE LA PROFONDITA', SEPARAZIONE 0,5 VOLTE / "
+        "BLEND AT LEAST 10 TIMES THE DEPTH, SEPARATION 1.5 TIMES"
+    )
+    assert number_mismatches(description) == [("30", "10"), ("0,5", "1.5")]
+
+
 def test_a_number_changed_in_one_language_is_found() -> None:
     description = (
         "APPLICARE IL LUBRIFICANTE, SPESSORE 13-38 MICRON / "
@@ -22,6 +38,9 @@ def test_a_number_changed_in_one_language_is_found() -> None:
         "PROFONDITA' 0,38 MM A 20 °C / DEPTH 0.015 IN AT 68 °F",
         # un numero in più in una sola lingua: non è una sostituzione
         "RACCORDARE (VEDI OP. 25) 10 VOLTE / BLEND 10 TIMES",
+        # part number e range in ordine diverso nelle due lingue
+        "SPESSORE 13-38 MICRON SU PROVINI P/N 1234567/89 / ON TEST PIECES P/N 1234567/89, "
+        "THICKNESS 13-38 MICRON",
         # una sola lingua
         "PULIRE IL PEZZO 2 VOLTE",
         # più di due parti: non si sa quale sia la traduzione di quale

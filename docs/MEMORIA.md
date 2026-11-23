@@ -328,6 +328,26 @@ se nello stesso punto la descrizione italiana e quella inglese hanno numeri dive
 conversione mm/pollici o °C/°F), ERRATO `INCOERENZA_LINGUE`. Misura gratis con `leggi --lingue`
 (COPILOT 2.0) sui 10 cicli, prima di rilanciare.
 
+**2.0 del 23-11 (17:40)**, `leggi --lingue` sui 10 cicli (prima versione):
+- con errori: f355dc3c op 030 `30 → 10, 0,5 → 1,5` (**è l'errore messo apposta**: in italiano
+  30 volte, in inglese 10; la verifica che diceva «corretto» aveva letto l'inglese); 5ff17062
+  op 030 `30 → 2, 0,5 → 1,5`; 38960731 op 050 `4 → 2`; 8d3c673c op 140 `32 → 31`; e9b74c84 op
+  025 `500 → 60` (questi quattro cicli non hanno la stampa giusta conosciuta: probabili errori
+  messi apposta, da confermare); c5ff3cd6: niente (il modello aveva visto 13-38 / 13-58);
+- giusti: 4e64d49a niente; **8bdb25d5 op 040: falso errore** (un part number scritto in punti
+  diversi nelle due lingue spostava l'allineamento dei numeri). Corretto (17:55): i codici fatti
+  di cifre (con `/`, o di 5 cifre o più) restano fuori dal confronto. Con questo anche c5ff3cd6
+  op 040 dovrebbe uscire. 298bc28e e 04ecaabe fuori dalla foto;
+- 298bc28e op 005: nella stampa giusta i task sono il subtask SPM 029 e l'ispezione; in quella
+  con errori c'è **in più il subtask 035** (raccordatura del titanio su parti rotanti): il codice
+  cambiato è un subtask che esiste, ma è un altro lavoro. Né `TASK_INESISTENTE` né il modello lo
+  vedono: serve chi conosce il pezzo (domanda P9);
+- 5ff17062 op 030 ERRATO dal modello: l'inglese dice di usare abrasivi a matrice vetrificata,
+  l'italiano di non usarli e il manuale li vieta: **vero errore**. op 050: stesso «4 volte
+  contro 3 volte» della domanda P7;
+- f355dc3c op 030: verifica 1 CONTRADDIZIONE, verifiche 2 e 3 VERIFICATO (hanno letto il «10
+  volte» inglese): ora la prende il controllo delle due lingue.
+
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
 
