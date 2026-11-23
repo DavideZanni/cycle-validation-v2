@@ -49,7 +49,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
 
 | # | Cosa | Perché serve | Come si chiude | Chi |
 |---|---|---|---|---|
-| 1 | Misura sugli errori veri | oggi la v2 trova 0 dei 10 errori dei cicli «con errori», perché mancano i manuali | ingestion del manuale citato, poi COPILOT 4.2 (lista dei manuali, comando `manuali`) e 4.3; Claude confronta con i 10 errori | U, poi C |
+| 1 | Misura sugli errori veri | oggi la v2 trova 0 dei 10 errori dei cicli «con errori», perché mancano i manuali | ingestion fatta il 23-11; COPILOT 4.2 (controllo dell'indice con `manuali`) e 4.3 (i 7 cicli); Claude confronta con i 10 errori | U, poi C |
 | 2 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Provato in locale il 22-11 (punto 4); da provare in QA | U |
 | 3 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto nel codice**: `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets` (22-11 sera); macchine attive come la v1 con `MACHINES_SOURCE=diretta`: `redshift_connector` con il secret `SECRET_NAME` (22-11 notte). Da provare in QA | C, poi U |
 | 4 | Prova in locale | è il passo prima di develop | **fatto** (22-11 notte): login, frontend e v2 da Run and Debug; ciclo MOS di esempio `Validation Passed` in circa 20 s, con accesso e permessi della v1. Configurazione in `AZIENDA.md`, sezione 7 | — |
@@ -212,6 +212,15 @@ task del capitolo 70-23 (nessun file sul PC). M3 (altro manuale motore, manca) c
 3 file, 3 cicli (due con «errori» nel nome). M4 e M5 (senza task, 3 cicli): nessun file sul PC.
 M6 è EJ200 (una guida d'esempio non riconosciuta come EJ200): non va nell'ingestion civile. I
 cicli con «errori» nel nome sono 7, non 3: il blocco 4.3 ora li prende tutti.
+**Ingestion del 23-11** (fatta dall'utente): 10 manuali nuovi, 21 file già presenti saltati,
+versione pubblicata. Il controllo di Copilot sull'indice diceva che mancano alcuni task (tipo
+`REPAIR 00N` di M1, uno del capitolo 72-56 e quello del 70-23), ma guardava solo l'indice: la v2,
+se l'indice non ha un task, lo cerca nel testo del manuale (`kb/task_text.py`). Per sapere
+quali mancano davvero alla v2 c'è il blocco COPILOT 4.2: `manuali` con la fotografia nuova, che
+per ogni task mancante dice perché (nel testo ma non come titolo, solo la sezione, non nel
+testo, forma non da task) e nel file sul PC scrive le righe del manuale dove compare. I «44
+conflitti» del controllo di Copilot c'erano già nella versione precedente (sono
+dell'ingestion, non della v2).
 
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
@@ -478,7 +487,7 @@ nell'immagine: arriva dal secret letto da `load_secrets`, con lo stesso nome nei
 - **Pulizia del progetto (22-11 notte).** Tolti dal codice due pezzi mai usati
   (`RemoteKnowledge.structured`, il contatore `text_reads` di EJ200). `COPILOT.md` riscritto corto:
   solo il punto in cui siamo, cosa manca e i blocchi; sezioni nuove: 2 Aggiornare, 3 Salvare, 4
-  prove in locale (4.1 frontend, 4.2 lista dei manuali, 4.3 dopo l'ingestion), 5 domande e messaggio, 6 QA. Il blocco
+  prove in locale (4.1 frontend, 4.2 lista dei manuali, poi controllo dell'indice, 4.3 dopo l'ingestion), 5 domande e messaggio, 6 QA. Il blocco
   Aggiornare ora toglie sul PC i file che nel repository personale non ci sono più (prima
   `robocopy /E` copiava e basta, quindi i file vecchi restavano e finivano nel commit) e copia
   anche `eval/varianti`, `eval/modelli` e `.gitignore`.

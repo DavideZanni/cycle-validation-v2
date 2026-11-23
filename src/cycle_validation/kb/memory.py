@@ -59,9 +59,12 @@ class IndexedKnowledgeBase:
         return self._task_in(self.find_manuals(manual), task)
 
     def find_task_in_kind(self, kind: str, task: str) -> TaskLocation | None:
+        return self._task_in(self.documents_of_kind(kind), task)
+
+    def documents_of_kind(self, kind: str) -> list[DocumentInfo]:
+        """I documenti di un tipo (`kind` del manifest, per esempio SPM)."""
         wanted = normalize_code(kind)
-        documents = [d for d in self._documents if normalize_code(d.kind or "") == wanted]
-        return self._task_in(documents, task)
+        return [d for d in self._documents if normalize_code(d.kind or "") == wanted]
 
     def _task_in(self, documents: list[DocumentInfo], task: str) -> TaskLocation | None:
         wanted = normalize_code(task)

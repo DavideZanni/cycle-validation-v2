@@ -13,13 +13,35 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from cycle_validation.domain.cycle import Cycle
-from cycle_validation.errors import CycleValidationError
-from cycle_validation.kb.port import KnowledgeBase
+from cycle_validation.errors import CycleValidationError, SourceUnavailableError
+from cycle_validation.kb.documents import read_lines
+from cycle_validation.kb.memory import IndexedKnowledgeBase
+from cycle_validation.kb.port import DocumentInfo, KnowledgeBase
+from cycle_validation.kb.task_text import is_task_code, lines_with, task_section
 
 _SPACES = re.compile(r"\s+")
 _SPM_PREFIX = "70-"
 SPM = "SPM (pratiche standard, task 70-)"
 _MAX_OTHER_FILES = 30
+_MAX_LINE = 110
+
+# Perché un task citato non è nella conoscenza (vedi `explain_missing`).
+NOT_A_TASK = "forma"
+IN_TEXT = "testo"
+ONLY_SECTION = "sezione"
+ABSENT = "assente"
+_WHY = {
+    IN_TEXT: "scritto nel testo, ma non come titolo di un task",
+    ONLY_SECTION: "nel testo c'è solo la sua sezione",
+    ABSENT: "non è nel testo del manuale",
+    NOT_A_TASK: "citato in una forma che non è un task (né 72-00-01-110-001 né 72-00-01 REPAIR 001)",
+}
+_WHY_SHORT = {
+    IN_TEXT: "nel testo ma non come titolo",
+    ONLY_SECTION: "solo la sezione nel testo",
+    ABSENT: "non nel testo",
+    NOT_A_TASK: "forma non da task",
+}
 
 
 def _code(value: object) -> str:
@@ -97,6 +119,8 @@ class ManualNeed:
     standard_practices: bool = False  # i task 70- (manuale SPM)
     files: list[str] = field(default_factory=list)  # PDF sul PC con il codice nel percorso
     chapter_files: list[str] = field(default_factory=list)  # ... e un capitolo citato nel nome
+    # task mancante → (perché, righe del testo dove compare: «documento riga N: testo»)
+    missing_why: dict[str, tuple[str, list[str]]] = field(default_factory=dict)
 
     @property
     def chapters(self) -> list[str]:
@@ -224,6 +248,50 @@ def needed_manuals(
     )
 
 
+def _hits(documents: list[DocumentInfo], code: str) -> list[str]:
+    hits: list[str] = []
+    for document in documents:
+        try:
+            lines = read_lines(document.path)
+        except SourceUnavailableError:
+            continue
+        for number in lines_with(lines, code, limit=3 - len(hits)):
+            text = " ".join(lines[number - 1].split())
+            if len(text) > _MAX_LINE:
+                text = text[: _MAX_LINE - 1] + "…"
+            hits.append(f"{document.key} riga {number}: {text}")
+        if len(hits) >= 3:
+            break
+    return hits
+
+
+def explain_missing(result: ManualsFound, kb: IndexedKnowledgeBase) -> None:
+    """Per ogni task che la conoscenza non ha, guarda nel testo dei documenti del manuale (o
+    in quelli SPM): il codice c'è ma non come titolo (l'indice non lo riconosce), c'è solo la
+    sua sezione, non c'è proprio, oppure il ciclo lo cita in una forma che non è un task."""
+    for need in result.manuals:
+        if not need.missing_tasks:
+            continue
+        documents = (
+            kb.documents_of_kind("SPM") if need.standard_practices else kb.find_manuals(need.code)
+        )
+        for task in sorted(need.missing_tasks):
+            hits = _hits(documents, task)
+            if not is_task_code(task):
+                need.missing_why[task] = (NOT_A_TASK, hits)
+            elif hits:
+                need.missing_why[task] = (IN_TEXT, hits)
+            else:
+                section = task_section(task)
+                found = _hits(documents, section) if section else []
+                need.missing_why[task] = (ONLY_SECTION, found) if found else (ABSENT, [])
+
+
+def _why_counts(need: ManualNeed) -> str:
+    counts = Counter(why for why, _ in need.missing_why.values())
+    return ", ".join(f"{_WHY_SHORT[why]} {counts[why]}" for why in _WHY_SHORT if counts[why])
+
+
 def _letters(text: str) -> str:
     return re.sub(r"[^0-9A-Z]", "", text.upper())
 
@@ -270,6 +338,8 @@ def screen_lines(result: ManualsFound) -> list[str]:
         )
         if need.standard_practices:
             line += " (SPM)"
+        if need.missing_why:
+            line += f" (task mancanti: {_why_counts(need)})"
         if need.error_ops:
             line += f" · serve per {need.error_count} errori ({_ops(need)})"
         if result.files_checked:
@@ -306,6 +376,10 @@ def file_lines(result: ManualsFound, names: dict[str, list[str]] | None = None) 
             lines.append(
                 f"    task che la conoscenza non ha: {', '.join(sorted(need.missing_tasks))}"
             )
+            for task in sorted(need.missing_why):
+                why, hits = need.missing_why[task]
+                lines.append(f"        {task}: {_WHY[why]}")
+                lines.extend(f"            {hit}" for hit in hits)
         if need.error_ops:
             lines.append(f"    serve per gli errori: {_ops(need)}")
         lines.append(f"    cicli: {', '.join(sorted(need.cycles))}")

@@ -29,17 +29,17 @@ prove, ma il codice lo cambia solo Claude.
 sul ciclo MOS di esempio). Il comando `qa` ha scritto un Dockerfile e un buildspec giusti
 (controllati il 22-11).
 
+**Fatto oggi:** lista dei manuali e ingestion (10 manuali nuovi, versione pubblicata).
+
 **Cosa manca, nell'ordine:**
 
-1. **Aggiornare** (sezione 2): porta sul PC il comando `manuali` e le sessioni senza chat su
-   disco.
-2. **Chat lasciate dalle validazioni** (blocco in fondo alla sezione 2), una volta.
-3. **Lista dei manuali** da ingestionare (4.2).
+1. **Aggiornare** (sezione 2): porta sul PC il controllo dei task mancanti.
+2. **Controllo dell'indice** dopo l'ingestion (4.2): gratis.
+3. **I 7 cicli con errori** (4.3).
 4. **Salvare** (sezione 3), sul ramo feature. QA non cambia.
-5. **Ingestion** dei manuali della lista (la fai tu, con l'ingestion aziendale), poi **4.3**.
-6. **Prove in locale dal frontend** (4.1), dopo l'ingestion.
-7. **Messaggio** al collega del frontend (5.1), se non l'hai già mandato.
-8. **Più avanti, quando lo decidi tu:** pull request verso `develop` e prova in QA
+5. **Prove in locale dal frontend** (4.1).
+6. **Messaggio** al collega del frontend (5.1), se non l'hai già mandato.
+7. **Più avanti, quando lo decidi tu:** pull request verso `develop` e prova in QA
    (sezione 6).
 
 ---
@@ -167,76 +167,83 @@ Prove, nell'ordine (salta quelle che non puoi fare):
 scrivi a parole il tempo della prova 2. Se qualcosa non va, manda la foto del frontend e quella
 del log di CV v2 nel terminale.
 
-### 4.2 La lista dei manuali da ingestionare
+### 4.2 Controllo dell'indice dopo l'ingestion
 
-Gratis: non chiama il modello e non va su AWS. Il blocco:
+Gratis: non chiama il modello. Va su AWS solo per scaricare la conoscenza di prova. Il blocco:
 
-- cerca **tutte le stampe di ciclo** in `ProgettoDocumenti` (esempi MOS e DR, cartelle
-  `cicli MOS`, cicli «con errori» e giusti) e le legge con il parser (le copie uguali contano
-  una volta; i PDF che non sono cicli li salta);
-- prende tutti i manuali, i capitoli e i task che i cicli citano;
-- li confronta con l'ultima fotografia della conoscenza di prova: per ognuno dice `c'è`,
-  `manca` o `c'è, ma mancano N task`;
-- mette in cima i manuali che servono per i 10 errori noti dei cicli «con errori» (la scheda
-  tolta dell'op. 030 di `c5ff3cd6` non c'entra: è la domanda P6).
+- fa una fotografia nuova della conoscenza civile di prova e stampa la versione pubblicata;
+- la carica come fa la v2 e stampa i conteggi (`kb-check`);
+- rilegge tutte le stampe dei cicli e cerca ogni task citato **come lo cerca la v2**: prima
+  nell'indice, poi nel testo del manuale (i titoli come `72-00-01 REPAIR 001`, che l'indice non
+  registra, la v2 li trova nel testo);
+- per ogni task che non trova dice perché.
 
-Sullo schermo i manuali escono come M1, M2, ... (senza codici). La lista vera (codici,
-edizione, capitoli, task e i file dei cicli che li citano) finisce nel file
-`runs\manuali-da-ingestionare.txt`, che il blocco apre in VS Code. Il file resta sul PC (git
-ignora `runs/`).
-
-```powershell
-$env:UV_PYTHON = "3.14"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
-$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path; "conoscenza: " + (Split-Path -Leaf $foto) + " · " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --errori 298bc28e=005,035 --errori c5ff3cd6=040 --errori f355dc3c=010,030,040,050
-code runs\manuali-da-ingestionare.txt
-```
-
-**Deve uscire:**
-
-1. `conoscenza: foto-... · v/...`;
-2. `Stampe: N file, N diverse; cicli letti: N; non lette: N` (i non letti sono soprattutto i
-   PDF dei manuali);
-3. `Manuali citati: N; da ingestionare: N.`, poi una riga per manuale:
-   `M1: manca · N cicli · N task in N capitoli · serve per N errori (...) · PDF sul PC: N, dei
-   capitoli citati: N`. Il manuale SPM (task `70-`) ha la sua riga con `(SPM)`;
-4. `cicli EJ200 lasciati fuori (conoscenza solo su AWS): N`.
-
-Poi si apre il file con la lista. Per ogni manuale, sotto `PDF sul PC con un capitolo citato`,
-ci sono i file del PC che sembrano proprio quelli da ingestionare.
-
-**Cosa ingestionare:** tutti i manuali con stato `manca` o `c'è, ma mancano ...`, solo i
-capitoli scritti nel file. Se non c'è tempo per tutti, parti dall'alto: prima quelli con
-`serve per ... errori`.
-
-**Manda a Claude:** la foto dello schermo (non quella del file).
-
-### 4.3 Dopo l'ingestion: i cicli con errori
-
-Da lanciare **dopo** l'ingestion del manuale, quando la nuova versione è pubblicata. Il blocco
-**non fa l'ingestion**: quella la fai prima tu.
-
-Il blocco:
-
-- fa una fotografia nuova della conoscenza civile di prova;
-- stampa la versione pubblicata accanto a quella del 21-11;
-- rilancia tutti i cicli con «errori» nel nome del file (sono 7: i tre «con errori» e altri
-  quattro trovati dalla lista dei manuali) e, per ognuno, stampa il riepilogo e le righe ERRATO.
-
-Ogni ciclo costa qualche centesimo. L'ultima prova (22-11) aveva la versione del 19-11, cioè
-l'ingestion non era ancora pubblicata, e ha dato 0 errati.
+Il controllo di Copilot guardava solo l'indice. Questo blocco dice quali task mancano davvero
+alla v2.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
 $foto = "eval/casi/aziendali/conoscenza/foto-" + (Get-Date -Format "yyyyMMdd-HHmm")
 uv run cycle-validation eval fotografia --bucket (Get-Content data/bucket.txt) --prefisso "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/" --out $foto --regione eu-south-1
-$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"
-$prima = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/current.json"
-"versione pubblicata: " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path + " · il 21-11: " + $(if (Test-Path $prima) { (Get-Content $prima | ConvertFrom-Json).path } else { "?" })
-$v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+"versione pubblicata: " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+uv run cycle-validation kb-check $v
+uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --errori 298bc28e=005,035 --errori c5ff3cd6=040 --errori f355dc3c=010,030,040,050
+code runs\manuali-da-ingestionare.txt
+```
+
+**Deve uscire:**
+
+1. la riga `Fotografia in ...` e `versione pubblicata: v/...`, **diversa** da
+   `v/20261119T141528Z/`;
+2. `Knowledge base ...` con i conteggi, senza righe `Errore:`;
+3. le righe `M1: ...`, `M2: ...` come stamattina. Adesso M1 e M3 dovrebbero dire `c'è` o
+   `c'è, ma mancano N task`. Se mancano task, tra parentesi c'è il perché:
+   - `nel testo ma non come titolo`: il codice è nel manuale, ma in una riga che non apre il
+     task (per esempio dentro una frase o in fondo alla pagina);
+   - `solo la sezione nel testo`: c'è la sezione (i primi tre numeri), non il task;
+   - `non nel testo`: il task non è nei file ingestionati (manca un capitolo o un file);
+   - `forma non da task`: la stampa lo cita in un modo che non è un codice di task.
+
+Nel file che si apre, sotto `task che la conoscenza non ha`, per ogni task ci sono le righe del
+manuale dove compare (documento e numero di riga): servono a te, non mandarle.
+
+**Manda a Claude:** la foto dello schermo (non quella del file).
+
+**Domanda per Copilot** (solo se 4.2 dice che mancano task). Copilot in **Ask**, aperto sul
+progetto dell'ingestion. Apri `runs\manuali-da-ingestionare.txt`, poi copia la domanda e,
+dove c'è scritto `[...]`, incolla le righe sotto `task che la conoscenza non ha` di M1, M3 e
+SPM:
+
+```text
+Non modificare nessun file: leggi e lancia solo comandi che non scrivono niente.
+Nella conoscenza civile pubblicata oggi (ultima versione di knowledge/civil) la v2 di cycle
+validation non trova questi task. Per ognuno c'è il motivo e le righe del manuale dove compare:
+[...]
+Per ogni task rispondi in una riga:
+1. il file markdown del manuale che dovrebbe contenerlo e se c'è nella versione pubblicata;
+2. come è scritto il titolo del task in quel file (copia la riga) e perché l'indice non lo
+   registra: guarda la regola dei titoli dei task in regole.json e il codice che la applica;
+3. se il task non è nel testo: è nel PDF originale? A che pagina? L'estrazione l'ha perso?
+Poi, a parte: i 44 conflitti della versione pubblicata di che tipo sono (conta per tipo) e
+quali riguardano i 10 manuali nuovi di oggi?
+Alla fine scrivi un riepilogo di massimo 10 righe senza codici di manuali.
+```
+
+**Manda a Claude:** la foto del riepilogo finale di Copilot.
+
+### 4.3 I cicli con errori
+
+Da lanciare **dopo** 4.2: usa la fotografia appena fatta. Rilancia tutti i cicli con «errori» nel
+nome del file (sono 7: i tre «con errori» e altri quattro trovati dalla lista dei manuali) e,
+per ognuno, stampa il riepilogo e le righe ERRATO. Ogni ciclo costa qualche centesimo.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
+$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path; "conoscenza: " + (Split-Path -Leaf $foto) + " · " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
 $radice = (Resolve-Path "..\..").Path
 $errati = Get-ChildItem $radice -Recurse -Filter "*errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
 foreach ($f in $errati) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); "$h " + (@(uv run cycle-validation run $f.FullName --profile mos --knowledge $v --config data/settings.yaml --out "runs/errori-$h") -match '^Ciclo' | Select-Object -First 1); if (Test-Path "runs/errori-$h/report.json") { (Get-Content "runs/errori-$h/report.json" -Raw | ConvertFrom-Json).results | Where-Object { $_.verdict -eq 'ERRATO' } | ForEach-Object { "    ERRATO op $(if ($_.target.kind -eq 'operation') { $_.target.label } else { $_.target.kind }) · $($_.check) · $($_.reason)" } } }
@@ -244,15 +251,14 @@ foreach ($f in $errati) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).T
 
 **Deve uscire:**
 
-1. la riga `Fotografia in ...`;
-2. la riga `versione pubblicata: ... · il 21-11: ...`, con due versioni **diverse**;
-3. per ognuno dei cicli una riga `<impronta> Ciclo ...: N corretti, ...`, e sotto le righe
+1. `conoscenza: foto-...` con la versione nuova (la stessa di 4.2);
+2. per ognuno dei 7 cicli una riga `<impronta> Ciclo ...: N corretti, ...`, e sotto le righe
    `ERRATO op ...`.
 
 Claude le confronta con i 10 errori conosciuti dei tre cicli «con errori»; per gli altri quattro
 servirà `confronta` con la stampa giusta.
 
-**Manda a Claude:** la foto, e scrivi a parole quanti manuali hai ingestionato.
+**Manda a Claude:** la foto.
 
 ---
 

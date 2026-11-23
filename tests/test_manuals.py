@@ -11,10 +11,13 @@ from cycle_validation import cli
 from cycle_validation.errors import CycleValidationError
 from cycle_validation.kb.local import load_local_knowledge
 from cycle_validation.report.manuals import (
+    explain_missing,
+    file_lines,
     from_report,
     match_files,
     needed_manuals,
     parse_errors,
+    screen_lines,
 )
 from cycle_validation.testing.pdf import build_pdf
 
@@ -166,3 +169,60 @@ def test_the_command_reads_the_prints_and_hides_the_codes(tmp_path: Path) -> Non
 def test_the_command_stops_without_cycles(tmp_path: Path) -> None:
     result = CliRunner().invoke(cli.app, ["manuali", str(tmp_path)])
     assert result.exit_code == 1 and "Nessun ciclo letto" in result.output
+
+
+def test_missing_tasks_say_why(tmp_path: Path) -> None:
+    """Un task che manca: scritto nel testo ma non come titolo, solo la sezione, assente, o
+    citato in una forma che non è un task."""
+    kb_dir = tmp_path / "kb"
+    (kb_dir / "documents").mkdir(parents=True)
+    (kb_dir / "documents" / "m99.md").write_text(
+        "# 99-10-01-110-001 Pulizia\n"
+        "testo\n"
+        "Vedi anche 99-20-02-300-004 per i limiti.\n"  # citato, ma non come titolo
+        "Figura 99-30-05 pagina 3\n",  # solo la sezione
+        encoding="utf-8",
+    )
+    (kb_dir / "documents" / "spm.md").write_text("# 70-00-00-000-001 Pratiche\n", encoding="utf-8")
+    manifest = {
+        "version": "prova",
+        "documents": [
+            {"key": "MAN-DEMO-99", "file": "documents/m99.md"},
+            {"key": "SPM-DEMO", "file": "documents/spm.md", "kind": "SPM"},
+        ],
+    }
+    (kb_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    kb = load_local_knowledge(kb_dir)
+    cycles = _cycles()
+    cycles[0].sources += [
+        {"manual": "MAN-DEMO-99", "task": "99-30-05-200-001", "repair_code": "R1"},
+        {"manual": "MAN-DEMO-99", "task": "99-40-01-100-001", "repair_code": "R1"},
+        {"manual": "MAN-DEMO-99", "task": "REPAIR 007", "repair_code": "R1"},
+    ]
+    cycles[0].operations.append(
+        {"operation_number": "0040", "repair_code": None, "task_codes": ["70-23-23-000-001"]}
+    )
+    result = needed_manuals(cycles, {}, kb)
+    explain_missing(result, kb)
+    need = next(m for m in result.manuals if m.code == "MAN-DEMO-99")
+    why = {task: reason for task, (reason, _) in need.missing_why.items()}
+    assert why == {
+        "99-20-02-300-004": "testo",
+        "99-30-05-200-001": "sezione",
+        "99-40-01-100-001": "assente",
+        "REPAIR 007": "forma",
+    }
+    assert need.missing_why["99-20-02-300-004"][1] == [
+        "MAN-DEMO-99 riga 3: Vedi anche 99-20-02-300-004 per i limiti."
+    ]
+    spm = next(m for m in result.manuals if m.standard_practices)
+    assert spm.missing_why == {"70-23-23-000-001": ("assente", [])}
+    screen = "\n".join(screen_lines(result))
+    assert (
+        "(task mancanti: nel testo ma non come titolo 1, solo la sezione nel testo 1, "
+        "non nel testo 1, forma non da task 1)" in screen
+    )
+    assert "99-" not in screen
+    text = "\n".join(file_lines(result))
+    assert "99-30-05-200-001: nel testo c'è solo la sua sezione" in text
+    assert "MAN-DEMO-99 riga 4: Figura 99-30-05 pagina 3" in text

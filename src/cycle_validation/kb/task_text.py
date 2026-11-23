@@ -75,3 +75,35 @@ def find_task_in_text(lines: Sequence[str], task: str) -> tuple[int, int] | None
             best = (start + 1, last)
         index = end
     return best
+
+
+# Sezione ATA all'inizio di un codice di task (`72-00-01`).
+_SECTION = re.compile(r"^\d{2}-\d{2}-\d{2}")
+
+
+def is_task_code(task: str) -> bool:
+    """Il codice ha una delle due forme di task che si cercano nel testo."""
+    return _TASK_SHAPE.fullmatch(normalize_code(task)) is not None
+
+
+def lines_with(lines: Sequence[str], code: str, limit: int = 3) -> list[int]:
+    """Righe (da 1) in cui il codice compare in un punto qualsiasi, con spazi ammessi tra un
+    carattere e l'altro e non attaccato ad altre lettere o cifre."""
+    wanted = normalize_code(code).casefold()
+    if not wanted:
+        return []
+    body = r"\s*".join(re.escape(char) for char in wanted)
+    pattern = re.compile(rf"(?<![0-9a-z]){body}(?![0-9a-z])")
+    found: list[int] = []
+    for number, line in enumerate(lines, start=1):
+        if pattern.search(normalize_quote(line)):
+            found.append(number)
+            if len(found) >= limit:
+                break
+    return found
+
+
+def task_section(task: str) -> str | None:
+    """La sezione ATA del task (`72-00-01 REPAIR 002` → `72-00-01`), se c'è."""
+    match = _SECTION.match(normalize_code(task))
+    return match.group(0) if match else None

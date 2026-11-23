@@ -41,6 +41,7 @@ from cycle_validation.module_kind import EJ200, detect_module_kind
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
 from cycle_validation.report.manuals import (
     CycleSeen,
+    explain_missing,
     file_lines,
     from_cycle,
     from_report,
@@ -560,6 +561,8 @@ def list_manuals(
     if not cycles:
         raise _fail(CycleValidationError("Nessun ciclo letto: niente da elencare."))
     result = needed_manuals(list(cycles.values()), errors, kb)
+    if kb is not None:
+        explain_missing(result, kb)
     # i PDF che non sono cicli possono essere i file dei manuali: si collegano alla lista
     cycle_files = {str(path) for path in pdfs if hash_of.get(str(path)) in cycles}
     match_files(result, [str(path) for path in pdfs if str(path) not in cycle_files])
