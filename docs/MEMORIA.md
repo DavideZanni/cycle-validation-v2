@@ -49,14 +49,14 @@ sugli errori veri aspetta i manuali nella conoscenza.
 
 | # | Cosa | Perché serve | Come si chiude | Chi |
 |---|---|---|---|---|
-| 1 | Misura sugli errori veri | oggi la v2 trova 0 dei 10 errori dei cicli «con errori», perché mancano i manuali | ingestion fatta il 23-11; COPILOT 4.2 (controllo dell'indice con `manuali`) e 4.3 (i 7 cicli); Claude confronta con i 10 errori | U, poi C |
+| 1 | Misura sugli errori veri | oggi la v2 trova 0 dei 10 errori dei cicli «con errori», perché mancano i manuali | ingestion fatta il 23-11; COPILOT 2.3 (lista dei manuali con `manuali`) e 2.1 (i 7 cicli); Claude confronta con i 10 errori | U, poi C |
 | 2 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Provato in locale il 22-11 (punto 4); da provare in QA | U |
 | 3 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto nel codice**: `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets` (22-11 sera); macchine attive come la v1 con `MACHINES_SOURCE=diretta`: `redshift_connector` con il secret `SECRET_NAME` (22-11 notte). Da provare in QA | C, poi U |
 | 4 | Prova in locale | è il passo prima di develop | **fatto** (22-11 notte): login, frontend e v2 da Run and Debug; ciclo MOS di esempio `Validation Passed` in circa 20 s, con accesso e permessi della v1. Configurazione in `AZIENDA.md`, sezione 7 | — |
-| 5 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | **pronto nel codice** (22-11 notte): `cycle-validation qa` sul PC scrive il Dockerfile della v2 da quello della v1 (base, certificati), copia la libreria in `vendor/`, mette i valori aziendali nelle righe `ENV`, copia le impostazioni in `config/settings.azienda.yaml` e sposta il buildspec sulla v2. Primo passaggio con EJ200 spento. Dockerfile e buildspec scritti sul PC e controllati (22-11). Manca la pull request verso develop: COPILOT 6 | U |
-| 6 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 5.1 | U |
+| 5 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | **pronto nel codice** (22-11 notte): `cycle-validation qa` sul PC scrive il Dockerfile della v2 da quello della v1 (base, certificati), copia la libreria in `vendor/`, mette i valori aziendali nelle righe `ENV`, copia le impostazioni in `config/settings.azienda.yaml` e sposta il buildspec sulla v2. Primo passaggio con EJ200 spento. Dockerfile e buildspec scritti sul PC e controllati (22-11). Manca la pull request verso develop: COPILOT 4 | U |
+| 6 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 3.2 | U |
 | 7 | Prova in QA: EJ200 e targhe | i dati EJ200 non escono da AWS; Redshift si raggiunge solo da AWS | dopo il punto 5, dal frontend QA | U |
-| 8 | Domande agli esperti | P1, P2, P6 (P4 per chi cura l'indice); P7 facoltativa | quando capita | U |
+| 8 | Domande agli esperti | P1, P2, P6 (P4 per chi cura l'indice); P7 (Redshift dal PC, facoltativa) tolta da COPILOT il 23-11 | quando capita | U |
 
 **Decisioni da prendere:**
 
@@ -70,7 +70,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
   della v1) e `MACHINES_QUERY` (la query di `verify_active_TM`), a meno che non stiano già nel
   secret di ambiente.
 - **D2. Quando passare a QA.** **Deciso dall'utente (22-11 notte):** prima altre prove in
-  locale dal frontend (COPILOT 4.1), poi QA quando lo dice lui. Il comando `qa` e il salvataggio
+  locale dal frontend (COPILOT 2.6), poi QA quando lo dice lui. Il comando `qa` e il salvataggio
   sul ramo `feature/cycle-validation-v2` si fanno subito; solo la pull request verso `develop`
   aspetta (è quella che fa passare QA alla v2). La misura sugli errori (punto 1) può andare avanti in parallelo.
 
@@ -200,7 +200,7 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
 I **manuali dei motori non ci sono**: le righe che ne hanno bisogno escono WARNING
 `FONTE_ASSENTE`, ed è giusto. Decisione del 21-11-2026: per ora non si ingestiona altro.
 **Cambiata il 22-11 notte:** l'utente ingestiona i manuali (solo i capitoli citati) di tutti i
-cicli di prova sul PC. La lista la fa il comando `manuali` (COPILOT 4.2): legge con il parser
+cicli di prova sul PC. La lista la fa il comando `manuali` (COPILOT 2.3): legge con il parser
 tutte le stampe di `ProgettoDocumenti`, confronta con l'ultima fotografia della conoscenza e mette
 in cima i manuali che servono per i 10 errori noti. Codici veri solo nel file sul PC
 (`runs/manuali-da-ingestionare.txt`).
@@ -211,12 +211,12 @@ dell'ingestion (più copie vecchie in `Extra\storico\old`, da non usare). SPM: c
 task del capitolo 70-23 (nessun file sul PC). M3 (altro manuale motore, manca) capitolo 72-56:
 3 file, 3 cicli (due con «errori» nel nome). M4 e M5 (senza task, 3 cicli): nessun file sul PC.
 M6 è EJ200 (una guida d'esempio non riconosciuta come EJ200): non va nell'ingestion civile. I
-cicli con «errori» nel nome sono 7, non 3: il blocco 4.3 ora li prende tutti.
+cicli con «errori» nel nome sono 7, non 3: il blocco dei cicli con errori (COPILOT 2.1) li prende tutti.
 **Ingestion del 23-11** (fatta dall'utente): 10 manuali nuovi, 21 file già presenti saltati,
 versione pubblicata. Il controllo di Copilot sull'indice diceva che mancano alcuni task (tipo
 `REPAIR 00N` di M1, uno del capitolo 72-56 e quello del 70-23), ma guardava solo l'indice: la v2,
 se l'indice non ha un task, lo cerca nel testo del manuale (`kb/task_text.py`). Per sapere
-quali mancano davvero alla v2 c'è il blocco COPILOT 4.2: `manuali` con la fotografia nuova, che
+quali mancano davvero alla v2 c'è il blocco COPILOT 2.3: `manuali` con la fotografia nuova, che
 per ogni task mancante dice perché (nel testo ma non come titolo, solo la sezione, non nel
 testo, forma non da task) e nel file sul PC scrive le righe del manuale dove compare. Dal codice di
 `knowledge-index` (repository personale, collegato il 23-11): l'indice registra come titolo di
@@ -234,7 +234,7 @@ i 7 cicli con «errori» danno tutti 0 errati. M1 c'è, ma mancano 7 task. La ri
   hanno nel nome la sezione e `-09-` con il numero del REPAIR;
 - il task SPM del capitolo 70-23 è citato con la sola sezione: adesso la v2 lo accetta nei
   documenti SPM, ma il capitolo 70-23 dell'SPM non è nella conoscenza.
-Dopo la correzione (4.2 delle 16:00) M1 ha 5 task mancanti: le 2 sezioni e i 2 REPAIR della
+Dopo la correzione (lista delle 16:00) M1 ha 5 task mancanti: le 2 sezioni e i 2 REPAIR della
 sezione 72-56-31 citati solo in una frase (più il codice completo di uno dei due). I loro PDF
 (`-09-001`, `-09-003`) **non sono sul PC**: vanno presi dalla fonte dei manuali.
 
@@ -503,7 +503,7 @@ nell'immagine: arriva dal secret letto da `load_secrets`, con lo stesso nome nei
 - **Pulizia del progetto (22-11 notte).** Tolti dal codice due pezzi mai usati
   (`RemoteKnowledge.structured`, il contatore `text_reads` di EJ200). `COPILOT.md` riscritto corto:
   solo il punto in cui siamo, cosa manca e i blocchi; sezioni nuove: 2 Aggiornare, 3 Salvare, 4
-  prove in locale (4.1 frontend, 4.2 lista dei manuali, poi controllo dell'indice, 4.3 dopo l'ingestion), 5 domande e messaggio, 6 QA. Il blocco
+  prove in locale, 5 domande e messaggio, 6 QA (il 23-11 riordinato: 1 cosa fare, 2 blocchi, 3 persone, 4 QA). Il blocco
   Aggiornare ora toglie sul PC i file che nel repository personale non ci sono più (prima
   `robocopy /E` copiava e basta, quindi i file vecchi restavano e finivano nel commit) e copia
   anche `eval/varianti`, `eval/modelli` e `.gitignore`.
@@ -515,7 +515,7 @@ nell'immagine: arriva dal secret letto da `load_secrets`, con lo stesso nome nei
   aggiornamento ora copia anche `config/`, `prompts/`, `pyproject.toml`, `uv.lock`, `README.md`.
 - **EJ200 spento al primo passaggio:** all'avvio la v2 scarica la conoscenza pubblicata e, se un
   file non è valido, non parte. La conoscenza EJ200 non si può controllare dal PC (resta su
-  AWS), quindi prima si prova il civile, poi si accende EJ200 (COPILOT 6.3).
+  AWS), quindi prima si prova il civile, poi si accende EJ200 (COPILOT 4, punto 3).
 - **Produzione:** passa alla v2 quando il ramo arriva su `main`. Prima serve una prova QA
   riuscita.
 - **Da verificare in QA:** che il ruolo del servizio possa usare Bedrock con il modello delle
@@ -666,7 +666,7 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
   frontend) è nel ramo `feature/cycle-validation-v2` del repository aziendale. Da salvare:
   riordino delle stampe, `confronta`, `macchine`, documenti riordinati.
 
-- **Tre cicli «con errori», 22-11 sera (oggi COPILOT 4.3, senza ingestion nuova).** Fotografia del
+- **Tre cicli «con errori», 22-11 sera (oggi COPILOT 2.1, senza ingestion nuova).** Fotografia del
   22-11 (16 oggetti), poi i tre cicli: 0 errati in tutti e tre (0-3 corretti, 16-19 warning,
   15-18 non applicabili), come prima. Il blocco non fa l'ingestion: ora stampa la versione
   pubblicata accanto a quella del 21-11 per vedere se l'ingestion è arrivata.
@@ -702,12 +702,12 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | Avviando una voce composta: `ensure-opensearch-tunnels.ps1 ... non esiste`, exit code 1 | il task «Centralizer prerequisites» chiama uno script che sul PC non c'è | la voce «CV v2» senza il task (`AZIENDA.md`, sezione 7); oppure avviare le voci una per una |
 | Avviando «CV» partono v1 e v2 insieme | la v2 aggiunta alla voce composta della v1: tutte e due sulla porta 8003 | voce composta a parte «CV v2» (login, frontend, v2): `AZIENDA.md`, sezione 7 |
 | Avvio della v2 in locale: `Secret '...' non leggibile o non valido (ResourceNotFoundException)` | in `CV_ENV_SECRET` un nome diverso da quello della v1 (per esempio con `_v2` in fondo) | lo stesso nome di `load_secrets` della v1: `AZIENDA.md`, sezione 7 |
-| Nel pannello di Claude in VS Code tante chat con i nomi delle operazioni dei cicli | il Claude Agent SDK (le sessioni della v2, con Bedrock) salva ogni sessione in `~/.claude/projects` come una chat di Claude Code; il pannello le mostra. Non sono Copilot e non sono chat dell'utente | dal 23-11 la v2 passa `--no-session-persistence` (provato: nessun file scritto); le vecchie si spostano con il blocco di COPILOT sezione 2 |
+| Nel pannello di Claude in VS Code tante chat con i nomi delle operazioni dei cicli | il Claude Agent SDK (le sessioni della v2, con Bedrock) salva ogni sessione in `~/.claude/projects` come una chat di Claude Code; il pannello le mostra. Non sono Copilot e non sono chat dell'utente | dal 23-11 la v2 passa `--no-session-persistence` (provato: nessun file scritto); le vecchie (167 chat) spostate il 23-11 in `.claude\chat-validazioni-v2`; il blocco è tolto da COPILOT |
 | Blocco della libreria: mancano delle classi (`libreria pronta: False`) | in `vendor` ci sono la 0.3.0 e la 0.4.0rc2; era stata presa la 0.3.0 | installare la riga dei requirements della v1, 0.4.0rc2 con `[auth]` (`AZIENDA.md`, sezione 7) |
 
 ## 12. Decisioni prese
 
-Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 5).
+Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 3.1).
 
 - **Task citato che il manuale non ha:** WARNING `FONTE_ASSENTE` subito, senza chiamare il
   modello (interruttore `agent.skip_missing_task`, acceso).
