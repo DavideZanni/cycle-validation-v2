@@ -252,6 +252,20 @@ blocco COPILOT 2.1b.
   cambiati). Da capire con la spiegazione intera (2.1b allungato);
 - f355dc3c op 040 e 050: fuori dalla foto.
 
+**2.3, 2.1 e 2.1b del 23-11 (16:50)**, dopo la correzione delle sezioni: M1 ha 3 task mancanti
+(nel testo, ma non come titolo), M2 uno. I 7 cicli: ancora 0 errati. In 2.1b la fonte risulta
+**senza task** (rc A1) e le operazioni 035 (rc A3), c5ff3cd6 030/040 (rc A2) e f355dc3c
+030/040/050 (rc A1) restano FONTE_ASSENTE. Causa trovata nel parser della stampa: la fonte era
+una sola, con la riparazione e la nota della **prima** pagina, e il task veniva preso dalla nota
+solo se cominciava con le cifre (una nota `CIR <sezione>` dava task vuoto). Corretto il 23-11
+(17:10, `extract/pvrm320_report.py`): una fonte per ogni riparazione, con la nota della testata
+delle sue pagine e il manuale del piè di pagina; la nota può cominciare con `CIR` o `TASK` e
+avere la virgola dopo la sezione. `leggi --fonti` stampa le fonti senza codici di manuali
+(COPILOT 2.0). Non ancora visto sui PDF veri: la forma della nota è un'ipotesi da confermare con
+2.0. Le spiegazioni di op 005 e op 010 (task d'ispezione 72-56-32): il testo dell'ispezione non
+parla di rimozione del metallo né dei limiti di numero delle raccordature; quelle cose stanno nei
+REPAIR, quindi senza i REPAIR giusti il modello non può trovare l'errore.
+
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
 

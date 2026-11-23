@@ -20,7 +20,11 @@ from pvrm320_report_fixtures import (
 
 from cycle_validation.errors import ExtractionError
 from cycle_validation.extract.pvrm320 import parse_pvrm320
-from cycle_validation.extract.pvrm320_report import is_pvrm320_report, parse_pvrm320_report
+from cycle_validation.extract.pvrm320_report import (
+    is_pvrm320_report,
+    note_task,
+    parse_pvrm320_report,
+)
 
 
 def civil():
@@ -119,6 +123,42 @@ def test_civil_source_is_the_oem_manual_with_the_task_from_the_notes() -> None:
         "72-00-00 REPAIR 001",
         "B1",
     )
+
+
+def test_each_repair_code_is_a_source_with_the_task_of_its_own_page() -> None:
+    # stampa con due riparazioni: ogni pagina ha in testata la sua, con il task nella NOTE
+    footer = ["RIP: A1 OEM: ABC123456".ljust(46) + "CHANGE: 7"]
+    pages = [
+        page(1, block(["QQ/901"], "010", ["ISPEZIONARE"]), repair="A1", note="CIR 72-00-01"),
+        page(
+            2,
+            block(["QQ/902"], "020", ["RIPARARE"]),
+            footer,
+            repair="A3",
+            note="CIR 72-00-01, REPAIR 004",
+        ),
+    ]
+    cycle = parse_pvrm320_report(as_document(pages))
+    assert [(s.manual, s.task, s.repair_code) for s in cycle.sources] == [
+        ("ABC123456", "72-00-01", "A1"),
+        ("ABC123456", "72-00-01 REPAIR 004", "A3"),
+    ]
+    assert ops(cycle)["020"].repair_code == "A3"
+
+
+@pytest.mark.parametrize(
+    ("note", "task"),
+    [
+        ("72-00-00 REPAIR 001", "72-00-00 REPAIR 001"),
+        ("CIR 72-00-00, REPAIR 001 VEDI NOTA", "72-00-00 REPAIR 001"),
+        ("TASK 72-00-00-200-801", "72-00-00-200-801"),
+        ("CIR 72-00-00", "72-00-00"),
+        ("S26/00001", None),
+        (None, None),
+    ],
+)
+def test_the_task_in_the_header_note(note: str | None, task: str | None) -> None:
+    assert note_task(note) == task
 
 
 def test_ej200_source_is_the_rdr_and_the_oem_placeholder_is_ignored() -> None:

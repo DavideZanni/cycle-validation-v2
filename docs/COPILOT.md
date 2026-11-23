@@ -26,18 +26,17 @@ cambia solo Claude.
 ## 1. Cosa fare adesso (23-11-2026)
 
 **Dove siamo.** La v2 gira in locale con login e frontend. Oggi: ingestion di 10 manuali
-(versione `v/20261123T142517Z/`) e due correzioni della v2: i titoli GE `CIR <sezione>, REPAIR
-00N`, e le fonti che citano solo la sezione (`CIR <sezione>`), che adesso portano tutti i task
-di quella sezione. Prima di questa correzione 4 delle 9 operazioni con errore noto non avevano
-nessun testo con cui confrontarsi. Mancano ancora i due REPAIR della sezione 72-56-31 citati
-solo in una frase (file con `-09-001` e `-09-003` nel nome, **non sul PC**) e il capitolo 70-23
-dell'SPM.
+(versione `v/20261123T142517Z/`) e tre correzioni della v2: i titoli GE `CIR <sezione>, REPAIR
+00N`; le fonti che citano solo la sezione; e (ultima, 17:10) **una fonte per ogni
+riparazione**. Prima la v2 prendeva solo la riparazione della prima pagina, e senza task se la
+nota cominciava con `CIR`: per questo le operazioni delle altre riparazioni (A2, A3) restavano
+senza testo. Mancano ancora i due REPAIR della sezione 72-56-31 (file con `-09-001` e `-09-003`
+nel nome, **non sul PC**) e il capitolo 70-23 dell'SPM.
 
 **In ordine:**
 
 1. **Aggiornare** (2.4).
-2. **La lista dei manuali** (2.3, gratis): le fonti con la sola sezione adesso contano come
-   trovate.
+2. **Le riparazioni dei tre cicli** (2.0, gratis).
 3. **I cicli con errori** (2.1), poi **Perché non trova gli errori noti** (2.1b, gratis).
 4. **Salvare** (2.5).
 5. **I file mancanti:** cercali dove prendi i manuali (i due REPAIR e il capitolo 70-23
@@ -52,6 +51,26 @@ Quando Claude dice di aver cambiato il codice: prima **Aggiornare** (2.4).
 ---
 
 ## 2. Blocchi
+
+### 2.0 Le riparazioni dei tre cicli
+
+Gratis: non chiama il modello. Per i tre cicli «con errori» stampa le righe `RIPARAZIONE` della
+testata di ogni pagina, con i codici mascherati (lettere → A, cifre → 9): serve a vedere com'è
+scritta la nota con il task. Poi le fonti come le legge adesso la v2 (M? al posto del manuale).
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+$radice = (Resolve-Path "..\..").Path
+$tre = Get-ChildItem $radice -Recurse -Filter "*errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] } | Where-Object { (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in @("298bc28e", "c5ff3cd6", "f355dc3c") }
+foreach ($f in $tre) { "== " + (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); uv run cycle-validation leggi $f.FullName --config data/settings.yaml --cerca "RIPARAZIONE" | Select-Object -Skip 1 | Select-Object -Unique; uv run cycle-validation leggi $f.FullName --config data/settings.yaml --fonti | Select-Object -Skip 1 }
+```
+
+**Deve uscire:** per ognuno dei tre cicli `== <impronta>`, le righe `p.N | RIPARAZIONE : ...`
+(mascherate), poi una riga `fonte M? · task ... · rc ...` per ogni riparazione e la riga
+`rc delle operazioni`. Ogni rc delle operazioni deve avere la sua fonte, con un task.
+
+**Manda a Claude:** la foto.
 
 ### 2.1 I cicli con errori
 

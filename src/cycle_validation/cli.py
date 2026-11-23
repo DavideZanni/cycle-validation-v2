@@ -271,6 +271,13 @@ def read_cycles(
             "di operazione, prima parola), senza il testo: per capire un errore di layout."
         ),
     ] = None,
+    fonti: Annotated[
+        bool,
+        typer.Option(
+            help="Stampa le fonti (task e riparazione, il manuale come M1, M2, ...) e le "
+            "riparazioni delle operazioni, senza codici di manuali."
+        ),
+    ] = False,
 ) -> None:
     """Legge i cicli con il parser di layout, senza modello né conoscenza (zero token), e
     stampa riparazione, fonti e task citati: serve a scegliere quali cicli provare. Con
@@ -321,6 +328,21 @@ def read_cycles(
                         typer.echo(f"  p.{page.number} | {_masked(line.strip())}")
             serials = [_masked(serial) for serial in serials_in_text(pdf.text)]
             typer.echo(f"  serial number trovati: {len(serials)} ({', '.join(serials) or '-'})")
+            continue
+        if fonti:
+            try:
+                cycle = parse_pvrm320(pdf)
+            except CycleValidationError as error:
+                typer.echo(f"  non letto dal parser: {_masked_quotes(str(error))}")
+                continue
+            names = list(dict.fromkeys(source.manual for source in cycle.sources))
+            for source in cycle.sources:
+                typer.echo(
+                    f"  fonte M{names.index(source.manual) + 1} · task {source.task or '-'} · "
+                    f"rc {source.repair_code or '-'}"
+                )
+            repairs = sorted({op.repair_code or "-" for op in cycle.operations})
+            typer.echo(f"  rc delle operazioni: {' '.join(repairs)}")
             continue
         if pagina is not None and 1 <= pagina <= len(pdf.pages):
             for number, line in enumerate(pdf.pages[pagina - 1].text.splitlines(), 1):

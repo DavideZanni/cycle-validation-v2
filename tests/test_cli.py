@@ -342,6 +342,22 @@ def test_leggi_prints_repair_sources_and_tasks_without_a_model(tmp_path: Path) -
     assert lines[4].startswith("  non letto dal parser:")
 
 
+def test_leggi_fonti_prints_sources_without_manual_codes(tmp_path: Path) -> None:
+    from pvrm320_report_fixtures import civil_pages
+
+    from cycle_validation.testing.pdf import build_pdf
+
+    printed = tmp_path / "stampa.pdf"
+    printed.write_bytes(build_pdf(civil_pages()))
+    result = runner.invoke(cli.app, ["leggi", str(printed), "--fonti"])
+    assert result.exit_code == 0, result.output
+    assert result.output.splitlines()[1:] == [
+        "  fonte M1 · task 72-00-00 REPAIR 001 · rc B1",
+        "  rc delle operazioni: B1",
+    ]
+    assert "ABC123456" not in result.output
+
+
 def test_leggi_prints_the_requested_page(tmp_path: Path) -> None:
     from pvrm320_report_fixtures import civil_pages
 

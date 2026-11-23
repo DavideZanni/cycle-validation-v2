@@ -93,7 +93,33 @@ _SECTION_BEFORE = re.compile(
     rf"({_SECTION})[\s,]*(?:(?:DEL|DELLA|DELLE|DELL')\s*)?(?:(?:RDR|RN|EF)\s+)?$"
 )
 _FOOTER = re.compile(r"^\s*RIP\s*:\s*(?P<repair>\S+)\s+OEM\s*:\s*(?P<oem>\S+)", re.IGNORECASE)
-_TASK_NOTE = re.compile(r"^\d{2}-\d{2}-\d{2}\b")
+# Task nella colonna NOTE della testata, accanto alla riparazione: «72-00-00 REPAIR 001»,
+# «CIR 72-00-00, REPAIR 001», «TASK 72-00-00-200-801» o la sola sezione «CIR 72-00-00».
+_TASK_NOTE = re.compile(
+    r"^(?:(?:CIR|TASK)\b[\s:.\-]*)?(?P<section>\d{2}-\d{2}-\d{2})"
+    r"(?:(?P<full>-\d{3}-\d{3})|\s*,?\s*(?P<kind>[A-Z]+)\s+(?P<number>\d{3}))?(?![\dA-Za-z-])",
+    re.IGNORECASE,
+)
+# Riparazione e nota nella testata di ogni pagina.
+_PAGE_REPAIR_NOTE = re.compile(
+    r"^[ \t]*RIPARAZIONE[ \t]*:[ \t]*(?P<repair>\S+)(?:[ \t]+(?P<note>\S.*?))?[ \t]*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def note_task(note: str | None) -> str | None:
+    """Il task citato nella nota della testata, nella forma dei task del ciclo
+    (`72-00-00 REPAIR 001`, `72-00-00-200-801`), oppure la sola sezione (`72-00-00`)."""
+    match = _TASK_NOTE.match((note or "").strip())
+    if match is None:
+        return None
+    if match["full"]:
+        return match["section"] + match["full"]
+    if match["kind"]:
+        return f"{match['section']} {match['kind'].upper()} {match['number']}"
+    return match["section"]
+
+
 _SECTION = "\x00"
 
 
@@ -333,6 +359,9 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
     # le righe senza numero in cima alla pagina dopo sono sue, con o senza il marcatore.
     carry: _Op | None = None
     oem: str | None = None
+    # per ogni riparazione (in ordine): la nota della testata e il manuale del piè di pagina
+    repair_notes: dict[str, str | None] = {}
+    repair_oems: dict[str, str] = {}
     # titoli («***** OPERAZIONE EVENTUALE *****») in attesa della prossima operazione
     heading: list[str] = []
 
@@ -346,6 +375,11 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
         body, footer = _body(page.text)
         if footer is not None and (m := _FOOTER.match(footer)) is not None:
             oem = oem or m["oem"]
+            repair_oems.setdefault(m["repair"], m["oem"])
+        if (m := _PAGE_REPAIR_NOTE.search(page.text)) is not None and not repair_notes.get(
+            m["repair"]
+        ):
+            repair_notes[m["repair"]] = m["note"]
         current = carry
         pending = _Op("", page.number)
         # operazione che la pagina dichiara di continuare ("CONTINUA ALLA PAGINA SEGUENTE"):
@@ -441,15 +475,16 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
         )
 
     sources: list[Source] = []
-    note = head.get("note")
-    if oem and "/" not in oem:
-        sources.append(
-            Source(
-                manual=oem,
-                task=note if note and _TASK_NOTE.match(note) else None,
-                repair_code=head.get("repair_code"),
-            )
-        )
+    # una fonte per riparazione: ogni pagina ha in testata la sua riparazione e, nella colonna
+    # NOTE, il task del manuale per quella riparazione
+    first: tuple[str | None, str | None] = (head.get("repair_code"), head.get("note"))
+    repairs: list[tuple[str | None, str | None]] = list(repair_notes.items()) or [first]
+    for repair_code, note in repairs:
+        if not note and repair_code == first[0]:
+            note = first[1]
+        manual = repair_oems.get(repair_code or "") or oem
+        if manual and "/" not in manual:
+            sources.append(Source(manual=manual, task=note_task(note), repair_code=repair_code))
     text = " ".join(op.operation_description for op in built)
     cited: dict[str, str | None] = {}
     for match in _REFERENCE.finditer(text):
