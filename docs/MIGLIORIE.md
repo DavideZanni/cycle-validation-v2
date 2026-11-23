@@ -12,6 +12,12 @@ versione di oggi), almeno tre volte. Si tiene solo se la classifica dice che non
 niente; la decisione si scrive nel registro in fondo. Come si lancia: `docs/AZIENDA.md`,
 parte B.
 
+**Prova sui cicli veri (sul PC aziendale).** Ogni miglioria si prova anche con COPILOT 2.7: 7
+cicli «con errori» e 3 giusti, con il punteggio «errori noti trovati N su 12, falsi errori nei
+cicli giusti». Base del 23-11 sera: circa 8 su 12, 0 falsi errori. Si tiene se i trovati non
+scendono e i falsi errori restano 0; se la miglioria tocca il modello, due prove. Prima ancora,
+gratis: i test (`uv run pytest -q`) e `leggi --lingue` (COPILOT 2.0).
+
 ---
 
 ## Dove sta il codice
