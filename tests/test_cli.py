@@ -354,6 +354,7 @@ def test_leggi_fonti_prints_sources_without_manual_codes(tmp_path: Path) -> None
     assert result.output.splitlines()[1:] == [
         "  fonte M1 · task 72-00-00 REPAIR 001 · rc B1",
         "  rc delle operazioni: B1",
+        "  OEM nel piè di pagina (forma): AAA999999",
     ]
     assert "ABC123456" not in result.output
 
@@ -498,3 +499,20 @@ def test_leggi_struttura_shows_the_layout_without_the_text(tmp_path: Path) -> No
     assert "TRATTEGGIO" in output
     assert output.rstrip().endswith("parser: letto")
     assert "RIVESTIMENTO" not in output  # solo la prima parola del testo
+
+
+def test_leggi_fonti_shows_codes_in_the_text_that_are_not_tasks(tmp_path: Path) -> None:
+    from pvrm320_report_fixtures import FOOTER, block, page
+
+    from cycle_validation.testing.pdf import build_pdf
+
+    body = block(["QQ/901"], "005", ["SECONDO MANUALE ABC123456 SUBTASK 70-11-00-350-035/029"])
+    printed = tmp_path / "stampa.pdf"
+    printed.write_bytes(build_pdf([page(1, body, FOOTER, note="APPL. LUBRIFIC. SECCO")]))
+    result = runner.invoke(cli.app, ["leggi", str(printed), "--fonti"])
+    assert result.exit_code == 0, result.output
+    assert "  fonte M1 · task - · rc B1" in result.output
+    assert "op 005 · rc B1 · task - · altri codici nel testo: SUBTASK 70-11-00-999-999/999" in (
+        result.output
+    )
+    assert "ABC123456" not in result.output

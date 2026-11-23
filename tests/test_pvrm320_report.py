@@ -152,6 +152,8 @@ def test_each_repair_code_is_a_source_with_the_task_of_its_own_page() -> None:
         ("72-00-00 REPAIR 001", "72-00-00 REPAIR 001"),
         ("CIR 72-00-00, REPAIR 001 VEDI NOTA", "72-00-00 REPAIR 001"),
         ("TASK 72-00-00-200-801", "72-00-00-200-801"),
+        ("BLENDING 72-00-00-200-801", "72-00-00-200-801"),
+        ("APPL. LUBRIFIC. SECCO", None),
         ("CIR 72-00-00", "72-00-00"),
         ("S26/00001", None),
         (None, None),

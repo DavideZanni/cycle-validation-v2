@@ -266,6 +266,15 @@ avere la virgola dopo la sezione. `leggi --fonti` stampa le fonti senza codici d
 parla di rimozione del metallo né dei limiti di numero delle raccordature; quelle cose stanno nei
 REPAIR, quindi senza i REPAIR giusti il modello non può trovare l'errore.
 
+**2.0 del 23-11 (17:00)**, con le fonti per riparazione: c5ff3cd6 ha una sola riparazione (A2)
+con nota `APPL. LUBRIFIC. SECCO` (una descrizione, nessun task); f355dc3c una sola (A1) con nota
+`BLENDING <task completo>` (parola prima del codice: corretto alle 17:20, il task si cerca in
+tutta la nota). 298bc28e in 2.1b non ha **nessuna** fonte (OEM del piè di pagina assente o con
+`/`?): da vedere con 2.0. op 005 di 298bc28e cita dei subtask SPM della sezione 70-42-00 in una
+forma che la v2 non legge come task (non c'è la parola TASK davanti): `leggi --fonti` ora stampa
+questi codici, per capire la forma prima di leggerli. Rilanciati i 7 cicli (17:02): ancora 0
+errati.
+
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
 

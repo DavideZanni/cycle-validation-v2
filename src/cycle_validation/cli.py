@@ -32,7 +32,7 @@ from cycle_validation.extract.base import CycleExtractor
 from cycle_validation.extract.factory import make_pdf_extractor
 from cycle_validation.extract.from_file import FileCycleExtractor
 from cycle_validation.extract.pvrm320 import parse_pvrm320
-from cycle_validation.extract.pvrm320_report import page_structure
+from cycle_validation.extract.pvrm320_report import footer_oems, page_structure
 from cycle_validation.golden import GoldenCase, load_cases, run_golden
 from cycle_validation.ingest.pdf import read_pdf, read_pdf_bytes
 from cycle_validation.ingest.transcribe import make_transcriber
@@ -52,6 +52,7 @@ from cycle_validation.report.manuals import (
 )
 from cycle_validation.resolve.dr import SERIAL_IN_TEXT, parse_selectors, serials_in_text
 from cycle_validation.services.machines import load_machine_registry
+from cycle_validation.text import normalize_code
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, help="Validazione dei cicli.")
 eval_app = typer.Typer(
@@ -239,6 +240,19 @@ def _masked(text: str) -> str:
     return _CODE_TOKEN.sub(shape, text)
 
 
+# Codice ATA scritto nella descrizione, con la parola prima (TASK, SUBTASK, il manuale...).
+_ATA_REFERENCE = re.compile(
+    r"(?:(?P<word>[A-Za-z][\w.]*)\s+)?(?P<code>\d{2}-\d{2}-\d{2}(?:(?:[-/]\d{3})+|\s*,?\s*[A-Z]+\s+\d{3})?)(?![\dA-Za-z])"
+)
+
+
+def _reference_shape(match: re.Match[str]) -> str:
+    """Parola e codice: la sezione si vede, il resto del codice e la parola diventano forme."""
+    code = match["code"]
+    shown = code[:8] + _masked(code[8:]) if len(code) > 8 else code
+    return f"{_masked(match['word'])} {shown}" if match["word"] else shown
+
+
 @app.command("leggi")
 def read_cycles(
     pdfs: Annotated[list[Path], typer.Argument(help="PDF dei cicli.")],
@@ -343,6 +357,21 @@ def read_cycles(
                 )
             repairs = sorted({op.repair_code or "-" for op in cycle.operations})
             typer.echo(f"  rc delle operazioni: {' '.join(repairs)}")
+            oems = [_masked(oem) for oem in footer_oems(pdf)]
+            typer.echo(f"  OEM nel piè di pagina (forma): {', '.join(oems) or 'nessuno'}")
+            for op in cycle.operations:
+                cited = {normalize_code(code) for code in op.task_codes}
+                others = [
+                    _reference_shape(match)
+                    for match in _ATA_REFERENCE.finditer(op.operation_description)
+                    if normalize_code(match["code"]) not in cited
+                ]
+                if others:
+                    typer.echo(
+                        f"  op {op.operation_number} · rc {op.repair_code or '-'} · task "
+                        f"{', '.join(op.task_codes) or '-'} · altri codici nel testo: "
+                        f"{'; '.join(dict.fromkeys(others))}"
+                    )
             continue
         if pagina is not None and 1 <= pagina <= len(pdf.pages):
             for number, line in enumerate(pdf.pages[pagina - 1].text.splitlines(), 1):

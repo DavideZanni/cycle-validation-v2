@@ -94,10 +94,12 @@ _SECTION_BEFORE = re.compile(
 )
 _FOOTER = re.compile(r"^\s*RIP\s*:\s*(?P<repair>\S+)\s+OEM\s*:\s*(?P<oem>\S+)", re.IGNORECASE)
 # Task nella colonna NOTE della testata, accanto alla riparazione: «72-00-00 REPAIR 001»,
-# «CIR 72-00-00, REPAIR 001», «TASK 72-00-00-200-801» o la sola sezione «CIR 72-00-00».
+# «CIR 72-00-00, REPAIR 001», «BLENDING 72-00-00-200-801» (una parola prima del codice) o la
+# sola sezione «CIR 72-00-00». Si prende il primo codice con la forma di una sezione ATA.
 _TASK_NOTE = re.compile(
-    r"^(?:(?:CIR|TASK)\b[\s:.\-]*)?(?P<section>\d{2}-\d{2}-\d{2})"
-    r"(?:(?P<full>-\d{3}-\d{3})|\s*,?\s*(?P<kind>[A-Z]+)\s+(?P<number>\d{3}))?(?![\dA-Za-z-])",
+    r"(?<![\dA-Za-z-])(?P<section>\d{2}-\d{2}-\d{2})"
+    r"(?:(?P<full>-\d{3}-\d{3})|\s*,?\s*(?P<kind>REPAIR|INSPECTION|CHECK)\s+(?P<number>\d{3}))?"
+    r"(?![\dA-Za-z-])",
     re.IGNORECASE,
 )
 # Riparazione e nota nella testata di ogni pagina.
@@ -110,7 +112,7 @@ _PAGE_REPAIR_NOTE = re.compile(
 def note_task(note: str | None) -> str | None:
     """Il task citato nella nota della testata, nella forma dei task del ciclo
     (`72-00-00 REPAIR 001`, `72-00-00-200-801`), oppure la sola sezione (`72-00-00`)."""
-    match = _TASK_NOTE.match((note or "").strip())
+    match = _TASK_NOTE.search(note or "")
     if match is None:
         return None
     if match["full"]:
@@ -255,6 +257,17 @@ def _description(op: _Op) -> str:
         else:
             sections[-1].append(item)
     return " / ".join(" ".join(lines) for lines in sections if lines)
+
+
+def footer_oems(pdf: PdfDocument) -> list[str]:
+    """Il codice OEM scritto nel piè di pagina, una volta per valore: da qui viene il manuale
+    delle fonti dei cicli civili."""
+    found: list[str] = []
+    for page in pdf.pages:
+        _, footer = _body(page.text)
+        if footer is not None and (m := _FOOTER.match(footer)) is not None:
+            found.append(m["oem"])
+    return list(dict.fromkeys(found))
 
 
 def _body(page_text: str) -> tuple[list[str], str | None]:
