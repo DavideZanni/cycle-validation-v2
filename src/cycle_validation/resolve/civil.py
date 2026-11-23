@@ -9,7 +9,7 @@ from cycle_validation.domain.check import Reason
 from cycle_validation.domain.cycle import Cycle, Operation, Source
 from cycle_validation.kb.documents import read_lines
 from cycle_validation.kb.port import DocumentInfo, KnowledgeBase, TaskLocation
-from cycle_validation.kb.task_text import find_task_in_text
+from cycle_validation.kb.task_text import find_task_in_text, lines_with
 from cycle_validation.text import normalize_code
 
 _NUMBERS = re.compile(r"\d+")
@@ -123,15 +123,56 @@ def manuals_for_operation(cycle: Cycle, operation: Operation) -> list[str]:
 
 
 def locate_task(kb: KnowledgeBase, manuals: Sequence[str], task: str) -> TaskLocation | None:
-    """Il task nei manuali indicati; un task delle pratiche standard (capitolo 70) che lì
-    non c'è si cerca nei documenti SPM."""
+    """Il task nei manuali indicati. Un task delle pratiche standard (capitolo 70) si cerca
+    **prima** nei documenti SPM: il manuale del motore lo cita spesso su una riga a sé
+    («TASK 70-42-00-350-002»), che la ricerca nel testo scambierebbe per il suo titolo."""
+    if _STANDARD_PRACTICES_TASK.match(normalize_code(task)):
+        hit = kb.find_task_in_kind(STANDARD_PRACTICES_KIND, task)
+        if hit is not None:
+            return hit
     for manual in manuals:
         hit = kb.find_task(manual, task)
         if hit is not None:
             return hit
-    if _STANDARD_PRACTICES_TASK.match(normalize_code(task)):
-        return kb.find_task_in_kind(STANDARD_PRACTICES_KIND, task)
     return None
+
+
+def documents_of_kind(kb: object, kind: str) -> list[DocumentInfo]:
+    """I documenti di un tipo, se la conoscenza sa elencarli (EJ200 no)."""
+    method = getattr(kb, "documents_of_kind", None)
+    return list(method(kind)) if callable(method) else []
+
+
+# Codice completo di un task: la famiglia è tutto tranne l'ultimo gruppo (70-42-00-350).
+_FULL_TASK = re.compile(r"^(\d{2}-\d{2}-\d{2}-\d{3})-\d{3}$")
+
+
+def wrong_code_siblings(kb: KnowledgeBase, manuals: Sequence[str], task: str) -> list[str]:
+    """Se il codice completo non compare **in nessun punto** dei documenti dove dovrebbe stare,
+    ma quei documenti hanno altri task della stessa famiglia (stesse prime quattro parti), il
+    codice è quasi certamente sbagliato: si danno i fratelli trovati. Altrimenti `[]` (il
+    documento può semplicemente mancare dalla conoscenza)."""
+    wanted = normalize_code(task)
+    match = _FULL_TASK.match(wanted)
+    if match is None:
+        return []
+    documents = [document for manual in manuals for document in kb.find_manuals(manual)]
+    if _STANDARD_PRACTICES_TASK.match(wanted):
+        documents += documents_of_kind(kb, STANDARD_PRACTICES_KIND)
+    family = re.compile(rf"(?<![\dA-Za-z-]){re.escape(match.group(1))}-\d{{3}}(?![\dA-Za-z]|-\d)")
+    siblings: set[str] = set()
+    seen: set[str] = set()
+    for document in documents:
+        if document.key in seen:
+            continue
+        seen.add(document.key)
+        lines = read_lines(document.path)
+        if lines_with(lines, wanted, limit=1):
+            return []
+        for line in lines:
+            siblings.update(code.upper() for code in family.findall(line))
+    siblings.discard(wanted)
+    return sorted(siblings)
 
 
 def cited_section(task: str | None) -> str | None:
@@ -251,4 +292,29 @@ def context_locations(
     locations += sections
     if not locations:
         locations = [whole_document(document) for document in extra_documents]
+    if not locations:
+        locations = list(same_repair_locations(cycle, operation, kb))
     return _dedupe(locations)
+
+
+# Quanti task delle altre operazioni della stessa riparazione si danno, al massimo.
+_SAME_REPAIR_LIMIT = 4
+
+
+def same_repair_locations(
+    cycle: Cycle, operation: Operation, kb: KnowledgeBase
+) -> tuple[TaskLocation, ...]:
+    """Un'operazione che non cita task, in una riparazione la cui testata non dice il task: si
+    confronta con i task citati dalle altre operazioni della stessa riparazione (sono la
+    procedura del manuale che la riparazione segue). Al massimo `_SAME_REPAIR_LIMIT`."""
+    if operation.task_codes or operation.repair_code is None:
+        return ()
+    wanted = normalize_code(operation.repair_code)
+    found: list[TaskLocation] = []
+    for other in cycle.operations:
+        if other is operation or not other.task_codes:
+            continue
+        if other.repair_code is None or normalize_code(other.repair_code) != wanted:
+            continue
+        found += resolve_operation(cycle, other, kb).found
+    return _dedupe(found)[:_SAME_REPAIR_LIMIT]

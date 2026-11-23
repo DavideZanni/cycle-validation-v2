@@ -693,3 +693,36 @@ def test_doubtful_dr_does_not_block_the_cycle_but_says_so() -> None:
 )
 def test_treatment_for_family(treatment: str, family: str | None, expected: str) -> None:
     assert treatment_for_family(treatment, family) == expected
+
+
+def test_a_task_code_missing_where_its_family_is_is_errato(tmp_path: Path) -> None:
+    from cycle_validation.domain.check import Verdict
+    from cycle_validation.kb.memory import IndexedKnowledgeBase
+    from cycle_validation.kb.port import DocumentInfo
+
+    path = tmp_path / "spm.md"
+    path.write_text(
+        "TASK 70-11-00-350-002 Raccordatura\n(1) SUBTASK 70-11-00-350-029 Rimozione\nTesto.\n",
+        "utf-8",
+    )
+    kb = IndexedKnowledgeBase(
+        "v", documents=[DocumentInfo(key="spm", path=path, code="SPM-X", kind="SPM")]
+    )
+    cycle = Cycle.model_validate(
+        {
+            "sources": [{"manual": "MAN-X"}],
+            "operations": [
+                {"operation_number": "1", "task_codes": ["70-11-00-350-029"]},
+                {"operation_number": "2", "task_codes": ["70-11-00-350-035"]},
+                {"operation_number": "3", "task_codes": ["70-99-00-350-001"]},
+            ],
+        }
+    )
+    results = check_task_codes(_ctx(cycle, kb=kb))
+    assert _reasons(results) == [
+        Reason.VERIFICATO,
+        Reason.TASK_INESISTENTE,
+        Reason.FONTE_ASSENTE,
+    ]
+    assert results[1].verdict == Verdict.ERRATO
+    assert "70-11-00-350-029" in results[1].rationale

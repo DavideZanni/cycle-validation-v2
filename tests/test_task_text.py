@@ -168,3 +168,81 @@ def test_a_subtask_is_found_inside_its_task() -> None:
     assert find_task_in_text(lines, "70-11-00-350-029") == (6, 7)
     # un codice citato dentro una frase non apre niente
     assert find_task_in_text(["Vedi SUBTASK 70-11-00-350-099."], "70-11-00-350-099") is None
+
+
+def _engine_and_spm(tmp_path: Path) -> IndexedKnowledgeBase:
+    """Manuale del motore che cita su una riga a sé un task SPM, e il manuale SPM vero."""
+    files = {
+        "motore.md": (
+            "MAN-X",
+            None,
+            ["CIR 11-22-33, INSPECTION 001", "Limiti.", "TASK 70-11-00-350-002", "Raccordare."],
+        ),
+        "spm.md": (
+            "SPM-X",
+            "SPM",
+            [
+                "TASK 70-11-00-350-002 Raccordatura",
+                "(1) SUBTASK 70-11-00-350-029 Rimozione del metallo in rilievo",
+                "Raccordare a 10 volte la profondità.",
+                "(2) SUBTASK 70-11-00-350-031 Lucidatura",
+                "Grana 400.",
+            ],
+        ),
+    }
+    documents = []
+    for name, (code, kind, lines) in files.items():
+        path = tmp_path / name
+        path.write_text("\n".join(lines) + "\n", "utf-8")
+        documents.append(DocumentInfo(key=name, path=path, code=code, kind=kind))
+    return IndexedKnowledgeBase("v", documents=documents)
+
+
+def test_a_standard_practice_task_is_taken_from_the_spm_first(tmp_path: Path) -> None:
+    from cycle_validation.resolve.civil import locate_task
+
+    found = locate_task(_engine_and_spm(tmp_path), ["MAN-X"], "70-11-00-350-002")
+    assert found is not None and found.document.key == "spm.md"
+
+
+def test_a_code_missing_where_its_family_is_is_probably_wrong(tmp_path: Path) -> None:
+    from cycle_validation.resolve.civil import wrong_code_siblings
+
+    kb = _engine_and_spm(tmp_path)
+    assert wrong_code_siblings(kb, ["MAN-X"], "70-11-00-350-035") == [
+        "70-11-00-350-002",
+        "70-11-00-350-029",
+        "70-11-00-350-031",
+    ]
+    assert wrong_code_siblings(kb, ["MAN-X"], "70-11-00-350-029") == []  # c'è
+    # famiglia assente: il documento può mancare, non si dice che il codice è sbagliato
+    assert wrong_code_siblings(kb, ["MAN-X"], "11-22-33-300-801") == []
+
+
+def test_an_operation_without_tasks_uses_the_tasks_of_its_repair(tmp_path: Path) -> None:
+    from cycle_validation.domain.cycle import Cycle
+    from cycle_validation.resolve.civil import context_locations
+
+    kb = _engine_and_spm(tmp_path)
+    cycle = Cycle.model_validate(
+        {
+            "sources": [{"manual": "MAN-X", "repair_code": "A3"}],
+            "operations": [
+                {
+                    "operation_number": "005",
+                    "operation_description": "RACCORDARE SUBTASK 70-11-00-350-029",
+                    "repair_code": "A3",
+                    "task_codes": ["70-11-00-350-029"],
+                },
+                {
+                    "operation_number": "035",
+                    "operation_description": "LUCIDARE",
+                    "repair_code": "A3",
+                },
+                {"operation_number": "040", "operation_description": "ALTRO", "repair_code": "B1"},
+            ],
+        }
+    )
+    found = context_locations(cycle, cycle.operations[1], kb)
+    assert [(item.document.key, item.line_start) for item in found] == [("spm.md", 2)]
+    assert context_locations(cycle, cycle.operations[2], kb) == ()

@@ -77,6 +77,10 @@ class RemoteKnowledgeBase:
     def find_task_in_kind(self, kind: str, task: str) -> TaskLocation | None:
         return self._manuals.find_task_in_kind(kind, task)
 
+    def documents_of_kind(self, kind: str) -> list[DocumentInfo]:
+        method = getattr(self._manuals, "documents_of_kind", None)
+        return list(method(kind)) if callable(method) else []
+
     def find_machine_tag(self, tag: str) -> MachineTagEntry | None:
         self._ensure()
         return self._tags.get(normalize_code(tag))

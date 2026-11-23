@@ -285,6 +285,28 @@ con `SUBTASK <codice>` (anche dopo «(1)») fino al prossimo SUBTASK o task. L'i
 i SUBTASK e non serve cambiarlo. Per c5ff3cd6 030/040 resta il problema: nessun task né nella
 nota né nell'operazione (domanda alle persone: quale task vale per quella riparazione?).
 
+**2.3, 2.1 e 2.1b del 23-11 (17:20)**, con i SUBTASK: M2 (SPM) ha 1 task «non nel testo», che
+serve per 298bc28e op 005. I 7 cicli: ancora 0 errati. Analisi dei 8 errori dei tre cicli:
+- 298bc28e op 005 (codice cambiato): ora i subtask SPM 70-42-00 sono letti. Uno dei due non è
+  da nessuna parte nel testo SPM, dove ci sono i suoi fratelli: è il codice sbagliato. Il
+  modello giudica solo la descrizione e ha detto CORRETTO. Corretto (17:50): `task_code` dà
+  ERRATO `TASK_INESISTENTE` se un codice completo non compare in nessun punto dei documenti
+  dove dovrebbe stare e lì ci sono task della stessa famiglia (stesse prime quattro parti).
+  Se la famiglia non c'è (documento mancante), resta FONTE_ASSENTE;
+- f355dc3c op 030/040/050: la fonte (task SPM 70-42-00 della nota) veniva presa dal manuale del
+  motore, che la cita su una riga a sé: la ricerca nel testo la scambiava per il titolo. Il
+  modello ha detto «il testo del task non è presente». Corretto (17:50): i task del capitolo 70
+  si cercano prima nell'SPM. op 040 (la classe, un attacco chimico a tampone) sta
+  probabilmente nel capitolo 70-23 dell'SPM, che manca; op 050 (frase al contrario): con il
+  testo SPM giusto forse si trova;
+- 298bc28e op 035 e c5ff3cd6 op 040: nessun task né nell'operazione né nella testata. Corretto
+  (17:50): si usano i task citati dalle altre operazioni della stessa riparazione (al massimo
+  4). Più chiamate al modello per ciclo;
+- f355dc3c op 010 (tre numeri): i limiti di numero delle raccordature non sono nel task
+  d'ispezione citato; stanno in un altro task (forse un REPAIR della sezione 72-56-32). Aperto;
+- c5ff3cd6 op 030 (scheda tolta): regola P6. Aperto.
+Per i falsi errori c'è COPILOT 2.1c (le tre stampe giuste: non devono dare ERRATO).
+
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
 

@@ -12,7 +12,12 @@ from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reas
 from cycle_validation.domain.cycle import Operation
 from cycle_validation.kb.documents import folded_text
 from cycle_validation.kb.port import DocumentInfo
-from cycle_validation.resolve.civil import cited_documents, resolve_operation
+from cycle_validation.resolve.civil import (
+    cited_documents,
+    manuals_for_operation,
+    resolve_operation,
+    wrong_code_siblings,
+)
 from cycle_validation.text import squash
 
 CHECK = CheckName.TASK_CODE
@@ -20,6 +25,23 @@ CHECK = CheckName.TASK_CODE
 
 def _by_task(ctx: CheckContext, target: Target, operation: Operation) -> CheckResult:
     refs = resolve_operation(ctx.cycle, operation, ctx.kb)
+    manuals = manuals_for_operation(ctx.cycle, operation)
+    wrong = {
+        code: siblings
+        for code in refs.missing
+        if (siblings := wrong_code_siblings(ctx.kb, manuals, code))
+    }
+    if wrong:
+        detail = "; ".join(
+            f"{code} (nel manuale ci sono {', '.join(siblings[:5])})"
+            for code, siblings in wrong.items()
+        )
+        return make_result(
+            CHECK,
+            target,
+            Reason.TASK_INESISTENTE,
+            f"Task code che non esistono nel manuale, codice probabilmente sbagliato: {detail}.",
+        )
     if refs.missing:
         return make_result(
             CHECK,

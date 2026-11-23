@@ -26,19 +26,23 @@ cambia solo Claude.
 ## 1. Cosa fare adesso (23-11-2026)
 
 **Dove siamo.** La v2 gira in locale con login e frontend. Oggi: ingestion di 10 manuali
-(versione `v/20261123T142517Z/`) e alcune correzioni della v2 sul modo di trovare il testo del
-manuale per ogni operazione (titoli `CIR`, fonti con la sola sezione, una fonte per riparazione,
-task nella nota anche con una parola davanti). Ultima (17:30): i **SUBTASK** citati nelle
-operazioni sono letti come task e cercati dentro il loro task nel manuale. L'indice va bene così:
-le forme che non registra le cerca la v2 nel testo. Mancano ancora dei documenti: i due REPAIR
-della sezione 72-56-31 (file con `-09-001` e `-09-003` nel nome, **non sul PC**) e il capitolo
-70-23 dell'SPM.
+(versione `v/20261123T142517Z/`) e molte correzioni sul modo di trovare il testo del manuale per
+ogni operazione. Ultime tre (17:50):
+- un task SPM (capitolo 70) si prende **prima dall'SPM**: prima la v2 prendeva una riga del
+  manuale del motore che lo cita, credendola il titolo;
+- un **codice di task che non esiste** nel manuale, mentre ci sono i task della stessa famiglia,
+  è ERRATO (`TASK_INESISTENTE`): è il caso del codice cambiato;
+- un'operazione **senza task**, in una riparazione senza task nella testata, si confronta con i
+  task citati dalle altre operazioni della stessa riparazione.
+
+L'indice va bene così. Mancano ancora dei documenti: i due REPAIR della sezione 72-56-31 (file con
+`-09-001` e `-09-003` nel nome, **non sul PC**) e il capitolo 70-23 dell'SPM.
 
 **In ordine:**
 
 1. **Aggiornare** (2.4).
-2. **La lista dei manuali** (2.3, gratis): dice se i SUBTASK e il task della nota si trovano.
-3. **I cicli con errori** (2.1), poi **Perché non trova gli errori noti** (2.1b, gratis).
+2. **I cicli con errori** (2.1), poi **Perché non trova gli errori noti** (2.1b, gratis).
+3. **I tre cicli giusti** (2.1c): non devono dare ERRATO.
 4. **Salvare** (2.5).
 5. **I file mancanti:** cercali dove prendi i manuali (i due REPAIR e il capitolo 70-23
    dell'SPM). Se li trovi: ingestion, poi 2.2, 2.3 e 2.1.
@@ -79,20 +83,40 @@ Gratis: legge i report di 2.1, non rilancia niente. Stampa:
 
 - le fonti dei tre cicli «con errori»: task, repair code ed esito (senza il codice del
   manuale);
-- per le 9 operazioni con un errore noto: repair code, task citati, esito del confronto della
-  descrizione e la spiegazione del modello.
+- per le 9 operazioni con un errore noto: repair code, task citati, esito del controllo dei
+  codici (`codici:`), esito del confronto della descrizione e la spiegazione del modello.
 
 ```powershell
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 $noti = [ordered]@{ "298bc28e" = @("005", "035"); "c5ff3cd6" = @("030", "040"); "f355dc3c" = @("010", "030", "040", "050") }
 foreach ($h in $noti.Keys) { $r = Get-Content "runs/errori-$h/report.json" -Raw | ConvertFrom-Json; "== $h fonti"; $i = 0; foreach ($s in $r.cycle.sources) { $e = $r.results | Where-Object { $_.check -eq 'source' -and $_.target.index -eq $i } | Select-Object -First 1; "    M? task $($s.task) · rc $($s.repair_code) · $($e.verdict) $($e.reason)"; $i++ } }
-foreach ($h in $noti.Keys) { $r = Get-Content "runs/errori-$h/report.json" -Raw | ConvertFrom-Json; foreach ($op in $noti[$h]) { $o = $r.cycle.operations | Where-Object { $_.operation_number.TrimStart('0') -eq $op.TrimStart('0') } | Select-Object -First 1; "== $h op $op · rc $($o.repair_code) · task: $($o.task_codes -join ', ')"; $r.results | Where-Object { $_.check -eq 'operation_description' -and $_.target.label.TrimStart('0') -eq $op.TrimStart('0') } | ForEach-Object { $t = "$($_.rationale)" -replace '\s+', ' '; "    $($_.verdict) · $($_.reason) · " + $t.Substring(0, [Math]::Min(400, $t.Length)) } } }
+foreach ($h in $noti.Keys) { $r = Get-Content "runs/errori-$h/report.json" -Raw | ConvertFrom-Json; foreach ($op in $noti[$h]) { $o = $r.cycle.operations | Where-Object { $_.operation_number.TrimStart('0') -eq $op.TrimStart('0') } | Select-Object -First 1; "== $h op $op · rc $($o.repair_code) · task: $($o.task_codes -join ', ')"; $r.results | Where-Object { $_.check -eq 'task_code' -and $_.target.label.TrimStart('0') -eq $op.TrimStart('0') } | ForEach-Object { "    codici: $($_.verdict) · $($_.reason) · $($_.rationale)" }; $r.results | Where-Object { $_.check -eq 'operation_description' -and $_.target.label.TrimStart('0') -eq $op.TrimStart('0') } | ForEach-Object { $t = "$($_.rationale)" -replace '\s+', ' '; "    $($_.verdict) · $($_.reason) · " + $t.Substring(0, [Math]::Min(400, $t.Length)) } } }
 ```
 
 **Deve uscire:** per ogni ciclo le righe `== <impronta> fonti`, poi per ognuna delle 9 operazioni
 la riga `== <impronta> op ...` e sotto l'esito con la spiegazione.
 
 **Manda a Claude:** le foto (servono tutte le righe, anche in più schermate).
+
+### 2.1c I tre cicli giusti (controllo dei falsi errori)
+
+Rilancia le tre stampe **giuste** da cui sono state fatte quelle «con errori» (le cerca per
+impronta tra tutti i PDF: ci mette qualche minuto). Qui la v2 **non** deve dare ERRATO: se lo
+dà, è un falso errore. Costa come tre cicli di 2.1.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
+$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+$radice = (Resolve-Path "..\..").Path
+$giuste = Get-ChildItem $radice -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in @("4e64d49a", "8bdb25d5", "04ecaabe") } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
+foreach ($f in $giuste) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); "$h " + (@(uv run cycle-validation run $f.FullName --profile mos --knowledge $v --config data/settings.yaml --out "runs/giuste-$h") -match '^Ciclo' | Select-Object -First 1); if (Test-Path "runs/giuste-$h/report.json") { (Get-Content "runs/giuste-$h/report.json" -Raw | ConvertFrom-Json).results | Where-Object { $_.verdict -eq 'ERRATO' } | ForEach-Object { "    ERRATO op $(if ($_.target.kind -eq 'operation') { $_.target.label } else { $_.target.kind }) · $($_.check) · $($_.reason) · $($_.rationale)" } } }
+```
+
+**Deve uscire:** tre righe `<impronta> Ciclo ...` con **0 errati** e nessuna riga `ERRATO`.
+
+**Manda a Claude:** la foto.
 
 ### 2.2 Fotografia della conoscenza (dopo ogni ingestion)
 

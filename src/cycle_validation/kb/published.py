@@ -180,6 +180,9 @@ class PublishedKnowledgeBase:
     def find_task_in_kind(self, kind: str, task: str) -> TaskLocation | None:
         return self.current().find_task_in_kind(kind, task)
 
+    def documents_of_kind(self, kind: str) -> list[DocumentInfo]:
+        return self.current().documents_of_kind(kind)
+
     def find_machine_tag(self, tag: str) -> MachineTagEntry | None:
         return self.current().find_machine_tag(tag)
 
