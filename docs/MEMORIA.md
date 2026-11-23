@@ -234,6 +234,9 @@ i 7 cicli con «errori» danno tutti 0 errati. M1 c'è, ma mancano 7 task. La ri
   hanno nel nome la sezione e `-09-` con il numero del REPAIR;
 - il task SPM del capitolo 70-23 è citato con la sola sezione: adesso la v2 lo accetta nei
   documenti SPM, ma il capitolo 70-23 dell'SPM non è nella conoscenza.
+Dopo la correzione (4.2 delle 16:00) M1 ha 5 task mancanti: le 2 sezioni e i 2 REPAIR della
+sezione 72-56-31 citati solo in una frase (più il codice completo di uno dei due). I loro PDF
+(`-09-001`, `-09-003`) **non sono sul PC**: vanno presi dalla fonte dei manuali.
 
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).

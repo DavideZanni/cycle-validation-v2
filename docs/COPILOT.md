@@ -34,18 +34,21 @@ sul ciclo MOS di esempio). Il comando `qa` ha scritto un Dockerfile e un buildsp
 motivo: la v2 non riconosceva i titoli GE scritti `CIR <sezione>, REPAIR 00N` (con `CIR`
 davanti e la virgola). Claude l'ha corretto.
 
+**4.2 rifatto alle 16:00:** i due REPAIR con `CIR` adesso si trovano (M1: da 7 a 5 task
+mancanti). I due REPAIR citati solo in una frase **non sono sul PC**: la ricerca dei PDF del
+capitolo 72-56 ha trovato per quella sezione solo l'ispezione e un altro REPAIR.
+
 **Cosa manca, nell'ordine:**
 
-1. **Aggiornare** (sezione 2).
-2. **4.2:** di nuovo la lista dei manuali con la conoscenza di oggi, e la ricerca sul PC dei
-   due REPAIR che mancano.
-3. **4.3:** di nuovo i 7 cicli con errori.
-4. **Ingestion** dei file dei due REPAIR che mancano, se 4.2 li trova; poi di nuovo 4.2 e 4.3
-   (con una fotografia nuova, blocco in fondo a 4.3).
-5. **Salvare** (sezione 3), sul ramo feature. QA non cambia.
-6. **Prove in locale dal frontend** (4.1).
-7. **Messaggio** al collega del frontend (5.1), se non l'hai già mandato.
-8. **Più avanti, quando lo decidi tu:** pull request verso `develop` e prova in QA
+1. **4.3:** di nuovo i 7 cicli con errori (con la conoscenza di oggi).
+2. **Trovare i file mancanti** dove si prendono i manuali (non sul PC): i due REPAIR della
+   sezione 72-56-31 con `-09-001` e `-09-003` nel nome, e il capitolo 70-23 dell'SPM. Poi
+   ingestion, fotografia nuova (blocco in fondo a 4.3), 4.2 e 4.3.
+3. **Aggiornare** (sezione 2) solo se Claude cambia ancora il codice.
+4. **Salvare** (sezione 3), sul ramo feature. QA non cambia.
+5. **Prove in locale dal frontend** (4.1).
+6. **Messaggio** al collega del frontend (5.1), se non l'hai già mandato.
+7. **Più avanti, quando lo decidi tu:** pull request verso `develop` e prova in QA
    (sezione 6).
 
 ---
