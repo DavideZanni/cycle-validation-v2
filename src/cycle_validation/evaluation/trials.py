@@ -147,6 +147,32 @@ class Trial(_Strict):
     def found_ops(self) -> set[tuple[str, str]]:
         return {(c.fingerprint, f.op) for c in self.cycles for f in c.found}
 
+    @property
+    def precision(self) -> float:
+        """Errori noti trovati / tutti gli ERRATO dati sulle operazioni (1 se nessun ERRATO)."""
+        given = self.known_found + self.false_errors + self.extra_errors
+        return self.known_found / given if given else 1.0
+
+    @property
+    def clean_warnings(self) -> float:
+        """WARNING per ciclo giusto: il lavoro a mano che la v2 lascia su un ciclo senza errori."""
+        clean = [c for c in self.cycles if c.kind == "giusto" and not c.failure]
+        return sum(c.counts.get("warning", 0) for c in clean) / len(clean) if clean else 0.0
+
+    @property
+    def cost_per_cycle(self) -> float:
+        run = [c for c in self.cycles if not c.failure]
+        return self.cost_usd / len(run) if run else 0.0
+
+    @property
+    def mean_ms(self) -> int:
+        run = [c for c in self.cycles if not c.failure]
+        return round(self.duration_ms / len(run)) if run else 0
+
+    @property
+    def max_ms(self) -> int:
+        return max((c.duration_ms for c in self.cycles), default=0)
+
 
 def _short(text: str, limit: int = _RATIONALE_CHARS) -> str:
     flat = " ".join(text.split())
@@ -259,8 +285,13 @@ def render_trial(trial: Trial) -> str:
         f"| Errori noti trovati | **{trial.known_found} su {trial.known_total}** "
         f"({_percent(trial.known_found, trial.known_total)}) |",
         f"| Falsi errori nei cicli giusti | **{trial.false_errors}** |",
-        f"| ERRATO in più nei cicli con errori | {trial.extra_errors} |",
+        f"| ERRATO da verificare (cicli con errori, fuori lista) | {trial.extra_errors} |",
+        f"| Precisione (trovati / tutti gli ERRATO) | {round(100 * trial.precision)}% |",
+        f"| WARNING per ciclo giusto | {trial.clean_warnings:.1f} |",
         f"| Cicli non eseguiti | {trial.failures} |",
+        f"| Costo per ciclo | {trial.cost_per_cycle:.2f} $ |",
+        f"| Tempo per ciclo (medio / il più lento) | {_seconds(trial.mean_ms)} / "
+        f"{_seconds(trial.max_ms)} |",
         f"| Costo | {trial.cost_usd:.2f} $ |",
         f"| Token (input + output) | {trial.tokens:,}".replace(",", ".") + " |",
         f"| Tempo totale | {_seconds(trial.duration_ms)} |",
@@ -350,6 +381,140 @@ def load_trials(root: Path) -> list[Trial]:
     return sorted(trials, key=lambda t: t.started_at)
 
 
+# --- Metriche e scelta della variante migliore -------------------------------------------
+#
+# Una *variante* è l'insieme delle prove con lo stesso nome (le ripetizioni). Regole, in ordine:
+# 1. scartata se dà anche un solo falso errore nei cicli giusti, se un ciclo non è eseguito, se
+#    un ciclo supera `MAX_CYCLE_MS` (il frontend aspetta 11 minuti) o se costa per ciclo più di
+#    `MAX_COST_RATIO` volte la base;
+# 2. servono almeno `MIN_REPETITIONS` prove: il modello non risponde sempre uguale;
+# 3. classifica: errori trovati in tutte le ripetizioni (stabili), poi il minimo e la media dei
+#    trovati, poi meno ERRATO da verificare, meno WARNING per ciclo giusto, meno costo, meno tempo;
+# 4. si tiene se è valida, ripetuta abbastanza, non trova meno errori stabili della base e sta
+#    sopra la base in classifica. La scelta migliore è la prima valida della classifica.
+
+MIN_REPETITIONS = 2
+MAX_CYCLE_MS = 10 * 60 * 1000
+MAX_COST_RATIO = 2.0
+BASE_NAME = "base"
+
+
+class Variant(_Strict):
+    name: str
+    repetitions: int
+    known_total: int
+    stable: int
+    found_min: int
+    found_mean: float
+    false_errors: int
+    extra_max: int
+    precision_min: float
+    clean_warnings: float
+    cost_per_cycle: float
+    mean_ms: int
+    max_ms: int
+    failures: int
+    decision: str = ""
+
+    def rank_key(self) -> tuple[float, ...]:
+        """Più grande = migliore."""
+        return (
+            self.stable,
+            self.found_min,
+            self.found_mean,
+            -self.extra_max,
+            -round(self.clean_warnings, 1),
+            -round(self.cost_per_cycle, 2),
+            -self.mean_ms,
+        )
+
+    def exclusion(self, base: "Variant | None") -> str | None:
+        if self.false_errors:
+            return f"{self.false_errors} falsi errori nei cicli giusti"
+        if self.failures:
+            return f"{self.failures} cicli non eseguiti"
+        if self.max_ms > MAX_CYCLE_MS:
+            return f"un ciclo dura {_seconds(self.max_ms)} (massimo {_seconds(MAX_CYCLE_MS)})"
+        if (
+            base is not None
+            and base.cost_per_cycle > 0
+            and self.cost_per_cycle > MAX_COST_RATIO * base.cost_per_cycle
+        ):
+            return f"costa più di {MAX_COST_RATIO:g} volte la base per ciclo"
+        return None
+
+
+def build_variants(trials: Sequence[Trial]) -> list[Variant]:
+    """Le varianti (prove con lo stesso nome), in classifica, con la decisione rispetto alla base."""
+    groups: dict[str, list[Trial]] = {}
+    for trial in trials:
+        groups.setdefault(trial.name.strip().casefold(), []).append(trial)
+    variants: list[Variant] = []
+    for group in groups.values():
+        found = [t.known_found for t in group]
+        stable = set.intersection(*(t.found_ops() for t in group))
+        variants.append(
+            Variant(
+                name=group[-1].name,
+                repetitions=len(group),
+                known_total=max(t.known_total for t in group),
+                stable=len(stable),
+                found_min=min(found),
+                found_mean=sum(found) / len(found),
+                false_errors=sum(t.false_errors for t in group),
+                extra_max=max(t.extra_errors for t in group),
+                precision_min=min(t.precision for t in group),
+                clean_warnings=sum(t.clean_warnings for t in group) / len(group),
+                cost_per_cycle=sum(t.cost_per_cycle for t in group) / len(group),
+                mean_ms=round(sum(t.mean_ms for t in group) / len(group)),
+                max_ms=max(t.max_ms for t in group),
+                failures=sum(t.failures for t in group),
+            )
+        )
+    base = next((v for v in variants if v.name.casefold() == BASE_NAME), None)
+    variants.sort(key=lambda v: v.rank_key(), reverse=True)
+    for variant in variants:
+        variant.decision = _decide(variant, base)
+    return variants
+
+
+def _decide(variant: Variant, base: Variant | None) -> str:
+    reason = variant.exclusion(base)
+    if reason:
+        return f"scartata: {reason}"
+    if variant.repetitions < MIN_REPETITIONS:
+        return f"da ripetere ({variant.repetitions} prova su {MIN_REPETITIONS})"
+    if variant is base or base is None:
+        return "riferimento" if variant is base else "valida (manca la base)"
+    if variant.stable < base.stable:
+        return f"non si tiene: errori stabili {variant.stable} contro {base.stable} della base"
+    if variant.rank_key() > base.rank_key():
+        return "si tiene: meglio della base"
+    return "non si tiene: non è meglio della base"
+
+
+def best_variant(variants: Sequence[Variant]) -> Variant | None:
+    """La prima della classifica che si tiene (o la base, se nessuna la batte)."""
+    for variant in variants:
+        if variant.decision.startswith(("si tiene", "riferimento", "valida")):
+            return variant
+    return None
+
+
+METRICS_HELP = (
+    "**Metriche.** *Trovati*: errori noti segnati ERRATO (su "
+    "`eval/errori-noti.yaml`). *Stabili*: trovati in tutte le ripetizioni. *Falsi errori*: "
+    "ERRATO nelle stampe giuste (deve essere 0). *Da verificare*: ERRATO nei cicli con errori "
+    "fuori dalla lista. *Precisione*: trovati / tutti gli ERRATO. *Warning per ciclo giusto*: "
+    "lavoro a mano lasciato su un ciclo senza errori. *Costo* e *tempo* per ciclo.\n\n"
+    "**Regola di scelta.** Scartata con un falso errore, un ciclo non eseguito, un ciclo oltre "
+    f"{MAX_CYCLE_MS // 60000} minuti o un costo per ciclo oltre {MAX_COST_RATIO:g} volte la "
+    f"base; servono almeno {MIN_REPETITIONS} prove con lo stesso nome. Classifica: stabili, "
+    "trovati (minimo, poi media), meno da verificare, meno warning per ciclo giusto, meno "
+    "costo, meno tempo. Si tiene se non perde errori stabili e sta sopra la base."
+)
+
+
 def _baseline(trials: Sequence[Trial], index: int) -> Trial | None:
     """La prova di confronto: l'ultima «base» prima di questa, altrimenti la prima."""
     before = trials[:index]
@@ -364,18 +529,48 @@ def render_summary(trials: Sequence[Trial]) -> str:
     if not trials:
         return "# Riepilogo delle prove\n\nNessuna prova.\n"
     first, last = trials[0].started_at, trials[-1].started_at
+    variants = build_variants(trials)
+    best = best_variant(variants)
     lines = [
         "# Riepilogo delle prove",
         "",
-        f"{len(trials)} prove, dal {first:%d-%m-%Y %H:%M} al {last:%d-%m-%Y %H:%M}. Una "
-        "miglioria si tiene se gli errori noti trovati non scendono e i falsi errori nei cicli "
-        "giusti restano 0.",
+        f"{len(trials)} prove in {len(variants)} varianti, dal {first:%d-%m-%Y %H:%M} al "
+        f"{last:%d-%m-%Y %H:%M}.",
+        "",
+        "## Scelta migliore",
+        "",
+        (
+            f"**«{best.name}»**: {best.stable} errori noti trovati in tutte le "
+            f"{best.repetitions} prove (su {best.known_total}), 0 falsi errori, "
+            f"{best.cost_per_cycle:.2f} $ e {_seconds(best.mean_ms)} per ciclo."
+            if best is not None
+            else "Nessuna variante valida: mancano ripetizioni o ci sono falsi errori."
+        ),
+        "",
+        "## Classifica delle varianti",
+        "",
+        "| Pos. | Variante | Prove | Stabili | Trovati min / medio | Falsi errori | "
+        "Da verificare | Precisione | Warning per ciclo giusto | Costo per ciclo | "
+        "Tempo per ciclo (max) | Decisione |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    for position, v in enumerate(variants, start=1):
+        lines.append(
+            f"| {position} | {_cell(v.name)} | {v.repetitions} | **{v.stable}** su "
+            f"{v.known_total} | {v.found_min} / {v.found_mean:.1f} | {v.false_errors} | "
+            f"{v.extra_max} | {round(100 * v.precision_min)}% | {v.clean_warnings:.1f} | "
+            f"{v.cost_per_cycle:.2f} $ | {_seconds(v.mean_ms)} ({_seconds(v.max_ms)}) | "
+            f"{v.decision} |"
+        )
+    lines += [
+        "",
+        METRICS_HELP,
         "",
         "## Le prove",
         "",
-        "| Data | Prova | Errori noti trovati | Falsi errori | ERRATO in più | "
-        "Rispetto alla base | Costo | Tempo | Modello | Prompt |",
-        "|---|---|---|---|---|---|---|---|---|---|",
+        "| Data | Prova | Trovati | Falsi errori | Da verificare | Rispetto alla base | "
+        "Costo | Tempo | Modello | Prompt | v2 |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for index, trial in enumerate(trials):
         base = _baseline(trials, index)
@@ -390,13 +585,9 @@ def render_summary(trials: Sequence[Trial]) -> str:
             f"({_percent(trial.known_found, trial.known_total)}) | {trial.false_errors} | "
             f"{trial.extra_errors} | {delta} | {trial.cost_usd:.2f} $ | "
             f"{_seconds(trial.duration_ms)} | {trial.model or '-'} | "
-            f"{trial.prompt_version or '-'} |"
+            f"{trial.prompt_version or '-'} | {trial.tool_version or '-'} |"
         )
-    best = max(trials, key=lambda t: (t.known_found - 2 * t.false_errors, t.started_at))
     lines += [
-        "",
-        f"**Prova migliore:** «{best.name}» del {best.started_at:%d-%m %H:%M} "
-        f"({best.known_found} su {best.known_total}, {best.false_errors} falsi errori).",
         "",
         "## Errore per errore",
         "",

@@ -112,3 +112,50 @@ def test_trial_report_and_summary(tmp_path: Path) -> None:
     assert "| aaaa1111 | 005 | numero cambiato | · | ✓ | 1 su 2 |" in summary
     assert "Nessuno." in summary
     assert write_summary(root).read_text("utf-8") == summary
+
+
+def _trial(tmp_path: Path, name: str, hour: int, errato: list[str], clean: list[str] | None = None):  # type: ignore[no-untyped-def]
+    known = _known(tmp_path)
+    reports = [_report("aaaa1111", errato), _report("bbbb2222", clean or [])]
+    scores = [score_cycle(r, known) for r in reports]
+    return build_trial(name, datetime(2030, 1, 1, hour), reports, scores)
+
+
+def test_the_rule_picks_the_best_variant(tmp_path: Path) -> None:
+    from cycle_validation.evaluation.trials import best_variant, build_variants
+
+    trials = [
+        _trial(tmp_path, "base", 1, []),
+        _trial(tmp_path, "base", 2, []),
+        _trial(tmp_path, "lingue", 3, ["005"]),
+        _trial(tmp_path, "lingue", 4, ["005", "030"]),
+        _trial(tmp_path, "rumorosa", 5, ["005", "030"], clean=["010"]),
+        _trial(tmp_path, "rumorosa", 6, ["005", "030"]),
+        _trial(tmp_path, "una-volta", 7, ["005", "030"]),
+    ]
+    variants = {v.name: v for v in build_variants(trials)}
+    assert variants["base"].decision == "riferimento"
+    lingue = variants["lingue"]
+    # stabile solo lo 005: lo 030 è trovato in una prova su due
+    assert (lingue.stable, lingue.found_min, lingue.found_mean) == (1, 1, 1.5)
+    assert lingue.decision == "si tiene: meglio della base"
+    assert variants["rumorosa"].decision == "scartata: 1 falsi errori nei cicli giusti"
+    assert variants["una-volta"].decision.startswith("da ripetere")
+    best = best_variant(build_variants(trials))
+    assert best is not None and best.name == "lingue"
+    summary = render_summary(trials)
+    assert "## Scelta migliore" in summary and "**«lingue»**" in summary
+
+
+def test_a_variant_that_loses_a_stable_error_is_not_kept(tmp_path: Path) -> None:
+    from cycle_validation.evaluation.trials import build_variants
+
+    trials = [
+        _trial(tmp_path, "base", 1, ["005"]),
+        _trial(tmp_path, "base", 2, ["005"]),
+        _trial(tmp_path, "altra", 3, ["030"]),
+        _trial(tmp_path, "altra", 4, ["030"]),
+    ]
+    variants = {v.name: v for v in build_variants(trials)}
+    # stessi numeri (1 stabile), ma non è meglio: si resta sulla base
+    assert variants["altra"].decision == "non si tiene: non è meglio della base"

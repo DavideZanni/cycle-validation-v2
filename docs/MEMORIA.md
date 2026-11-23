@@ -371,6 +371,12 @@ c5ff3cd6 op 030 (scheda, P6), f355dc3c op 010 (numeri cambiati in tutte e due le
   delle raccordature in un altro task), 040 (classe d'attacco: l'SPM rimanda al manuale
   d'ispezione del motore, che non è nella conoscenza), 050 (frase al contrario).
 
+**COPILOT riordinato (23-11 sera).** Tolti i blocchi di analisi già fatti (2.0 lingue, 2.1 cicli
+con errori, 2.1b, 2.1c cicli giusti): li sostituisce la prova con metriche (`eval prova`, ora
+COPILOT 2.3). Nuova numerazione: 2.1 Aggiornare, 2.2 Salvare, 2.3 Prove delle migliorie, 2.4
+Frontend, 2.5 Dopo una nuova ingestion (fotografia e lista dei manuali). Nelle note sopra i
+numeri dei blocchi sono quelli vecchi. Metriche e regola di scelta: `MIGLIORIE.md`.
+
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
 

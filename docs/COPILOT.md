@@ -25,148 +25,30 @@ cambia solo Claude.
 
 ## 1. Cosa fare adesso (23-11-2026)
 
-**Dove siamo (23-11 sera).** La v2 gira in locale con login e frontend. Sui 7 cicli «con
-errori» trova un errore in ognuno; dei 8 errori noti dei tre cicli studiati ne trova 3 in modo
-stabile; nei 3 cicli giusti **0 errati**. Gli altri 5 errori noti chiedono documenti che non ci
-sono (manuale d'ispezione del motore, i due REPAIR della sezione 72-56-31, il capitolo 70-23
-dell'SPM) o risposte delle persone (P6, P7, P8). L'indice va bene così.
+**Dove siamo.** La v2 gira in locale con login e frontend. Il 23-11 sera, sui 7 cicli «con
+errori», trova almeno un errore in ognuno: circa 8 dei 12 errori noti, con 0 falsi errori nelle
+3 stampe giuste. Gli errori che mancano chiedono documenti che non ci sono (manuale d'ispezione
+del motore, due REPAIR della sezione 72-56-31, capitolo 70-23 dell'SPM) o risposte delle persone
+(P6, P7, P8). Le migliorie si provano e si scelgono con il blocco 2.3. Quello che è stato fatto
+e visto finora è in `MEMORIA.md`.
 
 **In ordine:**
 
-1. **Salvare** (2.5): le correzioni di oggi nel repository aziendale.
-2. **Prove dal frontend** (2.6).
-3. **Messaggio** al collega del frontend (3.2), se non l'hai già mandato.
+1. **Aggiornare** (2.1) e **Salvare** (2.2).
+2. **La base:** due prove con `$nome = "base"` (2.3 A), poi il riepilogo (2.3 C).
+3. **Prove dal frontend** (2.4) e **messaggio** al collega (3.2), se non l'hai già mandato.
 4. **Domande** alle persone (3.1): P6, P7, P8.
-5. **I file mancanti:** cercali dove prendi i manuali (i due REPAIR della sezione 72-56-31, il
-   capitolo 70-23 dell'SPM, il manuale d'ispezione del motore). Se li trovi: ingestion, poi
-   2.2, 2.3, 2.1 e 2.1c.
+5. **I file mancanti:** cercali dove prendi i manuali; se li trovi, 2.5.
 6. **Quando lo decidi tu:** pull request verso `develop` e prova in QA (sezione 4).
 
-Quando Claude dice di aver cambiato il codice: prima **Aggiornare** (2.4). Per una **miglioria**, poi **2.7 A** (prova sui 10 cicli) e **2.7 C** (report finale); la prima volta con `$nome = "base"`, prima della miglioria, per avere il numero di partenza.
+Quando Claude dice di aver cambiato il codice: **Aggiornare** (2.1). Se è una miglioria: due
+prove con il suo nome (2.3 A) e il riepilogo (2.3 C).
 
 ---
 
 ## 2. Blocchi
 
-### 2.0 Le due lingue (gratis, prima di 2.1)
-
-Gratis: non chiama il modello. Per i 7 cicli «con errori» e i 3 giusti stampa le operazioni in
-cui la descrizione italiana e quella inglese hanno **numeri diversi** (solo i numeri).
-
-```powershell
-$env:UV_PYTHON = "3.14"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$radice = (Resolve-Path "..\..").Path
-$dieci = Get-ChildItem $radice -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*errori*" -or (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in @("4e64d49a", "8bdb25d5", "04ecaabe") } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-foreach ($f in $dieci) { "== " + (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); uv run cycle-validation leggi $f.FullName --config data/settings.yaml --lingue | Select-Object -Skip 1 | Where-Object { $_ -notmatch "rimesse" } }
-```
-
-**Deve uscire:** per ognuno dei 10 cicli `== <impronta>`, le eventuali righe `op ...: italiano →
-inglese ...` e `operazioni con le due lingue: N su M`. Nei tre giusti (4e64d49a, 8bdb25d5,
-04ecaabe) **nessuna** riga `italiano → inglese`; in c5ff3cd6 la riga dell'op. 040.
-
-**Se è così** continua con 2.1, 2.1b e 2.1c senza aspettare. **Se no** fermati e manda la foto.
-
-**Manda a Claude:** la foto (tutti e dieci i cicli).
-
-### 2.1 I cicli con errori
-
-Rilancia i 7 cicli con «errori» nel nome del file, con l'ultima fotografia della conoscenza, e
-stampa per ognuno il riepilogo e le righe ERRATO. Ogni ciclo costa qualche centesimo.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
-$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path; "conoscenza: " + (Split-Path -Leaf $foto) + " · " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-$radice = (Resolve-Path "..\..").Path
-$errati = Get-ChildItem $radice -Recurse -Filter "*errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-foreach ($f in $errati) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); "$h " + (@(uv run cycle-validation run $f.FullName --profile mos --knowledge $v --config data/settings.yaml --out "runs/errori-$h") -match '^Ciclo' | Select-Object -First 1); if (Test-Path "runs/errori-$h/report.json") { (Get-Content "runs/errori-$h/report.json" -Raw | ConvertFrom-Json).results | Where-Object { $_.verdict -eq 'ERRATO' } | ForEach-Object { "    ERRATO op $(if ($_.target.kind -eq 'operation') { $_.target.label } else { $_.target.kind }) · $($_.check) · $($_.reason)" } } }
-```
-
-**Deve uscire:** `conoscenza: foto-... · v/...`, poi per ognuno dei 7 cicli una riga
-`<impronta> Ciclo ...: N corretti, ...` e sotto le eventuali righe `ERRATO op ...`.
-
-**Manda a Claude:** la foto.
-
-### 2.1b Perché non trova gli errori noti
-
-Gratis: legge i report di 2.1, non rilancia niente. Stampa:
-
-- le fonti dei tre cicli «con errori»: task, repair code ed esito (senza il codice del
-  manuale);
-- per le 9 operazioni con un errore noto: repair code, task citati, esito del controllo dei
-  codici (`codici:`), esito del confronto della descrizione e la spiegazione del modello.
-
-```powershell
-[Console]::OutputEncoding = [Text.Encoding]::UTF8
-$noti = [ordered]@{ "298bc28e" = @("005", "035"); "c5ff3cd6" = @("030", "040"); "f355dc3c" = @("010", "030", "040", "050") }
-foreach ($h in $noti.Keys) { $r = Get-Content "runs/errori-$h/report.json" -Raw | ConvertFrom-Json; "== $h fonti"; $i = 0; foreach ($s in $r.cycle.sources) { $e = $r.results | Where-Object { $_.check -eq 'source' -and $_.target.index -eq $i } | Select-Object -First 1; "    M? task $($s.task) · rc $($s.repair_code) · $($e.verdict) $($e.reason)"; $i++ } }
-foreach ($h in $noti.Keys) { $r = Get-Content "runs/errori-$h/report.json" -Raw | ConvertFrom-Json; foreach ($op in $noti[$h]) { $o = $r.cycle.operations | Where-Object { $_.operation_number.TrimStart('0') -eq $op.TrimStart('0') } | Select-Object -First 1; "== $h op $op · rc $($o.repair_code) · task: $($o.task_codes -join ', ')"; $r.results | Where-Object { $_.check -eq 'task_code' -and $_.target.label.TrimStart('0') -eq $op.TrimStart('0') } | ForEach-Object { "    codici: $($_.verdict) · $($_.reason) · $($_.rationale)" }; $r.results | Where-Object { $_.check -eq 'operation_description' -and $_.target.label.TrimStart('0') -eq $op.TrimStart('0') } | ForEach-Object { $t = "$($_.rationale)" -replace '\s+', ' '; "    $($_.verdict) · $($_.reason) · " + $t.Substring(0, [Math]::Min(400, $t.Length)) } } }
-```
-
-**Deve uscire:** per ogni ciclo le righe `== <impronta> fonti`, poi per ognuna delle 9 operazioni
-la riga `== <impronta> op ...` e sotto l'esito con la spiegazione.
-
-**Manda a Claude:** le foto (servono tutte le righe, anche in più schermate).
-
-### 2.1c I tre cicli giusti (controllo dei falsi errori)
-
-Rilancia le tre stampe **giuste** da cui sono state fatte quelle «con errori» (le cerca per
-impronta tra tutti i PDF: ci mette qualche minuto). Qui la v2 **non** deve dare ERRATO: se lo
-dà, è un falso errore. Costa come tre cicli di 2.1.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
-$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-$radice = (Resolve-Path "..\..").Path
-$giuste = Get-ChildItem $radice -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in @("4e64d49a", "8bdb25d5", "04ecaabe") } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-foreach ($f in $giuste) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); "$h " + (@(uv run cycle-validation run $f.FullName --profile mos --knowledge $v --config data/settings.yaml --out "runs/giuste-$h") -match '^Ciclo' | Select-Object -First 1); if (Test-Path "runs/giuste-$h/report.json") { (Get-Content "runs/giuste-$h/report.json" -Raw | ConvertFrom-Json).results | Where-Object { $_.verdict -eq 'ERRATO' } | ForEach-Object { "    ERRATO op $(if ($_.target.kind -eq 'operation') { $_.target.label } else { $_.target.kind }) · $($_.check) · $($_.reason) · $($_.rationale)" } } }
-```
-
-**Deve uscire:** tre righe `<impronta> Ciclo ...` con **0 errati** e nessuna riga `ERRATO`.
-
-**Manda a Claude:** la foto.
-
-### 2.2 Fotografia della conoscenza (dopo ogni ingestion)
-
-Scarica la conoscenza civile di prova pubblicata e la controlla. I blocchi 2.1 e 2.3 usano da
-soli l'ultima fotografia.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-$foto = "eval/casi/aziendali/conoscenza/foto-" + (Get-Date -Format "yyyyMMdd-HHmm")
-uv run cycle-validation eval fotografia --bucket (Get-Content data/bucket.txt) --prefisso "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/" --out $foto --regione eu-south-1
-$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; "versione pubblicata: " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path; uv run cycle-validation kb-check ($kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path)
-```
-
-**Deve uscire:** `Fotografia in ...`, una `versione pubblicata` diversa da
-`v/20261123T142517Z/` e i conteggi di `kb-check` senza righe `Errore:`.
-
-### 2.3 La lista dei manuali
-
-Gratis: non chiama il modello e non va su AWS. Legge tutte le stampe dei cicli e cerca ogni task
-citato come lo cerca la v2. Per ogni manuale dice `c'è`, `manca` o `c'è, ma mancano N task`, e per
-i task che mancano dice perché. Sullo schermo i manuali sono M1, M2, ...; i codici veri restano
-nel file `runs\manuali-da-ingestionare.txt`.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
-$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path; "conoscenza: " + (Split-Path -Leaf $foto) + " · " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --errori 298bc28e=005,035 --errori c5ff3cd6=040 --errori f355dc3c=010,030,040,050
-```
-
-**Deve uscire:** una riga per manuale (`M1: ...`). Il 23-11 alle 16:00 M1 aveva 5 task mancanti
-(2 sono solo sezioni, ed è giusto; 3 sono i due REPAIR che mancano). Con i file nuovi devono
-scendere.
-
-**Manda a Claude:** la foto dello schermo (non quella del file).
-
-### 2.4 Aggiornare il codice sul PC
+### 2.1 Aggiornare il codice sul PC
 
 Da lanciare **ogni volta che Claude dice di aver cambiato qualcosa**. Prende il codice dal
 repository personale, lo copia nella cartella della v2 (toglie i file che non ci sono più) e
@@ -193,7 +75,7 @@ terminale e rilancia.
 
 **Manda a Claude:** la foto del risultato dei test (e delle righe `tolto:`, se ci sono).
 
-### 2.5 Salvare nel repository aziendale
+### 2.2 Salvare nel repository aziendale
 
 Dopo **Aggiornare**. Salva sul ramo `feature/cycle-validation-v2`: `develop` (QA) e `main` non
 cambiano finché non apri tu la pull request. I dati aziendali restano fuori (git li ignora).
@@ -204,7 +86,7 @@ cambiano finché non apri tu la pull request. I dati aziendali restano fuori (gi
 git add src tests docs eval/casi/sintetici eval/varianti eval/modelli config prompts pyproject.toml uv.lock README.md .gitignore Dockerfile ../buildspec.yml
 if (Test-Path vendor) { git add vendor }
 git status --short
-git commit -m "v2: task dei manuali GE trovati nel testo (titoli CIR, sezioni SPM), comando manuali"
+git commit -m "v2: fonti per riparazione, subtask, task SPM, controllo delle due lingue, prove con metriche"
 ```
 
 **Deve uscire:** in `git status` righe solo sotto le cartelle del `git add` (`M` cambiato, `A`
@@ -230,43 +112,43 @@ if ($branch -ne "feature/cycle-validation-v2") {
 **Se esce `FERMO` o il push è rifiutato:** non insistere e non usare `--force`, manda la foto a
 Claude. Se il commit dice `nothing to commit`, lancia lo stesso il push.
 
-### 2.6 Prove dal frontend
-
-Avvia la voce composta **«CV v2»**, poi apri `http://localhost:3000`. Ogni ciclo costa qualche
-centesimo. Le targhe escono sempre WARNING: dal PC Redshift non si raggiunge.
-
-1. **I tre cicli «con errori»** (MOS): corretti, warning ed errati come nel blocco 2.1.
-2. **Il ciclo MOS più lungo:** misura il tempo fino al risultato. Deve stare sotto i 10 minuti
-   (il frontend aspetta al massimo 11).
-3. **Un DR con serial number e condition**, poi lo stesso **senza** (se Confirm non si accende,
-   salta).
-4. **File sbagliato:** un DR scegliendo MOS. Deve uscire «Modulo sbagliato».
-5. **Storico:** riapri una chat di prima, rinominala, cancellala.
-6. **Download** del CSV dei risultati.
-
-**Manda a Claude:** la foto dell'intestazione dei risultati di ogni prova, e il tempo della prova
-2 a parole. Se qualcosa non va: foto del frontend e del log di CV v2.
-
----
-
-### 2.7 Prove delle migliorie: lanciare e vedere i risultati
+### 2.3 Prove delle migliorie: lanciare, vedere i risultati, scegliere
 
 Una **prova** fa girare la v2 sui 10 cicli (i 7 «con errori» e i 3 giusti) e li confronta con
 gli **12 errori noti** scritti in `eval/errori-noti.yaml`. Ogni prova ha la sua cartella in
 `runs\prove\<data>-<nome>\` con:
 
-- `prestazioni.md`: il **report della prova** (punteggio, ciclo per ciclo, errore per errore,
-  ERRATO in più, costo, token, tempo);
+- `prestazioni.md`: il **report della prova** (punteggio con tutte le metriche, ciclo per ciclo,
+  errore per errore, ERRATO da verificare, costo, token, tempo);
 - `prova.json`: gli stessi numeri, per il riepilogo;
 - una cartella per ciclo con il `report.json` completo.
 
 Dopo ogni prova si aggiorna da solo `runs\prove\riepilogo.md`: il **report finale** con tutte
-le prove (tabella delle prove, confronto con la base, prova migliore, errore per errore in quali
-prove è stato trovato, falsi errori).
+le prove: **scelta migliore**, **classifica delle varianti** con la decisione per ognuna, tabella
+delle prove, errore per errore in quali prove è stato trovato, falsi errori.
 
-**Quando:** la prima volta con `$nome = "base"` (il punto di partenza); poi una prova per ogni
-miglioria, dopo **Aggiornare** (2.4). Una miglioria si tiene se gli errori trovati non scendono
-e i falsi errori restano 0. Se la miglioria tocca il modello, lancia la prova **due volte**.
+**Quando:** la prima volta **due prove** con `$nome = "base"` (il punto di partenza); poi, per
+ogni miglioria, **Aggiornare** (2.1) e **due prove** con il nome della miglioria. Due prove con
+lo stesso nome sono una *variante*: il modello non risponde sempre uguale, e la regola vuole
+almeno due ripetizioni.
+
+**Come si sceglie** (lo fa da solo il riepilogo, sezione «Scelta migliore»):
+
+| Metrica | Cosa misura | Regola |
+|---|---|---|
+| Falsi errori | ERRATO nelle 3 stampe giuste | deve essere **0**, altrimenti scartata |
+| Cicli non eseguiti | cicli andati in errore | deve essere 0 |
+| Tempo del ciclo più lento | il frontend aspetta 11 minuti | sotto **10 minuti** |
+| Costo per ciclo | dollari per ciclo | non più del **doppio** della base |
+| **Stabili** | errori noti trovati in **tutte** le prove della variante | 1° criterio: più alto è meglio; mai meno della base |
+| Trovati (minimo, media) | errori noti trovati in ogni prova, su 12 | 2° e 3° criterio |
+| Da verificare | ERRATO nei cicli con errori fuori dalla lista | 4°: meno è meglio |
+| Warning per ciclo giusto | lavoro a mano lasciato su un ciclo senza errori | 5°: meno è meglio |
+| Costo, tempo | per ciclo | 6° e 7°: meno è meglio |
+| Precisione | trovati / tutti gli ERRATO | solo da guardare |
+
+Una variante **si tiene** se è valida, ha almeno 2 prove, non ha meno errori stabili della base
+e sta sopra la base in classifica. Dettagli in `MIGLIORIE.md`.
 
 **A. Lanciare una prova** (costa come 10 cicli, qualche minuto). Cambia solo `$nome`:
 
@@ -283,7 +165,8 @@ uv run cycle-validation eval prova @($dieci.FullName) --nome $nome --knowledge $
 
 **Deve uscire:** una riga per ciclo (`<impronta> errori: trovati ... · mancati ... · ERRATO in
 più ...`), poi `Prova «...»: errori noti trovati N su 12 · falsi errori ... · costo ...` e i
-percorsi dei due report. Oggi (23-11 sera) circa **8 su 12** e **0 falsi errori**.
+percorsi dei due report. Il 23-11 sera (prima delle prove) erano circa **8 su 12** e **0 falsi
+errori**.
 
 **B. Vedere il report dell'ultima prova** (gratis). Si apre in VS Code già impaginato:
 
@@ -294,7 +177,7 @@ $ultima = Get-ChildItem runs/prove -Directory | Sort-Object Name | Select-Object
 Poi nella finestra del file premi **Ctrl+Shift+V** (anteprima). Per una prova più vecchia:
 `code runs/prove/<cartella>/prestazioni.md`.
 
-**C. Vedere il report finale con tutte le prove** (gratis):
+**C. Vedere il report finale con tutte le prove, la classifica e la scelta migliore** (gratis):
 
 ```powershell
 code runs/prove/riepilogo.md
@@ -313,6 +196,62 @@ $env:UV_PYTHON = "3.14"; uv run cycle-validation eval riepilogo
 Per **togliere** una prova dal riepilogo: cancella la sua cartella in `runs\prove\` e lancia D.
 
 **Manda a Claude:** la foto dell'output di A e dell'anteprima di `riepilogo.md`.
+
+### 2.4 Prove dal frontend
+
+Avvia la voce composta **«CV v2»**, poi apri `http://localhost:3000`. Ogni ciclo costa qualche
+centesimo. Le targhe escono sempre WARNING: dal PC Redshift non si raggiunge.
+
+1. **I tre cicli «con errori»** (MOS): gli ERRATO devono essere quelli del report della prova (2.3 B).
+2. **Il ciclo MOS più lungo:** misura il tempo fino al risultato. Deve stare sotto i 10 minuti
+   (il frontend aspetta al massimo 11).
+3. **Un DR con serial number e condition**, poi lo stesso **senza** (se Confirm non si accende,
+   salta).
+4. **File sbagliato:** un DR scegliendo MOS. Deve uscire «Modulo sbagliato».
+5. **Storico:** riapri una chat di prima, rinominala, cancellala.
+6. **Download** del CSV dei risultati.
+
+**Manda a Claude:** la foto dell'intestazione dei risultati di ogni prova, e il tempo della prova
+2 a parole. Se qualcosa non va: foto del frontend e del log di CV v2.
+
+### 2.5 Dopo una nuova ingestion
+
+Quando hai caricato manuali nuovi (per esempio i file che mancano): **fotografia** della
+conoscenza (A, va su AWS), **lista dei manuali** (B, gratis), poi una prova (2.3 A) con
+`$nome = "conoscenza-<data>"`, due volte.
+
+**A. Fotografia della conoscenza.** Scarica la conoscenza civile di prova pubblicata e la
+controlla. La prova (2.3) e la lista dei manuali usano da sole l'ultima fotografia.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+$foto = "eval/casi/aziendali/conoscenza/foto-" + (Get-Date -Format "yyyyMMdd-HHmm")
+uv run cycle-validation eval fotografia --bucket (Get-Content data/bucket.txt) --prefisso "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/" --out $foto --regione eu-south-1
+$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; "versione pubblicata: " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path; uv run cycle-validation kb-check ($kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path)
+```
+
+**Deve uscire:** `Fotografia in ...`, una `versione pubblicata` diversa da
+`v/20261123T142517Z/` e i conteggi di `kb-check` senza righe `Errore:`.
+
+**B. La lista dei manuali.** Gratis: non chiama il modello e non va su AWS. Legge tutte le
+stampe dei cicli e cerca ogni task citato come lo cerca la v2. Per ogni manuale dice `c'è`, `manca` o `c'è, ma mancano N task`, e per
+i task che mancano dice perché. Sullo schermo i manuali sono M1, M2, ...; i codici veri restano
+nel file `runs\manuali-da-ingestionare.txt`.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
+$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path; "conoscenza: " + (Split-Path -Leaf $foto) + " · " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --errori 298bc28e=005,035 --errori c5ff3cd6=040 --errori f355dc3c=010,030,040,050
+```
+
+**Deve uscire:** una riga per manuale (`M1: ...`). Il 23-11 alle 17:20 M1 aveva 3 task mancanti
+e M2 (SPM) 1. Con i file nuovi devono scendere.
+
+**Manda a Claude:** la foto dello schermo (non quella del file).
+
+---
 
 ## 3. Persone
 

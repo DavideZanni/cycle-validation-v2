@@ -12,13 +12,39 @@ versione di oggi), almeno tre volte. Si tiene solo se la classifica dice che non
 niente; la decisione si scrive nel registro in fondo. Come si lancia: `docs/AZIENDA.md`,
 parte B.
 
-**Prova sui cicli veri (sul PC aziendale).** Ogni miglioria si prova anche con COPILOT 2.7
-(`eval prova`): 7 cicli «con errori» e 3 giusti contro gli errori noti di
-`eval/errori-noti.yaml`. Ogni prova scrive il suo report (`runs/prove/<data>-<nome>/
-prestazioni.md`) e aggiorna il report finale con tutte le prove (`runs/prove/riepilogo.md`,
-`eval riepilogo` per rifarlo). Codice: `evaluation/trials.py`. Base del 23-11 sera: circa 8 su 12, 0 falsi errori. Si tiene se i trovati non
-scendono e i falsi errori restano 0; se la miglioria tocca il modello, due prove. Prima ancora,
-gratis: i test (`uv run pytest -q`) e `leggi --lingue` (COPILOT 2.0).
+**Prova sui cicli veri (sul PC aziendale).** Ogni miglioria si prova con COPILOT 2.3
+(`eval prova`, codice in `evaluation/trials.py`): 7 cicli «con errori» e 3 stampe giuste,
+contro i 12 errori noti di `eval/errori-noti.yaml`. Ogni prova scrive il suo report
+(`runs/prove/<data>-<nome>/prestazioni.md`); il report finale `runs/prove/riepilogo.md` mette
+insieme tutte le prove, fa la classifica e dà la scelta migliore. Prima, gratis: i test
+(`uv run pytest -q`) e, per una miglioria sulle descrizioni, `leggi --lingue`.
+
+### Metriche (su una prova)
+
+| Metrica | Definizione |
+|---|---|
+| Trovati (TP) | errori noti con un ERRATO sulla loro operazione |
+| Mancati (FN) | errori noti senza ERRATO; il report dice cosa ha detto la v2 |
+| Falsi errori (FP) | ERRATO su un'operazione di una stampa giusta |
+| Da verificare (X) | ERRATO nei cicli con errori, su operazioni fuori dalla lista (un errore vero non in lista o un falso errore: si guarda e, se vero, si aggiunge alla lista) |
+| Precisione | TP / (TP + FP + X) |
+| Warning per ciclo giusto | WARNING medi su una stampa giusta: lavoro a mano che resta |
+| Costo e tempo per ciclo | medi; più il tempo del ciclo più lento |
+| Non eseguiti | cicli andati in errore |
+
+### Regola di scelta (su una variante = prove con lo stesso nome)
+
+1. **Scartata** se: falsi errori > 0, un ciclo non eseguito, un ciclo oltre 10 minuti (il
+   frontend aspetta 11), costo per ciclo oltre 2 volte la base.
+2. **Da ripetere** se ha meno di 2 prove (il modello non risponde sempre uguale).
+3. **Classifica**, in ordine: errori **stabili** (trovati in tutte le prove della variante),
+   trovati minimo, trovati medio, meno da verificare, meno warning per ciclo giusto, meno costo,
+   meno tempo.
+4. **Si tiene** se non ha meno errori stabili della base e sta sopra la base in classifica.
+   La **scelta migliore** è la prima della classifica che si tiene (o la base).
+
+Le soglie sono costanti in `evaluation/trials.py` (`MIN_REPETITIONS`, `MAX_CYCLE_MS`,
+`MAX_COST_RATIO`). Il registro in fondo a questo file riporta la decisione di ogni variante.
 
 ---
 
