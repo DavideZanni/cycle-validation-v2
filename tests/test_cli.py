@@ -512,7 +512,9 @@ def test_leggi_fonti_shows_codes_in_the_text_that_are_not_tasks(tmp_path: Path) 
     result = runner.invoke(cli.app, ["leggi", str(printed), "--fonti"])
     assert result.exit_code == 0, result.output
     assert "  fonte M1 · task - · rc B1" in result.output
-    assert "op 005 · rc B1 · task - · altri codici nel testo: SUBTASK 70-11-00-999-999/999" in (
-        result.output
-    )
+    # il SUBTASK è un task citato; la forma con la barra non si legge e resta tra gli altri codici
+    assert (
+        "op 005 · rc B1 · task 70-11-00-350-035 · altri codici nel testo: "
+        "SUBTASK 70-11-00-999-999/999"
+    ) in result.output
     assert "ABC123456" not in result.output

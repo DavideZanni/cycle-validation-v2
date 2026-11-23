@@ -27,16 +27,17 @@ cambia solo Claude.
 
 **Dove siamo.** La v2 gira in locale con login e frontend. Oggi: ingestion di 10 manuali
 (versione `v/20261123T142517Z/`) e alcune correzioni della v2 sul modo di trovare il testo del
-manuale per ogni operazione. Ultima (17:20): il task nella nota della riparazione si trova anche
-con una parola davanti (`BLENDING <task>`). Ancora da capire: perché 298bc28e non ha nessuna
-fonte, e come sono scritti nelle operazioni i codici che la v2 non legge come task (2.0).
-Mancano i due REPAIR della sezione 72-56-31 (file con `-09-001` e `-09-003` nel nome, **non sul
-PC**) e il capitolo 70-23 dell'SPM.
+manuale per ogni operazione (titoli `CIR`, fonti con la sola sezione, una fonte per riparazione,
+task nella nota anche con una parola davanti). Ultima (17:30): i **SUBTASK** citati nelle
+operazioni sono letti come task e cercati dentro il loro task nel manuale. L'indice va bene così:
+le forme che non registra le cerca la v2 nel testo. Mancano ancora dei documenti: i due REPAIR
+della sezione 72-56-31 (file con `-09-001` e `-09-003` nel nome, **non sul PC**) e il capitolo
+70-23 dell'SPM.
 
 **In ordine:**
 
 1. **Aggiornare** (2.4).
-2. **Le fonti dei tre cicli** (2.0, gratis). Poi aspetta Claude prima di 2.1.
+2. **La lista dei manuali** (2.3, gratis): dice se i SUBTASK e il task della nota si trovano.
 3. **I cicli con errori** (2.1), poi **Perché non trova gli errori noti** (2.1b, gratis).
 4. **Salvare** (2.5).
 5. **I file mancanti:** cercali dove prendi i manuali (i due REPAIR e il capitolo 70-23
@@ -51,28 +52,6 @@ Quando Claude dice di aver cambiato il codice: prima **Aggiornare** (2.4).
 ---
 
 ## 2. Blocchi
-
-### 2.0 Le fonti dei tre cicli
-
-Gratis: non chiama il modello. Per i tre cicli «con errori» stampa le fonti come le legge la v2
-(M1 al posto del manuale), le riparazioni delle operazioni, la forma dell'OEM del piè di pagina
-(lettere → A, cifre → 9) e, per le operazioni che nel testo hanno codici che la v2 non legge come
-task, quei codici (si vede la sezione, il resto è mascherato).
-
-```powershell
-$env:UV_PYTHON = "3.14"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$radice = (Resolve-Path "..\..").Path
-$tre = Get-ChildItem $radice -Recurse -Filter "*errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] } | Where-Object { (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in @("298bc28e", "c5ff3cd6", "f355dc3c") }
-foreach ($f in $tre) { "== " + (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); uv run cycle-validation leggi $f.FullName --config data/settings.yaml --fonti | Select-Object -Skip 1 }
-```
-
-**Deve uscire:** per ognuno dei tre cicli `== <impronta>`, le righe `fonte M1 · task ... · rc
-...`, `rc delle operazioni`, `OEM nel piè di pagina` e le righe `op ... · altri codici nel
-testo`.
-
-**Manda a Claude:** le foto, **tutte e tre i cicli** (anche in più schermate: il primo,
-298bc28e, nell'ultima foto era fuori schermo).
 
 ### 2.1 I cicli con errori
 

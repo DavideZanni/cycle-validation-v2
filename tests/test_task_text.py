@@ -151,3 +151,20 @@ def test_a_source_citing_only_the_section_brings_its_tasks(tmp_path: Path) -> No
         ("ispezione.md", 2, 4),
         ("repair.md", 1, 2),
     }
+
+
+def test_a_subtask_is_found_inside_its_task() -> None:
+    lines = [
+        "## TASK 70-11-00-350-002 Raccordatura",
+        "Introduzione.",
+        "(1) SUBTASK 70-11-00-350-035 Raccordare il bordo",
+        "Raggio minimo 1 mm.",
+        "",
+        "(2) SUBTASK 70-11-00-350-029 Lucidare",
+        "Grana 400.",
+        "## TASK 70-11-00-350-003 Altro",
+    ]
+    assert find_task_in_text(lines, "70-11-00-350-035") == (3, 4)
+    assert find_task_in_text(lines, "70-11-00-350-029") == (6, 7)
+    # un codice citato dentro una frase non apre niente
+    assert find_task_in_text(["Vedi SUBTASK 70-11-00-350-099."], "70-11-00-350-099") is None

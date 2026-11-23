@@ -72,9 +72,9 @@ _SHEET_LINE = re.compile(
 _PAGE_REPAIR = re.compile(r"^\s*RIPARAZIONE\s*:\s*(?P<repair>\S+)", re.IGNORECASE | re.MULTILINE)
 # Il task per intero: codice completo (70-42-00-350-002) o sezione con tipo e numero
 # (72-00-00 REPAIR 001). Il codice completo va letto tutto: tagliato alle prime tre coppie
-# non corrisponde a nessun task del manuale.
+# non corrisponde a nessun task del manuale. Vale anche SUBTASK, che sta dentro un task.
 _TASK = re.compile(
-    r"\bTASK\s+(\d{2}-\d{2}-\d{2}(?:-\d{3}-\d{3}|\s+REPAIR\s+\d+)?)(?![\dA-Za-z-])",
+    r"\b(?:SUB-?)?TASK\s+(\d{2}-\d{2}-\d{2}(?:-\d{3}-\d{3}|\s+REPAIR\s+\d+)?)(?![\dA-Za-z-])",
     re.IGNORECASE,
 )
 # Fonti EJ200: il codice dopo la parola RDR, RN o EF ("DELLA RDR EJ00010X-01"); i codici RN

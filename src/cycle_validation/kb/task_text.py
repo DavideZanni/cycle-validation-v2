@@ -11,6 +11,10 @@ esserci una virgola: nei manuali GE il titolo è spesso `CIR 72-00-01, REPAIR 00
 documenti SPM (pratiche standard) basta la sezione: `70-00-01 Pulizia` apre il task `70-00-01`. Il task finisce alla
 riga prima del titolo di un altro task, in una delle due forme, oppure a fine documento. Se il
 codice si apre in più punti si tiene il blocco più lungo, come fa l'indice.
+
+Un SUBTASK (`SUBTASK 70-00-01-350-002`) sta dentro un task e l'indice non lo registra: se il
+codice non apre un task, si cerca la riga che comincia con `SUBTASK` e quel codice; il subtask
+finisce al prossimo SUBTASK o al titolo di un altro task.
 """
 
 import re
@@ -107,7 +111,38 @@ def find_task_in_text(
         if best is None or last - start > best[1] - best[0] + 1:
             best = (start + 1, last)
         index = end
+    if best is None and _FULL_SHAPE.fullmatch(wanted):
+        best = _find_subtask(lines, pattern)
     return best
+
+
+_FULL_SHAPE = re.compile(r"\d{2}-\d{2}-\d{2}-\d{3}-\d{3}")
+# Riga che apre un subtask: markdown, grassetto, numerazione di elenco («(1)», «A.»), SUBTASK.
+_SUBTASK = re.compile(
+    r"^\s*(?:#{1,6}\s*)?[*_]*\s*(?:\(?[0-9A-Za-z]{1,3}[.)]\s*)?[*_]*\s*SUB-?TASK\b[\s:.\-]*[*_]*\s*",
+    re.IGNORECASE,
+)
+
+
+def _find_subtask(lines: Sequence[str], pattern: re.Pattern[str]) -> tuple[int, int] | None:
+    """Righe del subtask del `pattern`: dalla riga `SUBTASK <codice>` al prossimo SUBTASK o
+    titolo di task."""
+    for index, line in enumerate(lines):
+        heading = _SUBTASK.match(line)
+        if heading is None or _TOC.search(line):
+            continue
+        if pattern.match(_clean(line[heading.end() :])) is None:
+            continue
+        end = index + 1
+        while end < len(lines) and not (_SUBTASK.match(lines[end]) or _ANY_TASK.match(lines[end])):
+            end += 1
+        last = end
+        while last > index + 1 and (
+            not lines[last - 1].strip() or _PAGE_MARKER.match(lines[last - 1])
+        ):
+            last -= 1
+        return (index + 1, last)
+    return None
 
 
 # Sezione ATA all'inizio di un codice di task (`72-00-01`).

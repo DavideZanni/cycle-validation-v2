@@ -146,6 +146,14 @@ def test_each_repair_code_is_a_source_with_the_task_of_its_own_page() -> None:
     assert ops(cycle)["020"].repair_code == "A3"
 
 
+def test_a_subtask_cited_in_the_text_is_a_task_code() -> None:
+    body = block(
+        ["QQ/901"], "005", ["RACCORDARE SECONDO MANUALE ABC123456 SUBTASK 70-11-00-350-035"]
+    )
+    cycle = parse_pvrm320_report(as_document([page(1, body, FOOTER)]))
+    assert ops(cycle)["005"].task_codes == ["70-11-00-350-035"]
+
+
 @pytest.mark.parametrize(
     ("note", "task"),
     [

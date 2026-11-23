@@ -275,6 +275,16 @@ forma che la v2 non legge come task (non c'è la parola TASK davanti): `leggi --
 questi codici, per capire la forma prima di leggerli. Rilanciati i 7 cicli (17:02): ancora 0
 errati.
 
+**2.0 del 23-11 (17:10)**, con il parser nuovo: tutti e tre i cicli hanno una fonte (M1, OEM
+nel piè di pagina). 298bc28e (rc A3) e c5ff3cd6 (rc A2): nota senza task. f355dc3c (rc A1):
+task della nota = un task SPM della sezione 70-42-00 (raccordatura), quindi le sue operazioni
+030/040/050 ora hanno un testo. Codici non letti come task: `SUBTASK <codice completo>` (op 005
+di 298bc28e, sezione 70-42-00; op 005 di c5ff3cd6, sezione 72-56-31). Corretto (17:30): SUBTASK
+è letto come task code; nel manuale, se il codice non apre un task, si cerca la riga che comincia
+con `SUBTASK <codice>` (anche dopo «(1)») fino al prossimo SUBTASK o task. L'indice non registra
+i SUBTASK e non serve cambiarlo. Per c5ff3cd6 030/040 resta il problema: nessun task né nella
+nota né nell'operazione (domanda alle persone: quale task vale per quella riparazione?).
+
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
 
