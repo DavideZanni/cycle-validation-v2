@@ -35,10 +35,10 @@ e visto finora è in `MEMORIA.md`.
 **In ordine:**
 
 1. **Aggiornare** (2.1) e **Salvare** (2.2).
-2. **La base sul piccolo:** due prove con `$nome = "base"` e `$insieme = "piccolo"` (2.3 A),
-   poi il riepilogo (2.3 C).
-3. **La base sul grande:** scegli i cicli (2.3 A0), poi due prove con `$nome = "base"` e
-   `$insieme = "grande"` (2.3 A). Si può lasciare girare mentre fai altro.
+2. **Cicli veri e copie cieche** (gratis): 2.3 A0, poi 2.3 A1. Se puoi, prepara anche il
+   gruppo nascosto (2.3 N).
+3. **La base:** due prove con `$nome = "base"` e `$insieme = "piccolo"` (2.3 A), poi due con
+   `$insieme = "grande"` (si può lasciare girare mentre fai altro). Poi il riepilogo (2.3 C).
 4. **Le migliorie** della lista in `MIGLIORIE.md` («Da provare»), una alla volta, come dice 2.3
    «Quando».
 5. **Prove dal frontend** (2.4) e **messaggio** al collega (3.2), se non l'hai già mandato.
@@ -91,7 +91,7 @@ cambiano finché non apri tu la pull request. I dati aziendali restano fuori (gi
 git add src tests docs eval/casi/sintetici eval/varianti eval/modelli config prompts pyproject.toml uv.lock README.md .gitignore Dockerfile ../buildspec.yml
 if (Test-Path vendor) { git add vendor }
 git status --short
-git commit -m "v2: fonti per riparazione, subtask, task SPM, controllo delle due lingue, prove con metriche su due insiemi di cicli"
+git commit -m "v2: fonti per riparazione, subtask, task SPM, controllo delle due lingue, prove con metriche, cicli veri, errori ciechi e gruppo nascosto"
 ```
 
 **Deve uscire:** in `git status` righe solo sotto le cartelle del `git add` (`M` cambiato, `A`
@@ -119,17 +119,29 @@ Claude. Se il commit dice `nothing to commit`, lancia lo stesso il push.
 
 ### 2.3 Prove delle migliorie: lanciare, vedere i risultati, scegliere
 
-Una **prova** fa girare la v2 su un **insieme** di cicli e la confronta con gli **12 errori
-noti** di `eval/errori-noti.yaml`. Gli insiemi sono due:
+Una **prova** fa girare la v2 su un **insieme** di cicli e conta quanti errori trova. Gli
+errori sono di due specie:
+
+- **visti**: i 12 errori noti di `eval/errori-noti.yaml`. Claude li conosce, quindi una
+  miglioria può «impararli a memoria»;
+- **mai visti**, che misurano se la v2 **generalizza**:
+  - le **copie cieche** (blocco A1): cicli veri in cui il programma cambia una sola
+    operazione (un numero in una lingua, un numero del manuale, una negazione, un codice di
+    task). Nessuno le guarda e un seme nuovo dà errori nuovi;
+  - il **gruppo nascosto** (blocco N, facoltativo): stampe con errori messi da te o da un
+    collega, che Claude non vede mai.
+
+I report degli errori mai visti danno **solo i conteggi per tipo**, mai quali sono: non
+mandare a Claude foto dei file `runs\mutazioni\errori.yaml` e `data\errori-nascosti.yaml`.
 
 | Insieme | Cicli | A cosa serve | Cartella |
 |---|---|---|---|
-| **piccolo** | 10: i 7 «con errori» e le 3 stampe giuste | ogni miglioria, subito: errori trovati e falsi errori | `runs\prove-piccolo\` |
-| **grande** | 30: i 10 del piccolo più 20 cicli **veri** (stampe in uso, scelte dal blocco A0) | solo le migliorie che **si tengono** sul piccolo: controlla che sui cicli veri non escano ERRATO o WARNING in più | `runs\prove-grande\` |
+| **piccolo** | i 10 noti (7 «con errori», 3 giusti) + le copie cieche (A1) + il gruppo nascosto (N), se c'è | **ogni miglioria**: errori visti e mai visti, falsi errori. Le copie costano poco: una operazione ciascuna | `runs\prove-piccolo\` |
+| **grande** | i 10 noti + **tutti** i cicli veri civili confrontabili con la conoscenza (A0) | solo le migliorie che **si tengono** sul piccolo: sui cicli veri non devono uscire ERRATO o WARNING in più | `runs\prove-grande\` |
 
 Un ciclo vero non ha errori noti: un suo ERRATO è «da verificare» (quasi sempre un falso
 errore) e i suoi WARNING contano nel lavoro a mano. Le prove si confrontano solo dentro lo
-stesso insieme: per questo hanno cartelle diverse.
+stesso insieme e con le stesse copie cieche: il riepilogo avvisa se non è così.
 
 Ogni prova scrive nella cartella del suo insieme `<data>-<nome>\prestazioni.md` (il **report
 della prova**) e aggiorna `riepilogo.md` (il **report finale**: scelta migliore, classifica
@@ -137,11 +149,15 @@ delle varianti con la decisione, tabella delle prove, errore per errore, falsi e
 
 **Quando:**
 
-1. **la base**, una volta per insieme: due prove con `$nome = "base"`;
+1. **una volta**: A0 (cicli veri), A1 (copie cieche), poi **la base** su ogni insieme, cioè
+   due prove con `$nome = "base"`;
 2. **ogni miglioria**: due prove sul piccolo con `$nome` = il nome della miglioria (la lista è
    in `MIGLIORIE.md`, «Da provare»). Se c'è il file `eval\varianti\<nome>.yaml`, il blocco A
    lo usa da solo; se la miglioria è nel codice, prima **Aggiornare** (2.1);
-3. se sul piccolo **si tiene**: due prove sul grande con lo stesso nome.
+3. se sul piccolo **si tiene**: due prove sul grande con lo stesso nome;
+4. quando una miglioria entra nella base: **archivia** le prove fatte (blocco F), A1 con un
+   **seme nuovo** (`$seme = 2`, poi 3, ...) e di nuovo la base. Così gli errori mai visti
+   restano davvero mai visti.
 
 Due prove con lo stesso nome sono una *variante*: il modello non risponde sempre uguale, e la
 regola vuole almeno due ripetizioni.
@@ -154,36 +170,54 @@ regola vuole almeno due ripetizioni.
 | Cicli non eseguiti | cicli andati in errore | deve essere 0 |
 | Tempo del ciclo più lento | il frontend aspetta 11 minuti | sotto **10 minuti** |
 | Costo per ciclo | dollari per ciclo | non più del **doppio** della base |
-| **Stabili** | errori noti trovati in **tutte** le prove della variante | 1° criterio: più alto è meglio; mai meno della base |
-| Trovati (minimo, media) | errori noti trovati in ogni prova, su 12 | 2° e 3° criterio |
+| **Stabili** | errori (visti e mai visti) trovati in **tutte** le prove della variante | 1° criterio: più alto è meglio; mai meno della base |
+| **Mai visti stabili** | errori ciechi e nascosti trovati in tutte le prove | mai meno della base: se scende, la miglioria **non generalizza** |
+| Trovati (minimo, media) | errori trovati in ogni prova | 2° e 3° criterio |
 | Da verificare | ERRATO fuori dalla lista (cicli con errori e cicli veri) | 4°: meno è meglio |
 | Warning per ciclo senza errori | lavoro a mano lasciato su una stampa giusta o vera | 5°: meno è meglio |
 | Costo, tempo | per ciclo | 6° e 7°: meno è meglio |
 | Precisione | trovati / tutti gli ERRATO | solo da guardare |
 
-Una variante **si tiene** se è valida, ha almeno 2 prove, non ha meno errori stabili della base
-e sta sopra la base in classifica. Dettagli in `MIGLIORIE.md`.
+Il report di ogni prova mette accanto **visti** e **mai visti**: se i visti sono trovati molto
+più spesso, la v2 ha imparato la lista. Dettagli in `MIGLIORIE.md`.
 
-**A0. Scegliere i cicli dell'insieme grande** (gratis: legge le stampe con il parser, non chiama
-il modello). Una volta, e di nuovo dopo una nuova ingestion (2.5). Prende i 10 cicli noti, poi
-i cicli veri civili che hanno almeno l'80% delle operazioni confrontabili con la conoscenza,
-sempre gli stessi. I percorsi restano nel file sul PC; sullo schermo solo le impronte:
+**A0. Scegliere i cicli veri** (gratis: legge le stampe con il parser, non chiama il modello).
+Una volta, e di nuovo dopo una nuova ingestion (2.5). Prende i 10 cicli noti e **tutti** i
+cicli veri civili con almeno l'80% delle operazioni confrontabili con la conoscenza, sempre gli
+stessi. I percorsi restano nel file sul PC; sullo schermo solo le impronte:
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
 $foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
 $kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-uv run cycle-validation eval scegli (Resolve-Path "..\..").Path --knowledge $v --quanti 30 --out runs/prove-grande/cicli.txt
+uv run cycle-validation eval scegli (Resolve-Path "..\..").Path --knowledge $v --quanti 0 --out runs/prove-grande/cicli.txt
 ```
 
-**Deve uscire:** `Stampe: ... Scelti 30: noti 10, veri 20.`, una riga per ciclo vero
-(`<impronta> vero: N operazioni confrontabili su M`) e quanti sono rimasti fuori e perché. Se i
-veri sono meno di 20, mandami la foto: si abbassa la copertura (`--copertura 0.6`).
+**Deve uscire:** `Stampe: ... Scelti N: noti 10, veri M.`, una riga per ciclo vero e quanti
+sono rimasti fuori e perché. Una prova sul grande dura circa N volte un ciclo: se N è più di
+100, mandami la foto e mettiamo un limite (`--quanti 100`).
+
+**A1. Fare le copie cieche** (gratis). Dai cicli veri di A0 fa 100 copie con un errore
+ciascuna. Rifallo solo con un seme nuovo (punto 4 di «Quando»):
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+$seme = 1
+$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
+$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+Remove-Item runs/mutazioni -Recurse -ErrorAction SilentlyContinue
+uv run cycle-validation eval muta --lista runs/prove-grande/cicli.txt --knowledge $v --quanti 100 --seme $seme --out runs/mutazioni
+```
+
+**Deve uscire:** `Cicli veri letti: ... Copie con un errore cieco: N su 100 chieste, seme 1.` e
+quante per tipo (`numero_una_lingua`, `numero_manuale`, `negazione_una_lingua`,
+`task_inesistente`). Non aprire `runs\mutazioni\errori.yaml`.
 
 **A. Lanciare una prova.** Cambia solo `$nome` e `$insieme` (`"piccolo"` o `"grande"`). Il
-piccolo costa come 10 cicli (qualche minuto), il grande come 30 (circa tre volte: lascialo
-girare):
+piccolo costa come una quindicina di cicli (qualche minuto), il grande come tutti i cicli di A0
+(lascialo girare):
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -192,21 +226,24 @@ $nome = "base"; $insieme = "piccolo"
 $foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
 $kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
 $variante = if (Test-Path "eval/varianti/$nome.yaml") { @("--variante", "eval/varianti/$nome.yaml") } else { @() }
-if ($insieme -eq "grande") { $cicli = @("--lista", "runs/prove-grande/cicli.txt") } else { $dieci = Get-ChildItem (Resolve-Path "..\..").Path -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*errori*" -or (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in @("4e64d49a", "8bdb25d5", "04ecaabe") } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }; $cicli = @($dieci.FullName) }
+$dieci = Get-ChildItem (Resolve-Path "..\..").Path -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*errori*" -or (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in @("4e64d49a", "8bdb25d5", "04ecaabe") } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
+$cicli = @("--attesi", "eval/errori-noti.yaml")
+if ($insieme -eq "grande") { $cicli += @("--lista", "runs/prove-grande/cicli.txt") } else { $cicli += @($dieci.FullName); if (Test-Path runs/mutazioni/lista.txt) { $cicli += @("--lista", "runs/mutazioni/lista.txt", "--attesi", "runs/mutazioni/errori.yaml") }; if (Test-Path data/errori-nascosti.yaml) { $cicli += @("data/nascosti", "--attesi", "data/errori-nascosti.yaml") } }
 "prova «$nome» sull'insieme $insieme" + $(if ($variante) { " con la variante" } else { "" })
 uv run cycle-validation eval prova @cicli --nome $nome --knowledge $v --config data/settings.yaml @variante --cartella "runs/prove-$insieme"
 ```
 
 **Deve uscire:** una riga per ciclo (`<impronta> errori|giusto|vero: trovati ... · mancati ...
-· ERRATO in più ...`), poi `Prova «...»: errori noti trovati N su 12 · falsi errori ... ·
-costo ...` e i percorsi dei due report. Il 23-11 sera (prima delle prove) erano circa **8 su
-12** e **0 falsi errori**.
+· ERRATO in più ...`; per le copie solo `<impronta> mai visto: trovato|mancato`), poi
+`Prova «...»: errori noti trovati N su M (visti ..., mai visti ...) · falsi errori ... ·
+costo ...` e i percorsi dei due report. Il 23-11 sera, sui visti, erano circa **8 su 12** con
+**0 falsi errori**.
 
 **B. Vedere il report dell'ultima prova** (gratis; cambia `$insieme` se serve). Si apre in VS
 Code già impaginato:
 
 ```powershell
-$insieme = "piccolo"; $ultima = Get-ChildItem "runs/prove-$insieme" -Directory | Sort-Object Name | Select-Object -Last 1; code "$($ultima.FullName)/prestazioni.md"
+$insieme = "piccolo"; $ultima = Get-ChildItem "runs/prove-$insieme" -Directory | Where-Object Name -match "^\d{8}-" | Sort-Object Name | Select-Object -Last 1; code "$($ultima.FullName)/prestazioni.md"
 ```
 
 Poi nella finestra del file premi **Ctrl+Shift+V** (anteprima).
@@ -229,7 +266,31 @@ $env:UV_PYTHON = "3.14"; uv run cycle-validation eval riepilogo --cartella runs/
 
 Per **togliere** una prova dal riepilogo: cancella la sua cartella e lancia D.
 
-**Manda a Claude:** la foto dell'output di A (e di A0 la prima volta) e dell'anteprima di
+**F. Archiviare le prove** (gratis): quando cambiano le copie cieche o la conoscenza, le prove
+di prima non si confrontano più con le nuove. Questo le sposta in `runs\archivio-<data>-...`
+(restano da leggere); poi si rifà A0 per il grande:
+
+```powershell
+$d = Get-Date -Format "yyyyMMdd-HHmm"; "piccolo", "grande" | ForEach-Object { if (Test-Path "runs/prove-$_") { Move-Item "runs/prove-$_" "runs/archivio-$d-$_" } }
+```
+
+**N. Il gruppo nascosto** (facoltativo, ma è la misura migliore). Fai delle copie di stampe
+vere e cambia a mano qualcosa che un controllore dovrebbe vedere, come per i 7 cicli «con
+errori» (se puoi, fallo fare a un collega: errori di tipo diverso da quelli che conosci).
+Metti i PDF in `data\nascosti\` (Copilot e Claude non la leggono), poi questo blocco prepara
+il file da riempire:
+
+```powershell
+New-Item -ItemType Directory -Force data/nascosti | Out-Null
+$righe = Get-ChildItem data/nascosti -Filter *.pdf | ForEach-Object { "  '" + (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() + "':  # " + $_.Name + "`n    visto: false`n    errori:`n      '010': cosa hai cambiato (il numero dell'operazione è un esempio)" }
+"cicli:`n" + ($righe -join "`n") | Set-Content data/errori-nascosti.yaml -Encoding utf8; code data/errori-nascosti.yaml
+```
+
+Per ogni stampa scrivi le operazioni cambiate (una riga per operazione, `'030': ...`), poi
+salva. Da lì il blocco A le aggiunge da solo al piccolo: rifai la base. **Non mandare a Claude
+foto di questo file né delle stampe.**
+
+**Manda a Claude:** la foto dell'output di A (di A0 e A1 la prima volta) e dell'anteprima di
 `riepilogo.md`.
 
 ### 2.4 Prove dal frontend
@@ -252,8 +313,9 @@ centesimo. Le targhe escono sempre WARNING: dal PC Redshift non si raggiunge.
 ### 2.5 Dopo una nuova ingestion
 
 Quando hai caricato manuali nuovi (per esempio i file che mancano): **fotografia** della
-conoscenza (A, va su AWS), **lista dei manuali** (B, gratis), di nuovo la scelta dei cicli del
-grande (2.3 A0), poi due prove (2.3 A) con `$nome = "conoscenza-<data>"`.
+conoscenza (A, va su AWS), **lista dei manuali** (B, gratis). Poi archivia le prove fatte
+(2.3 F), rifai la scelta dei cicli veri e le copie cieche (2.3 A0 e A1) e la base (2.3 A) su
+tutti e due gli insiemi: le prove di prima erano con un'altra conoscenza.
 
 **A. Fotografia della conoscenza.** Scarica la conoscenza civile di prova pubblicata e la
 controlla. La prova (2.3) e la lista dei manuali usano da sole l'ultima fotografia.

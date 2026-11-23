@@ -41,6 +41,9 @@ class KnownCycle(_Strict):
     giusto: bool = False
     # per una stampa giusta: l'impronta della stampa «con errori» fatta da lei
     di: str | None = None
+    # False per gli errori che chi scrive le migliorie non conosce (mutazioni cieche,
+    # gruppo nascosto): i report ne danno solo il tipo e i conteggi
+    visto: bool = True
 
 
 class KnownErrors(_Strict):
@@ -50,9 +53,18 @@ class KnownErrors(_Strict):
         return self.cicli.get(fingerprint)
 
 
-def load_known_errors(path: Path) -> KnownErrors:
+def load_known_errors(path: Path | Sequence[Path]) -> KnownErrors:
+    """Uno o più file; un ciclo in più file vale l'ultimo."""
+    paths = [path] if isinstance(path, Path) else list(path)
+    cycles: dict[str, KnownCycle] = {}
+    for one in paths:
+        cycles.update(_known_cycles(one))
+    return KnownErrors(cicli=cycles)
+
+
+def _known_cycles(path: Path) -> dict[str, KnownCycle]:
     raw = yaml.safe_load(path.read_text("utf-8")) or {}
-    cycles = {
+    return {
         str(key).lower(): KnownCycle.model_validate(
             {
                 **(value or {}),
@@ -64,7 +76,6 @@ def load_known_errors(path: Path) -> KnownErrors:
         )
         for key, value in (raw.get("cicli") or {}).items()
     }
-    return KnownErrors(cicli=cycles)
 
 
 def op_key(label: object) -> str:
@@ -102,8 +113,10 @@ class CycleScore(_Strict):
     extra: list[Finding] = Field(default_factory=list)
     cost_usd: float = 0.0
     tokens: int = 0
+    cache_read_tokens: int = 0  # token di input riletti dalla cache (prompt caching, H10)
     duration_ms: int = 0
     failure: str | None = None
+    seen: bool = True  # errori noti a chi scrive le migliorie (vedi `KnownCycle.visto`)
 
 
 class Trial(_Strict):
@@ -114,6 +127,29 @@ class Trial(_Strict):
     prompt_version: str = ""
     tool_version: str = ""
     cycles: list[CycleScore] = Field(default_factory=list)
+
+    def _errors(self, seen: bool | None) -> list[CycleScore]:
+        return [c for c in self.cycles if c.kind == "errori" and (seen is None or c.seen == seen)]
+
+    @property
+    def seen_total(self) -> int:
+        return sum(len(c.found) + len(c.missed) for c in self._errors(True))
+
+    @property
+    def seen_found(self) -> int:
+        return sum(len(c.found) for c in self._errors(True))
+
+    @property
+    def unseen_total(self) -> int:
+        """Errori mai visti (mutazioni cieche, gruppo nascosto): misurano la generalizzazione."""
+        return sum(len(c.found) + len(c.missed) for c in self._errors(False))
+
+    @property
+    def unseen_found(self) -> int:
+        return sum(len(c.found) for c in self._errors(False))
+
+    def unseen_ops(self) -> set[tuple[str, str]]:
+        return {(c.fingerprint, f.op) for c in self._errors(False) for f in c.found}
 
     @property
     def known_total(self) -> int:
@@ -154,6 +190,10 @@ class Trial(_Strict):
     @property
     def tokens(self) -> int:
         return sum(c.tokens for c in self.cycles)
+
+    @property
+    def cache_read_tokens(self) -> int:
+        return sum(c.cache_read_tokens for c in self.cycles)
 
     @property
     def duration_ms(self) -> int:
@@ -199,9 +239,11 @@ def _short(text: str, limit: int = _RATIONALE_CHARS) -> str:
     return flat if len(flat) <= limit else flat[: limit - 1] + "…"
 
 
-def score_cycle(report: Report, known: KnownErrors) -> CycleScore:
-    """Punteggio di un ciclo: ERRATO sulle operazioni confrontati con gli errori noti."""
-    fingerprint = report.meta.pdf_sha256[:8].lower()
+def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = None) -> CycleScore:
+    """Punteggio di un ciclo: ERRATO sulle operazioni confrontati con gli errori noti.
+    `fingerprint` sostituisce l'impronta del PDF (una copia con un errore cieco ha il PDF del
+    ciclo vero, ma un'impronta sua)."""
+    fingerprint = (fingerprint or report.meta.pdf_sha256[:8]).lower()
     entry = known.cycle(fingerprint)
     kind = "vero" if entry is None else ("giusto" if entry.giusto else "errori")
     expected = entry.errori if entry is not None else {}
@@ -241,7 +283,9 @@ def score_cycle(report: Report, known: KnownErrors) -> CycleScore:
         extra=[errato[op] for op in sorted(errato) if op not in expected],
         cost_usd=usage.cost_usd,
         tokens=usage.input_tokens + usage.output_tokens,
+        cache_read_tokens=usage.cache_read_tokens,
         duration_ms=report.timings_ms.get("total", usage.wall_ms),
+        seen=entry.visto if entry is not None else True,
     )
 
 
@@ -256,6 +300,7 @@ def failed_cycle(fingerprint: str, known: KnownErrors, failure: str) -> CycleSco
         status="non eseguito",
         missed=[Missed(op=op, known=text) for op, text in sorted(expected.items())],
         failure=_short(failure),
+        seen=entry.visto if entry is not None else True,
     )
 
 
@@ -289,6 +334,28 @@ def _cell(text: str) -> str:
     return text.replace("|", "/").replace("\n", " ")
 
 
+def error_kind(text: str) -> str:
+    """Il tipo di un errore mai visto: `[numero_manuale] ...` → `numero_manuale`; senza
+    parentesi (gruppo nascosto) → `nascosto`."""
+    if text.startswith("[") and "]" in text:
+        return text[1 : text.index("]")]
+    return "nascosto"
+
+
+def _unseen_by_kind(trial: Trial) -> dict[str, tuple[int, int]]:
+    """Tipo → (trovati, totali) degli errori mai visti."""
+    counts: dict[str, list[int]] = {}
+    for cycle in trial.cycles:
+        if cycle.kind != "errori" or cycle.seen:
+            continue
+        for finding in cycle.found:
+            counts.setdefault(error_kind(finding.known or ""), [0, 0])[0] += 1
+        texts = [f.known or "" for f in cycle.found] + [m.known for m in cycle.missed]
+        for text in texts:
+            counts.setdefault(error_kind(text), [0, 0])[1] += 1
+    return {kind: (found, total) for kind, (found, total) in sorted(counts.items())}
+
+
 def render_trial(trial: Trial) -> str:
     """Il report di una prova, da leggere."""
     when = trial.started_at.strftime("%d-%m-%Y %H:%M")
@@ -304,6 +371,10 @@ def render_trial(trial: Trial) -> str:
         "|---|---|",
         f"| Errori noti trovati | **{trial.known_found} su {trial.known_total}** "
         f"({_percent(trial.known_found, trial.known_total)}) |",
+        f"| … visti (la lista che si conosce) | {trial.seen_found} su {trial.seen_total} "
+        f"({_percent(trial.seen_found, trial.seen_total)}) |",
+        f"| … **mai visti** (ciechi e nascosti: generalizzazione) | **{trial.unseen_found} su "
+        f"{trial.unseen_total}** ({_percent(trial.unseen_found, trial.unseen_total)}) |",
         f"| Falsi errori nei cicli giusti | **{trial.false_errors}** |",
         f"| ERRATO da verificare (fuori lista; nei {trial.real_cycles} cicli veri: "
         f"{trial.real_errors}) | {trial.extra_errors} |",
@@ -315,6 +386,9 @@ def render_trial(trial: Trial) -> str:
         f"{_seconds(trial.max_ms)} |",
         f"| Costo | {trial.cost_usd:.2f} $ |",
         f"| Token (input + output) | {trial.tokens:,}".replace(",", ".") + " |",
+        f"| Token di input riletti dalla cache (a parte; costano circa un decimo) | "
+        f"{trial.cache_read_tokens:,}".replace(",", ".")
+        + " |",
         f"| Tempo totale | {_seconds(trial.duration_ms)} |",
         "",
     ]
@@ -333,7 +407,10 @@ def render_trial(trial: Trial) -> str:
         "ERRATO in più | Costo | Tempo |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
+    hidden = [c for c in trial.cycles if c.kind == "errori" and not c.seen]
     for c in trial.cycles:
+        if c in hidden:
+            continue
         counts = (
             f"{c.counts.get('corretto', 0)} / {c.counts.get('warning', 0)} / "
             f"{c.counts.get('errato', 0)} / {c.counts.get('non_applicabile', 0)}"
@@ -347,6 +424,29 @@ def render_trial(trial: Trial) -> str:
             f"{', '.join(f.op for f in c.extra) or '-'} | {c.cost_usd:.2f} $ | "
             f"{_seconds(c.duration_ms)} |"
         )
+    if hidden:
+        lines.append(
+            f"| {len(hidden)} copie con errori mai visti | errori | - | - | - | - | - | "
+            f"{sum(c.cost_usd for c in hidden):.2f} $ | "
+            f"{_seconds(sum(c.duration_ms for c in hidden))} |"
+        )
+    by_kind = _unseen_by_kind(trial)
+    if by_kind:
+        lines += [
+            "",
+            "## Errori mai visti, per tipo",
+            "",
+            "Solo i conteggi: quali sono non si mostra, così chi scrive le migliorie non li "
+            "impara. Se gli errori visti sono trovati molto più spesso di questi, la v2 ha "
+            "imparato la lista e non generalizza.",
+            "",
+            "| Tipo | Trovati |",
+            "|---|---|",
+        ]
+        lines += [
+            f"| {kind} | {found} su {total} ({_percent(found, total)}) |"
+            for kind, (found, total) in by_kind.items()
+        ]
     lines += [
         "",
         "## Errori noti",
@@ -355,6 +455,8 @@ def render_trial(trial: Trial) -> str:
     ]
     lines.append("|---|---|---|---|---|")
     for c in trial.cycles:
+        if c in hidden:
+            continue
         for f in c.found:
             lines.append(
                 f"| {c.fingerprint} | {f.op} | {_cell(f.known or '')} | **sì** | "
@@ -364,7 +466,7 @@ def render_trial(trial: Trial) -> str:
             lines.append(
                 f"| {c.fingerprint} | {m.op} | {_cell(m.known)} | no | {_cell(m.said) or '-'} |"
             )
-    extra = [(c, f) for c in trial.cycles for f in c.extra]
+    extra = [(c, f) for c in trial.cycles if c not in hidden for f in c.extra]
     if extra:
         lines += [
             "",
@@ -427,6 +529,8 @@ class Variant(_Strict):
     repetitions: int
     known_total: int
     stable: int
+    unseen_total: int = 0
+    unseen_stable: int = 0  # errori mai visti trovati in tutte le ripetizioni
     found_min: int
     found_mean: float
     false_errors: int
@@ -476,12 +580,15 @@ def build_variants(trials: Sequence[Trial]) -> list[Variant]:
     for group in groups.values():
         found = [t.known_found for t in group]
         stable = set.intersection(*(t.found_ops() for t in group))
+        unseen = set.intersection(*(t.unseen_ops() for t in group))
         variants.append(
             Variant(
                 name=group[-1].name,
                 repetitions=len(group),
                 known_total=max(t.known_total for t in group),
                 stable=len(stable),
+                unseen_total=max(t.unseen_total for t in group),
+                unseen_stable=len(unseen),
                 found_min=min(found),
                 found_mean=sum(found) / len(found),
                 false_errors=sum(t.false_errors for t in group),
@@ -511,6 +618,11 @@ def _decide(variant: Variant, base: Variant | None) -> str:
         return "riferimento" if variant is base else "valida (manca la base)"
     if variant.stable < base.stable:
         return f"non si tiene: errori stabili {variant.stable} contro {base.stable} della base"
+    if variant.unseen_stable < base.unseen_stable:
+        return (
+            f"non si tiene: errori mai visti {variant.unseen_stable} contro "
+            f"{base.unseen_stable} della base (non generalizza)"
+        )
     if variant.rank_key() > base.rank_key():
         return "si tiene: meglio della base"
     return "non si tiene: non è meglio della base"
@@ -534,7 +646,9 @@ METRICS_HELP = (
     f"{MAX_CYCLE_MS // 60000} minuti o un costo per ciclo oltre {MAX_COST_RATIO:g} volte la "
     f"base; servono almeno {MIN_REPETITIONS} prove con lo stesso nome. Classifica: stabili, "
     "trovati (minimo, poi media), meno da verificare, meno warning per ciclo senza errori noti, meno "
-    "costo, meno tempo. Si tiene se non perde errori stabili e sta sopra la base."
+    "costo, meno tempo. Si tiene se non perde errori stabili, né errori **mai visti** (copie "
+    "con errori ciechi e gruppo nascosto: dicono se la v2 generalizza o ha imparato la lista), "
+    "e sta sopra la base."
 )
 
 
@@ -583,15 +697,17 @@ def render_summary(trials: Sequence[Trial]) -> str:
         "",
         "## Classifica delle varianti",
         "",
-        "| Pos. | Variante | Prove | Stabili | Trovati min / medio | Falsi errori | "
+        "| Pos. | Variante | Prove | Stabili | Mai visti stabili | Trovati min / medio | "
+        "Falsi errori | "
         "Da verificare | Precisione | Warning per ciclo senza errori | Costo per ciclo | "
         "Tempo per ciclo (max) | Decisione |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for position, v in enumerate(variants, start=1):
         lines.append(
             f"| {position} | {_cell(v.name)} | {v.repetitions} | **{v.stable}** su "
-            f"{v.known_total} | {v.found_min} / {v.found_mean:.1f} | {v.false_errors} | "
+            f"{v.known_total} | {v.unseen_stable} su {v.unseen_total} | "
+            f"{v.found_min} / {v.found_mean:.1f} | {v.false_errors} | "
             f"{v.extra_max} | {round(100 * v.precision_min)}% | {v.clean_warnings:.1f} | "
             f"{v.cost_per_cycle:.2f} $ | {_seconds(v.mean_ms)} ({_seconds(v.max_ms)}) | "
             f"{v.decision} |"
@@ -602,9 +718,9 @@ def render_summary(trials: Sequence[Trial]) -> str:
         "",
         "## Le prove",
         "",
-        "| Data | Prova | Cicli | Trovati | Falsi errori | Da verificare | Rispetto alla base | "
-        "Costo | Tempo | Modello | Prompt | v2 |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "| Data | Prova | Cicli | Trovati | Mai visti | Falsi errori | Da verificare | "
+        "Rispetto alla base | Costo | Tempo | Modello | Prompt | v2 |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for index, trial in enumerate(trials):
         base = _baseline(trials, index)
@@ -616,7 +732,8 @@ def render_summary(trials: Sequence[Trial]) -> str:
         lines.append(
             f"| {trial.started_at:%d-%m %H:%M} | {_cell(trial.name)} | "
             f"{len(trial.cycles)} ({trial.cycle_set}) | {trial.known_found} su {trial.known_total} "
-            f"({_percent(trial.known_found, trial.known_total)}) | {trial.false_errors} | "
+            f"({_percent(trial.known_found, trial.known_total)}) | "
+            f"{trial.unseen_found} su {trial.unseen_total} | {trial.false_errors} | "
             f"{trial.extra_errors} | {delta} | {trial.cost_usd:.2f} $ | "
             f"{_seconds(trial.duration_ms)} | {trial.model or '-'} | "
             f"{trial.prompt_version or '-'} | {trial.tool_version or '-'} |"
@@ -632,7 +749,7 @@ def render_summary(trials: Sequence[Trial]) -> str:
     known: dict[tuple[str, str], str] = {}
     for trial in trials:
         for cycle in trial.cycles:
-            if cycle.kind != "errori":
+            if cycle.kind != "errori" or not cycle.seen:
                 continue
             pairs = [(f.op, f.known or "") for f in cycle.found]
             pairs += [(m.op, m.known) for m in cycle.missed]
@@ -649,7 +766,7 @@ def render_summary(trials: Sequence[Trial]) -> str:
         header,
         "|---|---|---|" + "---|" * len(trials) + "---|",
     ]
-    found_sets = [trial.found_ops() for trial in trials]
+    found_sets = [trial.found_ops() - trial.unseen_ops() for trial in trials]
     for (fingerprint, op), text in sorted(known.items()):
         marks = ["✓" if (fingerprint, op) in found else "·" for found in found_sets]
         count = marks.count("✓")

@@ -13,27 +13,45 @@ niente; la decisione si scrive nel registro in fondo. Come si lancia: `docs/AZIE
 parte B.
 
 **Prova sui cicli veri (sul PC aziendale).** Ogni miglioria si prova con COPILOT 2.3
-(`eval prova`, codice in `evaluation/trials.py`) contro i 12 errori noti di
-`eval/errori-noti.yaml`, su due **insiemi** di cicli:
+(`eval prova`, codice in `evaluation/trials.py`). Gli errori da trovare sono di due specie:
 
-- **piccolo**, 10 cicli: i 7 «con errori» e le 3 stampe giuste. Ogni miglioria passa da qui;
-- **grande**, 30 cicli: i 10 del piccolo e 20 cicli **veri** (stampe in uso, civili, con almeno
-  l'80% delle operazioni confrontabili con la conoscenza), scelti da `eval scegli` e sempre gli
-  stessi. Solo le migliorie che si tengono sul piccolo: un ERRATO su un ciclo vero è «da
-  verificare» (quasi sempre falso), i suoi WARNING contano nel lavoro a mano.
+- **visti**: i 12 errori noti di `eval/errori-noti.yaml`. Chi scrive le migliorie li conosce e
+  può adattarsi a loro senza volerlo;
+- **mai visti**, che misurano la **generalizzazione**:
+  - *copie cieche* (`eval muta`, `evaluation/blind.py`): da ogni ciclo vero il programma fa
+    copie con **una** operazione cambiata, di cui il codice è sicuro che sia sbagliata.
+    I tipi sono quattro: numero cambiato in una lingua; numero del manuale cambiato in tutte e
+    due le lingue con un valore che il manuale non ha; negazione tolta in una lingua; codice di
+    task che non esiste. Una copia ha solo l'operazione cambiata, quindi costa come
+    un'operazione. Gli errori dipendono da un seme; quando una miglioria entra nella base si
+    cambia seme;
+  - *gruppo nascosto*: stampe con errori messi a mano dall'utente o da un collega, in
+    `data/nascosti` sul PC. Claude non le vede mai.
 
-Le prove si confrontano solo sullo stesso insieme (cartelle `runs/prove-piccolo` e
-`runs/prove-grande`; il riepilogo avvisa se in una cartella gli insiemi sono diversi). Ogni
-prova scrive il suo report (`<data>-<nome>/prestazioni.md`); `riepilogo.md` mette insieme le
-prove, fa la classifica e dà la scelta migliore. Una miglioria con un file
-`eval/varianti/<nome>.yaml` si lancia con `--variante` sopra le impostazioni del PC. Prima,
-gratis: i test (`uv run pytest -q`) e, per una miglioria sulle descrizioni, `leggi --lingue`.
+  I report danno solo i conteggi per tipo, mai quali sono.
+
+Gli insiemi sono due:
+
+- **piccolo**: i 10 cicli noti, le copie cieche e il gruppo nascosto. Ogni miglioria passa da
+  qui;
+- **grande**: i 10 noti e **tutti** i cicli veri civili con almeno l'80% delle operazioni
+  confrontabili con la conoscenza (`eval scegli`). Solo per le migliorie che si tengono sul
+  piccolo. Un ERRATO su un ciclo vero è «da verificare» (quasi sempre falso); i suoi WARNING
+  contano nel lavoro a mano.
+
+Le prove si confrontano solo sullo stesso insieme. Le cartelle sono `runs/prove-piccolo` e
+`runs/prove-grande`; il riepilogo avvisa se in una cartella i cicli sono diversi, e quando
+cambiano seme o conoscenza le prove vecchie si archiviano. Ogni prova scrive il suo report
+(`<data>-<nome>/prestazioni.md`); `riepilogo.md` mette insieme le prove, fa la classifica e dà
+la scelta migliore. Una miglioria con un file `eval/varianti/<nome>.yaml` si lancia con
+`--variante` sopra le impostazioni del PC. Prima, gratis: i test (`uv run pytest -q`) e, per
+una miglioria sulle descrizioni, `leggi --lingue`.
 
 ### Metriche (su una prova)
 
 | Metrica | Definizione |
 |---|---|
-| Trovati (TP) | errori noti con un ERRATO sulla loro operazione |
+| Trovati (TP) | errori noti con un ERRATO sulla loro operazione; a parte i **visti** e i **mai visti** (copie cieche e gruppo nascosto) |
 | Mancati (FN) | errori noti senza ERRATO; il report dice cosa ha detto la v2 |
 | Falsi errori (FP) | ERRATO su un'operazione di una stampa giusta |
 | Da verificare (X) | ERRATO fuori dalla lista: nei cicli con errori (un errore vero non in lista o un falso errore) e nei cicli veri (quasi sempre falsi). Si guarda e, se è vero, il ciclo va nella lista |
@@ -50,7 +68,8 @@ gratis: i test (`uv run pytest -q`) e, per una miglioria sulle descrizioni, `leg
 3. **Classifica**, in ordine: errori **stabili** (trovati in tutte le prove della variante),
    trovati minimo, trovati medio, meno da verificare, meno warning per ciclo senza errori, meno costo,
    meno tempo.
-4. **Si tiene** se non ha meno errori stabili della base e sta sopra la base in classifica.
+4. **Si tiene** se non ha meno errori stabili della base, **non ha meno errori mai visti
+   stabili** della base (se no «non generalizza») e sta sopra la base in classifica.
    La **scelta migliore** è la prima della classifica che si tiene (o la base).
 
 Le soglie sono costanti in `evaluation/trials.py` (`MIN_REPETITIONS`, `MAX_CYCLE_MS`,
@@ -87,10 +106,32 @@ oltre 2 volte) e serve l'id di Sonnet abilitato su Bedrock.
 | `numeri_manuale` (I4, è H12) | numeri e classi della descrizione contro quelli del passo del manuale: la sessione riceve le differenze da guardare | numeri cambiati in tutte e due le lingue (f355dc3c 010), se il passo giusto è nel contesto | medio |
 | `contesto_sezione` (I5) | se i task citati non hanno i numeri della descrizione, si aggiungono altri task della stessa sezione (al massimo 4) | limiti scritti in un altro task (f355dc3c 010) | medio, più sessioni lunghe |
 | `fatti_incerti` (F5) | il prompt dice quando un fatto è incerto | meno giudizi sbagliati su dati incerti | piccolo |
+| `modello_grande_sui_dubbi` (I6) | le operazioni rimaste `GIUDIZIO_INSTABILE` o `EVIDENZA_NON_TROVATA` si riguardano con un modello più grande (id abilitato su Bedrock) | frasi al contrario, parole cambiate | piccolo; costo solo sui dubbi |
 
 **Tempo e costo (dopo: non cambiano gli errori trovati).** B1 (chiamata diretta a Bedrock), poi
 B4; H10 (prompt caching), H14 (più operazioni in una sessione). Si provano con le stesse prove:
 devono tenere gli stessi errori stabili e costare o durare meno.
+
+**Costo e latenza: cosa c'è già e cosa resta** (dal 23-11; nel resoconto delle novità AI di
+settembre-novembre non c'è altro che si applichi a Bedrock).
+
+| Tecnica | Stato | Effetto |
+|---|---|---|
+| GRASP: dopo un Grep si legge solo una finestra di righe, mai il file intero (`agent/hooks.py`) | in uso | meno token per sessione |
+| Testo del task nel messaggio fino a 150 righe (`inline_max_lines`): niente ricerca | in uso | sessioni di 1-3 turni |
+| Parser PVRM320 al posto del modello per leggere la stampa | in uso | lettura a zero token, sempre uguale |
+| Controlli senza modello: lingue, task inesistente, task mancante (B6) | in uso | zero token sugli esiti sicuri |
+| `effort: low` nei controlli (B2) | in uso, da confermare (`effort_pieno`) | circa -30% di costo |
+| Conferma solo sugli ERRATO (G1) | in uso | costa solo dove serve |
+| **B1** chiamata diretta a Bedrock (`converse`) per le sessioni in linea | da fare | toglie circa 4 s di avvio per operazione: il guadagno di tempo più grande |
+| **H10** prompt caching di Bedrock (istruzioni e testo del manuale uguali tra le sessioni) | da misurare: il report della prova ora dà i token riletti dalla cache; se sono pochi, si attiva con B1 | input in cache a circa un decimo del prezzo |
+| **H12** esito CORRETTO senza modello quando numeri e testo coincidono con il manuale | da fare (con I4) | meno sessioni |
+| **H13** risultato già calcolato (stesso PDF, stessa conoscenza, stesse impostazioni) | da fare | risposta subito sulle riaperture |
+| **H14** più operazioni dello stesso task in una sessione | da misurare (rischio: confonde le operazioni) | meno sessioni, testo mandato una volta |
+| **B4** più operazioni insieme (dopo B1) | da misurare | meno tempo, stessi costi |
+| Batch di Bedrock per le prove (non per il servizio) | da fare dopo B1 | circa -50% sul costo delle prove |
+| Modello grande solo sui dubbi (`modello_grande_sui_dubbi`) | da fare | più errori trovati, costo che sale poco |
+| Inferenza «latency-optimized» di Bedrock | da verificare con AWS: non è detto che ci sia per i modelli e la regione abilitati | meno latenza |
 
 **Non sono migliorie: nessuna variante li trova finché mancano.** f355dc3c 040 e forse 010
 chiedono documenti che non sono nella conoscenza (capitolo 70-23 dell'SPM, manuale d'ispezione

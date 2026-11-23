@@ -276,6 +276,8 @@ def test_choose_puts_the_known_cycles_first_and_adds_real_ones(tmp_path: Path) -
     assert lines[1].endswith("vero.pdf")
     result = CliRunner().invoke(cli.app, [*args, "--quanti", "1", "--out", str(out)])
     assert "Scelti 1: noti 1, veri 0." in result.output
+    everything = [*args, "--quanti", "0", "--copertura", "0", "--out", str(out)]
+    assert "Scelti 2: noti 1, veri 1." in CliRunner().invoke(cli.app, everything).output
 
 
 def test_trial_needs_a_name_or_a_variant(tmp_path: Path) -> None:

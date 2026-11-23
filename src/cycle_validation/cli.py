@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import typer
+import yaml
 
 from cycle_validation.agent.prompt import OPERATION_PROMPT_FILE, load_prompt, prompt_version
 from cycle_validation.agent.sdk_session import SdkAgentSession
@@ -24,6 +25,9 @@ from cycle_validation.domain.check import CheckName
 from cycle_validation.domain.cycle import Cycle
 from cycle_validation.domain.report import Report
 from cycle_validation.errors import CycleValidationError
+from cycle_validation.evaluation.blind import DESCRIPTIONS as BLIND_DESCRIPTIONS
+from cycle_validation.evaluation.blind import KINDS as BLIND_KINDS
+from cycle_validation.evaluation.blind import blind_mutations
 from cycle_validation.evaluation.draft import draft_case
 from cycle_validation.evaluation.leaderboard import build_leaderboard, render_leaderboard
 from cycle_validation.evaluation.metrics import measure
@@ -774,7 +778,9 @@ DEFAULT_TRIAL_LIST = Path("runs/prove/cicli.txt")
 def eval_choose(
     percorsi: Annotated[list[Path], typer.Argument(help="Cartelle (o PDF) con le stampe.")],
     knowledge: Annotated[Path, typer.Option(help="Versione della conoscenza (cartella).")],
-    quanti: Annotated[int, typer.Option(help="Cicli nella lista, compresi quelli noti.")] = 30,
+    quanti: Annotated[
+        int, typer.Option(help="Cicli nella lista, compresi quelli noti. 0 = tutti.")
+    ] = 30,
     copertura: Annotated[
         float, typer.Option(help="Parte minima delle operazioni confrontabili (0-1).")
     ] = 0.8,
@@ -820,7 +826,7 @@ def eval_choose(
         if not total or covered / total < copertura:
             skipped["poche operazioni confrontabili"] += 1
             continue
-        if len(chosen) >= quanti:
+        if quanti and len(chosen) >= quanti:
             skipped["oltre il numero richiesto"] += 1
             continue
         chosen.append(name)
@@ -841,6 +847,96 @@ def eval_choose(
     typer.echo(f"Lista: {out}")
 
 
+def _list_entries(lists: list[Path]) -> list[tuple[Path, Path | None]]:
+    """Righe dei file `--lista`: `pdf`, oppure `pdf<TAB>ciclo.json` (copia con un errore
+    cieco: si valida il ciclo del JSON, il PDF serve per la testata)."""
+    entries: list[tuple[Path, Path | None]] = []
+    for lista in lists:
+        for line in lista.read_text(encoding="utf-8").splitlines():
+            pdf, _, cycle = line.strip().partition("\t")
+            if pdf:
+                entries.append((Path(pdf), Path(cycle) if cycle else None))
+    return entries
+
+
+@eval_app.command("muta")
+def eval_blind(
+    lista: Annotated[Path, typer.Option(help="PDF dei cicli veri, uno per riga (eval scegli).")],
+    knowledge: Annotated[Path, typer.Option(help="Versione della conoscenza (cartella).")],
+    quanti: Annotated[int, typer.Option(help="Copie con un errore cieco.")] = 60,
+    seme: Annotated[int, typer.Option(help="Seme: un seme nuovo dà errori nuovi.")] = 1,
+    attesi: Annotated[Path, typer.Option(help="YAML degli errori noti.")] = Path(
+        "eval/errori-noti.yaml"
+    ),
+    out: Annotated[Path, typer.Option(help="Cartella delle copie (resta sul PC).")] = Path(
+        "runs/mutazioni"
+    ),
+    config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
+) -> None:
+    """Copie dei cicli veri con **un** errore messo dal programma (zero token): numero cambiato
+    in una lingua, numero del manuale cambiato in tutte e due, negazione tolta in una lingua,
+    codice di task che non esiste. Scrive in `--out` le copie (`<impronta>.json`), gli errori
+    (`errori.yaml`, segnati come mai visti) e la lista per `eval prova` (`lista.txt`). Sullo
+    schermo solo i conteggi per tipo: quali errori sono non si mostra."""
+    try:
+        settings = load_settings(config)
+        limits = load_profile("mos", settings.paths.profiles_dir).file_limits
+        known = load_known_errors(attesi)
+        kb = load_local_knowledge(knowledge)
+        entries = _list_entries([lista])
+    except (CycleValidationError, OSError, ValueError) as error:
+        raise _fail(error) from error
+    cycles: list[tuple[str, Cycle]] = []
+    pdf_of: dict[str, Path] = {}
+    skipped = 0
+    for pdf_path, _ in entries:
+        try:
+            data = pdf_path.read_bytes()
+            name = hashlib.sha256(data).hexdigest()[:8]
+            entry = known.cycle(name)
+            if name in pdf_of or (entry is not None and not entry.giusto):
+                continue  # doppione, o ciclo che ha già i suoi errori
+            pdf = read_pdf_bytes(data, pdf_path.name, limits)
+            if detect_module_kind(pdf.text, settings.module_check) == EJ200:
+                skipped += 1
+                continue
+            cycles.append((name, parse_pvrm320(pdf)))
+            pdf_of[name] = pdf_path
+        except (CycleValidationError, OSError):
+            skipped += 1
+    mutations = blind_mutations(cycles, kb, count=quanti, seed=seme)
+    out.mkdir(parents=True, exist_ok=True)
+    errors: dict[str, Any] = {}
+    lines: list[str] = []
+    kinds: Counter[str] = Counter()
+    for mutation in mutations:
+        text = mutation.cycle.model_dump_json(indent=2)
+        fingerprint = hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
+        path = out / f"{fingerprint}.json"
+        path.write_text(text, encoding="utf-8")
+        op = mutation.operation
+        errors[fingerprint] = {
+            "visto": False,
+            "di": mutation.source,
+            "errori": {op: f"[{mutation.kind}] {BLIND_DESCRIPTIONS[mutation.kind]}"},
+        }
+        lines.append(f"{pdf_of[mutation.source].resolve()}\t{path.resolve()}")
+        kinds[mutation.kind] += 1
+    (out / "errori.yaml").write_text(
+        "# Errori ciechi (eval muta): non guardarli, servono a misurare la generalizzazione.\n"
+        + yaml.safe_dump({"seme": seme, "cicli": errors}, allow_unicode=True, sort_keys=True),
+        encoding="utf-8",
+    )
+    (out / "lista.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    typer.echo(
+        f"Cicli veri letti: {len(cycles)} (non letti o EJ200: {skipped}). Copie con un errore "
+        f"cieco: {len(mutations)} su {quanti} chieste, seme {seme}."
+    )
+    for kind in BLIND_KINDS:
+        typer.echo(f"  {kind}: {kinds.get(kind, 0)}")
+    typer.echo(f"Lista: {out / 'lista.txt'} · errori: {out / 'errori.yaml'}")
+
+
 @eval_app.command("prova")
 def eval_trial(
     pdfs: Annotated[
@@ -854,11 +950,13 @@ def eval_trial(
         Path | None, typer.Option(help="Variante (eval/varianti/...yaml) sopra --config.")
     ] = None,
     lista: Annotated[
-        Path | None, typer.Option(help="File con i PDF, uno per riga (da `eval scegli`).")
+        list[Path] | None,
+        typer.Option(help="File con i PDF, uno per riga (eval scegli, eval muta). Ripetibile."),
     ] = None,
-    attesi: Annotated[Path, typer.Option(help="YAML degli errori noti.")] = Path(
-        "eval/errori-noti.yaml"
-    ),
+    attesi: Annotated[
+        list[Path] | None,
+        typer.Option(help="YAML degli errori noti (ripetibile). Vuoto = eval/errori-noti.yaml."),
+    ] = None,
     config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
     profile: Annotated[str, typer.Option(help="mos | dr | ej200")] = "mos",
     cartella: Annotated[Path, typer.Option(help="Cartella delle prove.")] = Path("runs/prove"),
@@ -877,15 +975,12 @@ def eval_trial(
             settings = load_settings(config)
         if not nome:
             raise CycleValidationError("Manca --nome (o --variante).")
-        known = load_known_errors(attesi)
-        pdfs = list(pdfs or [])
-        if lista is not None:
-            pdfs += [
-                Path(line.strip())
-                for line in lista.read_text(encoding="utf-8").splitlines()
-                if line.strip()
-            ]
-        if not pdfs:
+        known = load_known_errors(attesi or [Path("eval/errori-noti.yaml")])
+        entries: list[tuple[Path, Path | None]] = []
+        for path in pdfs or []:
+            entries += [(pdf, None) for pdf in (_pdfs_in(path) if path.is_dir() else [path])]
+        entries += _list_entries(lista or [])
+        if not entries:
             raise CycleValidationError("Nessun PDF: dai i PDF o --lista.")
     except (CycleValidationError, OSError, ValueError) as error:
         raise _fail(error) from error
@@ -895,18 +990,25 @@ def eval_trial(
     reports: list[Report] = []
     scores: list[CycleScore] = []
     seen: set[str] = set()
-    for pdf in pdfs:
-        if not pdf.is_file():
-            typer.echo(f"PDF non trovato: {pdf.name}")
+    for pdf, cycle_file in entries:
+        if not pdf.is_file() or (cycle_file is not None and not cycle_file.is_file()):
+            typer.echo(f"File non trovato: {(cycle_file or pdf).name}")
             continue
-        fingerprint = hashlib.sha256(pdf.read_bytes()).hexdigest()[:8]
+        source = cycle_file if cycle_file is not None else pdf
+        fingerprint = hashlib.sha256(source.read_bytes()).hexdigest()[:8]
         if fingerprint in seen:
             continue
         seen.add(fingerprint)
         out = folder / fingerprint
+        extractor = FileCycleExtractor(cycle_file) if cycle_file is not None else None
         try:
             deps = build_dependencies(
-                settings, profile, kb_dir=knowledge, machines_file=None, extractor=None, out_dir=out
+                settings,
+                profile,
+                kb_dir=knowledge,
+                machines_file=None,
+                extractor=extractor,
+                out_dir=out,
             )
             report = run_validation(RunRequest(pdf_path=pdf), deps, out)
         except CycleValidationError as error:
@@ -914,8 +1016,12 @@ def eval_trial(
             typer.echo(f"{fingerprint} non eseguito")
             continue
         reports.append(report)
-        score = score_cycle(report, known)
+        score = score_cycle(report, known, fingerprint)
         scores.append(score)
+        if score.kind == "errori" and not score.seen:
+            # mai visto: solo l'esito, non dove sta l'errore
+            typer.echo(f"{fingerprint} mai visto: {'trovato' if score.found else 'mancato'}")
+            continue
         typer.echo(
             f"{fingerprint} {score.kind}: trovati {', '.join(f.op for f in score.found) or '-'}"
             f" · mancati {', '.join(m.op for m in score.missed) or '-'}"
@@ -925,8 +1031,9 @@ def eval_trial(
     write_trial(trial, folder)
     summary = write_summary(cartella)
     typer.echo(
-        f"Prova «{nome}»: errori noti trovati {trial.known_found} su {trial.known_total} · "
-        f"falsi errori nei cicli giusti {trial.false_errors} · ERRATO in più "
+        f"Prova «{nome}»: errori noti trovati {trial.known_found} su {trial.known_total} "
+        f"(visti {trial.seen_found} su {trial.seen_total}, mai visti {trial.unseen_found} su "
+        f"{trial.unseen_total}) · falsi errori nei cicli giusti {trial.false_errors} · ERRATO in più "
         f"{trial.extra_errors} · costo {trial.cost_usd:.2f} $"
     )
     typer.echo(f"Report della prova: {folder / TRIAL_REPORT}")

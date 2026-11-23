@@ -387,6 +387,16 @@ WARNING contano nel lavoro a mano. Si confrontano solo prove sullo stesso insiem
 `eval/varianti/<nome>.yaml` si lancia con `eval prova --variante`; il blocco 2.3 A lo fa da
 solo. La lista delle migliorie da provare è in `MIGLIORIE.md`, «Da provare».
 
+**Errori mai visti (23-11 sera).** L'utente vuole sapere se la v2 generalizza o ha imparato la
+lista dei 12 errori (che Claude conosce). Fatto: `eval muta` (copie cieche dai cicli veri, un
+errore per copia, quattro tipi, seme; `runs/mutazioni` sul PC), gruppo nascosto facoltativo in
+`data/nascosti` + `data/errori-nascosti.yaml` (Claude non lo vede mai), `visto: false` negli
+attesi. I report danno visti e mai visti a parte, i mai visti solo per tipo; la regola non tiene
+una variante che perde errori mai visti stabili. Il piccolo ora = 10 noti + copie cieche +
+nascosti; il grande = 10 noti + tutti i cicli veri confrontabili (`--quanti 0`). Quando cambia
+il seme o la conoscenza, le prove si archiviano (COPILOT 2.3 F). Non chiedere mai foto degli
+errori ciechi o nascosti.
+
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
 
