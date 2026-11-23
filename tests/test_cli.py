@@ -535,3 +535,18 @@ def test_leggi_lingue_prints_only_the_numbers_that_differ(tmp_path: Path) -> Non
         "  op 040: italiano → inglese 38 → 58",
         "  operazioni con le due lingue: 2 su 2",
     ]
+
+
+def test_eval_riepilogo_on_an_empty_folder(tmp_path: Path) -> None:
+    result = runner.invoke(cli.app, ["eval", "riepilogo", "--cartella", str(tmp_path / "prove")])
+    assert result.exit_code == 0, result.output
+    assert "Nessuna prova." in (tmp_path / "prove" / "riepilogo.md").read_text("utf-8")
+
+
+def test_the_known_errors_file_is_valid() -> None:
+    from cycle_validation.evaluation.trials import load_known_errors
+
+    known = load_known_errors(Path("eval/errori-noti.yaml"))
+    total = sum(len(cycle.errori) for cycle in known.cicli.values())
+    giuste = [key for key, cycle in known.cicli.items() if cycle.giusto]
+    assert total == 12 and len(giuste) == 3

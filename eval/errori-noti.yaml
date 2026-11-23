@@ -1,0 +1,41 @@
+# Errori noti dei cicli «con errori» (stampe modificate a mano) e stampe giuste.
+# Chiave: prime 8 cifre dell'impronta SHA-256 del PDF. Niente codici veri: solo numeri di
+# operazione e descrizioni generiche. Si usa con `cycle-validation eval prova` (COPILOT 2.7).
+# Gli errori dei quattro cicli senza stampa giusta conosciuta sono quelli trovati dal controllo
+# delle due lingue il 23-11: da confermare con chi ha preparato le stampe.
+cicli:
+  298bc28e:
+    errori:
+      "005": codice di un subtask cambiato (solo in italiano)
+      "035": parole cambiate nella descrizione
+  c5ff3cd6:
+    errori:
+      "030": scheda tolta
+      "040": un numero cambiato (spessore)
+  f355dc3c:
+    errori:
+      "010": tre numeri cambiati
+      "030": numeri e parole cambiati
+      "040": una lettera cambiata (la classe)
+      "050": una frase sostituita (dice il contrario)
+  38960731:
+    errori:
+      "050": un numero cambiato (solo in una lingua)
+  5ff17062:
+    errori:
+      "030": numeri cambiati in una lingua, parole cambiate nell'altra
+  8d3c673c:
+    errori:
+      "140": un numero cambiato (solo in una lingua)
+  e9b74c84:
+    errori:
+      "025": un numero cambiato (solo in una lingua)
+  4e64d49a:
+    giusto: true
+    di: 298bc28e
+  8bdb25d5:
+    giusto: true
+    di: c5ff3cd6
+  04ecaabe:
+    giusto: true
+    di: f355dc3c

@@ -9,6 +9,7 @@ import os
 import re
 from collections import Counter
 from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -21,6 +22,7 @@ from cycle_validation.checks.languages import language_parts, number_mismatches
 from cycle_validation.config import AgentSettings, Settings, load_profile, load_settings
 from cycle_validation.domain.check import CheckName
 from cycle_validation.domain.cycle import Cycle
+from cycle_validation.domain.report import Report
 from cycle_validation.errors import CycleValidationError
 from cycle_validation.evaluation.draft import draft_case
 from cycle_validation.evaluation.leaderboard import build_leaderboard, render_leaderboard
@@ -28,6 +30,17 @@ from cycle_validation.evaluation.metrics import measure
 from cycle_validation.evaluation.mutations import mutate_cases
 from cycle_validation.evaluation.run import load_suites, run_variant
 from cycle_validation.evaluation.snapshot import snapshot_version, take_snapshot
+from cycle_validation.evaluation.trials import (
+    TRIAL_REPORT,
+    CycleScore,
+    build_trial,
+    failed_cycle,
+    load_known_errors,
+    load_trials,
+    score_cycle,
+    write_summary,
+    write_trial,
+)
 from cycle_validation.evaluation.variant import load_variant
 from cycle_validation.extract.base import CycleExtractor
 from cycle_validation.extract.factory import make_pdf_extractor
@@ -736,6 +749,85 @@ def _write_leaderboard(results_dir: Path, out: Path) -> str:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text, encoding="utf-8", newline="\n")
     return text
+
+
+@eval_app.command("prova")
+def eval_trial(
+    pdfs: Annotated[list[Path], typer.Argument(help="PDF dei cicli della prova.")],
+    nome: Annotated[str, typer.Option(help="Nome della prova (per esempio base, o la miglioria).")],
+    knowledge: Annotated[Path, typer.Option(help="Cartella della knowledge base.")],
+    attesi: Annotated[Path, typer.Option(help="YAML degli errori noti.")] = Path(
+        "eval/errori-noti.yaml"
+    ),
+    config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
+    profile: Annotated[str, typer.Option(help="mos | dr | ej200")] = "mos",
+    cartella: Annotated[Path, typer.Option(help="Cartella delle prove.")] = Path("runs/prove"),
+) -> None:
+    """Valida i cicli, li confronta con gli errori noti e scrive il report della prova
+    (`prestazioni.md`) e il riepilogo di tutte le prove (`riepilogo.md`)."""
+    try:
+        settings = load_settings(config)
+        known = load_known_errors(attesi)
+    except (CycleValidationError, OSError, ValueError) as error:
+        raise _fail(error) from error
+    started = datetime.now()
+    safe = re.sub(r"[^\w.-]+", "-", nome).strip("-") or "prova"
+    folder = cartella / f"{started:%Y%m%d-%H%M}-{safe}"
+    reports: list[Report] = []
+    scores: list[CycleScore] = []
+    seen: set[str] = set()
+    for pdf in pdfs:
+        if not pdf.is_file():
+            typer.echo(f"PDF non trovato: {pdf.name}")
+            continue
+        fingerprint = hashlib.sha256(pdf.read_bytes()).hexdigest()[:8]
+        if fingerprint in seen:
+            continue
+        seen.add(fingerprint)
+        out = folder / fingerprint
+        try:
+            deps = build_dependencies(
+                settings, profile, kb_dir=knowledge, machines_file=None, extractor=None, out_dir=out
+            )
+            report = run_validation(RunRequest(pdf_path=pdf), deps, out)
+        except CycleValidationError as error:
+            scores.append(failed_cycle(fingerprint, known, str(error)))
+            typer.echo(f"{fingerprint} non eseguito")
+            continue
+        reports.append(report)
+        score = score_cycle(report, known)
+        scores.append(score)
+        typer.echo(
+            f"{fingerprint} {score.kind}: trovati {', '.join(f.op for f in score.found) or '-'}"
+            f" · mancati {', '.join(m.op for m in score.missed) or '-'}"
+            f" · ERRATO in più {', '.join(f.op for f in score.extra) or '-'}"
+        )
+    trial = build_trial(nome, started, reports, scores)
+    write_trial(trial, folder)
+    summary = write_summary(cartella)
+    typer.echo(
+        f"Prova «{nome}»: errori noti trovati {trial.known_found} su {trial.known_total} · "
+        f"falsi errori nei cicli giusti {trial.false_errors} · ERRATO in più "
+        f"{trial.extra_errors} · costo {trial.cost_usd:.2f} $"
+    )
+    typer.echo(f"Report della prova: {folder / TRIAL_REPORT}")
+    typer.echo(f"Riepilogo di tutte le prove: {summary}")
+
+
+@eval_app.command("riepilogo")
+def eval_trials_summary(
+    cartella: Annotated[Path, typer.Option(help="Cartella delle prove.")] = Path("runs/prove"),
+) -> None:
+    """Riscrive `riepilogo.md` con tutte le prove della cartella e stampa la tabella."""
+    trials = load_trials(cartella)
+    summary = write_summary(cartella)
+    for trial in trials:
+        typer.echo(
+            f"{trial.started_at:%d-%m %H:%M} {trial.name}: {trial.known_found} su "
+            f"{trial.known_total} · falsi {trial.false_errors} · in più {trial.extra_errors} · "
+            f"{trial.cost_usd:.2f} $"
+        )
+    typer.echo(f"Riepilogo: {summary}")
 
 
 @eval_app.command("classifica")

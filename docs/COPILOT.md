@@ -42,7 +42,7 @@ dell'SPM) o risposte delle persone (P6, P7, P8). L'indice va bene così.
    2.2, 2.3, 2.1 e 2.1c.
 6. **Quando lo decidi tu:** pull request verso `develop` e prova in QA (sezione 4).
 
-Quando Claude dice di aver cambiato il codice: prima **Aggiornare** (2.4). Per una **miglioria**, poi **2.7** (punteggio sui 10 cicli): la prima volta con `$nome = "base"`, prima della miglioria, per avere il numero di partenza.
+Quando Claude dice di aver cambiato il codice: prima **Aggiornare** (2.4). Per una **miglioria**, poi **2.7 A** (prova sui 10 cicli) e **2.7 C** (report finale); la prima volta con `$nome = "base"`, prima della miglioria, per avere il numero di partenza.
 
 ---
 
@@ -249,37 +249,70 @@ centesimo. Le targhe escono sempre WARNING: dal PC Redshift non si raggiunge.
 
 ---
 
-### 2.7 Prova di una miglioria (punteggio sui 10 cicli)
+### 2.7 Prove delle migliorie: lanciare e vedere i risultati
 
-Rilancia i 7 cicli «con errori» e i 3 giusti e li confronta con gli **errori noti**. Stampa per
-ogni ciclo gli errori trovati, quelli mancati e gli ERRATO in più, poi una riga di punteggio, che
-resta anche in `runs\prove-migliorie.txt` (così si confrontano le prove nel tempo). Costa come
-10 cicli. Prima di lanciarlo **cambia `$nome`** con il nome della miglioria.
+Una **prova** fa girare la v2 sui 10 cicli (i 7 «con errori» e i 3 giusti) e li confronta con
+gli **12 errori noti** scritti in `eval/errori-noti.yaml`. Ogni prova ha la sua cartella in
+`runs\prove\<data>-<nome>\` con:
+
+- `prestazioni.md`: il **report della prova** (punteggio, ciclo per ciclo, errore per errore,
+  ERRATO in più, costo, token, tempo);
+- `prova.json`: gli stessi numeri, per il riepilogo;
+- una cartella per ciclo con il `report.json` completo.
+
+Dopo ogni prova si aggiorna da solo `runs\prove\riepilogo.md`: il **report finale** con tutte
+le prove (tabella delle prove, confronto con la base, prova migliore, errore per errore in quali
+prove è stato trovato, falsi errori).
+
+**Quando:** la prima volta con `$nome = "base"` (il punto di partenza); poi una prova per ogni
+miglioria, dopo **Aggiornare** (2.4). Una miglioria si tiene se gli errori trovati non scendono
+e i falsi errori restano 0. Se la miglioria tocca il modello, lancia la prova **due volte**.
+
+**A. Lanciare una prova** (costa come 10 cicli, qualche minuto). Cambia solo `$nome`:
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
 $nome = "base"
-$attesi = @{ "298bc28e" = @("005", "035"); "c5ff3cd6" = @("030", "040"); "f355dc3c" = @("010", "030", "040", "050"); "38960731" = @("050"); "5ff17062" = @("030"); "8d3c673c" = @("140"); "e9b74c84" = @("025") }
-$giuste = @("4e64d49a", "8bdb25d5", "04ecaabe")
 $foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
 $kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
 $radice = (Resolve-Path "..\..").Path
-$dieci = Get-ChildItem $radice -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*errori*" -or (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in $giuste } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-$tot = 0; $presi = 0; $falsi = 0; $altri = 0
-foreach ($f in $dieci) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); $out = "runs/prova-$nome-$h"; uv run cycle-validation run $f.FullName --profile mos --knowledge $v --config data/settings.yaml --out $out | Out-Null; $att = @($attesi[$h] | Where-Object { $_ }); $err = @(); if (Test-Path "$out/report.json") { $err = @((Get-Content "$out/report.json" -Raw | ConvertFrom-Json).results | Where-Object { $_.verdict -eq 'ERRATO' -and $_.target.kind -eq 'operation' } | ForEach-Object { ([int]$_.target.label).ToString('000') } | Sort-Object -Unique) } else { "$h NON ESEGUITO" }; $si = @($att | Where-Object { $_ -in $err }); $no = @($att | Where-Object { $_ -notin $err }); $piu = @($err | Where-Object { $_ -notin $att }); $tot += $att.Count; $presi += $si.Count; if ($h -in $giuste) { $falsi += $piu.Count } else { $altri += $piu.Count }; "$h trovati: $($si -join ',') · mancati: $($no -join ',') · ERRATO in più: $($piu -join ',')" }
-$riga = "$(Get-Date -Format 'yyyy-MM-dd HH:mm') $($nome): errori noti trovati $presi su $tot · falsi errori nei cicli giusti $falsi · ERRATO in più nei cicli con errori $altri"; $riga; Add-Content runs/prove-migliorie.txt $riga
+$dieci = Get-ChildItem $radice -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*errori*" -or (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in @("4e64d49a", "8bdb25d5", "04ecaabe") } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
+uv run cycle-validation eval prova @($dieci.FullName) --nome $nome --knowledge $v --config data/settings.yaml
 ```
 
-**Deve uscire:** 10 righe `<impronta> trovati: ... · mancati: ... · ERRATO in più: ...` e la riga
-di punteggio. Oggi (23-11 sera) il punteggio è circa **8 su 12**, **0 falsi errori**, 1 ERRATO in
-più (5ff17062 op 050, domanda P7).
+**Deve uscire:** una riga per ciclo (`<impronta> errori: trovati ... · mancati ... · ERRATO in
+più ...`), poi `Prova «...»: errori noti trovati N su 12 · falsi errori ... · costo ...` e i
+percorsi dei due report. Oggi (23-11 sera) circa **8 su 12** e **0 falsi errori**.
 
-**Come si legge:** una miglioria si tiene se i trovati **salgono o restano uguali** e i falsi
-errori restano **0**. Il modello non risponde sempre uguale: per una miglioria che tocca il
-modello (prompt, testo dato al modello) lancia il blocco **due volte** e guarda tutte e due.
+**B. Vedere il report dell'ultima prova** (gratis). Si apre in VS Code già impaginato:
 
-**Manda a Claude:** la foto.
+```powershell
+$ultima = Get-ChildItem runs/prove -Directory | Sort-Object Name | Select-Object -Last 1; code "$($ultima.FullName)/prestazioni.md"
+```
+
+Poi nella finestra del file premi **Ctrl+Shift+V** (anteprima). Per una prova più vecchia:
+`code runs/prove/<cartella>/prestazioni.md`.
+
+**C. Vedere il report finale con tutte le prove** (gratis):
+
+```powershell
+code runs/prove/riepilogo.md
+```
+
+Anche qui **Ctrl+Shift+V**. Per vederlo nel terminale invece: `Get-Content runs/prove/riepilogo.md`.
+
+**D. Rifare il report finale** (gratis; serve solo se hai cancellato o spostato una prova):
+
+```powershell
+$env:UV_PYTHON = "3.14"; uv run cycle-validation eval riepilogo
+```
+
+**E. Elenco delle prove fatte** (gratis): `Get-ChildItem runs/prove -Directory | Select-Object Name`
+
+Per **togliere** una prova dal riepilogo: cancella la sua cartella in `runs\prove\` e lancia D.
+
+**Manda a Claude:** la foto dell'output di A e dell'anteprima di `riepilogo.md`.
 
 ## 3. Persone
 
