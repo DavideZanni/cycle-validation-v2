@@ -218,9 +218,11 @@ versione pubblicata. Il controllo di Copilot sull'indice diceva che mancano alcu
 se l'indice non ha un task, lo cerca nel testo del manuale (`kb/task_text.py`). Per sapere
 quali mancano davvero alla v2 c'è il blocco COPILOT 4.2: `manuali` con la fotografia nuova, che
 per ogni task mancante dice perché (nel testo ma non come titolo, solo la sezione, non nel
-testo, forma non da task) e nel file sul PC scrive le righe del manuale dove compare. I «44
-conflitti» del controllo di Copilot c'erano già nella versione precedente (sono
-dell'ingestion, non della v2).
+testo, forma non da task) e nel file sul PC scrive le righe del manuale dove compare. Dal codice di
+`knowledge-index` (repository personale, collegato il 23-11): l'indice registra come titolo di
+un task solo il codice completo (`codice_task` in `regole.json`), quindi i titoli `REPAIR 00N`
+non li ha mai; i «conflitti» del report dell'indice sono targhe e schede con lo stesso codice
+e valori diversi (si uniscono con «; »), non riguardano i manuali. I 44 c'erano già prima.
 
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).

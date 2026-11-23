@@ -223,11 +223,9 @@ validation non trova questi task. Per ognuno c'è il motivo e le righe del manua
 [...]
 Per ogni task rispondi in una riga:
 1. il file markdown del manuale che dovrebbe contenerlo e se c'è nella versione pubblicata;
-2. come è scritto il titolo del task in quel file (copia la riga) e perché l'indice non lo
-   registra: guarda la regola dei titoli dei task in regole.json e il codice che la applica;
+2. come è scritto il titolo del task in quel file (copia la riga): comincia con il codice del
+   task? Il codice è spezzato su due righe o separato da altro testo?
 3. se il task non è nel testo: è nel PDF originale? A che pagina? L'estrazione l'ha perso?
-Poi, a parte: i 44 conflitti della versione pubblicata di che tipo sono (conta per tipo) e
-quali riguardano i 10 manuali nuovi di oggi?
 Alla fine scrivi un riepilogo di massimo 10 righe senza codici di manuali.
 ```
 
