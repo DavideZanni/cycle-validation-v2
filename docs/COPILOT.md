@@ -272,9 +272,6 @@ codici veri).
 - **P7. Indicazione lineare nell'ispezione FPI** (ciclo f355dc3c e la sua stampa giusta, op.
   050): il ciclo dice «lunga almeno **4** volte la larghezza», l'SPM «**3** volte o più». Il ciclo
   segue un'altra regola (manuale del motore) o è da correggere? La v2 oggi lo segna ERRATO.
-- **P9. Subtask giusto?** (298bc28e op. 005): la stampa con errori cita in più un subtask SPM di
-  raccordatura «del titanio su parti rotanti». Per questa pala va bene o è un altro lavoro? Se c'è
-  una regola (materiale del pezzo → subtask), la v2 la può controllare.
 - **P8. Riparazione senza task in testata** (c5ff3cd6, nota «applicazione lubrificante secco»;
   298bc28e): quale task del manuale vale per le operazioni che non ne citano uno?
 

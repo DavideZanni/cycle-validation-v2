@@ -49,7 +49,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
 
 | # | Cosa | Perché serve | Come si chiude | Chi |
 |---|---|---|---|---|
-| 1 | Misura sugli errori veri | la v2 trova 0 dei 10 errori dei cicli «con errori» | ingestion del manuale principale fatta il 23-11 (10 manuali); due correzioni nel 23-11 (titoli `CIR`, fonti con la sola sezione). Mancano i file di due REPAIR e il capitolo 70-23 dell'SPM (non sul PC); poi COPILOT 2.1 e 2.1b, Claude confronta con i 10 errori | U, poi C |
+| 1 | Misura sugli errori veri | controllo delle due lingue (23-11): 3 degli 8 errori noti dei tre cicli, più 4-5 negli altri cicli; cicli giusti puliti | ingestion del manuale principale fatta il 23-11 (10 manuali); due correzioni nel 23-11 (titoli `CIR`, fonti con la sola sezione). Mancano i file di due REPAIR e il capitolo 70-23 dell'SPM (non sul PC); poi COPILOT 2.1 e 2.1b, Claude confronta con i 10 errori | U, poi C |
 | 2 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Provato in locale il 22-11 (punto 4); da provare in QA | U |
 | 3 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto nel codice**: `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets` (22-11 sera); macchine attive come la v1 con `MACHINES_SOURCE=diretta`: `redshift_connector` con il secret `SECRET_NAME` (22-11 notte). Da provare in QA | C, poi U |
 | 4 | Prova in locale | è il passo prima di develop | **fatto** (22-11 notte): login, frontend e v2 da Run and Debug; ciclo MOS di esempio `Validation Passed` in circa 20 s, con accesso e permessi della v1. Configurazione in `AZIENDA.md`, sezione 7 | — |
@@ -347,6 +347,15 @@ conversione mm/pollici o °C/°F), ERRATO `INCOERENZA_LINGUE`. Misura gratis con
   contro 3 volte» della domanda P7;
 - f355dc3c op 030: verifica 1 CONTRADDIZIONE, verifiche 2 e 3 VERIFICATO (hanno letto il «10
   volte» inglese): ora la prende il controllo delle due lingue.
+
+**2.0 del 23-11 (17:49)**, `leggi --lingue` con i part number fuori dal confronto: i tre cicli
+giusti (04ecaabe, 4e64d49a, 8bdb25d5) **puliti**. Trovati: 298bc28e op 005 `035 → 029` (il
+codice cambiato è il subtask, cambiato **solo in italiano**: la domanda P9 non serve più),
+c5ff3cd6 op 040 `38 → 58`, f355dc3c op 030 `30 → 10, 0,5 → 1,5`; e negli altri cicli 5ff17062
+op 030, 38960731 op 050, 8d3c673c op 140, e9b74c84 op 025. Dei 8 errori noti dei tre cicli: 3
+trovati senza modello (005, c5ff3cd6 040, f355dc3c 030). Restano: 298bc28e op 035 (parole),
+c5ff3cd6 op 030 (scheda, P6), f355dc3c op 010 (numeri cambiati in tutte e due le lingue), 040
+(classe), 050 (frase).
 
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
