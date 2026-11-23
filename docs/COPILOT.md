@@ -32,22 +32,86 @@ del motore, due REPAIR della sezione 72-56-31, capitolo 70-23 dell'SPM) o rispos
 (P6, P7, P8). Le migliorie si provano e si scelgono con il blocco 2.3. Quello che è stato fatto
 e visto finora è in `MEMORIA.md`.
 
-**In ordine:**
+**In ordine.** Dopo ogni passo manda a Claude la foto di *Deve uscire*. Copilot sempre in
+**Ask**.
 
-1. **Aggiornare** (2.1) e **Salvare** (2.2).
-2. **Cicli veri e copie cieche** (gratis): 2.3 A0, poi 2.3 A1. Se puoi, prepara anche il
-   gruppo nascosto (2.3 N).
-3. **La base:** due prove con `$nome = "base"` e `$insieme = "piccolo"` (2.3 A), poi due con
-   `$insieme = "grande"` (si può lasciare girare mentre fai altro). Poi il riepilogo (2.3 C).
-4. **Le migliorie** della lista in `MIGLIORIE.md` («Da provare»), una alla volta, come dice 2.3
-   «Quando».
-5. **Prove dal frontend** (2.4) e **messaggio** al collega (3.2), se non l'hai già mandato.
-6. **Domande** alle persone (3.1): P6, P7, P8.
-7. **I file mancanti:** cercali dove prendi i manuali; se li trovi, 2.5.
-8. **Quando lo decidi tu:** pull request verso `develop` e prova in QA (sezione 4).
+**Fase 1: controllare che tutto funzioni (gratis)**
 
-Quando Claude dice di aver cambiato il codice: **Aggiornare** (2.1). Se è una miglioria: due
-prove con il suo nome sul piccolo (2.3 A) e il riepilogo (2.3 C); sul grande solo se si tiene.
+- [ ] 1. **Aggiornare** (2.1): solo `passed`, nessun `failed`.
+- [ ] 2. **Salvare** (2.2) nel repository aziendale.
+- [ ] 3. **Scegliere i cicli veri** (2.3 A0): esce «Scelti N: noti 10, veri …». Se N è più di
+  100, dillo a Claude: si mette un limite.
+- [ ] 4. **Fare le copie cieche** (2.3 A1): escono solo i conteggi per tipo. Mai foto di
+  `runs\mutazioni\errori.yaml`.
+- [ ] 5. (Facoltativo) **Gruppo nascosto** (2.3 N): errori messi a mano da te o da un collega in
+  copie di stampe vere, in `data\nascosti`. Niente foto di quei file.
+
+**Fase 2: la base (il punto di partenza)**
+
+- [ ] 6. Due prove con `$nome = "base"` e `$insieme = "piccolo"` (2.3 A): foto della riga finale
+  di ognuna.
+- [ ] 7. Due prove con `$insieme = "grande"`: durano a lungo, si possono lasciare girare.
+- [ ] 8. **Riepilogo** (2.3 C): foto delle tabelle.
+
+**Fase 3: migliorie senza codice nuovo (cambia solo `$nome`)**
+
+Per ognuna: due prove sul piccolo, poi il riepilogo (2.3 C). Se il riepilogo dice «si tiene»,
+due prove anche sul grande.
+
+- [ ] 9. `effort_medio`
+- [ ] 10. `conferme_1`
+- [ ] 11. `testo_lungo`
+- [ ] 12. `effort_pieno`
+- [ ] 13. `prompt_task_mancante`
+- [ ] 14. `concorrenza_12` (cambia solo il tempo)
+
+Quando una miglioria entra nella base: archivia le prove (2.3 F), rifai le copie cieche (2.3 A1)
+con un **seme nuovo** (`$seme = 2`, poi 3, ...), poi di nuovo la base (passi 6-8).
+
+**Fase 4: migliorie con codice nuovo (lo scrive Claude)**
+
+Quando Claude dice che il codice è pronto: **Aggiornare** (2.1), due prove sul piccolo con il
+nome della miglioria, riepilogo; se si tiene, due sul grande.
+
+- [ ] 15. `negazioni_lingue` (I1): senza modello, costo zero.
+- [ ] 16. `classi_lingue` (I2): senza modello, costo zero.
+- [ ] 17. `prompt_confronto` (I3)
+- [ ] 18. `numeri_manuale` (I4)
+- [ ] 19. `contesto_sezione` (I5)
+- [ ] 20. `fatti_incerti` (F5)
+- [ ] 21. `modello_grande_sui_dubbi` (I6): serve l'id di un modello più grande abilitato su
+  Bedrock.
+
+**Fase 5: tempo e costo (stessi errori trovati, meno costo o meno tempo)**
+
+- [ ] 22. **B1**, chiamata diretta a Bedrock (la scrive Claude).
+- [ ] 23. **Cache dei prompt** (H10): nel report, la riga dei token riletti dalla cache.
+- [ ] 24. **B4**, più operazioni insieme.
+
+**Fase 6: chiusura prima della QA**
+
+- [ ] 25. **Prova finale:** due prove sul grande con la base finale, poi il riepilogo: foto.
+- [ ] 26. **Prove dal frontend** (2.4): un ciclo MOS e un DR.
+- [ ] 27. **Salvare** (2.2).
+
+**Fase 7: QA (sezione 4)**
+
+- [ ] 28. **Pull request** da `feature/cycle-validation-v2` verso `develop`.
+- [ ] 29. **Prova in QA** dal frontend con un ciclo MOS e un DR: foto dell'intestazione dei
+  risultati.
+- [ ] 30. Se la v2 in QA non parte: `qa --torna-alla-v1` (sezione 4), poi Salvare e pull
+  request.
+- [ ] 31. **Cicli militari**, solo dopo una prova QA riuscita.
+
+**Attenzione:** quando il ramo arriva su `main`, anche la produzione passa alla v2. Prima serve
+una prova QA riuscita.
+
+**In parallelo, quando puoi:**
+
+- le **domande** alle persone (3.1): P6, P7, P8;
+- il **messaggio** al collega del frontend (3.2), se non l'hai già mandato;
+- i **file mancanti** (capitolo 70-23 dell'SPM, manuale d'ispezione del motore, due REPAIR della
+  sezione 72-56-31): cercali dove prendi i manuali; se li trovi, 2.5.
 
 ---
 
