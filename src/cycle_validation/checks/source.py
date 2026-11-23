@@ -7,7 +7,12 @@ from cycle_validation.checks.uncertainty import describe
 from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reason, Target
 from cycle_validation.domain.cycle import Source
 from cycle_validation.kb.port import DocumentInfo
-from cycle_validation.resolve.civil import resolve_document, version_key
+from cycle_validation.resolve.civil import (
+    cited_section,
+    resolve_document,
+    section_locations,
+    version_key,
+)
 
 CHECK = CheckName.SOURCE
 
@@ -40,6 +45,18 @@ def _check_one(ctx: CheckContext, target: Target, source: Source) -> CheckResult
         )
     assert source.task is not None
     location = ctx.kb.find_task(source.manual, source.task)
+    section = cited_section(source.task)
+    if location is None and section is not None:
+        found = section_locations(ctx.kb, source.manual, section)
+        if found:
+            keys = ", ".join(dict.fromkeys(item.document.key for item in found))
+            return make_result(
+                CHECK,
+                target,
+                Reason.VERIFICATO,
+                f"La sezione {section} è presente nel manuale ({keys}).",
+                evidence=[evidence_at(found[0].document, found[0].line_start)],
+            )
     if location is None:
         return make_result(
             CHECK,

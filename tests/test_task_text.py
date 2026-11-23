@@ -103,16 +103,51 @@ def test_spm_tasks_can_be_cited_by_section(tmp_path: Path) -> None:
         "a",
         "70-11-23 Removal of Coatings",
         "b",
-        "70-11-23-000-001 dentro la sezione",  # un task con la sezione come prefisso
+        "70-11-23-000-001 dentro la sezione",  # un task della stessa sezione: ne fa parte
         "c",
         "70-11-24 Altra pratica",
         "d",
     ]
-    assert find_task_in_text(lines, "70-11-23", sections=True) == (3, 4)
+    assert find_task_in_text(lines, "70-11-23", sections=True) == (3, 6)
     path = tmp_path / "spm.md"
     path.write_text("\n".join(lines) + "\n", "utf-8")
     spm = DocumentInfo(key="SPM_X", path=path, code="SPM-X", kind="SPM")
     kb = IndexedKnowledgeBase("v", documents=[spm])
     location = kb.find_task_in_kind("SPM", "70-11-23")
-    assert location is not None and (location.line_start, location.line_end) == (3, 4)
+    assert location is not None and (location.line_start, location.line_end) == (3, 6)
     assert kb.find_task("SPM-X", "70-11-23") is None  # citando il manuale serve il task intero
+
+
+def test_a_source_citing_only_the_section_brings_its_tasks(tmp_path: Path) -> None:
+    from cycle_validation.domain.cycle import Cycle
+    from cycle_validation.resolve.civil import cited_section, context_locations
+
+    files = {
+        "ispezione.md": ["intestazione", "CIR 11-22-33, INSPECTION 001", "a", "b"],
+        "repair.md": ["CIR 11-22-33, REPAIR 004", "c", "CIR 11-22-34, REPAIR 001", "d"],
+        "altro.md": ["CIR 11-22-35, REPAIR 001", "e"],
+    }
+    documents = []
+    for name, lines in files.items():
+        path = tmp_path / name
+        path.write_text("\n".join(lines) + "\n", "utf-8")
+        documents.append(DocumentInfo(key=name, path=path, code="MAN-X"))
+    kb = IndexedKnowledgeBase("v", documents=documents)
+    assert cited_section("CIR 11-22-33") == "11-22-33" and cited_section("11-22-33-100-001") is None
+    cycle = Cycle.model_validate(
+        {
+            "sources": [{"manual": "MAN-X", "task": "CIR 11-22-33", "repair_code": "A"}],
+            "operations": [
+                {
+                    "operation_number": "0010",
+                    "operation_description": "RIPARARE",
+                    "repair_code": "A",
+                }
+            ],
+        }
+    )
+    found = context_locations(cycle, cycle.operations[0], kb)
+    assert {(item.document.key, item.line_start, item.line_end) for item in found} == {
+        ("ispezione.md", 2, 4),
+        ("repair.md", 1, 2),
+    }

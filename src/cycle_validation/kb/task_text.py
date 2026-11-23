@@ -62,9 +62,21 @@ def _opens(line: str, pattern: re.Pattern[str]) -> bool:
 _ANY_SECTION = re.compile(_PREFIX.pattern + r"\d{2}-\d{2}-\d{2}\s+[A-Za-z]", re.IGNORECASE)
 
 
-def _opens_other(line: str, pattern: re.Pattern[str], sections: bool = False) -> bool:
+_SECTION_IN_LINE = re.compile(r"\d{2}-\d{2}-\d{2}")
+
+
+def _opens_other(
+    line: str, pattern: re.Pattern[str], sections: bool = False, section: str | None = None
+) -> bool:
+    """La riga apre un altro task. Cercando una sezione intera (`section`), solo un titolo di
+    un'altra sezione la chiude: i task della stessa sezione ne fanno parte."""
     heading = _ANY_TASK.match(line) or (sections and _ANY_SECTION.match(line))
-    return bool(heading) and not _TOC.search(line) and not _opens(line, pattern)
+    if not heading or _TOC.search(line) or _opens(line, pattern):
+        return False
+    if section is not None:
+        found = _SECTION_IN_LINE.search(line)
+        return found is None or found.group(0) != section
+    return True
 
 
 def find_task_in_text(
@@ -76,6 +88,7 @@ def find_task_in_text(
         return None
     wanted = normalize_code(task)
     pattern = _code_pattern(wanted)
+    section = wanted if _SECTION_SHAPE.fullmatch(wanted) else None
     best: tuple[int, int] | None = None
     index = 0
     while index < len(lines):
@@ -84,7 +97,7 @@ def find_task_in_text(
             continue
         start = index
         end = index + 1
-        while end < len(lines) and not _opens_other(lines[end], pattern, sections):
+        while end < len(lines) and not _opens_other(lines[end], pattern, sections, section):
             end += 1
         last = end
         while last > start + 1 and (

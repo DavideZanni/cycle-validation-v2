@@ -9,9 +9,12 @@ from cycle_validation.domain.check import Reason
 from cycle_validation.domain.cycle import Cycle, Operation, Source
 from cycle_validation.kb.documents import read_lines
 from cycle_validation.kb.port import DocumentInfo, KnowledgeBase, TaskLocation
+from cycle_validation.kb.task_text import find_task_in_text
 from cycle_validation.text import normalize_code
 
 _NUMBERS = re.compile(r"\d+")
+# Una fonte che cita solo la sezione ATA, con o senza `CIR` davanti (`CIR 72-00-01`).
+_SECTION_ONLY = re.compile(r"^(?:CIR)?(\d{2}-\d{2}-\d{2})$")
 
 # Il capitolo 70 dei manuali GE è quello delle pratiche standard: i suoi task stanno nel
 # manuale SPM anche quando il ciclo cita solo il manuale del motore ("TASK 70-11-00-350-002
@@ -131,6 +134,34 @@ def locate_task(kb: KnowledgeBase, manuals: Sequence[str], task: str) -> TaskLoc
     return None
 
 
+def cited_section(task: str | None) -> str | None:
+    """La sezione ATA, se la fonte cita solo quella (`CIR 72-00-01` → `72-00-01`)."""
+    match = _SECTION_ONLY.match(normalize_code(task or ""))
+    return match.group(1) if match else None
+
+
+def section_locations(kb: KnowledgeBase, manual: str, section: str) -> list[TaskLocation]:
+    """I task di una sezione ATA nei documenti del manuale: in ogni documento, dal primo titolo
+    della sezione (`CIR 72-00-01, REPAIR 002`, `72-00-01-110-001 ...`) al titolo di un'altra
+    sezione. Nei manuali GE ogni CIR (ispezione, ogni REPAIR) è spesso un file a sé."""
+    locations: list[TaskLocation] = []
+    for document in kb.find_manuals(manual):
+        if not document.published:
+            continue
+        found = find_task_in_text(read_lines(document.path), section, sections=True)
+        if found is not None:
+            locations.append(
+                TaskLocation(
+                    manual_key=document.key,
+                    task=section,
+                    document=document,
+                    line_start=found[0],
+                    line_end=found[1],
+                )
+            )
+    return locations
+
+
 def resolve_operation(cycle: Cycle, operation: Operation, kb: KnowledgeBase) -> OperationRefs:
     """Cerca ogni task code dell'operazione nei manuali delle fonti collegate (e, per il
     capitolo 70, nel manuale SPM)."""
@@ -192,13 +223,19 @@ def context_locations(
 
     Una fonte senza task può essere un documento che è tutto un task (LEAP): l'indice gli
     dà come codice del task il codice del documento, quindi si prova quello (e la chiave).
-    Un task DR senza manuale si cerca nei manuali citati dal ciclo per l'operazione."""
+    Un task DR senza manuale si cerca nei manuali citati dal ciclo per l'operazione. Una
+    fonte che cita solo la sezione ATA porta tutti i task di quella sezione."""
     found = resolve_operation(cycle, operation, kb).found
     if found:
         return _dedupe(found)
     sources = linked_sources(cycle, operation)
     pairs: list[tuple[str, str]] = []
+    sections: list[TaskLocation] = []
     for source in sources:
+        if (section := cited_section(source.task)) is not None:
+            # la fonte cita solo la sezione: tutti i suoi task nel manuale
+            sections += section_locations(kb, source.manual, section)
+            continue
         if source.task is not None:
             pairs.append((source.manual, source.task))
             continue
@@ -211,6 +248,7 @@ def context_locations(
     for manual, task in extra_tasks:
         lookups.append(([manual] if manual is not None else manuals, task))
     locations = [hit for names, task in lookups if (hit := locate_task(kb, names, task))]
+    locations += sections
     if not locations:
         locations = [whole_document(document) for document in extra_documents]
     return _dedupe(locations)

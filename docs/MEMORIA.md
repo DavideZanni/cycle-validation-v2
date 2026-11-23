@@ -49,7 +49,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
 
 | # | Cosa | Perché serve | Come si chiude | Chi |
 |---|---|---|---|---|
-| 1 | Misura sugli errori veri | oggi la v2 trova 0 dei 10 errori dei cicli «con errori», perché mancano i manuali | ingestion fatta il 23-11; COPILOT 2.3 (lista dei manuali con `manuali`) e 2.1 (i 7 cicli); Claude confronta con i 10 errori | U, poi C |
+| 1 | Misura sugli errori veri | la v2 trova 0 dei 10 errori dei cicli «con errori» | ingestion del manuale principale fatta il 23-11 (10 manuali); due correzioni nel 23-11 (titoli `CIR`, fonti con la sola sezione). Mancano i file di due REPAIR e il capitolo 70-23 dell'SPM (non sul PC); poi COPILOT 2.1 e 2.1b, Claude confronta con i 10 errori | U, poi C |
 | 2 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Provato in locale il 22-11 (punto 4); da provare in QA | U |
 | 3 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto nel codice**: `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets` (22-11 sera); macchine attive come la v1 con `MACHINES_SOURCE=diretta`: `redshift_connector` con il secret `SECRET_NAME` (22-11 notte). Da provare in QA | C, poi U |
 | 4 | Prova in locale | è il passo prima di develop | **fatto** (22-11 notte): login, frontend e v2 da Run and Debug; ciclo MOS di esempio `Validation Passed` in circa 20 s, con accesso e permessi della v1. Configurazione in `AZIENDA.md`, sezione 7 | — |
@@ -241,6 +241,16 @@ I 7 cicli con la correzione (16:15): ancora 0 errati in tutti (2-6 corretti, 15-
 Il controllo della descrizione, se un task citato dall'operazione manca, non confronta niente
 (`skip_missing_task`, FONTE_ASSENTE): per capire quale controllo ferma gli errori noti c'è il
 blocco COPILOT 2.1b.
+**2.1b del 23-11 (16:40)** sui tre cicli «con errori»:
+- 298bc28e op 035, c5ff3cd6 op 030 e 040, f355dc3c op 030: nessun task citato e nessun testo
+  delle fonti collegate (FONTE_ASSENTE). Causa probabile: le fonti citano solo la sezione
+  (`CIR <sezione>`). Corretto il 23-11 (`section_locations` in `resolve/civil.py`): una fonte con
+  la sola sezione porta i task di quella sezione in tutti i documenti del manuale; anche il
+  controllo `source` e il comando `manuali` la danno trovata;
+- 298bc28e op 005 e f355dc3c op 010: il modello ha avuto il task d'ispezione della sezione
+  72-56-32 e ha risposto EVIDENZA_NON_TROVATA (op 005: errore in un codice; op 010: tre numeri
+  cambiati). Da capire con la spiegazione intera (2.1b allungato);
+- f355dc3c op 040 e 050: fuori dalla foto.
 
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).

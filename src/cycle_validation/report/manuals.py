@@ -18,6 +18,7 @@ from cycle_validation.kb.documents import read_lines
 from cycle_validation.kb.memory import IndexedKnowledgeBase
 from cycle_validation.kb.port import DocumentInfo, KnowledgeBase
 from cycle_validation.kb.task_text import is_task_code, lines_with, task_section
+from cycle_validation.resolve.civil import cited_section, section_locations
 
 _SPACES = re.compile(r"\s+")
 _SPM_PREFIX = "70-"
@@ -163,6 +164,15 @@ class ManualsFound:
     military: list[str] = field(default_factory=list)  # cicli EJ200 lasciati fuori
 
 
+def _found(kb: KnowledgeBase, manual: str, task: str) -> bool:
+    """Come la v2: il task nel manuale, oppure, se la fonte cita solo la sezione, almeno un
+    task di quella sezione."""
+    if kb.find_task(manual, task) is not None:
+        return True
+    section = cited_section(task)
+    return section is not None and bool(section_locations(kb, manual, section))
+
+
 def needed_manuals(
     cycles: list[CycleSeen],
     errors: dict[str, set[str]],
@@ -233,7 +243,7 @@ def needed_manuals(
             need.in_knowledge = bool(kb.find_manuals(need.code))
             if need.in_knowledge:
                 need.missing_tasks = {
-                    task for task in need.tasks if kb.find_task(need.code, task) is None
+                    task for task in need.tasks if not _found(kb, need.code, task)
                 }
     manuals = sorted(
         found.values(),
