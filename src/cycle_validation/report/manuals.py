@@ -17,6 +17,9 @@ from cycle_validation.errors import CycleValidationError
 from cycle_validation.kb.port import KnowledgeBase
 
 _SPACES = re.compile(r"\s+")
+_SPM_PREFIX = "70-"
+SPM = "SPM (pratiche standard, task 70-)"
+_MAX_OTHER_FILES = 30
 
 
 def _code(value: object) -> str:
@@ -54,6 +57,7 @@ class CycleSeen:
     sources: list[dict[str, Any]]
     operations: list[dict[str, Any]]
     reasons: dict[int, str] = field(default_factory=dict)
+    military: bool = False  # ciclo EJ200: la sua conoscenza resta su AWS, fuori dalla lista
 
 
 def from_report(name: str, report: dict[str, Any]) -> CycleSeen:
@@ -73,9 +77,11 @@ def from_report(name: str, report: dict[str, Any]) -> CycleSeen:
     )
 
 
-def from_cycle(name: str, cycle: Cycle) -> CycleSeen:
+def from_cycle(name: str, cycle: Cycle, *, military: bool = False) -> CycleSeen:
     data = cycle.model_dump()
-    return CycleSeen(name=name, sources=data["sources"], operations=data["operations"])
+    return CycleSeen(
+        name=name, sources=data["sources"], operations=data["operations"], military=military
+    )
 
 
 @dataclass
@@ -88,6 +94,9 @@ class ManualNeed:
     error_ops: dict[str, set[str]] = field(default_factory=dict)
     in_knowledge: bool | None = None  # None: nessuna conoscenza locale data
     missing_tasks: set[str] = field(default_factory=set)
+    standard_practices: bool = False  # i task 70- (manuale SPM)
+    files: list[str] = field(default_factory=list)  # PDF sul PC con il codice nel percorso
+    chapter_files: list[str] = field(default_factory=list)  # ... e un capitolo citato nel nome
 
     @property
     def chapters(self) -> list[str]:
@@ -126,6 +135,8 @@ class ManualsFound:
     loose_tasks: dict[str, set[str]]
     # operazioni con un errore noto che non portano a nessun manuale delle fonti del ciclo
     unmatched: list[str]
+    files_checked: bool = False  # match_files è stato chiamato
+    military: list[str] = field(default_factory=list)  # cicli EJ200 lasciati fuori
 
 
 def needed_manuals(
@@ -133,45 +144,68 @@ def needed_manuals(
     errors: dict[str, set[str]],
     kb: KnowledgeBase | None = None,
 ) -> ManualsFound:
-    """Il nome di un ciclo si confronta con le impronte di `errors` (per esempio
-    `errori-298bc28e` o `298bc28e` con `298bc28e`)."""
+    """Come la v2 (`resolve/civil.py`): i task di un'operazione stanno nei manuali delle fonti
+    con lo stesso repair code (se nessuna, tutte le fonti del ciclo); quelli del capitolo 70 nel
+    manuale SPM. Un'operazione senza task si confronta con le fonti collegate. Il nome di un
+    ciclo si confronta con le impronte di `errors` (`errori-298bc28e` o `298bc28e`)."""
     found: dict[str, ManualNeed] = {}
     loose: dict[str, set[str]] = {}
     unmatched: list[str] = []
+    military = sorted(seen.name for seen in cycles if seen.military)
     for seen in cycles:
-        by_task: dict[str, set[str]] = {}
+        if seen.military:
+            continue
+        linked_by: list[tuple[str, str]] = []  # (manuale, repair code della fonte)
         for index, source in enumerate(seen.sources):
             code = _code(source.get("manual"))
             if not code:
                 continue
             need = found.setdefault(code, ManualNeed(code=str(source.get("manual")).strip()))
             need.cycles.add(seen.name)
+            linked_by.append((code, _code(source.get("repair_code"))))
             if source.get("issue"):
                 need.issues.add(str(source["issue"]).strip())
             task = _code(source.get("task"))
             if task:
                 need.tasks.add(task)
-                by_task.setdefault(task, set()).add(code)
             if seen.reasons.get(index):
                 need.reasons[seen.reasons[index]] += 1
+        all_manuals = list(dict.fromkeys(code for code, _ in linked_by))
         wanted = next((ops for key, ops in errors.items() if key in seen.name.lower()), set())
         for operation in seen.operations:
+            repair = _code(operation.get("repair_code"))
+            same = [code for code, rc in linked_by if repair and rc == repair]
+            linked = list(dict.fromkeys(same)) or all_manuals
             tasks = [_code(task) for task in operation.get("task_codes") or [] if _code(task)]
+            own: set[str] = set()
             for task in tasks:
-                if task not in by_task:
+                if task.startswith(_SPM_PREFIX):
+                    spm = found.setdefault(SPM, ManualNeed(code=SPM, standard_practices=True))
+                    spm.tasks.add(task)
+                    spm.cycles.add(seen.name)
+                    own.add(SPM)
+                elif linked:
+                    for code in linked:
+                        found[code].tasks.add(task)
+                    own.update(linked)
+                else:
                     loose.setdefault(task, set()).add(seen.name)
             number = _op(operation.get("operation_number"))
             if number not in wanted:
                 continue
-            codes = {code for task in tasks for code in by_task.get(task, set())}
-            if not codes:
-                unmatched.append(
-                    f"{seen.name} op {number}: {len(tasks)} task, nessuno nelle fonti del ciclo"
-                )
-            for code in codes:
+            targets = own or set(linked)
+            if not targets:
+                unmatched.append(f"{seen.name} op {number}: il ciclo non cita nessun manuale")
+            for code in targets:
                 found[code].error_ops.setdefault(seen.name, set()).add(number)
     if kb is not None:
         for need in found.values():
+            if need.standard_practices:
+                need.missing_tasks = {
+                    task for task in need.tasks if kb.find_task_in_kind("SPM", task) is None
+                }
+                need.in_knowledge = len(need.missing_tasks) < len(need.tasks)
+                continue
             need.in_knowledge = bool(kb.find_manuals(need.code))
             if need.in_knowledge:
                 need.missing_tasks = {
@@ -186,7 +220,37 @@ def needed_manuals(
         cycles=sorted(seen.name for seen in cycles),
         loose_tasks=loose,
         unmatched=unmatched,
+        military=military,
     )
+
+
+def _letters(text: str) -> str:
+    return re.sub(r"[^0-9A-Z]", "", text.upper())
+
+
+def _chapter_pattern(chapter: str) -> re.Pattern[str]:
+    parts = [re.escape(part) for part in chapter.split("-") if part]
+    return re.compile(r"(?<![0-9])" + r"[-_ .]?".join(parts) + r"(?![0-9])")
+
+
+def match_files(result: ManualsFound, paths: list[str]) -> None:
+    """I PDF sul PC che sembrano i file di ogni manuale: il codice del manuale (o «SPM») nel
+    percorso; tra questi, quelli con un capitolo citato nel nome del file."""
+    result.files_checked = True
+    flat = [(path, _letters(path)) for path in paths]
+    for need in result.manuals:
+        key = "SPM" if need.standard_practices else _letters(need.code)
+        if len(key) < 3:
+            continue
+        need.files = sorted(path for path, letters in flat if key in letters)
+        patterns = [_chapter_pattern(chapter) for chapter in need.chapters]
+        need.chapter_files = [
+            path
+            for path in need.files
+            if any(
+                pattern.search(path.replace("\\", "/").rsplit("/", 1)[-1]) for pattern in patterns
+            )
+        ]
 
 
 def _ops(need: ManualNeed) -> str:
@@ -204,14 +268,21 @@ def screen_lines(result: ManualsFound) -> list[str]:
             f"M{number}: {need.state} · {len(need.cycles)} cicli · {len(need.tasks)} task in "
             f"{len(need.chapters)} capitoli"
         )
+        if need.standard_practices:
+            line += " (SPM)"
         if need.error_ops:
             line += f" · serve per {need.error_count} errori ({_ops(need)})"
+        if result.files_checked:
+            line += (
+                f" · PDF sul PC: {len(need.files)}, dei capitoli citati: {len(need.chapter_files)}"
+            )
         lines.append(line)
+    if result.military:
+        lines.append(f"cicli EJ200 lasciati fuori (conoscenza solo su AWS): {len(result.military)}")
     if result.loose_tasks:
         chapters = {_chapter(task) for task in result.loose_tasks}
         lines.append(
-            f"task senza manuale nelle fonti del ciclo: {len(result.loose_tasks)} in "
-            f"{len(chapters)} capitoli"
+            f"task di cicli senza fonti: {len(result.loose_tasks)} in {len(chapters)} capitoli"
         )
     return lines
 
@@ -238,17 +309,28 @@ def file_lines(result: ManualsFound, names: dict[str, list[str]] | None = None) 
         if need.error_ops:
             lines.append(f"    serve per gli errori: {_ops(need)}")
         lines.append(f"    cicli: {', '.join(sorted(need.cycles))}")
+        if result.files_checked:
+            lines.append(f"    PDF sul PC con un capitolo citato: {len(need.chapter_files)}")
+            lines.extend(f"        {path}" for path in need.chapter_files)
+            others = [path for path in need.files if path not in need.chapter_files]
+            lines.append(f"    altri PDF sul PC con il codice del manuale: {len(others)}")
+            lines.extend(f"        {path}" for path in others[:_MAX_OTHER_FILES])
+            if len(others) > _MAX_OTHER_FILES:
+                lines.append(f"        ... e altri {len(others) - _MAX_OTHER_FILES}")
         lines.append("")
     if result.loose_tasks:
-        lines.append(
-            "Task citati dalle operazioni ma da nessuna fonte del ciclo (manuale da capire,"
-        )
-        lines.append("per esempio SPM per i task 70-):")
+        lines.append("Task di cicli che non citano nessun manuale (manuale da capire):")
         for task in sorted(result.loose_tasks):
             lines.append(
                 f"    {task}  (capitolo {_chapter(task)}; cicli: "
                 f"{', '.join(sorted(result.loose_tasks[task]))})"
             )
+        lines.append("")
+    if result.military:
+        lines.append(
+            "Cicli EJ200, lasciati fuori: la loro conoscenza resta su AWS (ingestion ej200):"
+        )
+        lines.append(f"    {', '.join(result.military)}")
         lines.append("")
     if result.unmatched:
         lines.append("Operazioni con errore senza un manuale tra le fonti del ciclo:")

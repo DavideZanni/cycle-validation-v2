@@ -37,12 +37,14 @@ from cycle_validation.golden import GoldenCase, load_cases, run_golden
 from cycle_validation.ingest.pdf import read_pdf, read_pdf_bytes
 from cycle_validation.ingest.transcribe import make_transcriber
 from cycle_validation.kb.local import load_local_knowledge
+from cycle_validation.module_kind import EJ200, detect_module_kind
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
 from cycle_validation.report.manuals import (
     CycleSeen,
     file_lines,
     from_cycle,
     from_report,
+    match_files,
     needed_manuals,
     parse_errors,
     screen_lines,
@@ -522,6 +524,7 @@ def list_manuals(
     cycles: dict[str, CycleSeen] = {}
     names: dict[str, list[str]] = {}
     pdfs: list[Path] = []
+    hash_of: dict[str, str] = {}
     for path in percorsi:
         if path.is_dir() and (path / "report.json").is_file():
             try:
@@ -545,17 +548,21 @@ def list_manuals(
             continue
         name = hashlib.sha256(data).hexdigest()[:8]
         names.setdefault(name, []).append(pdf_path.name)
+        hash_of[str(pdf_path)] = name
         if name in cycles:
             continue
         try:
-            cycles[name] = from_cycle(
-                name, parse_pvrm320(read_pdf_bytes(data, pdf_path.name, limits))
-            )
+            pdf = read_pdf_bytes(data, pdf_path.name, limits)
+            military = detect_module_kind(pdf.text, settings.module_check) == EJ200
+            cycles[name] = from_cycle(name, parse_pvrm320(pdf), military=military)
         except CycleValidationError:
             unread += 1
     if not cycles:
         raise _fail(CycleValidationError("Nessun ciclo letto: niente da elencare."))
     result = needed_manuals(list(cycles.values()), errors, kb)
+    # i PDF che non sono cicli possono essere i file dei manuali: si collegano alla lista
+    cycle_files = {str(path) for path in pdfs if hash_of.get(str(path)) in cycles}
+    match_files(result, [str(path) for path in pdfs if str(path) not in cycle_files])
     out.parent.mkdir(parents=True, exist_ok=True)
     read = {name: files for name, files in names.items() if name in cycles}
     out.write_text("\n".join(file_lines(result, read)) + "\n", encoding="utf-8")

@@ -197,12 +197,15 @@ code runs\manuali-da-ingestionare.txt
 **Deve uscire:**
 
 1. `conoscenza: foto-... · v/...`;
-2. `Stampe: N file, N diverse; cicli letti: N; non lette: N`;
-3. `Manuali citati: N; da ingestionare: N.`, poi una riga per manuale
-   (`M1: manca · N cicli · N task in N capitoli · serve per N errori (...)`) e forse la riga
-   `task senza manuale nelle fonti del ciclo` (di solito i task `70-` del manuale SPM).
+2. `Stampe: N file, N diverse; cicli letti: N; non lette: N` (i non letti sono soprattutto i
+   PDF dei manuali);
+3. `Manuali citati: N; da ingestionare: N.`, poi una riga per manuale:
+   `M1: manca · N cicli · N task in N capitoli · serve per N errori (...) · PDF sul PC: N, dei
+   capitoli citati: N`. Il manuale SPM (task `70-`) ha la sua riga con `(SPM)`;
+4. `cicli EJ200 lasciati fuori (conoscenza solo su AWS): N`.
 
-Poi si apre il file con la lista.
+Poi si apre il file con la lista. Per ogni manuale, sotto `PDF sul PC con un capitolo citato`,
+ci sono i file del PC che sembrano proprio quelli da ingestionare.
 
 **Cosa ingestionare:** tutti i manuali con stato `manca` o `c'è, ma mancano ...`, solo i
 capitoli scritti nel file. Se non c'è tempo per tutti, parti dall'alto: prima quelli con
