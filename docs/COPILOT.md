@@ -72,6 +72,26 @@ terminale e rilancia.
 
 **Manda a Claude:** la foto delle righe `tolto:` (se ci sono) e del risultato dei test.
 
+**Chat di Claude lasciate dalle validazioni (una volta, dopo Aggiornare).** Ogni validazione
+lanciata sul PC (Bedrock, non Copilot) lasciava una chat per operazione nella cartella delle chat
+di Claude Code (`.claude\projects` nella tua cartella utente). Per questo il pannello di Claude
+in VS Code ne mostra tante con i nomi delle operazioni. Dopo Aggiornare la v2 non le scrive
+più. Questo blocco **sposta** (non cancella) quelle vecchie in `.claude\chat-validazioni-v2`:
+solo le cartelle della v2 (`...cycle-validation-v2...`) e della conoscenza scaricata dal servizio
+in locale (`...cycle-validation-knowledge...`). Le tue chat di Claude delle altre cartelle
+restano dove sono.
+
+```powershell
+$chat = Join-Path $HOME ".claude\projects"; $via = Join-Path $HOME ".claude\chat-validazioni-v2"; New-Item -ItemType Directory -Force $via | Out-Null
+$v2 = @(Get-ChildItem $chat -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'cycle-validation-v2|cycle-validation-knowledge' }); "cartelle della v2: " + $v2.Count + " · chat: " + @($v2 | ForEach-Object { Get-ChildItem $_.FullName -Filter *.jsonl }).Count
+$v2 | ForEach-Object { Move-Item $_.FullName (Join-Path $via $_.Name) -Force }; "rimaste in projects: " + @(Get-ChildItem $chat -Directory -ErrorAction SilentlyContinue).Count + " cartelle"
+```
+
+**Deve uscire:** `cartelle della v2: N · chat: N` e `rimaste in projects: N cartelle`. Chiudi e
+riapri il pannello di Claude: le chat delle operazioni non ci sono più. Se ne vedi ancora, manda
+a Claude la foto del pannello. Se un giorno non servono più, cancella la cartella
+`chat-validazioni-v2`.
+
 ---
 
 ## 3. Salvare nel repository aziendale

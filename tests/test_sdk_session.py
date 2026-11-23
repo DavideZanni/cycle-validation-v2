@@ -82,6 +82,7 @@ def test_options_without_tools_have_no_tools_and_no_hooks() -> None:
     assert options.setting_sources == []
     assert options.strict_mcp_config is True
     assert options.permission_mode == "dontAsk"
+    assert options.extra_args == {"no-session-persistence": None}  # nessuna chat su disco
     assert options.output_format == {"type": "json_schema", "schema": {"type": "object"}}
 
 

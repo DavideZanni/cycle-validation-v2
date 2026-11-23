@@ -146,6 +146,9 @@ class SdkAgentSession:
             hooks=cast(Any, hooks) or None,
             output_format={"type": "json_schema", "schema": request.output_schema},
             env=self._environment(),
+            # niente chat salvate in ~/.claude/projects: ogni sessione è usa e getta e i testi
+            # dei manuali non restano sul disco (si vedrebbero tra le chat di Claude in VS Code)
+            extra_args={"no-session-persistence": None},
         )
         effort = request.effort or settings.effort
         if effort is not None:
