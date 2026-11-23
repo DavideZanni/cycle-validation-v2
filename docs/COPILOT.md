@@ -23,7 +23,7 @@ prove, ma il codice lo cambia solo Claude.
 
 ---
 
-## 1. Dove siamo e cosa manca (22-11-2026)
+## 1. Dove siamo e cosa manca (23-11-2026)
 
 **Fatto:** la v2 gira in locale al posto della v1, con login e frontend (`Validation Passed`
 sul ciclo MOS di esempio). Il comando `qa` ha scritto un Dockerfile e un buildspec giusti
@@ -31,13 +31,15 @@ sul ciclo MOS di esempio). Il comando `qa` ha scritto un Dockerfile e un buildsp
 
 **Cosa manca, nell'ordine:**
 
-1. **Aggiornare** (sezione 2): porta sul PC il comando nuovo `manuali`.
-2. **Lista dei manuali** da ingestionare (4.2): tutti quelli che servono ai cicli di prova.
-3. **Salvare** (sezione 3), sul ramo feature. QA non cambia.
-4. **Ingestion** dei manuali della lista (la fai tu, con l'ingestion aziendale), poi **4.3**.
-5. **Prove in locale dal frontend** (4.1), meglio dopo l'ingestion.
-6. **Messaggio** al collega del frontend (5.1), se non l'hai già mandato.
-7. **Più avanti, quando lo decidi tu:** pull request verso `develop` e prova in QA
+1. **Aggiornare** (sezione 2): porta sul PC il comando `manuali` e le sessioni senza chat su
+   disco.
+2. **Chat lasciate dalle validazioni** (blocco in fondo alla sezione 2), una volta.
+3. **Lista dei manuali** da ingestionare (4.2).
+4. **Salvare** (sezione 3), sul ramo feature. QA non cambia.
+5. **Ingestion** dei manuali della lista (la fai tu, con l'ingestion aziendale), poi **4.3**.
+6. **Prove in locale dal frontend** (4.1), dopo l'ingestion.
+7. **Messaggio** al collega del frontend (5.1), se non l'hai già mandato.
+8. **Più avanti, quando lo decidi tu:** pull request verso `develop` e prova in QA
    (sezione 6).
 
 ---
