@@ -377,6 +377,16 @@ COPILOT 2.3). Nuova numerazione: 2.1 Aggiornare, 2.2 Salvare, 2.3 Prove delle mi
 Frontend, 2.5 Dopo una nuova ingestion (fotografia e lista dei manuali). Nelle note sopra i
 numeri dei blocchi sono quelli vecchi. Metriche e regola di scelta: `MIGLIORIE.md`.
 
+**Due insiemi di prova (23-11 sera).** L'utente vuole provare le migliorie anche su più cicli.
+Insieme **piccolo** = i 10 cicli noti (`runs/prove-piccolo`); insieme **grande** = i 10 più 20
+cicli veri civili con almeno l'80% delle operazioni confrontabili con la conoscenza, scelti da
+`eval scegli` (zero token, lista dei percorsi in `runs/prove-grande/cicli.txt`, solo sul PC).
+Un ciclo vero non ha errori noti: tipo `vero`, i suoi ERRATO sono «da verificare», i suoi
+WARNING contano nel lavoro a mano. Si confrontano solo prove sullo stesso insieme (colonna
+«Cicli» con l'impronta dell'insieme nel riepilogo). Una miglioria con file
+`eval/varianti/<nome>.yaml` si lancia con `eval prova --variante`; il blocco 2.3 A lo fa da
+solo. La lista delle migliorie da provare è in `MIGLIORIE.md`, «Da provare».
+
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
 

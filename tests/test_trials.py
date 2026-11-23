@@ -159,3 +159,26 @@ def test_a_variant_that_loses_a_stable_error_is_not_kept(tmp_path: Path) -> None
     variants = {v.name: v for v in build_variants(trials)}
     # stessi numeri (1 stabile), ma non è meglio: si resta sulla base
     assert variants["altra"].decision == "non si tiene: non è meglio della base"
+
+
+def test_a_real_cycle_has_no_known_errors_and_counts_apart(tmp_path: Path) -> None:
+    known = _known(tmp_path)
+    reports = [_report("aaaa1111", ["005"]), _report("dddd4444", ["010"])]
+    scores = [score_cycle(r, known) for r in reports]
+    assert scores[1].kind == "vero" and [f.op for f in scores[1].extra] == ["010"]
+    trial = build_trial("base", datetime(2030, 1, 1, 9), reports, scores)
+    assert (trial.false_errors, trial.extra_errors, trial.real_errors) == (0, 1, 1)
+    assert trial.real_cycles == 1
+    assert "nei 1 cicli veri: 1) | 1 |" in render_trial(trial)
+
+
+def test_the_summary_warns_when_trials_use_different_cycles(tmp_path: Path) -> None:
+    known = _known(tmp_path)
+    small = _trial(tmp_path, "base", 9, ["005"])
+    reports = [_report("aaaa1111", ["005"]), _report("dddd4444", [])]
+    big = build_trial(
+        "base", datetime(2030, 1, 1, 10), reports, [score_cycle(r, known) for r in reports]
+    )
+    assert small.cycle_set != big.cycle_set
+    assert "non sono tutte sugli stessi cicli" in render_summary([small, big])
+    assert "non sono tutte sugli stessi cicli" not in render_summary([small, small])

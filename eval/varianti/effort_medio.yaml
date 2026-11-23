@@ -1,0 +1,5 @@
+nome: effort_medio
+descrizione: ragionamento medium nei controlli invece di low (frasi al contrario, parole cambiate)
+base: baseline
+agent:
+  effort: medium

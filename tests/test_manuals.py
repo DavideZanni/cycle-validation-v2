@@ -226,3 +226,84 @@ def test_missing_tasks_say_why(tmp_path: Path) -> None:
     text = "\n".join(file_lines(result))
     assert "99-30-05-200-001: nel testo c'è solo la sua sezione" in text
     assert "MAN-DEMO-99 riga 4: Figura 99-30-05 pagina 3" in text
+
+
+def test_coverage_counts_the_operations_the_v2_can_compare() -> None:
+    from cycle_validation.report.manuals import cycle_coverage
+
+    kb = load_local_knowledge(KNOWLEDGE)
+    seen = from_report(
+        "x",
+        _report(
+            [("MAN-DEMO-72", "72-00-01-110-001", "VERIFICATO", "R2")],
+            [
+                ("010", "R2", ["72-00-01-110-001"]),  # nella conoscenza
+                ("020", "R2", []),  # senza task: il manuale della fonte c'è
+                ("030", "R2", ["72-99-99-999-999"]),  # task che non c'è
+            ],
+        ),
+    )
+    assert cycle_coverage(seen, kb) == (2, 3)
+    missing = from_report("y", REPORTS["errori-bbbb2222"])
+    assert cycle_coverage(missing, kb) == (0, 1)
+
+
+def test_choose_puts_the_known_cycles_first_and_adds_real_ones(tmp_path: Path) -> None:
+    import hashlib
+
+    prints = tmp_path / "stampe"
+    prints.mkdir()
+    known_pdf = build_pdf(civil_pages())
+    other = build_pdf([p.replace("B1", "B2") for p in civil_pages()])
+    (prints / "noto.pdf").write_bytes(known_pdf)
+    (prints / "copia.pdf").write_bytes(known_pdf)
+    (prints / "vero.pdf").write_bytes(other)
+    military = [page.replace("MOTORE-1/MOTORE-2", "EJ200") for page in ej200_pages()]
+    (prints / "militare.pdf").write_bytes(build_pdf(military))
+    noted = hashlib.sha256(known_pdf).hexdigest()[:8]
+    attesi = tmp_path / "attesi.yaml"
+    attesi.write_text(f"cicli:\n  '{noted}':\n    giusto: true\n  ffff0000:\n    giusto: true\n")
+    out = tmp_path / "cicli.txt"
+    args = ["eval", "scegli", str(prints), "--knowledge", str(KNOWLEDGE), "--attesi", str(attesi)]
+    result = CliRunner().invoke(cli.app, [*args, "--copertura", "0", "--out", str(out)])
+    assert result.exit_code == 0, result.output
+    assert "Scelti 2: noti 1, veri 1." in result.output
+    assert "lasciati fuori (EJ200 (la sua conoscenza resta su AWS)): 1" in result.output
+    assert "non trovati: ffff0000" in result.output
+    assert "vero.pdf" not in result.output  # sullo schermo solo impronte
+    lines = out.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 2 and lines[0].endswith(("noto.pdf", "copia.pdf"))
+    assert lines[1].endswith("vero.pdf")
+    result = CliRunner().invoke(cli.app, [*args, "--quanti", "1", "--out", str(out)])
+    assert "Scelti 1: noti 1, veri 0." in result.output
+
+
+def test_trial_needs_a_name_or_a_variant(tmp_path: Path) -> None:
+    pdf = tmp_path / "c.pdf"
+    pdf.write_bytes(build_pdf(civil_pages()))
+    result = CliRunner().invoke(cli.app, ["eval", "prova", str(pdf), "--knowledge", str(KNOWLEDGE)])
+    assert result.exit_code == 1 and "Manca --nome" in result.output
+    empty = tmp_path / "vuota.txt"
+    empty.write_text("\n")
+    result = CliRunner().invoke(
+        cli.app, ["eval", "prova", "--lista", str(empty), "--nome", "x", "--knowledge", "k"]
+    )
+    assert result.exit_code == 1 and "Nessun PDF" in result.output
+
+
+def test_trial_with_a_missing_variant_fails_clearly(tmp_path: Path) -> None:
+    pdf = tmp_path / "c.pdf"
+    pdf.write_bytes(build_pdf(civil_pages()))
+    result = CliRunner().invoke(
+        cli.app,
+        ["eval", "prova", str(pdf), "--knowledge", "k", "--variante", str(tmp_path / "x.yaml")],
+    )
+    assert result.exit_code == 1 and "Variante non trovata" in result.output
+
+
+def test_every_variant_file_loads() -> None:
+    from cycle_validation.evaluation.variant import load_variant
+
+    for path in sorted(Path("eval/varianti").glob("*.yaml")):
+        variant = load_variant(path)
+        assert variant.name == path.stem

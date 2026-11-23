@@ -8,9 +8,12 @@ apposta e conosciuti, e le stampe giuste da cui sono stati fatti). Per ogni prov
 Gli errori noti stanno in un file YAML (`eval/errori-noti.yaml`): per ogni ciclo, indicato con
 le prime 8 cifre dell'impronta SHA-256 del PDF, le operazioni sbagliate apposta con una breve
 descrizione, oppure `giusto: true` per una stampa senza errori. Niente codici veri: solo
-impronte, numeri di operazione e descrizioni generiche.
+impronte, numeri di operazione e descrizioni generiche. Un ciclo che non è nel file è un
+ciclo *vero* (una stampa in uso, scelta da `eval scegli`): non ha errori noti, i suoi ERRATO
+sono da verificare e i suoi WARNING contano nel lavoro a mano.
 """
 
+import hashlib
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
@@ -91,7 +94,7 @@ class Missed(_Strict):
 
 class CycleScore(_Strict):
     fingerprint: str
-    kind: str  # "errori" | "giusto" | "sconosciuto"
+    kind: str  # "errori" | "giusto" | "vero"
     status: str
     counts: dict[str, int] = Field(default_factory=dict)
     found: list[Finding] = Field(default_factory=list)
@@ -126,7 +129,23 @@ class Trial(_Strict):
 
     @property
     def extra_errors(self) -> int:
+        """ERRATO da verificare: nei cicli con errori fuori lista e nei cicli veri."""
         return sum(len(c.extra) for c in self.cycles if c.kind != "giusto")
+
+    @property
+    def real_errors(self) -> int:
+        """La parte di `extra_errors` nei cicli veri (non rivisti)."""
+        return sum(len(c.extra) for c in self.cycles if c.kind == "vero")
+
+    @property
+    def real_cycles(self) -> int:
+        return sum(1 for c in self.cycles if c.kind == "vero")
+
+    @property
+    def cycle_set(self) -> str:
+        """Impronta dell'insieme dei cicli: si confrontano solo prove sugli stessi cicli."""
+        names = ",".join(sorted(c.fingerprint for c in self.cycles))
+        return hashlib.sha256(names.encode()).hexdigest()[:6]
 
     @property
     def cost_usd(self) -> float:
@@ -155,8 +174,9 @@ class Trial(_Strict):
 
     @property
     def clean_warnings(self) -> float:
-        """WARNING per ciclo giusto: il lavoro a mano che la v2 lascia su un ciclo senza errori."""
-        clean = [c for c in self.cycles if c.kind == "giusto" and not c.failure]
+        """WARNING per ciclo senza errori noti (giusti e veri): il lavoro a mano che la v2
+        lascia su un ciclo senza errori."""
+        clean = [c for c in self.cycles if c.kind in ("giusto", "vero") and not c.failure]
         return sum(c.counts.get("warning", 0) for c in clean) / len(clean) if clean else 0.0
 
     @property
@@ -183,7 +203,7 @@ def score_cycle(report: Report, known: KnownErrors) -> CycleScore:
     """Punteggio di un ciclo: ERRATO sulle operazioni confrontati con gli errori noti."""
     fingerprint = report.meta.pdf_sha256[:8].lower()
     entry = known.cycle(fingerprint)
-    kind = "sconosciuto" if entry is None else ("giusto" if entry.giusto else "errori")
+    kind = "vero" if entry is None else ("giusto" if entry.giusto else "errori")
     expected = entry.errori if entry is not None else {}
     errato: dict[str, Finding] = {}
     said: dict[str, str] = {}
@@ -228,7 +248,7 @@ def score_cycle(report: Report, known: KnownErrors) -> CycleScore:
 def failed_cycle(fingerprint: str, known: KnownErrors, failure: str) -> CycleScore:
     """Un ciclo che la v2 non ha validato: i suoi errori noti contano come mancati."""
     entry = known.cycle(fingerprint)
-    kind = "sconosciuto" if entry is None else ("giusto" if entry.giusto else "errori")
+    kind = "vero" if entry is None else ("giusto" if entry.giusto else "errori")
     expected = entry.errori if entry is not None else {}
     return CycleScore(
         fingerprint=fingerprint,
@@ -243,7 +263,7 @@ def build_trial(
     name: str, started_at: datetime, reports: Sequence[Report], cycles: Sequence[CycleScore]
 ) -> Trial:
     """La prova: i punteggi dei cicli, nell'ordine «con errori», giusti, sconosciuti."""
-    order = {"errori": 0, "giusto": 1, "sconosciuto": 2}
+    order = {"errori": 0, "giusto": 1, "vero": 2}
     meta = reports[0].meta if reports else None
     return Trial(
         name=name,
@@ -285,9 +305,10 @@ def render_trial(trial: Trial) -> str:
         f"| Errori noti trovati | **{trial.known_found} su {trial.known_total}** "
         f"({_percent(trial.known_found, trial.known_total)}) |",
         f"| Falsi errori nei cicli giusti | **{trial.false_errors}** |",
-        f"| ERRATO da verificare (cicli con errori, fuori lista) | {trial.extra_errors} |",
+        f"| ERRATO da verificare (fuori lista; nei {trial.real_cycles} cicli veri: "
+        f"{trial.real_errors}) | {trial.extra_errors} |",
         f"| Precisione (trovati / tutti gli ERRATO) | {round(100 * trial.precision)}% |",
-        f"| WARNING per ciclo giusto | {trial.clean_warnings:.1f} |",
+        f"| WARNING per ciclo senza errori noti (giusti e veri) | {trial.clean_warnings:.1f} |",
         f"| Cicli non eseguiti | {trial.failures} |",
         f"| Costo per ciclo | {trial.cost_per_cycle:.2f} $ |",
         f"| Tempo per ciclo (medio / il più lento) | {_seconds(trial.mean_ms)} / "
@@ -350,7 +371,9 @@ def render_trial(trial: Trial) -> str:
             "## ERRATO in più",
             "",
             "Nei cicli giusti sono **falsi errori**; nei cicli con errori sono da guardare (un "
-            "errore vero non messo nella lista, o un falso errore).",
+            "errore vero non messo nella lista, o un falso errore); nei cicli veri (stampe in "
+            "uso, non rivisti) sono quasi sempre falsi errori: si guardano e, se l'errore c'è "
+            "davvero, il ciclo va in `eval/errori-noti.yaml`.",
             "",
             "| Ciclo | Tipo | Op | Controllo | Motivo | Spiegazione (inizio) |",
             "|---|---|---|---|---|---|",
@@ -389,7 +412,7 @@ def load_trials(root: Path) -> list[Trial]:
 #    `MAX_COST_RATIO` volte la base;
 # 2. servono almeno `MIN_REPETITIONS` prove: il modello non risponde sempre uguale;
 # 3. classifica: errori trovati in tutte le ripetizioni (stabili), poi il minimo e la media dei
-#    trovati, poi meno ERRATO da verificare, meno WARNING per ciclo giusto, meno costo, meno tempo;
+#    trovati, poi meno ERRATO da verificare, meno WARNING per ciclo senza errori noti, meno costo, meno tempo;
 # 4. si tiene se è valida, ripetuta abbastanza, non trova meno errori stabili della base e sta
 #    sopra la base in classifica. La scelta migliore è la prima valida della classifica.
 
@@ -504,13 +527,13 @@ def best_variant(variants: Sequence[Variant]) -> Variant | None:
 METRICS_HELP = (
     "**Metriche.** *Trovati*: errori noti segnati ERRATO (su "
     "`eval/errori-noti.yaml`). *Stabili*: trovati in tutte le ripetizioni. *Falsi errori*: "
-    "ERRATO nelle stampe giuste (deve essere 0). *Da verificare*: ERRATO nei cicli con errori "
-    "fuori dalla lista. *Precisione*: trovati / tutti gli ERRATO. *Warning per ciclo giusto*: "
-    "lavoro a mano lasciato su un ciclo senza errori. *Costo* e *tempo* per ciclo.\n\n"
+    "ERRATO nelle stampe giuste (deve essere 0). *Da verificare*: ERRATO fuori dalla lista "
+    "(nei cicli con errori e nei cicli veri). *Precisione*: trovati / tutti gli ERRATO. *Warning per ciclo senza errori*: "
+    "lavoro a mano lasciato su un ciclo giusto o vero. *Costo* e *tempo* per ciclo.\n\n"
     "**Regola di scelta.** Scartata con un falso errore, un ciclo non eseguito, un ciclo oltre "
     f"{MAX_CYCLE_MS // 60000} minuti o un costo per ciclo oltre {MAX_COST_RATIO:g} volte la "
     f"base; servono almeno {MIN_REPETITIONS} prove con lo stesso nome. Classifica: stabili, "
-    "trovati (minimo, poi media), meno da verificare, meno warning per ciclo giusto, meno "
+    "trovati (minimo, poi media), meno da verificare, meno warning per ciclo senza errori noti, meno "
     "costo, meno tempo. Si tiene se non perde errori stabili e sta sopra la base."
 )
 
@@ -537,6 +560,17 @@ def render_summary(trials: Sequence[Trial]) -> str:
         f"{len(trials)} prove in {len(variants)} varianti, dal {first:%d-%m-%Y %H:%M} al "
         f"{last:%d-%m-%Y %H:%M}.",
         "",
+        *(
+            [
+                "**Attenzione:** le prove di questa cartella non sono tutte sugli stessi cicli "
+                f"({len({t.cycle_set for t in trials})} insiemi, colonna «Cicli»): il confronto "
+                "vale solo tra prove con lo stesso insieme. Usa una cartella per insieme "
+                "(`--cartella`).",
+                "",
+            ]
+            if len({t.cycle_set for t in trials}) > 1
+            else []
+        ),
         "## Scelta migliore",
         "",
         (
@@ -550,7 +584,7 @@ def render_summary(trials: Sequence[Trial]) -> str:
         "## Classifica delle varianti",
         "",
         "| Pos. | Variante | Prove | Stabili | Trovati min / medio | Falsi errori | "
-        "Da verificare | Precisione | Warning per ciclo giusto | Costo per ciclo | "
+        "Da verificare | Precisione | Warning per ciclo senza errori | Costo per ciclo | "
         "Tempo per ciclo (max) | Decisione |",
         "|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
@@ -568,9 +602,9 @@ def render_summary(trials: Sequence[Trial]) -> str:
         "",
         "## Le prove",
         "",
-        "| Data | Prova | Trovati | Falsi errori | Da verificare | Rispetto alla base | "
+        "| Data | Prova | Cicli | Trovati | Falsi errori | Da verificare | Rispetto alla base | "
         "Costo | Tempo | Modello | Prompt | v2 |",
-        "|---|---|---|---|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for index, trial in enumerate(trials):
         base = _baseline(trials, index)
@@ -581,7 +615,7 @@ def render_summary(trials: Sequence[Trial]) -> str:
             delta = f"{diff:+d} trovati, {trial.false_errors - base.false_errors:+d} falsi"
         lines.append(
             f"| {trial.started_at:%d-%m %H:%M} | {_cell(trial.name)} | "
-            f"{trial.known_found} su {trial.known_total} "
+            f"{len(trial.cycles)} ({trial.cycle_set}) | {trial.known_found} su {trial.known_total} "
             f"({_percent(trial.known_found, trial.known_total)}) | {trial.false_errors} | "
             f"{trial.extra_errors} | {delta} | {trial.cost_usd:.2f} $ | "
             f"{_seconds(trial.duration_ms)} | {trial.model or '-'} | "

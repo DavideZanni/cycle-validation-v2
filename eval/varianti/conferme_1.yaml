@@ -1,0 +1,5 @@
+nome: conferme_1
+descrizione: un ERRATO del modello si conferma con 1 sessione invece di 2 (G1), meno costo e forse più errori trovati
+base: baseline
+agent:
+  confirm_contradiction: 1

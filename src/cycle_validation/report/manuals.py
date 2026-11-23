@@ -173,6 +173,36 @@ def _found(kb: KnowledgeBase, manual: str, task: str) -> bool:
     return section is not None and bool(section_locations(kb, manual, section))
 
 
+def cycle_coverage(seen: CycleSeen, kb: KnowledgeBase) -> tuple[int, int]:
+    """Quante operazioni del ciclo la v2 può confrontare con la conoscenza: (coperte, totali).
+    Un'operazione è coperta se tutti i suoi task sono nella conoscenza (quelli del capitolo 70
+    nell'SPM, gli altri in un manuale delle fonti con lo stesso repair code, o di tutte le
+    fonti); senza task, se almeno un manuale collegato c'è (la v2 la confronta con le fonti)."""
+    linked_by = [
+        (_code(source.get("manual")), _code(source.get("repair_code")))
+        for source in seen.sources
+        if _code(source.get("manual"))
+    ]
+    present = {code for code, _ in linked_by if kb.find_manuals(code)}
+    all_manuals = list(dict.fromkeys(code for code, _ in linked_by))
+    covered = 0
+    for operation in seen.operations:
+        repair = _code(operation.get("repair_code"))
+        same = [code for code, rc in linked_by if repair and rc == repair]
+        linked = [code for code in dict.fromkeys(same or all_manuals) if code in present]
+        tasks = [_code(task) for task in operation.get("task_codes") or [] if _code(task)]
+        if not tasks:
+            covered += bool(linked)
+            continue
+        covered += all(
+            kb.find_task_in_kind("SPM", task) is not None
+            if task.startswith(_SPM_PREFIX)
+            else any(_found(kb, code, task) for code in linked)
+            for task in tasks
+        )
+    return covered, len(seen.operations)
+
+
 def needed_manuals(
     cycles: list[CycleSeen],
     errors: dict[str, set[str]],

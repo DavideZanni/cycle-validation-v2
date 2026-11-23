@@ -35,14 +35,19 @@ e visto finora è in `MEMORIA.md`.
 **In ordine:**
 
 1. **Aggiornare** (2.1) e **Salvare** (2.2).
-2. **La base:** due prove con `$nome = "base"` (2.3 A), poi il riepilogo (2.3 C).
-3. **Prove dal frontend** (2.4) e **messaggio** al collega (3.2), se non l'hai già mandato.
-4. **Domande** alle persone (3.1): P6, P7, P8.
-5. **I file mancanti:** cercali dove prendi i manuali; se li trovi, 2.5.
-6. **Quando lo decidi tu:** pull request verso `develop` e prova in QA (sezione 4).
+2. **La base sul piccolo:** due prove con `$nome = "base"` e `$insieme = "piccolo"` (2.3 A),
+   poi il riepilogo (2.3 C).
+3. **La base sul grande:** scegli i cicli (2.3 A0), poi due prove con `$nome = "base"` e
+   `$insieme = "grande"` (2.3 A). Si può lasciare girare mentre fai altro.
+4. **Le migliorie** della lista in `MIGLIORIE.md` («Da provare»), una alla volta, come dice 2.3
+   «Quando».
+5. **Prove dal frontend** (2.4) e **messaggio** al collega (3.2), se non l'hai già mandato.
+6. **Domande** alle persone (3.1): P6, P7, P8.
+7. **I file mancanti:** cercali dove prendi i manuali; se li trovi, 2.5.
+8. **Quando lo decidi tu:** pull request verso `develop` e prova in QA (sezione 4).
 
 Quando Claude dice di aver cambiato il codice: **Aggiornare** (2.1). Se è una miglioria: due
-prove con il suo nome (2.3 A) e il riepilogo (2.3 C).
+prove con il suo nome sul piccolo (2.3 A) e il riepilogo (2.3 C); sul grande solo se si tiene.
 
 ---
 
@@ -86,7 +91,7 @@ cambiano finché non apri tu la pull request. I dati aziendali restano fuori (gi
 git add src tests docs eval/casi/sintetici eval/varianti eval/modelli config prompts pyproject.toml uv.lock README.md .gitignore Dockerfile ../buildspec.yml
 if (Test-Path vendor) { git add vendor }
 git status --short
-git commit -m "v2: fonti per riparazione, subtask, task SPM, controllo delle due lingue, prove con metriche"
+git commit -m "v2: fonti per riparazione, subtask, task SPM, controllo delle due lingue, prove con metriche su due insiemi di cicli"
 ```
 
 **Deve uscire:** in `git status` righe solo sotto le cartelle del `git add` (`M` cambiato, `A`
@@ -114,23 +119,32 @@ Claude. Se il commit dice `nothing to commit`, lancia lo stesso il push.
 
 ### 2.3 Prove delle migliorie: lanciare, vedere i risultati, scegliere
 
-Una **prova** fa girare la v2 sui 10 cicli (i 7 «con errori» e i 3 giusti) e li confronta con
-gli **12 errori noti** scritti in `eval/errori-noti.yaml`. Ogni prova ha la sua cartella in
-`runs\prove\<data>-<nome>\` con:
+Una **prova** fa girare la v2 su un **insieme** di cicli e la confronta con gli **12 errori
+noti** di `eval/errori-noti.yaml`. Gli insiemi sono due:
 
-- `prestazioni.md`: il **report della prova** (punteggio con tutte le metriche, ciclo per ciclo,
-  errore per errore, ERRATO da verificare, costo, token, tempo);
-- `prova.json`: gli stessi numeri, per il riepilogo;
-- una cartella per ciclo con il `report.json` completo.
+| Insieme | Cicli | A cosa serve | Cartella |
+|---|---|---|---|
+| **piccolo** | 10: i 7 «con errori» e le 3 stampe giuste | ogni miglioria, subito: errori trovati e falsi errori | `runs\prove-piccolo\` |
+| **grande** | 30: i 10 del piccolo più 20 cicli **veri** (stampe in uso, scelte dal blocco A0) | solo le migliorie che **si tengono** sul piccolo: controlla che sui cicli veri non escano ERRATO o WARNING in più | `runs\prove-grande\` |
 
-Dopo ogni prova si aggiorna da solo `runs\prove\riepilogo.md`: il **report finale** con tutte
-le prove: **scelta migliore**, **classifica delle varianti** con la decisione per ognuna, tabella
-delle prove, errore per errore in quali prove è stato trovato, falsi errori.
+Un ciclo vero non ha errori noti: un suo ERRATO è «da verificare» (quasi sempre un falso
+errore) e i suoi WARNING contano nel lavoro a mano. Le prove si confrontano solo dentro lo
+stesso insieme: per questo hanno cartelle diverse.
 
-**Quando:** la prima volta **due prove** con `$nome = "base"` (il punto di partenza); poi, per
-ogni miglioria, **Aggiornare** (2.1) e **due prove** con il nome della miglioria. Due prove con
-lo stesso nome sono una *variante*: il modello non risponde sempre uguale, e la regola vuole
-almeno due ripetizioni.
+Ogni prova scrive nella cartella del suo insieme `<data>-<nome>\prestazioni.md` (il **report
+della prova**) e aggiorna `riepilogo.md` (il **report finale**: scelta migliore, classifica
+delle varianti con la decisione, tabella delle prove, errore per errore, falsi errori).
+
+**Quando:**
+
+1. **la base**, una volta per insieme: due prove con `$nome = "base"`;
+2. **ogni miglioria**: due prove sul piccolo con `$nome` = il nome della miglioria (la lista è
+   in `MIGLIORIE.md`, «Da provare»). Se c'è il file `eval\varianti\<nome>.yaml`, il blocco A
+   lo usa da solo; se la miglioria è nel codice, prima **Aggiornare** (2.1);
+3. se sul piccolo **si tiene**: due prove sul grande con lo stesso nome.
+
+Due prove con lo stesso nome sono una *variante*: il modello non risponde sempre uguale, e la
+regola vuole almeno due ripetizioni.
 
 **Come si sceglie** (lo fa da solo il riepilogo, sezione «Scelta migliore»):
 
@@ -142,60 +156,81 @@ almeno due ripetizioni.
 | Costo per ciclo | dollari per ciclo | non più del **doppio** della base |
 | **Stabili** | errori noti trovati in **tutte** le prove della variante | 1° criterio: più alto è meglio; mai meno della base |
 | Trovati (minimo, media) | errori noti trovati in ogni prova, su 12 | 2° e 3° criterio |
-| Da verificare | ERRATO nei cicli con errori fuori dalla lista | 4°: meno è meglio |
-| Warning per ciclo giusto | lavoro a mano lasciato su un ciclo senza errori | 5°: meno è meglio |
+| Da verificare | ERRATO fuori dalla lista (cicli con errori e cicli veri) | 4°: meno è meglio |
+| Warning per ciclo senza errori | lavoro a mano lasciato su una stampa giusta o vera | 5°: meno è meglio |
 | Costo, tempo | per ciclo | 6° e 7°: meno è meglio |
 | Precisione | trovati / tutti gli ERRATO | solo da guardare |
 
 Una variante **si tiene** se è valida, ha almeno 2 prove, non ha meno errori stabili della base
 e sta sopra la base in classifica. Dettagli in `MIGLIORIE.md`.
 
-**A. Lanciare una prova** (costa come 10 cicli, qualche minuto). Cambia solo `$nome`:
+**A0. Scegliere i cicli dell'insieme grande** (gratis: legge le stampe con il parser, non chiama
+il modello). Una volta, e di nuovo dopo una nuova ingestion (2.5). Prende i 10 cicli noti, poi
+i cicli veri civili che hanno almeno l'80% delle operazioni confrontabili con la conoscenza,
+sempre gli stessi. I percorsi restano nel file sul PC; sullo schermo solo le impronte:
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$nome = "base"
 $foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
 $kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-$radice = (Resolve-Path "..\..").Path
-$dieci = Get-ChildItem $radice -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*errori*" -or (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in @("4e64d49a", "8bdb25d5", "04ecaabe") } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
-uv run cycle-validation eval prova @($dieci.FullName) --nome $nome --knowledge $v --config data/settings.yaml
+uv run cycle-validation eval scegli (Resolve-Path "..\..").Path --knowledge $v --quanti 30 --out runs/prove-grande/cicli.txt
 ```
 
-**Deve uscire:** una riga per ciclo (`<impronta> errori: trovati ... · mancati ... · ERRATO in
-più ...`), poi `Prova «...»: errori noti trovati N su 12 · falsi errori ... · costo ...` e i
-percorsi dei due report. Il 23-11 sera (prima delle prove) erano circa **8 su 12** e **0 falsi
-errori**.
+**Deve uscire:** `Stampe: ... Scelti 30: noti 10, veri 20.`, una riga per ciclo vero
+(`<impronta> vero: N operazioni confrontabili su M`) e quanti sono rimasti fuori e perché. Se i
+veri sono meno di 20, mandami la foto: si abbassa la copertura (`--copertura 0.6`).
 
-**B. Vedere il report dell'ultima prova** (gratis). Si apre in VS Code già impaginato:
+**A. Lanciare una prova.** Cambia solo `$nome` e `$insieme` (`"piccolo"` o `"grande"`). Il
+piccolo costa come 10 cicli (qualche minuto), il grande come 30 (circa tre volte: lascialo
+girare):
 
 ```powershell
-$ultima = Get-ChildItem runs/prove -Directory | Sort-Object Name | Select-Object -Last 1; code "$($ultima.FullName)/prestazioni.md"
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+$nome = "base"; $insieme = "piccolo"
+$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
+$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+$variante = if (Test-Path "eval/varianti/$nome.yaml") { @("--variante", "eval/varianti/$nome.yaml") } else { @() }
+if ($insieme -eq "grande") { $cicli = @("--lista", "runs/prove-grande/cicli.txt") } else { $dieci = Get-ChildItem (Resolve-Path "..\..").Path -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*errori*" -or (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in @("4e64d49a", "8bdb25d5", "04ecaabe") } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }; $cicli = @($dieci.FullName) }
+"prova «$nome» sull'insieme $insieme" + $(if ($variante) { " con la variante" } else { "" })
+uv run cycle-validation eval prova @cicli --nome $nome --knowledge $v --config data/settings.yaml @variante --cartella "runs/prove-$insieme"
 ```
 
-Poi nella finestra del file premi **Ctrl+Shift+V** (anteprima). Per una prova più vecchia:
-`code runs/prove/<cartella>/prestazioni.md`.
+**Deve uscire:** una riga per ciclo (`<impronta> errori|giusto|vero: trovati ... · mancati ...
+· ERRATO in più ...`), poi `Prova «...»: errori noti trovati N su 12 · falsi errori ... ·
+costo ...` e i percorsi dei due report. Il 23-11 sera (prima delle prove) erano circa **8 su
+12** e **0 falsi errori**.
+
+**B. Vedere il report dell'ultima prova** (gratis; cambia `$insieme` se serve). Si apre in VS
+Code già impaginato:
+
+```powershell
+$insieme = "piccolo"; $ultima = Get-ChildItem "runs/prove-$insieme" -Directory | Sort-Object Name | Select-Object -Last 1; code "$($ultima.FullName)/prestazioni.md"
+```
+
+Poi nella finestra del file premi **Ctrl+Shift+V** (anteprima).
 
 **C. Vedere il report finale con tutte le prove, la classifica e la scelta migliore** (gratis):
 
 ```powershell
-code runs/prove/riepilogo.md
+code runs/prove-piccolo/riepilogo.md
 ```
 
-Anche qui **Ctrl+Shift+V**. Per vederlo nel terminale invece: `Get-Content runs/prove/riepilogo.md`.
+Per il grande: `code runs/prove-grande/riepilogo.md`. Anche qui **Ctrl+Shift+V**.
 
 **D. Rifare il report finale** (gratis; serve solo se hai cancellato o spostato una prova):
 
 ```powershell
-$env:UV_PYTHON = "3.14"; uv run cycle-validation eval riepilogo
+$env:UV_PYTHON = "3.14"; uv run cycle-validation eval riepilogo --cartella runs/prove-piccolo
 ```
 
-**E. Elenco delle prove fatte** (gratis): `Get-ChildItem runs/prove -Directory | Select-Object Name`
+**E. Elenco delle prove fatte** (gratis): `Get-ChildItem runs/prove-piccolo, runs/prove-grande -Directory -ErrorAction SilentlyContinue | Select-Object Name`
 
-Per **togliere** una prova dal riepilogo: cancella la sua cartella in `runs\prove\` e lancia D.
+Per **togliere** una prova dal riepilogo: cancella la sua cartella e lancia D.
 
-**Manda a Claude:** la foto dell'output di A e dell'anteprima di `riepilogo.md`.
+**Manda a Claude:** la foto dell'output di A (e di A0 la prima volta) e dell'anteprima di
+`riepilogo.md`.
 
 ### 2.4 Prove dal frontend
 
@@ -217,8 +252,8 @@ centesimo. Le targhe escono sempre WARNING: dal PC Redshift non si raggiunge.
 ### 2.5 Dopo una nuova ingestion
 
 Quando hai caricato manuali nuovi (per esempio i file che mancano): **fotografia** della
-conoscenza (A, va su AWS), **lista dei manuali** (B, gratis), poi una prova (2.3 A) con
-`$nome = "conoscenza-<data>"`, due volte.
+conoscenza (A, va su AWS), **lista dei manuali** (B, gratis), di nuovo la scelta dei cicli del
+grande (2.3 A0), poi due prove (2.3 A) con `$nome = "conoscenza-<data>"`.
 
 **A. Fotografia della conoscenza.** Scarica la conoscenza civile di prova pubblicata e la
 controlla. La prova (2.3) e la lista dei manuali usano da sole l'ultima fotografia.

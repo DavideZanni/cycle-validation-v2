@@ -13,11 +13,21 @@ niente; la decisione si scrive nel registro in fondo. Come si lancia: `docs/AZIE
 parte B.
 
 **Prova sui cicli veri (sul PC aziendale).** Ogni miglioria si prova con COPILOT 2.3
-(`eval prova`, codice in `evaluation/trials.py`): 7 cicli «con errori» e 3 stampe giuste,
-contro i 12 errori noti di `eval/errori-noti.yaml`. Ogni prova scrive il suo report
-(`runs/prove/<data>-<nome>/prestazioni.md`); il report finale `runs/prove/riepilogo.md` mette
-insieme tutte le prove, fa la classifica e dà la scelta migliore. Prima, gratis: i test
-(`uv run pytest -q`) e, per una miglioria sulle descrizioni, `leggi --lingue`.
+(`eval prova`, codice in `evaluation/trials.py`) contro i 12 errori noti di
+`eval/errori-noti.yaml`, su due **insiemi** di cicli:
+
+- **piccolo**, 10 cicli: i 7 «con errori» e le 3 stampe giuste. Ogni miglioria passa da qui;
+- **grande**, 30 cicli: i 10 del piccolo e 20 cicli **veri** (stampe in uso, civili, con almeno
+  l'80% delle operazioni confrontabili con la conoscenza), scelti da `eval scegli` e sempre gli
+  stessi. Solo le migliorie che si tengono sul piccolo: un ERRATO su un ciclo vero è «da
+  verificare» (quasi sempre falso), i suoi WARNING contano nel lavoro a mano.
+
+Le prove si confrontano solo sullo stesso insieme (cartelle `runs/prove-piccolo` e
+`runs/prove-grande`; il riepilogo avvisa se in una cartella gli insiemi sono diversi). Ogni
+prova scrive il suo report (`<data>-<nome>/prestazioni.md`); `riepilogo.md` mette insieme le
+prove, fa la classifica e dà la scelta migliore. Una miglioria con un file
+`eval/varianti/<nome>.yaml` si lancia con `--variante` sopra le impostazioni del PC. Prima,
+gratis: i test (`uv run pytest -q`) e, per una miglioria sulle descrizioni, `leggi --lingue`.
 
 ### Metriche (su una prova)
 
@@ -26,9 +36,9 @@ insieme tutte le prove, fa la classifica e dà la scelta migliore. Prima, gratis
 | Trovati (TP) | errori noti con un ERRATO sulla loro operazione |
 | Mancati (FN) | errori noti senza ERRATO; il report dice cosa ha detto la v2 |
 | Falsi errori (FP) | ERRATO su un'operazione di una stampa giusta |
-| Da verificare (X) | ERRATO nei cicli con errori, su operazioni fuori dalla lista (un errore vero non in lista o un falso errore: si guarda e, se vero, si aggiunge alla lista) |
+| Da verificare (X) | ERRATO fuori dalla lista: nei cicli con errori (un errore vero non in lista o un falso errore) e nei cicli veri (quasi sempre falsi). Si guarda e, se è vero, il ciclo va nella lista |
 | Precisione | TP / (TP + FP + X) |
-| Warning per ciclo giusto | WARNING medi su una stampa giusta: lavoro a mano che resta |
+| Warning per ciclo senza errori | WARNING medi sulle stampe giuste e sui cicli veri: lavoro a mano che resta |
 | Costo e tempo per ciclo | medi; più il tempo del ciclo più lento |
 | Non eseguiti | cicli andati in errore |
 
@@ -38,13 +48,60 @@ insieme tutte le prove, fa la classifica e dà la scelta migliore. Prima, gratis
    frontend aspetta 11), costo per ciclo oltre 2 volte la base.
 2. **Da ripetere** se ha meno di 2 prove (il modello non risponde sempre uguale).
 3. **Classifica**, in ordine: errori **stabili** (trovati in tutte le prove della variante),
-   trovati minimo, trovati medio, meno da verificare, meno warning per ciclo giusto, meno costo,
+   trovati minimo, trovati medio, meno da verificare, meno warning per ciclo senza errori, meno costo,
    meno tempo.
 4. **Si tiene** se non ha meno errori stabili della base e sta sopra la base in classifica.
    La **scelta migliore** è la prima della classifica che si tiene (o la base).
 
 Le soglie sono costanti in `evaluation/trials.py` (`MIN_REPETITIONS`, `MAX_CYCLE_MS`,
 `MAX_COST_RATIO`). Il registro in fondo a questo file riporta la decisione di ogni variante.
+
+### Da provare (lista del 23-11-2026)
+
+Errori noti che mancano oggi (23-11 sera): 298bc28e op 035 (parole cambiate), c5ff3cd6 op 030
+(scheda tolta), f355dc3c op 010 (tre numeri, cambiati in tutte e due le lingue), 040 (lettera
+della classe), 050 (frase al contrario). Per ognuna: due prove sul piccolo con `$nome` = il
+nome; se si tiene, due sul grande.
+
+**Subito: basta il file della variante (nessun codice nuovo).**
+
+| `$nome` | Cosa cambia | Cosa può migliorare | Rischio |
+|---|---|---|---|
+| `effort_medio` | ragionamento `medium` nei controlli invece di `low` | frasi al contrario e parole cambiate (f355dc3c 050, 298bc28e 035) | costo e tempo |
+| `conferme_1` | un ERRATO del modello si conferma con 1 sessione invece di 2 (G1) | meno costo; errori che il modello vede solo a volte | falsi errori (devono restare 0) |
+| `testo_lungo` | fino a 400 righe di manuale nel messaggio invece di 150 | più contesto in una volta: limiti scritti lontano dal passo (f355dc3c 010) | costo per sessione |
+| `effort_pieno` | ragionamento predefinito ovunque (B2) | conferma che `low` non perde errori su Bedrock | costo |
+| `prompt_task_mancante` | task citato che manca: il modello giudica lo stesso (A2) invece di WARNING subito (B6) | operazioni oggi `FONTE_ASSENTE` | falsi errori, costo |
+| `concorrenza_12` | 12 operazioni insieme invece di 6 (B4) | solo il tempo | limiti di Bedrock: cicli non eseguiti |
+
+`sonnet` (modello più grande) non ora: il costo per ciclo è circa 10 volte (la regola scarta
+oltre 2 volte) e serve l'id di Sonnet abilitato su Bedrock.
+
+**Con codice nuovo (lo scrive Claude, ognuna accesa dalla sua variante, la base non cambia).**
+
+| `$nome` | Cosa fa | Cosa può migliorare | Costo |
+|---|---|---|---|
+| `negazioni_lingue` (I1) | come `INCOERENZA_LINGUE`, ma per le negazioni: «non» / «not», «mai» / «never», «evitare» / «avoid» in una lingua sola | frasi al contrario in una lingua sola (come 5ff17062 op 030); f355dc3c 050 se è così | piccolo, senza modello; misura gratis con `leggi --lingue` |
+| `classi_lingue` (I2) | lettere e sigle dopo «classe», «tipo», «grado» diverse tra le due lingue | f355dc3c 040, se la lettera è cambiata in una lingua sola | piccolo, senza modello |
+| `prompt_confronto` (I3) | il prompt chiede di confrontare numero per numero e frase per frase, e di dire cosa cambia | parole cambiate, frasi al contrario | piccolo; falsi errori da misurare |
+| `numeri_manuale` (I4, è H12) | numeri e classi della descrizione contro quelli del passo del manuale: la sessione riceve le differenze da guardare | numeri cambiati in tutte e due le lingue (f355dc3c 010), se il passo giusto è nel contesto | medio |
+| `contesto_sezione` (I5) | se i task citati non hanno i numeri della descrizione, si aggiungono altri task della stessa sezione (al massimo 4) | limiti scritti in un altro task (f355dc3c 010) | medio, più sessioni lunghe |
+| `fatti_incerti` (F5) | il prompt dice quando un fatto è incerto | meno giudizi sbagliati su dati incerti | piccolo |
+
+**Tempo e costo (dopo: non cambiano gli errori trovati).** B1 (chiamata diretta a Bedrock), poi
+B4; H10 (prompt caching), H14 (più operazioni in una sessione). Si provano con le stesse prove:
+devono tenere gli stessi errori stabili e costare o durare meno.
+
+**Non sono migliorie: nessuna variante li trova finché mancano.** f355dc3c 040 e forse 010
+chiedono documenti che non sono nella conoscenza (capitolo 70-23 dell'SPM, manuale d'ispezione
+del motore, due REPAIR della sezione 72-56-31): ingestion, poi COPILOT 2.5 e una prova
+`conoscenza-<data>`. c5ff3cd6 030 (scheda tolta) aspetta la regola della domanda P6.
+f355dc3c 050 ha anche la domanda P7 («4 volte» c'è anche nella stampa giusta).
+
+**Ordine consigliato.** 1. La base (piccolo e grande). 2. `negazioni_lingue` e `classi_lingue`:
+non costano e si misurano prima gratis. 3. `effort_medio`. 4. `conferme_1`. 5. `testo_lungo`.
+6. `prompt_confronto`. 7. `numeri_manuale` e `contesto_sezione`. 8. `effort_pieno`, per
+confermare B2. 9. Tempo e costo.
 
 ---
 
@@ -171,7 +228,7 @@ Da decidere: nessuna è necessaria per la consegna. In ordine di valore.
 | H8 | **Il feedback del frontend diventa un caso di prova:** una risposta segnata sbagliata dall'utente finisce in una cartella per `eval prepara` | i casi aziendali rivisti sono la cosa che manca di più agli esperimenti (vedi «Ordine consigliato») | piccolo-medio |
 | H9 | **OpenSearch solo come riserva**, non al posto della ricerca per codice: quando il task non c'è o la fonte non ha task (F4, LEAP), la ricerca propone i passi candidati, e la citazione si controlla sempre come oggi | la ricerca per codice dà citazioni verificabili, che è il punto della v2; una ricerca per somiglianza da sola riporterebbe il problema della v1 (passi «simili» ma non quelli giusti). Da misurare con le varianti | medio, più il costo del cluster |
 | H10 | **Prompt caching di Bedrock** per le parti uguali tra le sessioni dello stesso ciclo (istruzioni, stesso capitolo per più operazioni), e **batch di Bedrock** per gli esperimenti | meno costo e meno tempo; da verificare quanto la cache funziona già con l'agente | piccolo, dopo B1 |
-| H12 | **Numeri e codici confrontati dal codice** prima del modello: numeri, classi e codici della descrizione contro quelli del passo del manuale; se sono tutti uguali e il testo coincide, CORRETTO senza modello; se un numero è diverso, la sessione riceve la differenza da guardare | 7 dei 10 errori dei cicli «con errori» sono numeri, lettere o codici cambiati: il codice li trova in pochi ms e sempre allo stesso modo, il modello costa e a volte oscilla (G1) | medio; da misurare con le mutazioni |
+| H12 | (in parte fatto il 23-11: tra le due lingue, `INCOERENZA_LINGUE`; il resto è I4 in «Da provare») **Numeri e codici confrontati dal codice** prima del modello: numeri, classi e codici della descrizione contro quelli del passo del manuale; se sono tutti uguali e il testo coincide, CORRETTO senza modello; se un numero è diverso, la sessione riceve la differenza da guardare | 7 dei 10 errori dei cicli «con errori» sono numeri, lettere o codici cambiati: il codice li trova in pochi ms e sempre allo stesso modo, il modello costa e a volte oscilla (G1) | medio; da misurare con le mutazioni |
 | H13 | **Risultato già calcolato:** stesso PDF (impronta), stessa versione della conoscenza, stesse impostazioni → la risposta salvata, subito | lo stesso ciclo si ricarica spesso (prove, riaperture) | piccolo |
 | H14 | **Più operazioni dello stesso capitolo in una sessione** | meno sessioni e lo stesso testo del manuale mandato una volta sola; rischio: il modello confonde le operazioni. Solo con una variante misurata | medio |
 | H11 | **Python 3.14 in `.python-version`** | tutti i PC e il Dockerfile della v1 usano 3.14: ogni blocco di COPILOT ripete `$env:UV_PYTHON` | piccolo: provare la suite su 3.14 prima |
@@ -186,12 +243,13 @@ Da decidere: nessuna è necessaria per la consegna. In ordine di valore.
 
 ## Ordine consigliato
 
-Prima di tutto la consegna: i punti di `MEMORIA.md`, sezione 1. Poi, per migliorare:
+Prima di tutto la consegna: i punti di `MEMORIA.md`, sezione 1. Per le prove sui cicli veri vale
+l'ordine di «Da provare» qui sopra. Per il resto:
 
 1. Casi veri nella suite (`eval prepara` e revisione): senza, le misure valgono solo sui dati
    inventati. Poi la baseline aziendale.
 2. B2 su Bedrock: baseline contro `effort_pieno`.
-3. F5, con 3 ripetizioni.
+3. F5 (`fatti_incerti` in «Da provare»).
 4. B1, poi B4.
 5. F4: quando c'è un ciclo LEAP vero.
 6. D, rotte storiche, quando il frontend è pronto.

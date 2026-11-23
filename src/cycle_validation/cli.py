@@ -55,6 +55,7 @@ from cycle_validation.module_kind import EJ200, detect_module_kind
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
 from cycle_validation.report.manuals import (
     CycleSeen,
+    cycle_coverage,
     explain_missing,
     file_lines,
     from_cycle,
@@ -575,6 +576,41 @@ def _pdfs_in(folder: Path) -> list[Path]:
 _CYCLE_MAX_BYTES = 20 * 1024 * 1024
 
 
+def _read_cycles(
+    pdfs: list[Path],
+    settings: Settings,
+    cycles: dict[str, CycleSeen],
+    names: dict[str, list[str]],
+    hash_of: dict[str, str],
+) -> int:
+    """Legge le stampe con il parser (zero token): `cycles` per impronta, `names` i nomi dei
+    file di ogni impronta, `hash_of` l'impronta di ogni percorso. Ritorna i PDF non letti (non
+    cicli PVRM320 o troppo grandi). Un'impronta già in `cycles` non si rilegge."""
+    limits = load_profile("mos", settings.paths.profiles_dir).file_limits
+    unread = 0
+    for pdf_path in pdfs:
+        try:
+            if pdf_path.stat().st_size > (limits.max_bytes or _CYCLE_MAX_BYTES):
+                unread += 1  # troppo grande per un ciclo (per esempio un manuale)
+                continue
+            data = pdf_path.read_bytes()
+        except OSError:
+            unread += 1
+            continue
+        name = hashlib.sha256(data).hexdigest()[:8]
+        names.setdefault(name, []).append(pdf_path.name)
+        hash_of[str(pdf_path)] = name
+        if name in cycles:
+            continue
+        try:
+            pdf = read_pdf_bytes(data, pdf_path.name, limits)
+            military = detect_module_kind(pdf.text, settings.module_check) == EJ200
+            cycles[name] = from_cycle(name, parse_pvrm320(pdf), military=military)
+        except CycleValidationError:
+            unread += 1
+    return unread
+
+
 @app.command("manuali")
 def list_manuals(
     percorsi: Annotated[
@@ -603,7 +639,7 @@ def list_manuals(
     try:
         errors = parse_errors(errori or [])
         settings = load_settings(config)
-        limits = load_profile("mos", settings.paths.profiles_dir).file_limits
+        load_profile("mos", settings.paths.profiles_dir)
         kb = load_local_knowledge(conoscenza) if conoscenza else None
     except CycleValidationError as error:
         raise _fail(error) from error
@@ -622,27 +658,7 @@ def list_manuals(
             pdfs.extend(_pdfs_in(path))
         elif path.suffix.lower() == ".pdf":
             pdfs.append(path)
-    unread = 0
-    for pdf_path in pdfs:
-        try:
-            if pdf_path.stat().st_size > (limits.max_bytes or _CYCLE_MAX_BYTES):
-                unread += 1  # troppo grande per un ciclo (per esempio un manuale)
-                continue
-            data = pdf_path.read_bytes()
-        except OSError:
-            unread += 1
-            continue
-        name = hashlib.sha256(data).hexdigest()[:8]
-        names.setdefault(name, []).append(pdf_path.name)
-        hash_of[str(pdf_path)] = name
-        if name in cycles:
-            continue
-        try:
-            pdf = read_pdf_bytes(data, pdf_path.name, limits)
-            military = detect_module_kind(pdf.text, settings.module_check) == EJ200
-            cycles[name] = from_cycle(name, parse_pvrm320(pdf), military=military)
-        except CycleValidationError:
-            unread += 1
+    unread = _read_cycles(pdfs, settings, cycles, names, hash_of)
     if not cycles:
         raise _fail(CycleValidationError("Nessun ciclo letto: niente da elencare."))
     result = needed_manuals(list(cycles.values()), errors, kb)
@@ -751,11 +767,95 @@ def _write_leaderboard(results_dir: Path, out: Path) -> str:
     return text
 
 
+DEFAULT_TRIAL_LIST = Path("runs/prove/cicli.txt")
+
+
+@eval_app.command("scegli")
+def eval_choose(
+    percorsi: Annotated[list[Path], typer.Argument(help="Cartelle (o PDF) con le stampe.")],
+    knowledge: Annotated[Path, typer.Option(help="Versione della conoscenza (cartella).")],
+    quanti: Annotated[int, typer.Option(help="Cicli nella lista, compresi quelli noti.")] = 30,
+    copertura: Annotated[
+        float, typer.Option(help="Parte minima delle operazioni confrontabili (0-1).")
+    ] = 0.8,
+    attesi: Annotated[Path, typer.Option(help="YAML degli errori noti.")] = Path(
+        "eval/errori-noti.yaml"
+    ),
+    out: Annotated[Path, typer.Option(help="Lista dei PDF (resta sul PC).")] = DEFAULT_TRIAL_LIST,
+    config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
+) -> None:
+    """Sceglie i cicli di una prova più grande (zero token): prima i cicli di `--attesi` (con
+    errori e giusti), poi cicli veri civili con almeno `--copertura` delle operazioni
+    confrontabili con la conoscenza, in ordine di impronta (sempre gli stessi), fino a
+    `--quanti`. Scrive i percorsi in `--out`; sullo schermo solo impronte e numeri."""
+    try:
+        settings = load_settings(config)
+        load_profile("mos", settings.paths.profiles_dir)
+        known = load_known_errors(attesi)
+        kb = load_local_knowledge(knowledge)
+    except (CycleValidationError, OSError, ValueError) as error:
+        raise _fail(error) from error
+    pdfs: list[Path] = []
+    for path in percorsi:
+        pdfs.extend(_pdfs_in(path) if path.is_dir() else [path])
+    cycles: dict[str, CycleSeen] = {}
+    names: dict[str, list[str]] = {}
+    hash_of: dict[str, str] = {}
+    unread = _read_cycles(pdfs, settings, cycles, names, hash_of)
+    first: dict[str, Path] = {}
+    for pdf in pdfs:
+        first.setdefault(hash_of.get(str(pdf), ""), pdf)
+    noted = [name for name in sorted(cycles) if known.cycle(name) is not None]
+    chosen = list(noted)
+    skipped = Counter[str]()
+    lines: list[str] = []
+    for name in sorted(cycles):
+        seen = cycles[name]
+        if name in noted:
+            continue
+        if seen.military:
+            skipped["EJ200 (la sua conoscenza resta su AWS)"] += 1
+            continue
+        covered, total = cycle_coverage(seen, kb)
+        if not total or covered / total < copertura:
+            skipped["poche operazioni confrontabili"] += 1
+            continue
+        if len(chosen) >= quanti:
+            skipped["oltre il numero richiesto"] += 1
+            continue
+        chosen.append(name)
+        lines.append(f"{name} vero: {covered} operazioni confrontabili su {total}")
+    missing = [entry for entry in known.cicli if entry not in cycles]
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(str(first[name]) for name in chosen) + "\n", encoding="utf-8")
+    typer.echo(
+        f"Stampe: {len(pdfs)} file, cicli letti {len(cycles)}, non letti {unread}. "
+        f"Scelti {len(chosen)}: noti {len(noted)}, veri {len(chosen) - len(noted)}."
+    )
+    for line in lines:
+        typer.echo(line)
+    for reason, count in sorted(skipped.items()):
+        typer.echo(f"lasciati fuori ({reason}): {count}")
+    if missing:
+        typer.echo(f"cicli di {attesi.name} non trovati: {', '.join(sorted(missing))}")
+    typer.echo(f"Lista: {out}")
+
+
 @eval_app.command("prova")
 def eval_trial(
-    pdfs: Annotated[list[Path], typer.Argument(help="PDF dei cicli della prova.")],
-    nome: Annotated[str, typer.Option(help="Nome della prova (per esempio base, o la miglioria).")],
-    knowledge: Annotated[Path, typer.Option(help="Cartella della knowledge base.")],
+    pdfs: Annotated[
+        list[Path] | None, typer.Argument(help="PDF dei cicli (oppure --lista).")
+    ] = None,
+    knowledge: Annotated[Path | None, typer.Option(help="Cartella della knowledge base.")] = None,
+    nome: Annotated[
+        str | None, typer.Option(help="Nome della prova. Vuoto = nome della variante.")
+    ] = None,
+    variante: Annotated[
+        Path | None, typer.Option(help="Variante (eval/varianti/...yaml) sopra --config.")
+    ] = None,
+    lista: Annotated[
+        Path | None, typer.Option(help="File con i PDF, uno per riga (da `eval scegli`).")
+    ] = None,
     attesi: Annotated[Path, typer.Option(help="YAML degli errori noti.")] = Path(
         "eval/errori-noti.yaml"
     ),
@@ -764,10 +864,29 @@ def eval_trial(
     cartella: Annotated[Path, typer.Option(help="Cartella delle prove.")] = Path("runs/prove"),
 ) -> None:
     """Valida i cicli, li confronta con gli errori noti e scrive il report della prova
-    (`prestazioni.md`) e il riepilogo di tutte le prove (`riepilogo.md`)."""
+    (`prestazioni.md`) e il riepilogo di tutte le prove (`riepilogo.md`). Con `--variante` le
+    impostazioni sono quelle di `--config` più le modifiche della variante."""
     try:
-        settings = load_settings(config)
+        if knowledge is None:
+            raise CycleValidationError("Manca --knowledge.")
+        if variante is not None:
+            loaded = load_variant(variante, config_override=config)
+            settings = loaded.settings
+            nome = nome or loaded.name
+        else:
+            settings = load_settings(config)
+        if not nome:
+            raise CycleValidationError("Manca --nome (o --variante).")
         known = load_known_errors(attesi)
+        pdfs = list(pdfs or [])
+        if lista is not None:
+            pdfs += [
+                Path(line.strip())
+                for line in lista.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+        if not pdfs:
+            raise CycleValidationError("Nessun PDF: dai i PDF o --lista.")
     except (CycleValidationError, OSError, ValueError) as error:
         raise _fail(error) from error
     started = datetime.now()

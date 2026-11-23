@@ -1,0 +1,5 @@
+nome: testo_lungo
+descrizione: fino a 400 righe di manuale nel messaggio invece di 150 (meno ricerca, più contesto)
+base: baseline
+agent:
+  inline_max_lines: 400
