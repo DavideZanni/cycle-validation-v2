@@ -32,6 +32,7 @@ EJ200 sono le RDR, RN ed EF citate nel testo. I glifi d'asterisco ammessi sono i
 import re
 from dataclasses import dataclass, field
 
+from cycle_validation.checks.languages import LANGUAGE_SEPARATOR
 from cycle_validation.domain.cycle import Cycle, Operation, ProcessSheet, Source
 from cycle_validation.errors import ExtractionError
 from cycle_validation.ingest.pdf import PdfDocument
@@ -256,7 +257,7 @@ def _description(op: _Op) -> str:
             sections.append([])
         else:
             sections[-1].append(item)
-    return " / ".join(" ".join(lines) for lines in sections if lines)
+    return LANGUAGE_SEPARATOR.join(" ".join(lines) for lines in sections if lines)
 
 
 def footer_oems(pdf: PdfDocument) -> list[str]:

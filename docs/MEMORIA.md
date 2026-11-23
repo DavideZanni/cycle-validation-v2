@@ -307,6 +307,27 @@ serve per 298bc28e op 005. I 7 cicli: ancora 0 errati. Analisi dei 8 errori dei 
 - c5ff3cd6 op 030 (scheda tolta): regola P6. Aperto.
 Per i falsi errori c'è COPILOT 2.1c (le tre stampe giuste: non devono dare ERRATO).
 
+**2.1, 2.1b e 2.1c del 23-11 (17:30)**, con le correzioni delle 17:50:
+- 7 cicli con errori: 298bc28e 0 errati; 5ff17062 **2 errati** (op 030 e 050,
+  CONTRADDIZIONE: da vedere se veri); f355dc3c **1 errato** (op 050). Cicli giusti: 4e64d49a 0,
+  8bdb25d5 0, 04ecaabe **1** (op 050, stessa spiegazione di f355dc3c: il ciclo dice indicazione
+  lineare «almeno 4 volte la larghezza», l'SPM «3 volte o più»). Quindi f355dc3c op 050 non è
+  l'errore messo apposta: è una differenza che c'è anche nella stampa vera (domanda P7);
+- 298bc28e op 005: i due subtask SPM ci sono tutti e due (il 035 parla di raccordatura del
+  titanio su parti rotanti); `TASK_INESISTENTE` non scatta. Il codice cambiato va visto
+  confrontando i task dell'op. 005 nella stampa giusta (COPILOT 2.0);
+- 298bc28e op 035 e c5ff3cd6 op 030/040: ora confrontate con i task della stessa riparazione,
+  ma sono task d'altro (lubrificante, raccordatura): EVIDENZA_NON_TROVATA. In c5ff3cd6 op 040 il
+  modello ha notato che **l'italiano dice 13-38 micron e l'inglese 13-58**: è il numero cambiato;
+- f355dc3c op 030: CONTRADDIZIONE alla prima risposta (il ciclo dice raccordatura lunga almeno
+  30 volte la profondità, l'SPM 10 volte), non ritrovata nelle due verifiche: GIUDIZIO_INSTABILE;
+- f355dc3c op 010 e 040: EVIDENZA_NON_TROVATA (limiti in un altro task; classe d'attacco nel
+  capitolo 70-23 o nel manuale d'ispezione del motore).
+Corretto il 23-11 (18:10): controllo senza modello delle **due lingue** (`checks/languages.py`):
+se nello stesso punto la descrizione italiana e quella inglese hanno numeri diversi (non una
+conversione mm/pollici o °C/°F), ERRATO `INCOERENZA_LINGUE`. Misura gratis con `leggi --lingue`
+(COPILOT 2.0) sui 10 cicli, prima di rilanciare.
+
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
 

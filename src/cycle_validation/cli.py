@@ -17,6 +17,7 @@ import typer
 from cycle_validation.agent.prompt import OPERATION_PROMPT_FILE, load_prompt, prompt_version
 from cycle_validation.agent.sdk_session import SdkAgentSession
 from cycle_validation.agent.session import AgentSession
+from cycle_validation.checks.languages import language_parts, number_mismatches
 from cycle_validation.config import AgentSettings, Settings, load_profile, load_settings
 from cycle_validation.domain.check import CheckName
 from cycle_validation.domain.cycle import Cycle
@@ -285,6 +286,13 @@ def read_cycles(
             "di operazione, prima parola), senza il testo: per capire un errore di layout."
         ),
     ] = None,
+    lingue: Annotated[
+        bool,
+        typer.Option(
+            help="Stampa le operazioni in cui la descrizione italiana e quella inglese hanno "
+            "numeri diversi (solo i numeri), e quante operazioni hanno le due lingue."
+        ),
+    ] = False,
     fonti: Annotated[
         bool,
         typer.Option(
@@ -342,6 +350,19 @@ def read_cycles(
                         typer.echo(f"  p.{page.number} | {_masked(line.strip())}")
             serials = [_masked(serial) for serial in serials_in_text(pdf.text)]
             typer.echo(f"  serial number trovati: {len(serials)} ({', '.join(serials) or '-'})")
+            continue
+        if lingue:
+            try:
+                cycle = parse_pvrm320(pdf)
+            except CycleValidationError as error:
+                typer.echo(f"  non letto dal parser: {_masked_quotes(str(error))}")
+                continue
+            both = [op for op in cycle.operations if language_parts(op.operation_description)]
+            for op in both:
+                if pairs := number_mismatches(op.operation_description):
+                    shown = ", ".join(f"{a} → {b}" for a, b in pairs)
+                    typer.echo(f"  op {op.operation_number}: italiano → inglese {shown}")
+            typer.echo(f"  operazioni con le due lingue: {len(both)} su {len(cycle.operations)}")
             continue
         if fonti:
             try:

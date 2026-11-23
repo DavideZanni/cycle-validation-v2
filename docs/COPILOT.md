@@ -25,24 +25,21 @@ cambia solo Claude.
 
 ## 1. Cosa fare adesso (23-11-2026)
 
-**Dove siamo.** La v2 gira in locale con login e frontend. Oggi: ingestion di 10 manuali
-(versione `v/20261123T142517Z/`) e molte correzioni sul modo di trovare il testo del manuale per
-ogni operazione. Ultime tre (17:50):
-- un task SPM (capitolo 70) si prende **prima dall'SPM**: prima la v2 prendeva una riga del
-  manuale del motore che lo cita, credendola il titolo;
-- un **codice di task che non esiste** nel manuale, mentre ci sono i task della stessa famiglia,
-  è ERRATO (`TASK_INESISTENTE`): è il caso del codice cambiato;
-- un'operazione **senza task**, in una riparazione senza task nella testata, si confronta con i
-  task citati dalle altre operazioni della stessa riparazione.
-
+**Dove siamo.** La v2 gira in locale con login e frontend. Prova delle 17:30 sui cicli con
+errori: un ERRATO in f355dc3c op 050, ma esce uguale anche nella stampa giusta, quindi non è
+l'errore messo apposta (vedi domanda P7); f355dc3c op 030 trovata una volta su tre. Nuovo
+controllo (18:10), senza modello: se la descrizione **italiana e quella inglese hanno numeri
+diversi** nello stesso punto, ERRATO `INCOERENZA_LINGUE` (in c5ff3cd6 op 040 il modello aveva
+notato 13-38 in italiano e 13-58 in inglese). Prima di rilanciare 2.1 si misura gratis con 2.0.
 L'indice va bene così. Mancano ancora dei documenti: i due REPAIR della sezione 72-56-31 (file con
 `-09-001` e `-09-003` nel nome, **non sul PC**) e il capitolo 70-23 dell'SPM.
 
 **In ordine:**
 
 1. **Aggiornare** (2.4).
-2. **I cicli con errori** (2.1), poi **Perché non trova gli errori noti** (2.1b, gratis).
-3. **I tre cicli giusti** (2.1c): non devono dare ERRATO.
+2. **Misure gratis** (2.0). Manda le foto e **aspetta Claude** prima di 2.1.
+3. Poi, quando lo dice Claude: **I cicli con errori** (2.1), **2.1b** e **I tre cicli giusti**
+   (2.1c).
 4. **Salvare** (2.5).
 5. **I file mancanti:** cercali dove prendi i manuali (i due REPAIR e il capitolo 70-23
    dell'SPM). Se li trovi: ingestion, poi 2.2, 2.3 e 2.1.
@@ -56,6 +53,36 @@ Quando Claude dice di aver cambiato il codice: prima **Aggiornare** (2.4).
 ---
 
 ## 2. Blocchi
+
+### 2.0 Misure gratis (prima di 2.1)
+
+Gratis: non chiama il modello. Stampa:
+
+- per i 7 cicli «con errori» e i 3 giusti, le operazioni in cui la descrizione italiana e quella
+  inglese hanno **numeri diversi** (solo i numeri);
+- dai report di 2.1 e 2.1c: i task dell'op. 005 nella stampa giusta e in quella «con errori»
+  (298bc28e), l'esito dei codici, la spiegazione intera dell'op. 030 di f355dc3c e degli
+  ERRATO di 5ff17062.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+$radice = (Resolve-Path "..\..").Path
+$dieci = Get-ChildItem $radice -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*errori*" -or (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in @("4e64d49a", "8bdb25d5", "04ecaabe") } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
+foreach ($f in $dieci) { "== " + (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); uv run cycle-validation leggi $f.FullName --config data/settings.yaml --lingue | Select-Object -Skip 1 }
+$e = Get-Content runs/errori-298bc28e/report.json -Raw | ConvertFrom-Json; $g = Get-Content runs/giuste-4e64d49a/report.json -Raw | ConvertFrom-Json
+foreach ($r in @($g, $e)) { $o = $r.cycle.operations | Where-Object { $_.operation_number.TrimStart('0') -eq '5' } | Select-Object -First 1; "op 005 task: $($o.task_codes -join ', ')"; $r.results | Where-Object { $_.check -eq 'task_code' -and $_.target.label.TrimStart('0') -eq '5' } | ForEach-Object { "    codici: $($_.verdict) · $($_.reason) · $($_.rationale)" } }
+$f = Get-Content runs/errori-f355dc3c/report.json -Raw | ConvertFrom-Json; $f.results | Where-Object { $_.check -eq 'operation_description' -and $_.target.label.TrimStart('0') -eq '30' } | ForEach-Object { "f355dc3c op 030: $($_.reason) · $($_.rationale)" }
+$c = Get-Content runs/errori-5ff17062/report.json -Raw | ConvertFrom-Json; $c.results | Where-Object { $_.verdict -eq 'ERRATO' } | ForEach-Object { "5ff17062 op $($_.target.label): $($_.reason) · $($_.rationale)" }
+```
+
+**Deve uscire:** per ognuno dei 10 cicli `== <impronta>`, le eventuali righe `op ...: italiano →
+inglese ...` e `operazioni con le due lingue: N su M`; poi le due righe `op 005 task:` (prima la
+giusta, poi quella con errori) con i `codici:`, la spiegazione di f355dc3c op 030 e quelle di
+5ff17062.
+
+**Manda a Claude:** le foto (tutte le righe). Nei cicli giusti non deve uscire nessuna riga
+`italiano → inglese`: se esce, è un falso errore.
 
 ### 2.1 I cicli con errori
 
@@ -252,6 +279,11 @@ codici veri).
   passi sono in `MEMORIA.md`, «Da correggere nell'indice».
 - **P6. Scheda mancante.** Quando un'operazione deve avere per forza una scheda? Senza una regola
   la v2 (come la v1) non può sapere che manca.
+- **P7. Indicazione lineare nell'ispezione FPI** (ciclo f355dc3c e la sua stampa giusta, op.
+  050): il ciclo dice «lunga almeno **4** volte la larghezza», l'SPM «**3** volte o più». Il ciclo
+  segue un'altra regola (manuale del motore) o è da correggere? La v2 oggi lo segna ERRATO.
+- **P8. Riparazione senza task in testata** (c5ff3cd6, nota «applicazione lubrificante secco»;
+  298bc28e): quale task del manuale vale per le operazioni che non ne citano uno?
 
 ### 3.2 Messaggio per il collega del frontend
 

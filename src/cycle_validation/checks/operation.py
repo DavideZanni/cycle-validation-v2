@@ -28,6 +28,7 @@ from cycle_validation.agent.session import (
 )
 from cycle_validation.checks.base import CheckContext, make_result
 from cycle_validation.checks.dr_recommendation import dr_documents, dr_tasks
+from cycle_validation.checks.languages import number_mismatches
 from cycle_validation.checks.process_sheet import engine_family, treatment_for_family
 from cycle_validation.config import AgentSettings
 from cycle_validation.domain.check import (
@@ -140,6 +141,19 @@ def plan_operation_checks(
                     Reason.ESTRAZIONE_NON_CONFERMATA,
                     "La descrizione estratta non è confermata dal testo del PDF: "
                     "confronto con i documenti non eseguito.",
+                )
+            )
+            continue
+        if mismatches := number_mismatches(operation.operation_description):
+            # una delle due lingue è sbagliata: si vede senza manuale e senza modello
+            pairs = ", ".join(f"{a} → {b}" for a, b in mismatches)
+            immediate.append(
+                make_result(
+                    CHECK,
+                    target,
+                    Reason.INCOERENZA_LINGUE,
+                    "La descrizione italiana e quella inglese non dicono gli stessi numeri "
+                    f"(italiano → inglese: {pairs}): una delle due è sbagliata.",
                 )
             )
             continue

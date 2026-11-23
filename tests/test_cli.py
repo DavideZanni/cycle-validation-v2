@@ -518,3 +518,20 @@ def test_leggi_fonti_shows_codes_in_the_text_that_are_not_tasks(tmp_path: Path) 
         "SUBTASK 70-11-00-999-999/999"
     ) in result.output
     assert "ABC123456" not in result.output
+
+
+def test_leggi_lingue_prints_only_the_numbers_that_differ(tmp_path: Path) -> None:
+    from pvrm320_report_fixtures import FOOTER, STARS, block, page
+
+    from cycle_validation.testing.pdf import build_pdf
+
+    body = block(["QQ/901"], "040", ["SPESSORE 13-38 MICRON", STARS, "THICKNESS 13-58 MICRON"])
+    body += block(["QQ/902"], "050", ["ASCIUGARE 2 ORE", STARS, "DRY 2 HOURS"])
+    printed = tmp_path / "stampa.pdf"
+    printed.write_bytes(build_pdf([page(1, body, FOOTER)]))
+    result = runner.invoke(cli.app, ["leggi", str(printed), "--lingue"])
+    assert result.exit_code == 0, result.output
+    assert result.output.splitlines()[1:] == [
+        "  op 040: italiano → inglese 38 → 58",
+        "  operazioni con le due lingue: 2 su 2",
+    ]

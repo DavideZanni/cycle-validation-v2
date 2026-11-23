@@ -418,3 +418,12 @@ def test_no_confirmation_for_correct_judgements_or_when_turned_off() -> None:
     results, _ = asyncio.run(check_operations(ctx([op()]), session, off, "s"))
     assert results[0].reason is Reason.CONTRADDIZIONE
     assert len(session.requests) == 1
+
+
+def test_numbers_that_differ_between_the_two_languages_are_errato_without_a_session() -> None:
+    description = "SPESSORE 13-38 MICRON / THICKNESS 13-58 MICRON"
+    jobs, immediate = plan_operation_checks(ctx([op(description)]), SETTINGS, "s")
+    assert jobs == []
+    assert immediate[0].reason is Reason.INCOERENZA_LINGUE
+    assert immediate[0].verdict is Verdict.ERRATO
+    assert "38 → 58" in immediate[0].rationale

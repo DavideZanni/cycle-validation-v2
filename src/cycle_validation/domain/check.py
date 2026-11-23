@@ -24,6 +24,8 @@ class Reason(StrEnum):
     DR_NESSUNA_CORRISPONDENZA = "DR_NESSUNA_CORRISPONDENZA"
     # codice completo che non compare nel manuale, che ha i task della stessa famiglia
     TASK_INESISTENTE = "TASK_INESISTENTE"
+    # la descrizione italiana e quella inglese dicono numeri diversi
+    INCOERENZA_LINGUE = "INCOERENZA_LINGUE"
 
     EVIDENZA_NON_TROVATA = "EVIDENZA_NON_TROVATA"
     FONTE_ASSENTE = "FONTE_ASSENTE"
@@ -54,6 +56,7 @@ _ERRATO = (
     Reason.DR_NON_APPLICABILE,
     Reason.DR_NESSUNA_CORRISPONDENZA,
     Reason.TASK_INESISTENTE,
+    Reason.INCOERENZA_LINGUE,
 )
 _NON_APPLICABILE = (
     Reason.CAMPO_ASSENTE,
