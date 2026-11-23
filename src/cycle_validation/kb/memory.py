@@ -40,7 +40,7 @@ class IndexedKnowledgeBase:
             (location.document.key, normalize_code(location.task)): location for location in tasks
         }
         # Task trovati nel testo perché l'indice non li ha (anche i mancati: None).
-        self._from_text: dict[tuple[str, str], TaskLocation | None] = {}
+        self._from_text: dict[tuple[str, str, bool], TaskLocation | None] = {}
         self._tags = {normalize_code(entry.tag): entry for entry in machine_tags}
         self._sheets = {sheet_key(entry.code): entry for entry in process_sheets}
         self._dr: dict[str, list[DrRecommendation]] = {}
@@ -59,14 +59,17 @@ class IndexedKnowledgeBase:
         return self._task_in(self.find_manuals(manual), task)
 
     def find_task_in_kind(self, kind: str, task: str) -> TaskLocation | None:
-        return self._task_in(self.documents_of_kind(kind), task)
+        # nei documenti SPM un task si cita anche con la sola sezione (`70-00-01`)
+        return self._task_in(self.documents_of_kind(kind), task, sections=True)
 
     def documents_of_kind(self, kind: str) -> list[DocumentInfo]:
         """I documenti di un tipo (`kind` del manifest, per esempio SPM)."""
         wanted = normalize_code(kind)
         return [d for d in self._documents if normalize_code(d.kind or "") == wanted]
 
-    def _task_in(self, documents: list[DocumentInfo], task: str) -> TaskLocation | None:
+    def _task_in(
+        self, documents: list[DocumentInfo], task: str, *, sections: bool = False
+    ) -> TaskLocation | None:
         wanted = normalize_code(task)
         for document in documents:
             location = self._tasks.get((document.key, wanted))
@@ -75,17 +78,17 @@ class IndexedKnowledgeBase:
         # L'indice non ha il task (titolo in una forma che non riconosce): si cerca il titolo
         # nel testo dei documenti, con la stessa regola dell'indice.
         for document in documents:
-            location = self._task_from_text(document, task, wanted)
+            location = self._task_from_text(document, task, wanted, sections)
             if location is not None:
                 return location
         return None
 
     def _task_from_text(
-        self, document: DocumentInfo, task: str, wanted: str
+        self, document: DocumentInfo, task: str, wanted: str, sections: bool
     ) -> TaskLocation | None:
-        key = (document.key, wanted)
+        key = (document.key, wanted, sections)
         if key not in self._from_text:
-            found = find_task_in_text(read_lines(document.path), task)
+            found = find_task_in_text(read_lines(document.path), task, sections=sections)
             self._from_text[key] = (
                 None
                 if found is None

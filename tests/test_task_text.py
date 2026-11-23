@@ -79,3 +79,40 @@ def test_the_index_wins_over_the_text(tmp_path: Path) -> None:
     kb = IndexedKnowledgeBase("v", documents=[document], tasks=[indexed])
     location = kb.find_task("MAN-X", "11-22-33 REPAIR 002")
     assert location is not None and location.line_end == 5
+
+
+def test_ge_titles_with_cir_and_a_comma_open_the_task() -> None:
+    lines = [
+        "MANUALE DI PROVA",
+        "Refer to TASK 11-22-33-300-801 (11-22-33, REPAIR 001).",  # citazione: non apre
+        "CIR 11-22-33, REPAIR 004",
+        "1. a",
+        "CIR 11-22-33, INSPECTION 001",
+        "1. b",
+    ]
+    assert find_task_in_text(lines, "11-22-33 REPAIR 004") == (3, 4)
+    assert find_task_in_text(lines, "11-22-33 REPAIR 001") is None
+    assert find_task_in_text(lines, "11-22-33-300-801") is None
+    # la sola sezione non è un task, tranne nei documenti SPM
+    assert find_task_in_text(lines, "11-22-33") is None
+
+
+def test_spm_tasks_can_be_cited_by_section(tmp_path: Path) -> None:
+    lines = [
+        "70-11-22-000-001 Pratica completa",
+        "a",
+        "70-11-23 Removal of Coatings",
+        "b",
+        "70-11-23-000-001 dentro la sezione",  # un task con la sezione come prefisso
+        "c",
+        "70-11-24 Altra pratica",
+        "d",
+    ]
+    assert find_task_in_text(lines, "70-11-23", sections=True) == (3, 4)
+    path = tmp_path / "spm.md"
+    path.write_text("\n".join(lines) + "\n", "utf-8")
+    spm = DocumentInfo(key="SPM_X", path=path, code="SPM-X", kind="SPM")
+    kb = IndexedKnowledgeBase("v", documents=[spm])
+    location = kb.find_task_in_kind("SPM", "70-11-23")
+    assert location is not None and (location.line_start, location.line_end) == (3, 4)
+    assert kb.find_task("SPM-X", "70-11-23") is None  # citando il manuale serve il task intero

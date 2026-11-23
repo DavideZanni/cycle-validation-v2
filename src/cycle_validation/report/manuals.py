@@ -277,7 +277,7 @@ def explain_missing(result: ManualsFound, kb: IndexedKnowledgeBase) -> None:
         )
         for task in sorted(need.missing_tasks):
             hits = _hits(documents, task)
-            if not is_task_code(task):
+            if not is_task_code(task, sections=need.standard_practices):
                 need.missing_why[task] = (NOT_A_TASK, hits)
             elif hits:
                 need.missing_why[task] = (IN_TEXT, hits)

@@ -223,6 +223,17 @@ testo, forma non da task) e nel file sul PC scrive le righe del manuale dove com
 un task solo il codice completo (`codice_task` in `regole.json`), quindi i titoli `REPAIR 00N`
 non li ha mai; i «conflitti» del report dell'indice sono targhe e schede con lo stesso codice
 e valori diversi (si uniscono con «; »), non riguardano i manuali. I 44 c'erano già prima.
+**Prova del 23-11 pomeriggio** (versione `v/20261123T142517Z/`, 20 documenti, 28 task):
+i 7 cicli con «errori» danno tutti 0 errati. M1 c'è, ma mancano 7 task. La risposta di Copilot
+(in sola lettura) spiega perché:
+- due REPAIR hanno il titolo `CIR <sezione>, REPAIR 00N`, con `CIR` davanti e una virgola. La
+  ricerca nel testo della v2 non lo riconosceva: corretto il 23-11 (`kb/task_text.py`);
+- due citazioni sono la sola sezione: non sono task;
+- due REPAIR sono nominati solo in una frase («Refer to TASK <codice completo> (<sezione>,
+  REPAIR 00N)»): sono task di altri file del manuale, non ingestionati. I file del manuale
+  hanno nel nome la sezione e `-09-` con il numero del REPAIR;
+- il task SPM del capitolo 70-23 è citato con la sola sezione: adesso la v2 lo accetta nei
+  documenti SPM, ma il capitolo 70-23 dell'SPM non è nella conoscenza.
 
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
@@ -737,6 +748,11 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 5)
   si lascia così (nessuna riscrittura della storia).
 
 ## 13. Da correggere nell'indice (knowledge-index)
+
+**Titoli dei task GE.** `regole.json` (`codice_task`) riconosce solo il codice completo
+(`72-00-01-110-001`). I titoli `72-00-01 REPAIR 001` e `CIR 72-00-01, REPAIR 001` l'indice non
+li registra: la v2 li trova nel testo, ma l'indice potrebbe registrarli (con la stessa regola di
+`kb/task_text.py`), così anche il controllo di Copilot li vedrebbe.
 
 **Targa `90`.** Nel file delle targhe la `90` ha come funzione una frase rimasta dal documento
 («la descrizione breve può essere scelta…») con le lettere accentate rovinate. Nei dati TM la

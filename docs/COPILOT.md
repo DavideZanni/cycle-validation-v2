@@ -29,17 +29,23 @@ prove, ma il codice lo cambia solo Claude.
 sul ciclo MOS di esempio). Il comando `qa` ha scritto un Dockerfile e un buildspec giusti
 (controllati il 22-11).
 
-**Fatto oggi:** lista dei manuali e ingestion (10 manuali nuovi, versione pubblicata).
+**Fatto oggi:** lista dei manuali, ingestion (10 manuali nuovi, versione
+`v/20261123T142517Z/`), controllo dell'indice e i 7 cicli con errori: ancora 0 errati. Il
+motivo: la v2 non riconosceva i titoli GE scritti `CIR <sezione>, REPAIR 00N` (con `CIR`
+davanti e la virgola). Claude l'ha corretto.
 
 **Cosa manca, nell'ordine:**
 
-1. **Aggiornare** (sezione 2): porta sul PC il controllo dei task mancanti.
-2. **Controllo dell'indice** dopo l'ingestion (4.2): gratis.
-3. **I 7 cicli con errori** (4.3).
-4. **Salvare** (sezione 3), sul ramo feature. QA non cambia.
-5. **Prove in locale dal frontend** (4.1).
-6. **Messaggio** al collega del frontend (5.1), se non l'hai già mandato.
-7. **Più avanti, quando lo decidi tu:** pull request verso `develop` e prova in QA
+1. **Aggiornare** (sezione 2).
+2. **4.2:** di nuovo la lista dei manuali con la conoscenza di oggi, e la ricerca sul PC dei
+   due REPAIR che mancano.
+3. **4.3:** di nuovo i 7 cicli con errori.
+4. **Ingestion** dei file dei due REPAIR che mancano, se 4.2 li trova; poi di nuovo 4.2 e 4.3
+   (con una fotografia nuova, blocco in fondo a 4.3).
+5. **Salvare** (sezione 3), sul ramo feature. QA non cambia.
+6. **Prove in locale dal frontend** (4.1).
+7. **Messaggio** al collega del frontend (5.1), se non l'hai già mandato.
+8. **Più avanti, quando lo decidi tu:** pull request verso `develop` e prova in QA
    (sezione 6).
 
 ---
@@ -167,73 +173,49 @@ Prove, nell'ordine (salta quelle che non puoi fare):
 scrivi a parole il tempo della prova 2. Se qualcosa non va, manda la foto del frontend e quella
 del log di CV v2 nel terminale.
 
-### 4.2 Controllo dell'indice dopo l'ingestion
+### 4.2 La lista dei manuali con la conoscenza di oggi
 
-Gratis: non chiama il modello. Va su AWS solo per scaricare la conoscenza di prova. Il blocco:
+Gratis: non chiama il modello e non va su AWS. Usa l'ultima fotografia (quella delle 15:45). Il
+blocco:
 
-- fa una fotografia nuova della conoscenza civile di prova e stampa la versione pubblicata;
-- la carica come fa la v2 e stampa i conteggi (`kb-check`);
-- rilegge tutte le stampe dei cicli e cerca ogni task citato **come lo cerca la v2**: prima
-  nell'indice, poi nel testo del manuale (i titoli come `72-00-01 REPAIR 001`, che l'indice non
-  registra, la v2 li trova nel testo);
-- per ogni task che non trova dice perché.
-
-Il controllo di Copilot guardava solo l'indice. Questo blocco dice quali task mancano davvero
-alla v2.
+- rilegge le stampe dei cicli e cerca ogni task citato come lo cerca la v2 (prima l'indice, poi
+  il testo del manuale);
+- per ogni task che non trova dice perché;
+- cerca sul PC i PDF del capitolo 72-56 e scrive i loro nomi in un file.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$foto = "eval/casi/aziendali/conoscenza/foto-" + (Get-Date -Format "yyyyMMdd-HHmm")
-uv run cycle-validation eval fotografia --bucket (Get-Content data/bucket.txt) --prefisso "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/" --out $foto --regione eu-south-1
-$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-"versione pubblicata: " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-uv run cycle-validation kb-check $v
+$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
+$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path; "conoscenza: " + (Split-Path -Leaf $foto) + " · " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
 uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --errori 298bc28e=005,035 --errori c5ff3cd6=040 --errori f355dc3c=010,030,040,050
-code runs\manuali-da-ingestionare.txt
+Get-ChildItem (Resolve-Path "..\..").Path -Recurse -Filter "*72-56-3*.pdf" -ErrorAction SilentlyContinue | Sort-Object Name | ForEach-Object { $_.Name + "   (" + $_.DirectoryName + ")" } | Set-Content runs\pdf-72-56.txt; "PDF del capitolo 72-56 sul PC: " + (Get-Content runs\pdf-72-56.txt).Count
+code runs\pdf-72-56.txt
 ```
 
 **Deve uscire:**
 
-1. la riga `Fotografia in ...` e `versione pubblicata: v/...`, **diversa** da
-   `v/20261119T141528Z/`;
-2. `Knowledge base ...` con i conteggi, senza righe `Errore:`;
-3. le righe `M1: ...`, `M2: ...` come stamattina. Adesso M1 e M3 dovrebbero dire `c'è` o
-   `c'è, ma mancano N task`. Se mancano task, tra parentesi c'è il perché:
-   - `nel testo ma non come titolo`: il codice è nel manuale, ma in una riga che non apre il
-     task (per esempio dentro una frase o in fondo alla pagina);
-   - `solo la sezione nel testo`: c'è la sezione (i primi tre numeri), non il task;
-   - `non nel testo`: il task non è nei file ingestionati (manca un capitolo o un file);
-   - `forma non da task`: la stampa lo cita in un modo che non è un codice di task.
+1. `conoscenza: foto-20261123-1545 · v/20261123T142517Z/`;
+2. la riga di M1, con meno task mancanti di prima (prima erano 7: adesso i due REPAIR con il
+   titolo `CIR ..., REPAIR ...` si trovano). Restano mancanti:
+   - due citazioni della sola sezione (`forma non da task`): è giusto, non sono task;
+   - i due REPAIR che il manuale nomina solo in una frase («Refer to TASK ...»). Sono task
+     in **altri file** del manuale, che non sono stati ingestionati;
+3. M2 (SPM): il task del capitolo 70-23 adesso esce `non nel testo`. Serve il capitolo 70-23
+   dell'SPM, che sul PC non c'è;
+4. `PDF del capitolo 72-56 sul PC: N`, e si apre il file con i nomi.
 
-Nel file che si apre, sotto `task che la conoscenza non ha`, per ogni task ci sono le righe del
-manuale dove compare (documento e numero di riga): servono a te, non mandarle.
+**Cosa cercare nel file:** i file ingestionati oggi hanno nel nome la sezione e poi `-08-`
+(ispezione) o `-09-` con il numero del REPAIR (per esempio `...72-56-31-09-004...` è il REPAIR
+004). Cerca se ci sono anche quelli dei due REPAIR che mancano, cioè `-09-001` e `-09-003` della
+stessa sezione. Se ci sono, vanno ingestionati.
 
-**Manda a Claude:** la foto dello schermo (non quella del file).
-
-**Domanda per Copilot** (solo se 4.2 dice che mancano task). Copilot in **Ask**, aperto sul
-progetto dell'ingestion. Apri `runs\manuali-da-ingestionare.txt`, poi copia la domanda e,
-dove c'è scritto `[...]`, incolla le righe sotto `task che la conoscenza non ha` di M1, M3 e
-SPM:
-
-```text
-Non modificare nessun file: leggi e lancia solo comandi che non scrivono niente.
-Nella conoscenza civile pubblicata oggi (ultima versione di knowledge/civil) la v2 di cycle
-validation non trova questi task. Per ognuno c'è il motivo e le righe del manuale dove compare:
-[...]
-Per ogni task rispondi in una riga:
-1. il file markdown del manuale che dovrebbe contenerlo e se c'è nella versione pubblicata;
-2. come è scritto il titolo del task in quel file (copia la riga): comincia con il codice del
-   task? Il codice è spezzato su due righe o separato da altro testo?
-3. se il task non è nel testo: è nel PDF originale? A che pagina? L'estrazione l'ha perso?
-Alla fine scrivi un riepilogo di massimo 10 righe senza codici di manuali.
-```
-
-**Manda a Claude:** la foto del riepilogo finale di Copilot.
+**Manda a Claude:** la foto dello schermo, e scrivi a parole se hai trovato i file dei due
+REPAIR.
 
 ### 4.3 I cicli con errori
 
-Da lanciare **dopo** 4.2: usa la fotografia appena fatta. Rilancia tutti i cicli con «errori» nel
+Da lanciare **dopo** 4.2: usa l'ultima fotografia. Rilancia tutti i cicli con «errori» nel
 nome del file (sono 7: i tre «con errori» e altri quattro trovati dalla lista dei manuali) e,
 per ognuno, stampa il riepilogo e le righe ERRATO. Ogni ciclo costa qualche centesimo.
 
@@ -249,7 +231,7 @@ foreach ($f in $errati) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).T
 
 **Deve uscire:**
 
-1. `conoscenza: foto-...` con la versione nuova (la stessa di 4.2);
+1. `conoscenza: foto-...` (la stessa di 4.2);
 2. per ognuno dei 7 cicli una riga `<impronta> Ciclo ...: N corretti, ...`, e sotto le righe
    `ERRATO op ...`.
 
@@ -257,6 +239,19 @@ Claude le confronta con i 10 errori conosciuti dei tre cicli «con errori»; per
 servirà `confronta` con la stampa giusta.
 
 **Manda a Claude:** la foto.
+
+**Dopo un'altra ingestion** serve prima una fotografia nuova. Lancia questo blocco, poi 4.2 e
+4.3 (prendono da soli l'ultima fotografia):
+
+```powershell
+$env:UV_PYTHON = "3.14"
+$foto = "eval/casi/aziendali/conoscenza/foto-" + (Get-Date -Format "yyyyMMdd-HHmm")
+uv run cycle-validation eval fotografia --bucket (Get-Content data/bucket.txt) --prefisso "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/" --out $foto --regione eu-south-1
+$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; "versione pubblicata: " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path; uv run cycle-validation kb-check ($kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path)
+```
+
+Deve uscire una `versione pubblicata` diversa da `v/20261123T142517Z/` e i conteggi di
+`kb-check` senza righe `Errore:`.
 
 ---
 
