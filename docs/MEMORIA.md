@@ -49,7 +49,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
 
 | # | Cosa | Perché serve | Come si chiude | Chi |
 |---|---|---|---|---|
-| 1 | Misura sugli errori veri | controllo delle due lingue (23-11): 3 degli 8 errori noti dei tre cicli, più 4-5 negli altri cicli; cicli giusti puliti | ingestion del manuale principale fatta il 23-11 (10 manuali); due correzioni nel 23-11 (titoli `CIR`, fonti con la sola sezione). Mancano i file di due REPAIR e il capitolo 70-23 dell'SPM (non sul PC); poi COPILOT 2.1 e 2.1b, Claude confronta con i 10 errori | U, poi C |
+| 1 | Misura sugli errori veri | 23-11 sera: 3 degli 8 errori noti trovati in modo stabile, più uno per ciascuno degli altri 4 cicli; 0 falsi errori nei 3 cicli giusti | ingestion del manuale principale fatta il 23-11 (10 manuali); due correzioni nel 23-11 (titoli `CIR`, fonti con la sola sezione). Mancano i file di due REPAIR e il capitolo 70-23 dell'SPM (non sul PC); poi COPILOT 2.1 e 2.1b, Claude confronta con i 10 errori | U, poi C |
 | 2 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Provato in locale il 22-11 (punto 4); da provare in QA | U |
 | 3 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto nel codice**: `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets` (22-11 sera); macchine attive come la v1 con `MACHINES_SOURCE=diretta`: `redshift_connector` con il secret `SECRET_NAME` (22-11 notte). Da provare in QA | C, poi U |
 | 4 | Prova in locale | è il passo prima di develop | **fatto** (22-11 notte): login, frontend e v2 da Run and Debug; ciclo MOS di esempio `Validation Passed` in circa 20 s, con accesso e permessi della v1. Configurazione in `AZIENDA.md`, sezione 7 | — |
@@ -356,6 +356,20 @@ op 030, 38960731 op 050, 8d3c673c op 140, e9b74c84 op 025. Dei 8 errori noti dei
 trovati senza modello (005, c5ff3cd6 040, f355dc3c 030). Restano: 298bc28e op 035 (parole),
 c5ff3cd6 op 030 (scheda, P6), f355dc3c op 010 (numeri cambiati in tutte e due le lingue), 040
 (classe), 050 (frase).
+
+**2.1, 2.1b e 2.1c del 23-11 (17:58)**, con tutte le correzioni:
+- i 7 cicli con errori: un ERRATO `INCOERENZA_LINGUE` in ognuno (298bc28e op 005, 38960731 op
+  050, 5ff17062 op 030, 8d3c673c op 140, c5ff3cd6 op 040, e9b74c84 op 025, f355dc3c op 030);
+  in più CONTRADDIZIONE del modello in 5ff17062 op 050 e f355dc3c op 050 («4 volte» contro i
+  «3 volte» dell'SPM, domanda P7);
+- i 3 cicli giusti: **0 errati** (04ecaabe questa volta non ha dato l'op. 050: il giudizio del
+  modello su quel punto cambia da una prova all'altra);
+- dei 8 errori noti dei tre cicli: **3 trovati in modo stabile** (298bc28e 005, c5ff3cd6 040,
+  f355dc3c 030); f355dc3c 050 segnato, ma per il «4 volte» che c'è anche nella stampa giusta.
+  Restano 298bc28e 035 (parole: confrontata con i task della riparazione, nessun collaudo
+  visivo), c5ff3cd6 030 (scheda tolta, P6; la descrizione esce CORRETTO), f355dc3c 010 (limiti
+  delle raccordature in un altro task), 040 (classe d'attacco: l'SPM rimanda al manuale
+  d'ispezione del motore, che non è nella conoscenza), 050 (frase al contrario).
 
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).

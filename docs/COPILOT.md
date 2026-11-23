@@ -25,27 +25,22 @@ cambia solo Claude.
 
 ## 1. Cosa fare adesso (23-11-2026)
 
-**Dove siamo.** La v2 gira in locale con login e frontend. Prova delle 17:30 sui cicli con
-errori: un ERRATO in f355dc3c op 050, ma esce uguale anche nella stampa giusta, quindi non è
-l'errore messo apposta (vedi domanda P7); f355dc3c op 030 trovata una volta su tre. Nuovo
-controllo (18:10), senza modello: se la descrizione **italiana e quella inglese hanno numeri
-diversi** nello stesso punto, ERRATO `INCOERENZA_LINGUE` (in c5ff3cd6 op 040 il modello aveva
-notato 13-38 in italiano e 13-58 in inglese). Prima di rilanciare 2.1 si misura gratis con 2.0.
-L'indice va bene così. Mancano ancora dei documenti: i due REPAIR della sezione 72-56-31 (file con
-`-09-001` e `-09-003` nel nome, **non sul PC**) e il capitolo 70-23 dell'SPM.
+**Dove siamo (23-11 sera).** La v2 gira in locale con login e frontend. Sui 7 cicli «con
+errori» trova un errore in ognuno; dei 8 errori noti dei tre cicli studiati ne trova 3 in modo
+stabile; nei 3 cicli giusti **0 errati**. Gli altri 5 errori noti chiedono documenti che non ci
+sono (manuale d'ispezione del motore, i due REPAIR della sezione 72-56-31, il capitolo 70-23
+dell'SPM) o risposte delle persone (P6, P7, P8). L'indice va bene così.
 
 **In ordine:**
 
-1. **Aggiornare** (2.4).
-2. **Le due lingue** (2.0, gratis): se i cicli giusti sono puliti, continua.
-3. **I cicli con errori** (2.1), **2.1b** e **I tre cicli giusti** (2.1c).
-4. **Salvare** (2.5).
-5. **I file mancanti:** cercali dove prendi i manuali (i due REPAIR e il capitolo 70-23
-   dell'SPM). Se li trovi: ingestion, poi 2.2, 2.3 e 2.1.
-6. **Prove dal frontend** (2.6).
-7. **Messaggio** al collega del frontend (3.2), se non l'hai già mandato.
-8. **Domande** alle persone (3.1), quando capita.
-9. **Più avanti, quando lo decidi tu:** pull request verso `develop` e prova in QA (sezione 4).
+1. **Salvare** (2.5): le correzioni di oggi nel repository aziendale.
+2. **Prove dal frontend** (2.6).
+3. **Messaggio** al collega del frontend (3.2), se non l'hai già mandato.
+4. **Domande** alle persone (3.1): P6, P7, P8.
+5. **I file mancanti:** cercali dove prendi i manuali (i due REPAIR della sezione 72-56-31, il
+   capitolo 70-23 dell'SPM, il manuale d'ispezione del motore). Se li trovi: ingestion, poi
+   2.2, 2.3, 2.1 e 2.1c.
+6. **Quando lo decidi tu:** pull request verso `develop` e prova in QA (sezione 4).
 
 Quando Claude dice di aver cambiato il codice: prima **Aggiornare** (2.4).
 
