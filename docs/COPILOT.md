@@ -68,40 +68,39 @@ due prove anche sul grande.
 Quando una miglioria entra nella base: archivia le prove (2.3 F), rifai le copie cieche (2.3 A1)
 con un **seme nuovo** (`$seme = 2`, poi 3, ...), poi di nuovo la base (passi 6-8).
 
-**Fase 4: migliorie con codice nuovo (lo scrive Claude)**
+**Fase 4: migliorie scelte sugli errori mai visti (il codice lo scrive Claude)**
 
-Quando Claude dice che il codice è pronto: **Aggiornare** (2.1), due prove sul piccolo con il
-nome della miglioria, riepilogo; se si tiene, due sul grande.
+Le migliorie non si scelgono dagli errori noti che mancano (sarebbe «imparare la lista»), ma dai
+tipi di errori **mai visti** che la v2 trova peggio.
 
-- [ ] 15. `negazioni_lingue` (I1): senza modello, costo zero.
-- [ ] 16. `classi_lingue` (I2): senza modello, costo zero.
-- [ ] 17. `prompt_confronto` (I3)
-- [ ] 18. `numeri_manuale` (I4)
-- [ ] 19. `contesto_sezione` (I5)
-- [ ] 20. `fatti_incerti` (F5)
-- [ ] 21. `modello_grande_sui_dubbi` (I6): serve l'id di un modello più grande abilitato su
-  Bedrock.
+- [ ] 15. `numeri_manuale` (I4): quando Claude dice che è pronta, **Aggiornare** (2.1), due
+  prove sul piccolo con `$nome = "numeri_manuale"`, riepilogo; se si tiene, due sul grande.
+- [ ] 16. Nel report dell'ultima base (2.3 B), manda a Claude la foto della tabella **«Errori
+  mai visti, per tipo»** (ci sono solo i conteggi). Contano le righe «modello»; le righe
+  «codice» servono solo a vedere che non si rompe niente.
+- [ ] 17. Claude propone una miglioria per il tipo «modello» trovato peggio e la scrive. Si
+  prova come al passo 15. Poi di nuovo il passo 16, finché i tipi «modello» non migliorano più.
 
 **Fase 5: tempo e costo (stessi errori trovati, meno costo o meno tempo)**
 
-- [ ] 22. **B1**, chiamata diretta a Bedrock (la scrive Claude).
-- [ ] 23. **Cache dei prompt** (H10): nel report, la riga dei token riletti dalla cache.
-- [ ] 24. **B4**, più operazioni insieme.
+- [ ] 18. **B1**, chiamata diretta a Bedrock (la scrive Claude).
+- [ ] 19. **Cache dei prompt** (H10): nel report, la riga dei token riletti dalla cache.
+- [ ] 20. **B4**, più operazioni insieme.
 
 **Fase 6: chiusura prima della QA**
 
-- [ ] 25. **Prova finale:** due prove sul grande con la base finale, poi il riepilogo: foto.
-- [ ] 26. **Prove dal frontend** (2.4): un ciclo MOS e un DR.
-- [ ] 27. **Salvare** (2.2).
+- [ ] 21. **Prova finale:** due prove sul grande con la base finale, poi il riepilogo: foto.
+- [ ] 22. **Prove dal frontend** (2.4): un ciclo MOS e un DR.
+- [ ] 23. **Salvare** (2.2).
 
 **Fase 7: QA (sezione 4)**
 
-- [ ] 28. **Pull request** da `feature/cycle-validation-v2` verso `develop`.
-- [ ] 29. **Prova in QA** dal frontend con un ciclo MOS e un DR: foto dell'intestazione dei
+- [ ] 24. **Pull request** da `feature/cycle-validation-v2` verso `develop`.
+- [ ] 25. **Prova in QA** dal frontend con un ciclo MOS e un DR: foto dell'intestazione dei
   risultati.
-- [ ] 30. Se la v2 in QA non parte: `qa --torna-alla-v1` (sezione 4), poi Salvare e pull
+- [ ] 26. Se la v2 in QA non parte: `qa --torna-alla-v1` (sezione 4), poi Salvare e pull
   request.
-- [ ] 31. **Cicli militari**, solo dopo una prova QA riuscita.
+- [ ] 27. **Cicli militari**, solo dopo una prova QA riuscita.
 
 **Attenzione:** quando il ramo arriva su `main`, anche la produzione passa alla v2. Prima serve
 una prova QA riuscita.
@@ -191,7 +190,10 @@ errori sono di due specie:
 - **mai visti**, che misurano se la v2 **generalizza**:
   - le **copie cieche** (blocco A1): cicli veri in cui il programma cambia una sola
     operazione (un numero in una lingua, un numero del manuale, una negazione, un codice di
-    task). Nessuno le guarda e un seme nuovo dà errori nuovi;
+    task). Nessuno le guarda e un seme nuovo dà errori nuovi. Il numero in una lingua e il
+    codice di task li trova il **codice** con la stessa regola che li ha messi: dicono solo
+    che non si è rotto niente. La generalizzazione la dicono gli altri due tipi e il gruppo
+    nascosto, che deve trovare il **modello**;
   - il **gruppo nascosto** (blocco N, facoltativo): stampe con errori messi da te o da un
     collega, che Claude non vede mai.
 
@@ -235,15 +237,16 @@ regola vuole almeno due ripetizioni.
 | Tempo del ciclo più lento | il frontend aspetta 11 minuti | sotto **10 minuti** |
 | Costo per ciclo | dollari per ciclo | non più del **doppio** della base |
 | **Stabili** | errori (visti e mai visti) trovati in **tutte** le prove della variante | 1° criterio: più alto è meglio; mai meno della base |
-| **Mai visti stabili** | errori ciechi e nascosti trovati in tutte le prove | mai meno della base: se scende, la miglioria **non generalizza** |
+| **Mai visti stabili** | errori mai visti per il modello (copie cieche «numero del manuale» e «negazione», gruppo nascosto) trovati in tutte le prove | mai meno della base: se scende, la miglioria **non generalizza** |
 | Trovati (minimo, media) | errori trovati in ogni prova | 2° e 3° criterio |
 | Da verificare | ERRATO fuori dalla lista (cicli con errori e cicli veri) | 4°: meno è meglio |
 | Warning per ciclo senza errori | lavoro a mano lasciato su una stampa giusta o vera | 5°: meno è meglio |
 | Costo, tempo | per ciclo | 6° e 7°: meno è meglio |
 | Precisione | trovati / tutti gli ERRATO | solo da guardare |
 
-Il report di ogni prova mette accanto **visti** e **mai visti**: se i visti sono trovati molto
-più spesso, la v2 ha imparato la lista. Dettagli in `MIGLIORIE.md`.
+Il report di ogni prova mette accanto **visti** e **mai visti per il modello**: se i visti sono
+trovati molto più spesso, la v2 ha imparato la lista. La tabella «Errori mai visti, per tipo»
+dice quali tipi trova peggio: le migliorie si scelgono su quelli. Dettagli in `MIGLIORIE.md`.
 
 **A0. Scegliere i cicli veri** (gratis: legge le stampe con il parser, non chiama il modello).
 Una volta, e di nuovo dopo una nuova ingestion (2.5). Prende i 10 cicli noti e **tutti** i
@@ -299,7 +302,7 @@ uv run cycle-validation eval prova @cicli --nome $nome --knowledge $v --config d
 
 **Deve uscire:** una riga per ciclo (`<impronta> errori|giusto|vero: trovati ... · mancati ...
 · ERRATO in più ...`; per le copie solo `<impronta> mai visto: trovato|mancato`), poi
-`Prova «...»: errori noti trovati N su M (visti ..., mai visti ...) · falsi errori ... ·
+`Prova «...»: errori noti trovati N su M (visti ..., mai visti per il modello ..., per il codice ...) · falsi errori ... ·
 costo ...` e i percorsi dei due report. Il 23-11 sera, sui visti, erano circa **8 su 12** con
 **0 falsi errori**.
 

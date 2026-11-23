@@ -397,6 +397,15 @@ nascosti; il grande = 10 noti + tutti i cicli veri confrontabili (`--quanti 0`).
 il seme o la conoscenza, le prove si archiviano (COPILOT 2.3 F). Non chiedere mai foto degli
 errori ciechi o nascosti.
 
+**Migliorie scelte sui mai visti (23-11 notte).** Decisione dell'utente: le migliorie non si
+scelgono più dagli errori noti mancati (erano fatte su misura, cioè «imparare la lista»). Tolte
+`negazioni_lingue` (I1), `classi_lingue` (I2), `prompt_confronto` (I3), `contesto_sezione` (I5),
+`fatti_incerti` (F5), `modello_grande_sui_dubbi` (I6); resta solo `numeri_manuale` (I4). Dopo la
+base si guarda la tabella «Errori mai visti, per tipo» e si sceglie sul tipo «modello» trovato
+peggio. Corretto anche un errore di misura: i tipi ciechi `numero_una_lingua` e
+`task_inesistente` li trova il codice con la stessa regola che li mette (`CODE_KINDS`), quindi
+non contano nella generalizzazione né nella regola; si vedono a parte come controllo.
+
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
 

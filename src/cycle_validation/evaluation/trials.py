@@ -23,6 +23,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from cycle_validation.domain.check import CheckName, TargetKind, Verdict
 from cycle_validation.domain.report import Report
+from cycle_validation.evaluation.blind import CODE_KINDS
 
 TRIAL_FILE = "prova.json"
 TRIAL_REPORT = "prestazioni.md"
@@ -141,15 +142,40 @@ class Trial(_Strict):
 
     @property
     def unseen_total(self) -> int:
-        """Errori mai visti (mutazioni cieche, gruppo nascosto): misurano la generalizzazione."""
-        return sum(len(c.found) + len(c.missed) for c in self._errors(False))
+        """Errori mai visti che deve trovare il modello (copie cieche dei tipi in
+        `MODEL_KINDS`, gruppo nascosto): misurano la generalizzazione."""
+        return sum(
+            sum(map(generalizes, [f.known for f in c.found] + [m.known for m in c.missed]))
+            for c in self._errors(False)
+        )
 
     @property
     def unseen_found(self) -> int:
-        return sum(len(c.found) for c in self._errors(False))
+        return sum(sum(generalizes(f.known) for f in c.found) for c in self._errors(False))
 
     def unseen_ops(self) -> set[tuple[str, str]]:
-        return {(c.fingerprint, f.op) for c in self._errors(False) for f in c.found}
+        return {
+            (c.fingerprint, f.op)
+            for c in self._errors(False)
+            for f in c.found
+            if generalizes(f.known)
+        }
+
+    @property
+    def code_unseen_total(self) -> int:
+        """Errori mai visti dei tipi che trova il codice con la stessa regola che li ha messi:
+        dicono solo che non si è rotto niente, non che la v2 generalizza."""
+        return sum(
+            sum(
+                not generalizes(text)
+                for text in [f.known for f in c.found] + [m.known for m in c.missed]
+            )
+            for c in self._errors(False)
+        )
+
+    @property
+    def code_unseen_found(self) -> int:
+        return sum(sum(not generalizes(f.known) for f in c.found) for c in self._errors(False))
 
     @property
     def known_total(self) -> int:
@@ -334,12 +360,20 @@ def _cell(text: str) -> str:
     return text.replace("|", "/").replace("\n", " ")
 
 
-def error_kind(text: str) -> str:
+def error_kind(text: str | None) -> str:
     """Il tipo di un errore mai visto: `[numero_manuale] ...` → `numero_manuale`; senza
     parentesi (gruppo nascosto) → `nascosto`."""
+    text = text or ""
     if text.startswith("[") and "]" in text:
         return text[1 : text.index("]")]
     return "nascosto"
+
+
+def generalizes(text: str | None) -> bool:
+    """Se un errore mai visto misura la generalizzazione: sì, se lo deve trovare il modello
+    (gruppo nascosto e copie cieche dei tipi in `MODEL_KINDS`); no per i tipi in `CODE_KINDS`,
+    che il codice trova con la stessa regola che li ha messi."""
+    return error_kind(text) not in CODE_KINDS
 
 
 def _unseen_by_kind(trial: Trial) -> dict[str, tuple[int, int]]:
@@ -373,8 +407,11 @@ def render_trial(trial: Trial) -> str:
         f"({_percent(trial.known_found, trial.known_total)}) |",
         f"| … visti (la lista che si conosce) | {trial.seen_found} su {trial.seen_total} "
         f"({_percent(trial.seen_found, trial.seen_total)}) |",
-        f"| … **mai visti** (ciechi e nascosti: generalizzazione) | **{trial.unseen_found} su "
+        f"| … **mai visti per il modello** (generalizzazione) | **{trial.unseen_found} su "
         f"{trial.unseen_total}** ({_percent(trial.unseen_found, trial.unseen_total)}) |",
+        f"| … mai visti per il codice (solo controllo che non si rompe niente) | "
+        f"{trial.code_unseen_found} su {trial.code_unseen_total} "
+        f"({_percent(trial.code_unseen_found, trial.code_unseen_total)}) |",
         f"| Falsi errori nei cicli giusti | **{trial.false_errors}** |",
         f"| ERRATO da verificare (fuori lista; nei {trial.real_cycles} cicli veri: "
         f"{trial.real_errors}) | {trial.extra_errors} |",
@@ -438,13 +475,16 @@ def render_trial(trial: Trial) -> str:
             "",
             "Solo i conteggi: quali sono non si mostra, così chi scrive le migliorie non li "
             "impara. Se gli errori visti sono trovati molto più spesso di questi, la v2 ha "
-            "imparato la lista e non generalizza.",
+            "imparato la lista e non generalizza. Le migliorie si scelgono sui tipi «modello» "
+            "trovati peggio; i tipi «codice» li trova il codice con la stessa regola che li ha "
+            "messi: servono solo a vedere che non si rompe niente.",
             "",
-            "| Tipo | Trovati |",
-            "|---|---|",
+            "| Tipo | Chi lo deve trovare | Trovati |",
+            "|---|---|---|",
         ]
         lines += [
-            f"| {kind} | {found} su {total} ({_percent(found, total)}) |"
+            f"| {kind} | {'modello' if kind not in CODE_KINDS else 'codice'} | "
+            f"{found} su {total} ({_percent(found, total)}) |"
             for kind, (found, total) in by_kind.items()
         ]
     lines += [
@@ -646,9 +686,9 @@ METRICS_HELP = (
     f"{MAX_CYCLE_MS // 60000} minuti o un costo per ciclo oltre {MAX_COST_RATIO:g} volte la "
     f"base; servono almeno {MIN_REPETITIONS} prove con lo stesso nome. Classifica: stabili, "
     "trovati (minimo, poi media), meno da verificare, meno warning per ciclo senza errori noti, meno "
-    "costo, meno tempo. Si tiene se non perde errori stabili, né errori **mai visti** (copie "
-    "con errori ciechi e gruppo nascosto: dicono se la v2 generalizza o ha imparato la lista), "
-    "e sta sopra la base."
+    "costo, meno tempo. Si tiene se non perde errori stabili, né errori **mai visti per il "
+    "modello** (copie cieche che deve trovare il modello e gruppo nascosto: dicono se la v2 "
+    "generalizza o ha imparato la lista), e sta sopra la base."
 )
 
 

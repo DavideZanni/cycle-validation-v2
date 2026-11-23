@@ -182,3 +182,28 @@ def test_the_summary_warns_when_trials_use_different_cycles(tmp_path: Path) -> N
     assert small.cycle_set != big.cycle_set
     assert "non sono tutte sugli stessi cicli" in render_summary([small, big])
     assert "non sono tutte sugli stessi cicli" not in render_summary([small, small])
+
+
+def test_errors_the_code_puts_and_finds_do_not_count_as_generalization(tmp_path: Path) -> None:
+    path = tmp_path / "ciechi.yaml"
+    path.write_text(
+        "cicli:\n  eeee5555:\n    visto: false\n    errori:\n"
+        "      5: '[numero_una_lingua] un numero cambiato in una lingua sola'\n"
+        "      10: '[numero_manuale] un numero del manuale cambiato'\n"
+        "  ffff6666:\n    visto: false\n    errori:\n      30: frase al contrario\n",
+        "utf-8",
+    )
+    known = load_known_errors(path)
+    reports = [_report("eeee5555", ["005"]), _report("ffff6666", ["030"])]
+    trial = build_trial(
+        "base", datetime(2030, 1, 1, 9), reports, [score_cycle(r, known) for r in reports]
+    )
+    # il numero in una lingua sola lo trova il codice: è solo un controllo
+    assert (trial.code_unseen_found, trial.code_unseen_total) == (1, 1)
+    # per il modello: numero del manuale (mancato) e gruppo nascosto (trovato)
+    assert (trial.unseen_found, trial.unseen_total) == (1, 2)
+    assert trial.unseen_ops() == {("ffff6666", "030")}
+    text = render_trial(trial)
+    assert "| numero_una_lingua | codice | 1 su 1 (100%) |" in text
+    assert "| numero_manuale | modello | 0 su 1 (0%) |" in text
+    assert "| nascosto | modello | 1 su 1 (100%) |" in text

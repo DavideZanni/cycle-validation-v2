@@ -38,6 +38,11 @@ from cycle_validation.resolve.civil import (
 from cycle_validation.text import normalize_code
 
 KINDS = ("numero_una_lingua", "numero_manuale", "negazione_una_lingua", "task_inesistente")
+# chi deve trovare ogni tipo: il codice (`INCOERENZA_LINGUE`, `TASK_INESISTENTE`) li trova con
+# la stessa regola che li ha messi, quindi non dicono se la v2 generalizza; solo i tipi del
+# modello (e il gruppo nascosto) lo dicono
+CODE_KINDS = frozenset({"numero_una_lingua", "task_inesistente"})
+MODEL_KINDS = tuple(kind for kind in KINDS if kind not in CODE_KINDS)
 DESCRIPTIONS = {
     "numero_una_lingua": "un numero cambiato in una lingua sola",
     "numero_manuale": "un numero del manuale cambiato in tutte e due le lingue",

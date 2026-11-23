@@ -28,7 +28,11 @@ parte B.
   - *gruppo nascosto*: stampe con errori messi a mano dall'utente o da un collega, in
     `data/nascosti` sul PC. Claude non le vede mai.
 
-  I report danno solo i conteggi per tipo, mai quali sono.
+  I report danno solo i conteggi per tipo, mai quali sono. Due tipi di copie cieche (numero in
+  una lingua, task inesistente) li trova il **codice** (`INCOERENZA_LINGUE`,
+  `TASK_INESISTENTE`) con la stessa regola che li ha messi: sono solo un controllo che non si
+  rompe niente (`CODE_KINDS` in `blind.py`). La generalizzazione la misurano gli altri due tipi
+  e il gruppo nascosto, che deve trovare il **modello**.
 
 Gli insiemi sono due:
 
@@ -51,7 +55,7 @@ una miglioria sulle descrizioni, `leggi --lingue`.
 
 | Metrica | Definizione |
 |---|---|
-| Trovati (TP) | errori noti con un ERRATO sulla loro operazione; a parte i **visti** e i **mai visti** (copie cieche e gruppo nascosto) |
+| Trovati (TP) | errori noti con un ERRATO sulla loro operazione; a parte i **visti**, i **mai visti per il modello** (copie cieche «numero del manuale» e «negazione», gruppo nascosto) e i mai visti per il codice |
 | Mancati (FN) | errori noti senza ERRATO; il report dice cosa ha detto la v2 |
 | Falsi errori (FP) | ERRATO su un'operazione di una stampa giusta |
 | Da verificare (X) | ERRATO fuori dalla lista: nei cicli con errori (un errore vero non in lista o un falso errore) e nei cicli veri (quasi sempre falsi). Si guarda e, se è vero, il ciclo va nella lista |
@@ -69,7 +73,7 @@ una miglioria sulle descrizioni, `leggi --lingue`.
    trovati minimo, trovati medio, meno da verificare, meno warning per ciclo senza errori, meno costo,
    meno tempo.
 4. **Si tiene** se non ha meno errori stabili della base, **non ha meno errori mai visti
-   stabili** della base (se no «non generalizza») e sta sopra la base in classifica.
+   per il modello stabili** della base (se no «non generalizza») e sta sopra la base in classifica.
    La **scelta migliore** è la prima della classifica che si tiene (o la base).
 
 Le soglie sono costanti in `evaluation/trials.py` (`MIN_REPETITIONS`, `MAX_CYCLE_MS`,
@@ -77,18 +81,22 @@ Le soglie sono costanti in `evaluation/trials.py` (`MIN_REPETITIONS`, `MAX_CYCLE
 
 ### Da provare (lista del 23-11-2026)
 
-Errori noti che mancano oggi (23-11 sera): 298bc28e op 035 (parole cambiate), c5ff3cd6 op 030
-(scheda tolta), f355dc3c op 010 (tre numeri, cambiati in tutte e due le lingue), 040 (lettera
-della classe), 050 (frase al contrario). Per ognuna: due prove sul piccolo con `$nome` = il
-nome; se si tiene, due sul grande.
+**Come si scelgono (dal 23-11).** Non dagli errori noti che mancano: una miglioria fatta su un
+errore preciso lo trova, ma non dice niente sugli altri (è «imparare la lista»). Si fa la base,
+si guarda nel report la tabella «Errori mai visti, per tipo» e si sceglie una miglioria per il
+tipo «modello» trovato peggio. Si prova, e si guarda di nuovo la tabella. Il 23-11 sono state
+tolte per questo motivo `negazioni_lingue`, `classi_lingue`, `prompt_confronto`,
+`contesto_sezione`, `fatti_incerti` e `modello_grande_sui_dubbi`.
+
+Per ognuna: due prove sul piccolo con `$nome` = il nome; se si tiene, due sul grande.
 
 **Subito: basta il file della variante (nessun codice nuovo).**
 
 | `$nome` | Cosa cambia | Cosa può migliorare | Rischio |
 |---|---|---|---|
-| `effort_medio` | ragionamento `medium` nei controlli invece di `low` | frasi al contrario e parole cambiate (f355dc3c 050, 298bc28e 035) | costo e tempo |
+| `effort_medio` | ragionamento `medium` nei controlli invece di `low` | frasi al contrario, parole cambiate | costo e tempo |
 | `conferme_1` | un ERRATO del modello si conferma con 1 sessione invece di 2 (G1) | meno costo; errori che il modello vede solo a volte | falsi errori (devono restare 0) |
-| `testo_lungo` | fino a 400 righe di manuale nel messaggio invece di 150 | più contesto in una volta: limiti scritti lontano dal passo (f355dc3c 010) | costo per sessione |
+| `testo_lungo` | fino a 400 righe di manuale nel messaggio invece di 150 | più contesto in una volta: limiti scritti lontano dal passo | costo per sessione |
 | `effort_pieno` | ragionamento predefinito ovunque (B2) | conferma che `low` non perde errori su Bedrock | costo |
 | `prompt_task_mancante` | task citato che manca: il modello giudica lo stesso (A2) invece di WARNING subito (B6) | operazioni oggi `FONTE_ASSENTE` | falsi errori, costo |
 | `concorrenza_12` | 12 operazioni insieme invece di 6 (B4) | solo il tempo | limiti di Bedrock: cicli non eseguiti |
@@ -96,17 +104,13 @@ nome; se si tiene, due sul grande.
 `sonnet` (modello più grande) non ora: il costo per ciclo è circa 10 volte (la regola scarta
 oltre 2 volte) e serve l'id di Sonnet abilitato su Bedrock.
 
-**Con codice nuovo (lo scrive Claude, ognuna accesa dalla sua variante, la base non cambia).**
+**Con codice nuovo (lo scrive Claude, accesa dalla sua variante, la base non cambia).**
 
 | `$nome` | Cosa fa | Cosa può migliorare | Costo |
 |---|---|---|---|
-| `negazioni_lingue` (I1) | come `INCOERENZA_LINGUE`, ma per le negazioni: «non» / «not», «mai» / «never», «evitare» / «avoid» in una lingua sola | frasi al contrario in una lingua sola (come 5ff17062 op 030); f355dc3c 050 se è così | piccolo, senza modello; misura gratis con `leggi --lingue` |
-| `classi_lingue` (I2) | lettere e sigle dopo «classe», «tipo», «grado» diverse tra le due lingue | f355dc3c 040, se la lettera è cambiata in una lingua sola | piccolo, senza modello |
-| `prompt_confronto` (I3) | il prompt chiede di confrontare numero per numero e frase per frase, e di dire cosa cambia | parole cambiate, frasi al contrario | piccolo; falsi errori da misurare |
-| `numeri_manuale` (I4, è H12) | numeri e classi della descrizione contro quelli del passo del manuale: la sessione riceve le differenze da guardare | numeri cambiati in tutte e due le lingue (f355dc3c 010), se il passo giusto è nel contesto | medio |
-| `contesto_sezione` (I5) | se i task citati non hanno i numeri della descrizione, si aggiungono altri task della stessa sezione (al massimo 4) | limiti scritti in un altro task (f355dc3c 010) | medio, più sessioni lunghe |
-| `fatti_incerti` (F5) | il prompt dice quando un fatto è incerto | meno giudizi sbagliati su dati incerti | piccolo |
-| `modello_grande_sui_dubbi` (I6) | le operazioni rimaste `GIUDIZIO_INSTABILE` o `EVIDENZA_NON_TROVATA` si riguardano con un modello più grande (id abilitato su Bedrock) | frasi al contrario, parole cambiate | piccolo; costo solo sui dubbi |
+| `numeri_manuale` (I4, è H12) | numeri e classi della descrizione contro quelli del passo del manuale: la sessione riceve le differenze da guardare; se tutto coincide, CORRETTO senza modello | numeri cambiati in tutte e due le lingue (tipo cieco «numero del manuale»): è generale, 7 errori noti su 10 sono numeri, classi o codici; e meno sessioni | medio |
+
+Le altre si decidono dopo la base, dai tipi «modello» trovati peggio.
 
 **Tempo e costo (dopo: non cambiano gli errori trovati).** B1 (chiamata diretta a Bedrock), poi
 B4; H10 (prompt caching), H14 (più operazioni in una sessione). Si provano con le stesse prove:
@@ -130,7 +134,6 @@ settembre-novembre non c'è altro che si applichi a Bedrock).
 | **H14** più operazioni dello stesso task in una sessione | da misurare (rischio: confonde le operazioni) | meno sessioni, testo mandato una volta |
 | **B4** più operazioni insieme (dopo B1) | da misurare | meno tempo, stessi costi |
 | Batch di Bedrock per le prove (non per il servizio) | da fare dopo B1 | circa -50% sul costo delle prove |
-| Modello grande solo sui dubbi (`modello_grande_sui_dubbi`) | da fare | più errori trovati, costo che sale poco |
 | Inferenza «latency-optimized» di Bedrock | da verificare con AWS: non è detto che ci sia per i modelli e la regione abilitati | meno latenza |
 
 **Non sono migliorie: nessuna variante li trova finché mancano.** f355dc3c 040 e forse 010
@@ -139,10 +142,10 @@ del motore, due REPAIR della sezione 72-56-31): ingestion, poi COPILOT 2.5 e una
 `conoscenza-<data>`. c5ff3cd6 030 (scheda tolta) aspetta la regola della domanda P6.
 f355dc3c 050 ha anche la domanda P7 («4 volte» c'è anche nella stampa giusta).
 
-**Ordine consigliato.** 1. La base (piccolo e grande). 2. `negazioni_lingue` e `classi_lingue`:
-non costano e si misurano prima gratis. 3. `effort_medio`. 4. `conferme_1`. 5. `testo_lungo`.
-6. `prompt_confronto`. 7. `numeri_manuale` e `contesto_sezione`. 8. `effort_pieno`, per
-confermare B2. 9. Tempo e costo.
+**Ordine consigliato** (come COPILOT sezione 1). 1. La base (piccolo e grande). 2. Le varianti
+senza codice: `effort_medio`, `conferme_1`, `testo_lungo`, `effort_pieno`,
+`prompt_task_mancante`, `concorrenza_12`. 3. `numeri_manuale`. 4. Le migliorie scelte sui tipi
+«modello» trovati peggio. 5. Tempo e costo.
 
 ---
 
@@ -230,7 +233,6 @@ aziendale.
 |---|---|---|---|
 | B1 | chiamata diretta a Bedrock (`converse`) per le sessioni in linea; l'agente resta solo per i testi lunghi | toglie l'avvio di 4 s per operazione: circa metà del tempo. Il guadagno più grande | medio: secondo adattatore dietro `AgentSession` |
 | B4 | `agent.concurrency` sopra 6 | 40 operazioni: 21 s con 6, 12 s con 12. Limite: quote Bedrock | una riga, ma dopo B1 (sui sintetici `concorrenza_12` è stata scartata) |
-| F5 | dire nel prompt che un fatto è incerto (valori alternativi, record parziale) | oggi il modello non lo sa | piccolo, `checks/operation.py`; variante spenta, da misurare con A2/B6 |
 | B8 | `golden` e i casi degli esperimenti in parallelo | esperimenti più rapidi, il servizio non cambia | piccolo |
 | T1 | tempo massimo per tutta la validazione, sotto i 600 s del backend v1 e i 660 s del frontend: allo scadere si chiude con quello che c'è (WARNING sui controlli non finiti) invece di essere tagliati dal server | oggi una validazione lunga verrebbe interrotta senza risposta | piccolo. Misurato il 22-11-2026: al massimo 131 s su un DR da 9 operazioni; serve quando si vedrà un ciclo MOS lungo vicino ai 600 s |
 | D | togliere le rotte storiche (`/upload`, `/ej200/upload`, `/conversation`) | pulizia | **non ora**: il frontend di oggi usa proprio queste rotte (22-11-2026) |
@@ -290,12 +292,11 @@ l'ordine di «Da provare» qui sopra. Per il resto:
 1. Casi veri nella suite (`eval prepara` e revisione): senza, le misure valgono solo sui dati
    inventati. Poi la baseline aziendale.
 2. B2 su Bedrock: baseline contro `effort_pieno`.
-3. F5 (`fatti_incerti` in «Da provare»).
-4. B1, poi B4.
-5. F4: quando c'è un ciclo LEAP vero.
-6. D, rotte storiche, quando il frontend è pronto.
-7. E1, dopo i casi aziendali rivisti.
-8. Le idee H: H1 e H3 sono le più semplici e tolgono problemi visti; H4 e H5 dopo il
+3. B1, poi B4.
+4. F4: quando c'è un ciclo LEAP vero.
+5. D, rotte storiche, quando il frontend è pronto.
+6. E1, dopo i casi aziendali rivisti.
+7. Le idee H: H1 e H3 sono le più semplici e tolgono problemi visti; H4 e H5 dopo il
    passaggio in produzione.
 
 ---

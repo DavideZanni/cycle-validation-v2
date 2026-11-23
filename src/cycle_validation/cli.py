@@ -1032,8 +1032,9 @@ def eval_trial(
     summary = write_summary(cartella)
     typer.echo(
         f"Prova «{nome}»: errori noti trovati {trial.known_found} su {trial.known_total} "
-        f"(visti {trial.seen_found} su {trial.seen_total}, mai visti {trial.unseen_found} su "
-        f"{trial.unseen_total}) · falsi errori nei cicli giusti {trial.false_errors} · ERRATO in più "
+        f"(visti {trial.seen_found} su {trial.seen_total}, mai visti per il modello "
+        f"{trial.unseen_found} su {trial.unseen_total}, per il codice {trial.code_unseen_found} su "
+        f"{trial.code_unseen_total}) · falsi errori nei cicli giusti {trial.false_errors} · ERRATO in più "
         f"{trial.extra_errors} · costo {trial.cost_usd:.2f} $"
     )
     typer.echo(f"Report della prova: {folder / TRIAL_REPORT}")

@@ -578,9 +578,9 @@ def test_eval_prova_scores_blind_copies_without_showing_them(tmp_path: Path, pdf
     result = runner.invoke(cli.app, [*args, "--nome", "base"])
     assert result.exit_code == 0, result.output
     assert f"{fp[blind]} mai visto: trovato" in result.output
-    assert "mai visti 1 su 1" in result.output
+    assert "mai visti per il modello 1 su 1" in result.output
     report = next(folder.glob("*-base/prestazioni.md")).read_text(encoding="utf-8")
-    assert "| numero_manuale | 1 su 1 (100%) |" in report
+    assert "| numero_manuale | modello | 1 su 1 (100%) |" in report
     assert "un numero del manuale cambiato" not in report  # solo il tipo
     assert "| 1 copie con errori mai visti |" in report
     summary = (folder / "riepilogo.md").read_text(encoding="utf-8")
