@@ -33,7 +33,8 @@ capitolo 70-23 dell'SPM.
 
 **In ordine:**
 
-1. **I cicli con errori** (blocco 2.1), con la conoscenza di oggi.
+1. **Perché non trova gli errori noti** (blocco 2.1b, gratis): 2.1 del 23-11 alle 16:15 dà
+   ancora 0 errati.
 2. **Salvare** (blocco 2.5): il codice è cambiato dall'ultimo salvataggio.
 3. **I file mancanti:** cercali dove prendi i manuali (i due REPAIR e il capitolo 70-23
    dell'SPM). Se li trovi: ingestion, poi blocchi 2.2, 2.3 e 2.1.
@@ -67,6 +68,23 @@ foreach ($f in $errati) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).T
 `<impronta> Ciclo ...: N corretti, ...` e sotto le eventuali righe `ERRATO op ...`.
 
 **Manda a Claude:** la foto.
+
+### 2.1b Perché non trova gli errori noti
+
+Gratis: legge i report di 2.1, non rilancia niente. Per le 7 operazioni con un errore noto dei
+tre cicli «con errori» (più la 030 con la scheda tolta) stampa ogni controllo: esito, motivo,
+chi l'ha deciso (codice o modello) e l'inizio della spiegazione.
+
+```powershell
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+$noti = [ordered]@{ "298bc28e" = @("005", "035"); "c5ff3cd6" = @("030", "040"); "f355dc3c" = @("010", "030", "040", "050") }
+foreach ($h in $noti.Keys) { $r = Get-Content "runs/errori-$h/report.json" -Raw | ConvertFrom-Json; foreach ($op in $noti[$h]) { "$h op $op"; $r.results | Where-Object { $_.target.kind -eq 'operation' -and $_.target.label.TrimStart('0') -eq $op.TrimStart('0') } | ForEach-Object { $t = "$($_.rationale)" -replace '\s+', ' '; "    $($_.check) · $($_.verdict) · $($_.reason) · $($_.decided_by) · " + $t.Substring(0, [Math]::Min(150, $t.Length)) } } }
+```
+
+**Deve uscire:** per ognuna delle 9 operazioni una riga `<impronta> op ...` e sotto una riga per
+controllo (`task_code`, `machine_tag`, `process_sheet`, `operation_description`, ...).
+
+**Manda a Claude:** la foto (anche due, se non sta in uno schermo).
 
 ### 2.2 Fotografia della conoscenza (dopo ogni ingestion)
 

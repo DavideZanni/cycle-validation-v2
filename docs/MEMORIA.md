@@ -237,6 +237,10 @@ i 7 cicli con «errori» danno tutti 0 errati. M1 c'è, ma mancano 7 task. La ri
 Dopo la correzione (lista delle 16:00) M1 ha 5 task mancanti: le 2 sezioni e i 2 REPAIR della
 sezione 72-56-31 citati solo in una frase (più il codice completo di uno dei due). I loro PDF
 (`-09-001`, `-09-003`) **non sono sul PC**: vanno presi dalla fonte dei manuali.
+I 7 cicli con la correzione (16:15): ancora 0 errati in tutti (2-6 corretti, 15-24 warning).
+Il controllo della descrizione, se un task citato dall'operazione manca, non confronta niente
+(`skip_missing_task`, FONTE_ASSENTE): per capire quale controllo ferma gli errori noti c'è il
+blocco COPILOT 2.1b.
 
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).
