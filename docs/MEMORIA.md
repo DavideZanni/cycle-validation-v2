@@ -204,6 +204,14 @@ cicli di prova sul PC. La lista la fa il comando `manuali` (COPILOT 4.2): legge 
 tutte le stampe di `ProgettoDocumenti`, confronta con l'ultima fotografia della conoscenza e mette
 in cima i manuali che servono per i 10 errori noti. Codici veri solo nel file sul PC
 (`runs/manuali-da-ingestionare.txt`).
+**Lista del 23-11** (29 cicli letti su circa 2500 PDF; codici solo nel file sul PC): 6 manuali.
+M1 (manuale del motore, manca) capitolo 72-56: serve a 20 cicli e a tutti e 7 gli errori dei
+tre cicli «con errori» legati a un manuale; sul PC 7 file nella cartella del corpus
+dell'ingestion (più copie vecchie in `Extra\storico\old`, da non usare). SPM: c'è, manca solo il
+task del capitolo 70-23 (nessun file sul PC). M3 (altro manuale motore, manca) capitolo 72-56:
+3 file, 3 cicli (due con «errori» nel nome). M4 e M5 (senza task, 3 cicli): nessun file sul PC.
+M6 è EJ200 (una guida d'esempio non riconosciuta come EJ200): non va nell'ingestion civile. I
+cicli con «errori» nel nome sono 7, non 3: il blocco 4.3 ora li prende tutti.
 
 Sul PC la copia della parte civile è in `eval/casi/aziendali/conoscenza/foto-20261121/`; i PDF
 dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora).

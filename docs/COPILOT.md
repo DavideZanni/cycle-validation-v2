@@ -213,7 +213,7 @@ capitoli scritti nel file. Se non c'è tempo per tutti, parti dall'alto: prima q
 
 **Manda a Claude:** la foto dello schermo (non quella del file).
 
-### 4.3 Dopo l'ingestion: i tre cicli «con errori»
+### 4.3 Dopo l'ingestion: i cicli con errori
 
 Da lanciare **dopo** l'ingestion del manuale, quando la nuova versione è pubblicata. Il blocco
 **non fa l'ingestion**: quella la fai prima tu.
@@ -222,7 +222,8 @@ Il blocco:
 
 - fa una fotografia nuova della conoscenza civile di prova;
 - stampa la versione pubblicata accanto a quella del 21-11;
-- rilancia i tre cicli «con errori» e, per ognuno, stampa il riepilogo e le righe ERRATO.
+- rilancia tutti i cicli con «errori» nel nome del file (sono 7: i tre «con errori» e altri
+  quattro trovati dalla lista dei manuali) e, per ognuno, stampa il riepilogo e le righe ERRATO.
 
 Ogni ciclo costa qualche centesimo. L'ultima prova (22-11) aveva la versione del 19-11, cioè
 l'ingestion non era ancora pubblicata, e ha dato 0 errati.
@@ -237,7 +238,7 @@ $prima = "eval/casi/aziendali/conoscenza/foto-20261121/Manufacturing AI/ingestio
 "versione pubblicata: " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path + " · il 21-11: " + $(if (Test-Path $prima) { (Get-Content $prima | ConvertFrom-Json).path } else { "?" })
 $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
 $radice = (Resolve-Path "..\..").Path
-$errati = Get-ChildItem $radice -Recurse -Filter "*con errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
+$errati = Get-ChildItem $radice -Recurse -Filter "*errori*.pdf" -ErrorAction SilentlyContinue | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
 foreach ($f in $errati) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).ToLower(); "$h " + (@(uv run cycle-validation run $f.FullName --profile mos --knowledge $v --config data/settings.yaml --out "runs/errori-$h") -match '^Ciclo' | Select-Object -First 1); if (Test-Path "runs/errori-$h/report.json") { (Get-Content "runs/errori-$h/report.json" -Raw | ConvertFrom-Json).results | Where-Object { $_.verdict -eq 'ERRATO' } | ForEach-Object { "    ERRATO op $(if ($_.target.kind -eq 'operation') { $_.target.label } else { $_.target.kind }) · $($_.check) · $($_.reason)" } } }
 ```
 
@@ -245,10 +246,11 @@ foreach ($f in $errati) { $h = (Get-FileHash $f.FullName).Hash.Substring(0, 8).T
 
 1. la riga `Fotografia in ...`;
 2. la riga `versione pubblicata: ... · il 21-11: ...`, con due versioni **diverse**;
-3. per ognuno dei tre cicli una riga `<impronta> Ciclo ...: N corretti, ...`, e sotto le righe
+3. per ognuno dei cicli una riga `<impronta> Ciclo ...: N corretti, ...`, e sotto le righe
    `ERRATO op ...`.
 
-Claude le confronta con i 10 errori conosciuti.
+Claude le confronta con i 10 errori conosciuti dei tre cicli «con errori»; per gli altri quattro
+servirà `confronta` con la stampa giusta.
 
 **Manda a Claude:** la foto, e scrivi a parole quanti manuali hai ingestionato.
 
