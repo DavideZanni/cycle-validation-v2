@@ -149,8 +149,8 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 | ⬜ | **5. Chiusura** | prova finale, prove dal frontend, salvare | dopo la 4 |
 | ⬜ | **6. QA** | pubblicare nell'ambiente di prova dell'azienda | alla fine |
 
-**Dove siamo in breve:** la v2 funziona sul PC. La prima prova trova 8 dei 12 errori noti, con 0
-falsi errori, ma quasi nessuno degli errori «mai visti» (1 su 21). La campagna dice se va meglio
+**Dove siamo in breve:** la v2 funziona sul PC. La base (Haiku, due prove uguali) trova 8 dei 12
+errori noti, con 0 falsi errori, ma solo 2 dei 21 errori «mai visti» per il modello. La campagna dice se va meglio
 con altre impostazioni o con Sonnet. I risultati di tutte le prove sono in `MEMORIA.md`.
 
 ### 👉 Tappa 2, passo per passo
@@ -161,7 +161,7 @@ risponde se va bene. Se esce qualcosa di strano, **fermati** e manda la foto
 
 ---
 
-**⬜ Passo 1 · Aggiornare il codice** · gratis · 2 minuti
+**✅ Passo 1 · Aggiornare il codice** · gratis · 2 minuti · *fatto il 24-11*
 
 Porta sul PC l'ultima versione e lancia i test.
 
@@ -171,7 +171,7 @@ Porta sul PC l'ultima versione e lancia i test.
 
 ---
 
-**⬜ Passo 2 · Azzerare le prove vecchie** · gratis · facoltativo
+**✅ Passo 2 · Azzerare le prove vecchie** · gratis · facoltativo · *fatto il 24-11*
 
 Solo se vuoi ripartire da zero: cancella tutte le prove fatte finora. Se le vuoi tenere, salta
 questo passo (la campagna le conta e non le rifà).
@@ -184,7 +184,7 @@ questo passo (la campagna le conta e non le rifà).
 
 ---
 
-**⬜ Passo 3 · Il piano** · gratis · 1 minuto
+**✅ Passo 3 · Il piano** · gratis · 1 minuto · *fatto il 24-11*
 
 Dice cosa farà la campagna, senza lanciare niente.
 
@@ -200,7 +200,7 @@ uv run cycle-validation eval campagna --piano
 
 ---
 
-**⬜ Passo 4 · La campagna** · costa al massimo 60 $ · **alcune ore**
+**👉 Passo 4 · La campagna** · costa al massimo 60 $ · **alcune ore** · *in corso dal 24-11 alle 16:09*
 
 Lancia da sola tutte le prove: prima Haiku (circa 2 ore, circa 5 $), poi Sonnet (più lento,
 circa 10 volte il costo). Alla fine apre il report.

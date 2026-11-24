@@ -816,6 +816,10 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   e mai visti per il modello (5%): sulle negazioni tolte in una lingua sola il modello quasi
   non vede l'errore. Per capire il perché senza vedere gli errori, il report dà ora sui
   mancati mai visti esito e motivo contati per tipo.
+- **24-11 ore 16:09, campagna partita** (dopo aver azzerato le prove): le due prove `base`
+  Haiku sul piccolo sono uguali: visti **8 su 12**, mai visti per il modello **2 su 21**, per il
+  codice **9 su 10**, **0 falsi errori**, 1 ERRATO da verificare, 0,16 $ ciascuna (circa 5
+  minuti a prova). È il riferimento stabile della base Haiku.
 
 Con Bedrock Haiku 5.5 e la conoscenza di prova:
 
