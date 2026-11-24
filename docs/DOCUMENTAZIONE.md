@@ -1042,7 +1042,10 @@ uv run ruff format --check .  # formato
 uv run mypy src               # tipi (strict)
 ```
 
-Si lanciano tutte e quattro prima di ogni commit. La suite non usa rete né credenziali: ogni
+Si lanciano tutte e quattro prima di ogni commit. `tests/test_copilot_blocks.py` controlla
+che i blocchi *Aggiornare* e *Salvare* di `COPILOT.md` portino sul PC e mettano in git tutto
+quello che il codice e i test leggono (`src`, `tests`, `prompts`, `config`, `examples`,
+`eval/errori-noti.yaml`, le cartelle di `eval/`, `pyproject.toml`, `uv.lock`). La suite non usa rete né credenziali: ogni
 servizio esterno ha un finto (`tests/fakes.py`). Due test si saltano da soli: la prova con il
 modello vero (`pytest -m live`, solo dove ci sono le credenziali) e quella sulle stampe di
 esempio in `docs/Esempio*/` (solo se le cartelle ci sono).
