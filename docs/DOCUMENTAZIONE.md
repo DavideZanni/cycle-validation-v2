@@ -982,12 +982,18 @@ massimo_dollari: 60
   se due prove partono nello stesso secondo).
 - **Due modelli insieme** (24-11): con `--modelli haiku` in un terminale e `--modelli sonnet`
   in un altro le due campagne girano in parallelo. Non condividono niente: cartelle diverse e
-  report diversi (lanciata con `--modelli`, la campagna scrive `runs/campagna-<modello>.md`
-  invece di `runs/campagna.md`). Ogni report mostra tutti i modelli del file, con le prove che
+  report diversi (lanciata con `--modelli` o `--insiemi`, la campagna scrive
+  `runs/campagna-<modelli>-<insiemi>.md` invece di `runs/campagna.md`). Il file `prova.json` si
+  scrive accanto e poi si rinomina, e `load_trials` salta un file che non si legge: un
+  terminale che legge mentre l'altro scrive non si ferma. Ogni report mostra tutti i modelli del file, con le prove che
   c'erano quando è stato scritto; la riga «Lanciati ora» dice quali modelli ha fatto girare e
   quanto ha speso. Il tetto di spesa vale per ogni terminale. `--solo-report` scrive
   `runs/campagna.md` con tutte le prove che ci sono, senza lanciarne (gratis): si usa quando
   tutti e due i terminali hanno finito.
+  Sconsigliati quattro terminali (modello × insieme): il grande con `se_si_tiene` legge il
+  piccolo quando parte e farebbe solo la base; due processi con lo stesso modello si dividono la
+  quota Bedrock, e i controlli che vanno oltre `session_timeout_s` o finiscono i `retries`
+  diventano WARNING per errore tecnico (numeri peggiori, senza crash).
 
 **Metriche di una prova** (`prestazioni.md`):
 

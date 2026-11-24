@@ -123,8 +123,8 @@ def test_two_models_can_run_together_in_two_terminals(project: Path) -> None:
     assert _campaign("--modelli", "haiku", "--insiemi", "piccolo").exit_code == 0
     assert _campaign("--modelli", "sonnet", "--insiemi", "piccolo").exit_code == 0
     assert not (runs / "campagna.md").exists()  # nessuno dei due sovrascrive l'altro
-    haiku = (runs / "campagna-haiku.md").read_text("utf-8")
-    sonnet = (runs / "campagna-sonnet.md").read_text("utf-8")
+    haiku = (runs / "campagna-haiku-piccolo.md").read_text("utf-8")
+    sonnet = (runs / "campagna-sonnet-piccolo.md").read_text("utf-8")
     assert "Lanciati ora: haiku" in haiku and "## sonnet · piccolo" in haiku
     assert "Lanciati ora: sonnet" in sonnet and "## haiku · piccolo" in sonnet
     assert "## I modelli a confronto" in sonnet
@@ -182,3 +182,16 @@ def test_folders_and_the_large_set_follow_the_small_one(tmp_path: Path) -> None:
     assert plan(never, tmp_path, set_name="grande", model="haiku") == []
     text = render_campaign(config, tmp_path, Outcome(), when="oggi", models=["haiku"])
     assert "Nessuna prova." in text
+
+
+def test_a_half_written_trial_does_not_stop_the_others(project: Path) -> None:
+    """Due terminali: uno legge la cartella mentre l'altro scrive. Un file a metà si salta."""
+    runs = project / "runs"
+    assert (
+        _campaign("--modelli", "haiku", "--insiemi", "piccolo", "--ripetizioni", "1").exit_code == 0
+    )
+    broken = runs / "prove-piccolo" / "20991231-235959-base" / "prova.json"
+    broken.parent.mkdir()
+    broken.write_text('{"name": "ba', encoding="utf-8")
+    assert done(runs / "prove-piccolo", "base") == 1
+    assert not list((runs / "prove-piccolo").glob("*/*.scrittura"))  # niente file a metà

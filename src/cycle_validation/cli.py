@@ -1282,9 +1282,14 @@ def eval_campaign(
     def steps_for(model: str, set_name: str) -> list[Step]:
         return plan(campaign, runs, set_name=set_name, model=model, order=all_models)
 
-    narrowed = models != all_models
+    # lanciata solo per una parte (un terminale per modello o per insieme) scrive un report suo:
+    # due terminali non si sovrascrivono
+    parts = [
+        *(models if models != all_models else []),
+        *(campaign.insiemi if set(campaign.insiemi) != {"piccolo", "grande"} else []),
+    ]
     report = runs / (
-        CAMPAIGN_REPORT if not narrowed or solo_report else f"campagna-{'-'.join(models)}.md"
+        CAMPAIGN_REPORT if not parts or solo_report else f"campagna-{'-'.join(parts)}.md"
     )
     started = datetime.now()
 

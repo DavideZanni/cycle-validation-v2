@@ -256,6 +256,15 @@ uv run cycle-validation eval campagna --modelli sonnet --massimo-dollari 50
 
 Passi da un terminale all'altro con l'elenco a destra del pannello.
 
+**Due terminali, non quattro** (uno per modello e per insieme):
+- il grande aspetta il piccolo: prova sul grande solo le varianti che sul piccolo si tengono.
+  Lanciato insieme al piccolo, troverebbe il piccolo vuoto e farebbe solo la base;
+- due terminali con lo stesso modello si dividono lo stesso limite di richieste AWS. Non va in
+  crash, ma alcuni controlli finiscono in attesa e diventano WARNING («errore tecnico»): i
+  numeri escono peggiori del vero, e sono proprio i numeri che stiamo misurando.
+
+Con due terminali ognuno fa da solo prima il piccolo, poi il grande.
+
 - **Mentre girano:** in ogni terminale, per ogni prova esce `=== haiku · piccolo · ... · prova 1
   di 2 · spesa finora ... $` (nel secondo `=== sonnet · ...`), e alla fine di ogni prova
   `Prova «...»: visti ... · mai visti per il modello ... · falsi errori ...`. Puoi lasciarli da
@@ -633,8 +642,8 @@ spesa finora ... $`, le righe dei cicli e la riga finale della prova; alla fine
 motivo) e `Report finale: runs\campagna.md`, che si apre da solo.
 
 **I report.** Lanciata per tutti i modelli, la campagna scrive `runs\campagna.md`. Lanciata con
-`--modelli`, scrive `runs\campagna-haiku.md` (o `-sonnet`): così due terminali non si
-sovrascrivono il report. Ogni report mostra comunque tutti i modelli, con le prove che c'erano
+`--modelli` o `--insiemi`, scrive un report suo, per esempio `runs\campagna-haiku.md` o
+`runs\campagna-sonnet-piccolo.md`: così due terminali non si sovrascrivono il report. Ogni report mostra comunque tutti i modelli, con le prove che c'erano
 quando è stato scritto. `--solo-report` riscrive `runs\campagna.md` con tutte le prove che ci
 sono, senza lanciare niente.
 

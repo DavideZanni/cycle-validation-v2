@@ -1009,6 +1009,10 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   `runs/campagna-<modello>.md`; alla fine `--solo-report` fa `runs/campagna.md` (gratis). Il
   tetto vale per terminale: COPILOT dà 10 $ a Haiku e 50 $ a Sonnet. Se escono «cicli non
   eseguiti» (troppe richieste ad AWS insieme), Sonnet si rifà da solo dopo Haiku.
+- 24-11 sera, l'utente: quattro terminali (modello × insieme)? Sconsigliato: il grande dipende
+  dal piccolo (farebbe solo la base) e due terminali dello stesso modello si dividono la quota
+  AWS (WARNING per errore tecnico, numeri falsati). Sistemato comunque: report con anche
+  l'insieme nel nome, `prova.json` scritto e poi rinominato, prove illeggibili saltate.
 - **`.gitignore` di `docs/` (24-11-2026):** in git entra solo `DOCUMENTAZIONE.md`; gli altri
   quattro file erano già seguiti e restano (servono al blocco Aggiornare e alla memoria).
 

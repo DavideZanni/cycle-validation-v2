@@ -694,16 +694,24 @@ def render_trial(trial: Trial) -> str:
 
 
 def write_trial(trial: Trial, folder: Path) -> None:
+    """Il file della prova si scrive accanto e poi si rinomina: una campagna in un altro
+    terminale che legge la cartella in quel momento non trova mai un file a metà."""
     folder.mkdir(parents=True, exist_ok=True)
-    (folder / TRIAL_FILE).write_text(trial.model_dump_json(indent=2), "utf-8")
     (folder / TRIAL_REPORT).write_text(render_trial(trial), "utf-8")
+    partial = folder / f"{TRIAL_FILE}.scrittura"
+    partial.write_text(trial.model_dump_json(indent=2), "utf-8")
+    partial.replace(folder / TRIAL_FILE)
 
 
 def load_trials(root: Path) -> list[Trial]:
-    """Tutte le prove della cartella, dalla più vecchia."""
-    trials = [
-        Trial.model_validate_json(path.read_text("utf-8")) for path in root.glob(f"*/{TRIAL_FILE}")
-    ]
+    """Tutte le prove della cartella, dalla più vecchia. Un file che non si legge (scritto a
+    metà da una versione vecchia, rovinato) si salta invece di fermare tutto."""
+    trials: list[Trial] = []
+    for path in root.glob(f"*/{TRIAL_FILE}"):
+        try:
+            trials.append(Trial.model_validate_json(path.read_text("utf-8")))
+        except (OSError, ValueError):
+            continue
     return sorted(trials, key=lambda t: t.started_at)
 
 
