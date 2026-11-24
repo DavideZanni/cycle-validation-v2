@@ -129,14 +129,17 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
   - documenti non nella conoscenza: il manuale d'ispezione del motore, due REPAIR della sezione
     72-56-31, il capitolo 70-23 dell'SPM;
   - risposte delle persone: domande P6, P7 e P8 (sezione 3.1).
-- **24-11, fatta la fase 1 fino al passo 4** (Aggiornare, Salvare, A0, A1):
+- **24-11, fatta la fase 1** (Aggiornare, Salvare, scelta dei cicli veri, copie cieche):
   - **insieme grande: 23 cicli**, i 10 noti e 13 veri. Per tipo: **MOS 17, DR 6** (i 6 DR sono
     cicli veri). Fuori: 1 EJ200 e 5 con poche operazioni confrontabili;
   - **copie cieche: 31** (seme 1), da 16 cicli: `numero_una_lingua` 5, `numero_manuale` 3,
     `negazione_una_lingua` 18, `task_inesistente` 5. Gli errori mai visti per il modello sono
     quindi 21 (3 + 18). `numero_manuale` resta a 3 perché nei cicli ci sono poche operazioni
     con un numero scritto nelle due lingue **e** nel manuale: non è più il limite di copie;
-  - per avere più errori «modello» con i numeri serve il gruppo nascosto (passo 5).
+  - per avere più errori «modello» con i numeri serve il gruppo nascosto: **rinviato**, si fa
+    quando c'è tempo (vedi «In parallelo»). Il file `data\errori-nascosti.yaml` per ora è vuoto
+    (solo `cicli:`): non disturba le prove.
+- **Adesso:** fase 2, la base.
 
 ### Come si usa questa lista
 
@@ -144,14 +147,6 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 - Dopo ogni passo manda a Claude la foto di **Deve uscire**. Claude risponde se va bene e qual è
   il passo dopo. Quando un passo è fatto, Claude lo toglie da qui.
 - «Gratis» vuol dire che il passo non usa il modello e non costa niente.
-
-### Fase 1: controllare che tutto funzioni (gratis)
-
-- [ ] **5. Gruppo nascosto** (facoltativo ma consigliato, blocco 2.3 N). Prima del passo 6 dì
-  a Claude se lo fai: cambia l'insieme piccolo. Gli errori più utili: **un numero cambiato
-  nella descrizione in tutte e due le lingue** (italiano e inglese uguali, ma diverso dal
-  manuale), perché le copie cieche di quel tipo sono solo 3; poi parole o frasi cambiate in
-  tutte e due le lingue. Una decina di stampe, un errore o due per stampa.
 
 ### Fase 2: la base (il punto di partenza)
 
@@ -239,6 +234,17 @@ serve una prova QA riuscita.
 
 - Le **domande** alle persone (sezione 3.1): P6, P7, P8.
 - Il **messaggio** al collega del frontend (sezione 3.2), se non l'hai già mandato.
+- Il **gruppo nascosto** (blocco 2.3 N), rinviato il 24-11. In ordine:
+  1. apri `runs\prove-grande\cicli.txt` con `code runs/prove-grande/cicli.txt` (senza foto):
+     dopo le prime 10 righe (i cicli noti) ci sono i percorsi dei cicli veri;
+  2. copia una decina di quelle stampe in `data\nascosti\`;
+  3. in ogni copia cambia a mano uno o due punti della descrizione. I più utili: **un numero
+     cambiato in tutte e due le lingue** (italiano e inglese uguali tra loro, diversi dal
+     manuale), poi parole o frasi cambiate in tutte e due le lingue. Meglio se lo fa un
+     collega;
+  4. rilancia il blocco N (riscrive `data\errori-nascosti.yaml`), scrivi le operazioni cambiate
+     e salva;
+  5. scrivi a Claude solo «gruppo nascosto pronto, N stampe». Poi si rifà la base sul piccolo.
 - I **file che mancano**: il capitolo 70-23 dell'SPM, il manuale d'ispezione del motore, due
   REPAIR della sezione 72-56-31. Cercali dove prendi i manuali; se li trovi, fai l'ingestion e
   poi la sezione 2.5.
