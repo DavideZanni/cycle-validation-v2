@@ -23,6 +23,8 @@ vanno eseguiti dove ci sono le credenziali.
 
 Documenti (in `docs/`, scritti in modo semplice):
 
+- `docs/DOCUMENTAZIONE.md`: com'è fatto e come funziona tutto il progetto, nei dettagli
+  (pipeline, controlli, esiti, conoscenza, servizio, comandi, prove, pubblicazione);
 - `docs/COPILOT.md`: il file per lavorare sul PC aziendale: cosa fare adesso, i comandi da
   lanciare, le domande per Copilot e per chi conosce i cicli;
 - `docs/MEMORIA.md`: tutto quello che sappiamo già: PC, regole, come funziona la v2, frontend,

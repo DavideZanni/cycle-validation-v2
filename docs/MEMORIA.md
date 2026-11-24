@@ -13,6 +13,7 @@ Gli altri documenti:
 
 | File | A cosa serve |
 |---|---|
+| `docs/DOCUMENTAZIONE.md` | com'è fatto e come funziona tutto il progetto, nei dettagli |
 | `docs/COPILOT.md` | il file per lavorare sul PC: cosa fare adesso, blocchi da lanciare, domande per Copilot e per le persone |
 | `docs/MEMORIA.md` | questo file |
 | `docs/MIGLIORIE.md` | cosa migliorare, in che ordine, e il registro delle prove fatte |
