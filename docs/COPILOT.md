@@ -129,12 +129,14 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
   - documenti non nella conoscenza: il manuale d'ispezione del motore, due REPAIR della sezione
     72-56-31, il capitolo 70-23 dell'SPM;
   - risposte delle persone: domande P6, P7 e P8 (sezione 3.1).
-- 24-11: al primo *Aggiornare* tre test sono falliti perché il blocco non copiava
-  `eval/errori-noti.yaml`. Claude ha corretto il blocco 2.1: **rilancialo** (passo 1).
-- 24-11, **fatto il passo 3** (scegliere i cicli veri, 2.3 A0): su 2600 PDF, 29 sono cicli; ne
-  sono stati scelti **23** (i 10 noti e 13 veri). Fuori: 1 EJ200 e 5 con poche operazioni
-  confrontabili. L'insieme grande è quindi di 23 cicli: le sue prove durano poco più del
-  piccolo.
+- **24-11, fatta la fase 1 fino al passo 4** (Aggiornare, Salvare, A0, A1):
+  - **insieme grande: 23 cicli**, i 10 noti e 13 veri. Per tipo: **MOS 17, DR 6** (i 6 DR sono
+    cicli veri). Fuori: 1 EJ200 e 5 con poche operazioni confrontabili;
+  - **copie cieche: 31** (seme 1), da 16 cicli: `numero_una_lingua` 5, `numero_manuale` 3,
+    `negazione_una_lingua` 18, `task_inesistente` 5. Gli errori mai visti per il modello sono
+    quindi 21 (3 + 18). `numero_manuale` resta a 3 perché nei cicli ci sono poche operazioni
+    con un numero scritto nelle due lingue **e** nel manuale: non è più il limite di copie;
+  - per avere più errori «modello» con i numeri serve il gruppo nascosto (passo 5).
 
 ### Come si usa questa lista
 
@@ -145,22 +147,11 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ### Fase 1: controllare che tutto funzioni (gratis)
 
-- [ ] **1. Aggiornare** (blocco 2.1). Porta sul PC l'ultimo codice e lancia i test.
-  Deve uscire: solo `passed` (qualche `skipped` va bene), **nessun** `failed`.
-- [ ] **2. Salvare** (blocco 2.2). Salva il codice sul ramo `feature/cycle-validation-v2` del
-  repository aziendale.
-- [ ] **3. Aggiornare** (2.1), poi **rifare la scelta dei cicli veri** (2.3 A0, gratis). Il
-  programma ora scrive accanto a ogni ciclo se è **MOS** o **DR** e in fondo `Per tipo: MOS
-  ..., DR ...`. Le prove ora usano da sole il profilo giusto per ogni ciclo: prima un DR
-  nell'insieme grande si sarebbe fermato con «Modulo sbagliato» e ogni variante sarebbe stata
-  scartata.
-- [ ] **4. Fare le copie cieche** (blocco 2.3 A1), **dopo il passo 3**. Escono solo
-  quante copie ci sono per tipo. Non aprire `runs\mutazioni\errori.yaml`. Il 24-11 il primo
-  giro ha fatto 32 copie, ma solo 3 «numero_manuale»: Claude ha alzato il massimo di copie per
-  ciclo da 2 a 6 e limitato a 5 i due tipi del codice. Si rilancia con lo stesso `$seme = 1`
-  (nessuna prova è ancora stata fatta su quelle copie).
-- [ ] **5. Gruppo nascosto** (facoltativo, blocco 2.3 N). Prima del passo 6 dì a Claude se lo
-  fai: cambia l'insieme piccolo.
+- [ ] **5. Gruppo nascosto** (facoltativo ma consigliato, blocco 2.3 N). Prima del passo 6 dì
+  a Claude se lo fai: cambia l'insieme piccolo. Gli errori più utili: **un numero cambiato
+  nella descrizione in tutte e due le lingue** (italiano e inglese uguali, ma diverso dal
+  manuale), perché le copie cieche di quel tipo sono solo 3; poi parole o frasi cambiate in
+  tutte e due le lingue. Una decina di stampe, un errore o due per stampa.
 
 ### Fase 2: la base (il punto di partenza)
 

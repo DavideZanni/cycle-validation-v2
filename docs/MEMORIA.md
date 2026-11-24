@@ -787,6 +787,13 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   con «Modulo sbagliato» (ciclo non eseguito = variante scartata). Ora `eval prova` sceglie il
   profilo ciclo per ciclo dalla testata (`--profile auto`, predefinito) e `eval scegli` scrive
   MOS o DR accanto a ogni ciclo. A0 da rifare per vedere quanti DR ci sono.
+- **24-11, secondo giro (dopo le correzioni):** A0 di nuovo 23 cicli, **MOS 17, DR 6** (i 6 DR
+  sono tra i 13 veri). A1, seme 1: 16 cicli, **31 copie**: `numero_una_lingua` 5,
+  `numero_manuale` 3, `negazione_una_lingua` 18, `task_inesistente` 5. Mai visti per il
+  modello: 21. `numero_manuale` resta a 3 anche con 6 copie per ciclo: il limite ora sono le
+  operazioni adatte (un numero nelle due lingue e nel testo del task del manuale), non il
+  tetto. Un seme nuovo non ne aggiunge (stesse operazioni adatte). Per misurare bene
+  `numeri_manuale` servono errori di quel tipo nel gruppo nascosto.
 
 Con Bedrock Haiku 5.5 e la conoscenza di prova:
 
