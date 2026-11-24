@@ -1,6 +1,7 @@
 """Campagna di prove: tutti gli esperimenti in fila, per modello e per insieme (dati inventati)."""
 
 import hashlib
+import shutil
 from pathlib import Path
 
 import pytest
@@ -49,10 +50,10 @@ def project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
     monkeypatch.setattr(cli, "make_session", session)
     monkeypatch.setattr(cli, "_test_models", models, raising=False)
-    for name in ("config", "prompts"):
-        (tmp_path / name).symlink_to(REPO_ROOT / name)
-    (tmp_path / "eval").mkdir()
-    (tmp_path / "eval" / "varianti").symlink_to(REPO_ROOT / "eval" / "varianti")
+    # copie, non collegamenti: su Windows un collegamento simbolico chiede permessi da
+    # amministratore (WinError 1314, 24-11)
+    for name in ("config", "prompts", "eval/varianti"):
+        shutil.copytree(REPO_ROOT / name, tmp_path / name)
     (tmp_path / "eval" / "campagna.yaml").write_text(CAMPAIGN, encoding="utf-8")
     # stampe PVRM320 finte (le legge il parser, senza modello): una nota e una vera
     noted = tmp_path / "con-errori.pdf"

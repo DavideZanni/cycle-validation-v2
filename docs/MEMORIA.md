@@ -890,6 +890,7 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | Cosa si vede | Perché | Cosa fare |
 |---|---|---|
 | Dopo Aggiornare 3 test `failed` con `No such file or directory: 'eval\\errori-noti.yaml'` (24-11) | il blocco 2.1 copiava solo alcune cartelle: `eval/errori-noti.yaml` (nato il 23-11) e `examples/` non arrivavano | corretto il 24-11: 2.1 copia anche quei due, 2.2 li mette in git; un test (`test_copilot_blocks.py`) controlla che i blocchi portino tutto quello che serve ai test. Rilanciare 2.1 |
+| Dopo Aggiornare i test di `test_campaign.py` danno `ERROR at setup` con `WinError 1314` (24-11) | i test creavano collegamenti simbolici, che su Windows chiedono permessi da amministratore | corretto il 24-11: i test copiano le cartelle. Regola: nei test niente `symlink_to`, solo copie |
 | Tanti WARNING `FONTE_ASSENTE` | i manuali dei motori non sono ingestionati | niente: è giusto |
 | Stato `parziale`, targhe WARNING `ERRORE_TECNICO` | macchine attive (Redshift) non collegate: dal PC Redshift non si raggiunge | niente: in locale è giusto. In QA la v2 legge Redshift come la v1 |
 | `macchine`: `AccessDeniedException, ExecuteStatement` e poi `OperationalError` con `--diretto` | dal PC: manca il permesso della Data API e la rete non arriva al cluster | niente da fare sul PC (P7 facoltativa). I tunnel di centralizer non c'entrano |
