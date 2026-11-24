@@ -506,7 +506,7 @@ def render_trial(trial: Trial) -> str:
         f"| Precisione (trovati / tutti gli ERRATO) | {round(100 * trial.precision)}% |",
         f"| WARNING per ciclo senza errori noti (giusti e veri) | {trial.clean_warnings:.1f} |",
         f"| Cicli non eseguiti | {trial.failures} |",
-        f"| Costo per ciclo | {trial.cost_per_cycle:.2f} $ |",
+        f"| Costo per ciclo | {trial.cost_per_cycle:.4f} $ |",
         f"| Tempo per ciclo (medio / il più lento) | {_seconds(trial.mean_ms)} / "
         f"{_seconds(trial.max_ms)} |",
         f"| Costo | {trial.cost_usd:.2f} $ |",
@@ -821,7 +821,7 @@ def render_summary(trials: Sequence[Trial]) -> str:
         (
             f"**«{best.name}»**: {best.stable} errori noti trovati in tutte le "
             f"{best.repetitions} prove (su {best.known_total}), 0 falsi errori, "
-            f"{best.cost_per_cycle:.2f} $ e {_seconds(best.mean_ms)} per ciclo."
+            f"{best.cost_per_cycle:.4f} $ e {_seconds(best.mean_ms)} per ciclo."
             if best is not None
             else "Nessuna variante valida: mancano ripetizioni o ci sono falsi errori."
         ),
@@ -840,7 +840,7 @@ def render_summary(trials: Sequence[Trial]) -> str:
             f"{v.known_total} | {v.unseen_stable} su {v.unseen_total} | "
             f"{v.found_min} / {v.found_mean:.1f} | {v.false_errors} | "
             f"{v.extra_max} | {round(100 * v.precision_min)}% | {v.clean_warnings:.1f} | "
-            f"{v.cost_per_cycle:.2f} $ | {_seconds(v.mean_ms)} ({_seconds(v.max_ms)}) | "
+            f"{v.cost_per_cycle:.4f} $ | {_seconds(v.mean_ms)} ({_seconds(v.max_ms)}) | "
             f"{v.decision} |"
         )
     lines += [

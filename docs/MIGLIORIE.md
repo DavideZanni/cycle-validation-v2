@@ -457,6 +457,15 @@ Una riga per ogni prova decisa, confrontata con la base dello stesso giro.
   `prestazioni.md` e nel riepilogo.
 - Le considerazioni le scrive Claude qui, dalle foto, quando la variante è decisa.
 
+**Sintesi del 24-11 (campagna Haiku, piccolo).** Nessuna impostazione migliora la base. Gli
+errori visti sono identici in tutte le prove, quindi le differenze tra le varianti sono solo
+sugli errori mai visti per il modello, dove 1 o 2 su 21 è rumore (una copia trovata o no). Il
+limite non sta nelle impostazioni ma nel metodo: il modello confronta la descrizione con il
+manuale e non vede un «non» tolto in una lingua sola (18 dei 21 mai visti). Prossimi passi: la
+prova con Sonnet (dice se è il modello) e la tappa 3 con una miglioria sul metodo. Con
+differenze così piccole conviene alzare le ripetizioni a 3 o avere più errori mai visti
+(gruppo nascosto).
+
 | Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
 |---|---|---|---|---|---|---|---|
 | 2026-11-14 | `effort: low` (prova veloce, una volta sola) | — | MOS 18-19 su 19 | -30% | -27% per sessione | da ripetere | una prova sola non basta: rifatta con il metodo sopra |
@@ -471,3 +480,10 @@ Una riga per ogni prova decisa, confrontata con la base dello stesso giro.
 | 2026-11-21 | ciclo DR vero, Bedrock Haiku 5.5, sottoinsieme della conoscenza: ciclo letto dal modello contro ciclo letto dal parser, 2 condition Repair | parser | parser: due run identici (5 corretti, 0 errati); modello: run diversi tra loro e un ERRATO (op. 060) che col parser è CORRETTO | parser 0,006-0,010 USD contro 0,023-0,037 | — | parser per le stampe PVRM320 | la descrizione 060 è letta uguale nei due run: l'ERRATO dipende dal documento di confronto (da capire) |
 | 2026-11-21 | stessa operazione (060, ciclo DR vero), stesso documento e stessa pagina, 3 ripetizioni per ognuna delle due letture del ciclo | — | ERRATO 2 volte su 3 con la lettura del modello, 1 su 3 con quella del parser | 0,007-0,010 USD per run | — | G1: un ERRATO deve essere confermato | il modello oscilla, l'ingresso conta poco |
 | 2026-11-21 | G1 sul PC: op. 060 del ciclo DR vero, condition 3, ciclo letto dal parser, 3 run | — | CORRETTO, CORRETTO, WARNING `GIUDIZIO_INSTABILE`; 0 ERRATO | 0,007-0,011 USD per run | — | G1 confermata | la conferma aggiunge 2 sessioni solo dove serve |
+| 2026-11-24 | campagna, Haiku, insieme piccolo (41 cicli e copie), 2 prove | `base` | visti stabili 19 su 43 (tutti i 12 visti: 8 sempre, 4 mai); mai visti per il modello 2 su 21 | 0,16 $ a prova | 5 min 10 s a prova | riferimento | i visti sono identici in tutte le 13 prove della campagna: 8 trovati sempre, 4 mai (298bc28e 035, c5ff3cd6 030 = P6, f355dc3c 010 e 040 = documenti mancanti). Le varianti si distinguono solo sui mai visti |
+| 2026-11-24 | come sopra | `effort_medio` | stabili 18 (trovati 19 e 18); mai visti 1 su 21 | 0,19-0,20 $ (+20%) | 6 min | non si tiene | più ragionamento non fa trovare le negazioni tolte in una lingua; costa di più |
+| 2026-11-24 | come sopra | `conferme_1` | stabili 18 (19 e 19, ma uno diverso); mai visti 1 su 21 | 0,15-0,16 $ | 5 min | non si tiene | stesso costo; la differenza dalla base è una sola copia cieca trovata in una prova su due: rumore |
+| 2026-11-24 | come sopra | `testo_lungo` | stabili 18; mai visti 1 su 21 | 0,15-0,16 $ | 5 min | non si tiene | più testo del manuale non aiuta: le negazioni mancate non dipendono dal contesto |
+| 2026-11-24 | come sopra | `effort_pieno` | stabili 18; mai visti 1 su 21; da verificare 0 in una prova | 0,19 $ (+20%) | 6 min 20 s | non si tiene | conferma B2: con `low` nei controlli non si perde niente, si spende meno. B2 resta |
+| 2026-11-24 | come sopra | `prompt_task_mancante` | stabili 19; mai visti 2 su 21 (come la base) | 0,16-0,17 $ | 5 min 20 s | non si tiene | stessi errori, ma più WARNING per ciclo senza errori (14,7 contro 14,2): B6 resta |
+| 2026-11-24 | come sopra | `concorrenza_12` | 19; mai visti 2 su 21 (1 prova) | 0,15 $ | 4 min 33 s (-12%) | da ripetere | prima prova: stessi errori e più veloce. Se la seconda conferma, si tiene (solo tempo) |

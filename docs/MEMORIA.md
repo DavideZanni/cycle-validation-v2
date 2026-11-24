@@ -820,6 +820,10 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   Haiku sul piccolo sono uguali: visti **8 su 12**, mai visti per il modello **2 su 21**, per il
   codice **9 su 10**, **0 falsi errori**, 1 ERRATO da verificare, 0,16 $ ciascuna (circa 5
   minuti a prova). È il riferimento stabile della base Haiku.
+- **24-11 ore 17:17, campagna Haiku sul piccolo quasi finita** (13 prove, manca la seconda di
+  `concorrenza_12`): nessuna variante si tiene; decisioni e considerazioni nel registro di
+  `MIGLIORIE.md`. I 12 visti sono identici in tutte le prove (8 sempre, 4 mai). Il costo per
+  ciclo usciva `0.00 $` (circa 0,004 $ arrotondato): ora i report lo danno con 4 decimali.
 
 Con Bedrock Haiku 5.5 e la conoscenza di prova:
 
