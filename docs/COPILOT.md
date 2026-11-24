@@ -640,19 +640,22 @@ cartella se serve):
 $env:UV_PYTHON = "3.14"; uv run cycle-validation eval riepilogo --cartella runs/prove-piccolo
 ```
 
-**Azzerare tutte le prove** (gratis): cancella **per sempre** tutte le prove fatte (Haiku e
-Sonnet, piccolo e grande) e il report della campagna, per ripartire da zero. **Non** tocca la
-lista dei cicli scelti (`runs\prove-grande\cicli.txt`), le copie cieche (`runs\mutazioni`),
-il gruppo nascosto (`data\`) e le altre cartelle di `runs`. Se vuoi tenere le prove da
-rileggere, usa invece «Archiviare» qui sotto.
+**Azzerare tutte le prove** (gratis): cancella **per sempre** le cartelle delle prove
+(`runs\prove-piccolo`, `runs\prove-grande`, `runs\prove-piccolo-sonnet`,
+`runs\prove-grande-sonnet`, con tutto quello che c'è dentro) e il report della campagna, per
+ripartire da zero. Tiene da parte la lista dei cicli scelti (`runs\prove-grande\cicli.txt`) e
+la rimette al suo posto, così non serve rifare 3.2. **Non** tocca le copie cieche
+(`runs\mutazioni`), il gruppo nascosto (`data\`), gli archivi e le altre cartelle di `runs`.
+Se vuoi tenere le prove da rileggere, usa invece «Archiviare» qui sotto.
 
 ```powershell
 $ok = (Split-Path -Leaf (Get-Location).ProviderPath) -eq "app_cycle_validation_v2"; if (-not $ok) { "FERMO: terminale non nella cartella app_cycle_validation_v2. Niente cancellato." }
-if ($ok) { $via = @(Get-ChildItem runs -Directory -Filter "prove-*" -ErrorAction SilentlyContinue | ForEach-Object { Get-ChildItem $_.FullName | Where-Object { $_.Name -ne "cicli.txt" } }); "prove tolte: " + @($via | Where-Object PSIsContainer).Count; $via | Remove-Item -Recurse -Force; Remove-Item runs/campagna.md -ErrorAction SilentlyContinue; "restano: " + ((Get-ChildItem runs -Directory -Filter "prove-*" | ForEach-Object { Get-ChildItem $_.FullName -File | ForEach-Object { $_.Directory.Name + "\" + $_.Name } }) -join ", ") }
+if ($ok) { $lista = "runs/prove-grande/cicli.txt"; $copia = Join-Path $env:TEMP "cv2-cicli.txt"; $tieni = Test-Path $lista; if ($tieni) { Copy-Item $lista $copia -Force }; $via = @(Get-ChildItem runs -Directory -Filter "prove-*" -ErrorAction SilentlyContinue); $via | ForEach-Object { "tolta: runs\" + $_.Name }; $via | Remove-Item -Recurse -Force; Remove-Item runs/campagna.md -ErrorAction SilentlyContinue; if ($tieni) { New-Item -ItemType Directory -Force runs/prove-grande | Out-Null; Move-Item $copia $lista -Force; "resta: runs\prove-grande\cicli.txt (la lista dei cicli scelti)" } else { "lista dei cicli scelti assente: rifai 3.2" } }
 ```
 
-**Deve uscire:** `prove tolte: N` e `restano: prove-grande\cicli.txt`. Dopo, la campagna (3.5)
-rifà tutto da capo: lancia prima il piano per vederlo.
+**Deve uscire:** una riga `tolta: runs\prove-...` per ogni cartella (fino a quattro), poi
+`resta: runs\prove-grande\cicli.txt (la lista dei cicli scelti)`. Dopo, la campagna (3.5) rifà
+tutto da capo: lancia prima il piano, che deve dire `base: 2 da fare` dappertutto.
 
 **Archiviare tutte le prove** (gratis): quando cambiano le copie cieche o la conoscenza, le
 prove di prima non si possono più confrontare con le nuove. Questo blocco le sposta in
