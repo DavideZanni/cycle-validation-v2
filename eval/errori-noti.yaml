@@ -39,3 +39,7 @@ cicli:
   04ecaabe:
     giusto: true
     di: f355dc3c
+    # la stampa giusta dice «almeno 4 volte la larghezza», l'SPM «3 volte o più»: un ERRATO
+    # qui può essere giusto. Non conta finché la domanda P7 non ha una risposta (24-11)
+    in_attesa:
+      "050": "domanda P7: la stampa giusta dice 4 volte, l'SPM 3 volte"

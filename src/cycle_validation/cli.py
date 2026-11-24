@@ -940,7 +940,9 @@ def eval_blind(
         text = mutation.cycle.model_dump_json(indent=2)
         fingerprint = hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
         path = out / f"{fingerprint}.json"
-        path.write_text(text, encoding="utf-8")
+        # byte esatti: su Windows `write_text` scrive \r\n e l'impronta del file non sarebbe
+        # più quella scritta in errori.yaml (24-11: le copie uscivano come cicli veri)
+        path.write_bytes(text.encode("utf-8"))
         op = mutation.operation
         errors[fingerprint] = {
             "visto": False,
@@ -1031,7 +1033,10 @@ def eval_trial(
             typer.echo(f"File non trovato: {(cycle_file or pdf).name}")
             continue
         source = cycle_file if cycle_file is not None else pdf
-        fingerprint = hashlib.sha256(source.read_bytes()).hexdigest()[:8]
+        data = source.read_bytes()
+        if cycle_file is not None:
+            data = data.replace(b"\r\n", b"\n")  # copie scritte su Windows prima del 24-11
+        fingerprint = hashlib.sha256(data).hexdigest()[:8]
         if fingerprint in seen:
             continue
         seen.add(fingerprint)
@@ -1064,6 +1069,7 @@ def eval_trial(
             f"{', '.join(f.op for f in score.found) or '-'}"
             f" · mancati {', '.join(m.op for m in score.missed) or '-'}"
             f" · ERRATO in più {', '.join(f.op for f in score.extra) or '-'}"
+            + (f" · in attesa {', '.join(f.op for f in score.pending)}" if score.pending else "")
         )
     trial = build_trial(nome, started, reports, scores, proposal)
     write_trial(trial, folder)

@@ -152,7 +152,7 @@ con un file `eval/varianti/<nome>.yaml` si lancia con `--variante`, sopra le imp
 |---|---|
 | **Trovati** | errori noti con un ERRATO sulla loro operazione. Sono contati a parte: i **visti**, i **mai visti per il modello** (copie «numero del manuale» e «negazione», gruppo nascosto) e i mai visti per il codice |
 | **Mancati** | errori noti senza ERRATO. Il report dice cosa ha risposto la v2 |
-| **Falsi errori** | ERRATO su un'operazione di una stampa giusta. Deve essere 0 |
+| **Falsi errori** | ERRATO su un'operazione di una stampa giusta. Deve essere 0. Non contano le operazioni «in attesa» di una risposta delle persone (`in_attesa` in `eval/errori-noti.yaml`): oggi l'op. 050 della stampa giusta `04ecaabe` (domanda P7) |
 | **Da verificare** | ERRATO fuori dalla lista: nei cicli con errori (un errore vero che non è in lista, o un falso errore) e nei cicli veri (quasi sempre falsi). Si guarda; se è un errore vero, il ciclo va nella lista |
 | **Precisione** | trovati diviso (trovati + falsi errori + da verificare) |
 | **Warning per ciclo senza errori** | WARNING medi sulle stampe giuste e sui cicli veri: il lavoro a mano che resta |

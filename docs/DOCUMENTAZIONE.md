@@ -850,6 +850,15 @@ simula guasti e **regge** se nessun guasto diventa ERRATO. Dettagli in `AZIENDA.
 - `giusto`: la stampa originale di un ciclo «con errori»: non deve dare ERRATO;
 - `vero`: ogni altro ciclo vero: un suo ERRATO è «da verificare».
 
+Un ciclo di `errori-noti.yaml` può avere `in_attesa` (operazione → domanda alle persone): un
+ERRATO su quell'operazione non conta né come trovato né come falso errore, e si vede a parte
+(riga «ERRATO in attesa di una risposta» nel report, sezione «In attesa di una risposta» nel
+riepilogo). Dal 24-11: op. 050 della stampa giusta `04ecaabe`, domanda P7.
+
+Le copie cieche si scrivono byte per byte (`\n`), e `eval prova` toglie i `\r` prima di
+calcolare l'impronta di un file `.json`: su Windows prima del 24-11 l'impronta del file non era
+quella di `errori.yaml` e le copie uscivano come cicli veri.
+
 **Errori visti e mai visti:**
 
 - **visti**: i 12 errori noti. Chi scrive le migliorie li conosce: una miglioria può
@@ -920,7 +929,7 @@ proposta e le conclusioni, senza dati veri.
 |---|---|
 | Trovati | errori noti con un ERRATO sulla loro operazione, a parte visti, mai visti per il modello e mai visti per il codice |
 | Mancati | errori noti senza ERRATO, con quello che ha detto la v2 |
-| Falsi errori | ERRATO nelle stampe giuste: deve essere 0 |
+| Falsi errori | ERRATO nelle stampe giuste: deve essere 0 (non contano le operazioni `in_attesa`) |
 | Da verificare | ERRATO fuori lista, nei cicli con errori e nei cicli veri |
 | Precisione | trovati / tutti gli ERRATO |
 | Warning per ciclo senza errori | lavoro a mano che resta sui cicli giusti e veri |

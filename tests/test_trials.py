@@ -254,3 +254,26 @@ def test_an_old_trial_file_without_proposal_still_loads(tmp_path: Path) -> None:
 
     (folder / "prova.json").write_text(json.dumps(raw), "utf-8")
     assert not load_trials(tmp_path)[0].proposal
+
+
+def test_an_errato_waiting_for_an_answer_is_not_a_false_error(tmp_path: Path) -> None:
+    path = tmp_path / "errori.yaml"
+    path.write_text(
+        KNOWN + '    in_attesa:\n      "010": "domanda P9: quale regola vale"\n', "utf-8"
+    )
+    known = load_known_errors(path)
+    trials = []
+    for hour in (1, 2):
+        reports = [_report("aaaa1111", ["005"]), _report("bbbb2222", ["010"])]
+        scores = [score_cycle(r, known) for r in reports]
+        trials.append(build_trial("base", datetime(2030, 1, 1, hour), reports, scores))
+    clean = trials[0].cycles[1]
+    assert clean.kind == "giusto" and not clean.extra
+    assert [(f.op, f.known) for f in clean.pending] == [("010", "domanda P9: quale regola vale")]
+    assert (trials[0].false_errors, trials[0].pending_errors) == (0, 1)
+    assert "| ERRATO in attesa di una risposta delle persone (non contano) | 1 |" in render_trial(
+        trials[0]
+    )
+    summary = render_summary(trials)
+    assert "| bbbb2222 | 010 | domanda P9: quale regola vale | 2 su 2 |" in summary
+    assert "**«base»**" in summary  # la base resta valida: nessun falso errore

@@ -139,7 +139,15 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
   - per avere più errori «modello» con i numeri serve il gruppo nascosto: **rinviato**, si fa
     quando c'è tempo (vedi «In parallelo»). Il file `data\errori-nascosti.yaml` per ora è vuoto
     (solo `cicli:`): non disturba le prove.
-- **Adesso:** fase 2, la base.
+- **24-11, prime due prove della base sul piccolo: da rifare.** Hanno trovato **8 e 7** dei 12
+  errori visti (come il 23-11), costo 0,14-0,16 $ a prova. Ma avevano due problemi, corretti da
+  Claude:
+  - le copie cieche uscivano come cicli veri (`mai visti 0 su 0`): su Windows il file di una
+    copia aveva un'impronta diversa da quella scritta nella lista degli errori;
+  - **1 falso errore** sulla stampa giusta `04ecaabe`, op. 050: è il caso della domanda **P7**
+    («4 volte» nella stampa, «3 volte» nell'SPM). Ora quell'operazione è «in attesa di
+    risposta» e non conta; con un falso errore la regola avrebbe scartato tutto, base compresa.
+- **Adesso:** passo 5b, poi di nuovo la base (passo 6).
 
 ### Come si usa questa lista
 
@@ -152,8 +160,18 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 La base è la v2 di oggi, senza modifiche. Tutte le migliorie si confrontano con lei.
 
+- [ ] **5b. Togliere le due prove sbagliate** e aggiornare. Prima **Aggiornare** (2.1), poi
+  questa riga (cancella solo le cartelle delle prove `base` di oggi e rifà il riepilogo):
+
+  ```powershell
+  $env:UV_PYTHON = "3.14"; Get-ChildItem runs/prove-piccolo -Directory -Filter "*-base" | ForEach-Object { "tolta: " + $_.Name; Remove-Item $_.FullName -Recurse -Force }; uv run cycle-validation eval riepilogo --cartella runs/prove-piccolo
+  ```
+
+  Deve uscire: `tolta: 20261124-1441-base`, `tolta: 20261124-1447-base`. Le copie cieche
+  **non** vanno rifatte.
 - [ ] **6.** Blocco 2.3 A con `$nome = "base"` e `$insieme = "piccolo"`, **due volte**. Foto
-  della riga finale di ognuna.
+  della riga finale di ognuna. Ora le copie cieche devono uscire come `<impronta> mai visto:
+  trovato` oppure `mancato`, e nella riga finale `mai visti per il modello N su 21`.
 - [ ] **7.** Blocco 2.3 A con `$nome = "base"` e `$insieme = "grande"`, **due volte**. Durano a
   lungo: si possono lasciare girare.
 - [ ] **8. Riepilogo** (blocco 2.3 C), per il piccolo e per il grande: foto delle tabelle.

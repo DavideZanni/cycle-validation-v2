@@ -45,6 +45,9 @@ class KnownCycle(_Strict):
     # False per gli errori che chi scrive le migliorie non conosce (mutazioni cieche,
     # gruppo nascosto): i report ne danno solo il tipo e i conteggi
     visto: bool = True
+    # operazioni il cui esito giusto aspetta una risposta delle persone (operazione → domanda):
+    # un ERRATO lì non è né trovato né falso, si conta a parte
+    in_attesa: dict[str, str] = Field(default_factory=dict)
 
 
 class KnownErrors(_Strict):
@@ -72,6 +75,10 @@ def _known_cycles(path: Path) -> dict[str, KnownCycle]:
                 "errori": {
                     op_key(op): str(text)
                     for op, text in ((value or {}).get("errori") or {}).items()
+                },
+                "in_attesa": {
+                    op_key(op): str(text)
+                    for op, text in ((value or {}).get("in_attesa") or {}).items()
                 },
             }
         )
@@ -112,6 +119,8 @@ class CycleScore(_Strict):
     found: list[Finding] = Field(default_factory=list)
     missed: list[Missed] = Field(default_factory=list)
     extra: list[Finding] = Field(default_factory=list)
+    # ERRATO su operazioni in attesa di una risposta (`KnownCycle.in_attesa`): non contano
+    pending: list[Finding] = Field(default_factory=list)
     cost_usd: float = 0.0
     tokens: int = 0
     cache_read_tokens: int = 0  # token di input riletti dalla cache (prompt caching, H10)
@@ -203,6 +212,11 @@ class Trial(_Strict):
         return sum(len(c.extra) for c in self.cycles if c.kind == "giusto")
 
     @property
+    def pending_errors(self) -> int:
+        """ERRATO su operazioni in attesa di una risposta delle persone: non contano."""
+        return sum(len(c.pending) for c in self.cycles)
+
+    @property
     def extra_errors(self) -> int:
         """ERRATO da verificare: nei cicli con errori fuori lista e nei cicli veri."""
         return sum(len(c.extra) for c in self.cycles if c.kind != "giusto")
@@ -286,6 +300,7 @@ def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = No
     entry = known.cycle(fingerprint)
     kind = "vero" if entry is None else ("giusto" if entry.giusto else "errori")
     expected = entry.errori if entry is not None else {}
+    waiting = entry.in_attesa if entry is not None else {}
     errato: dict[str, Finding] = {}
     said: dict[str, str] = {}
     for result in report.results:
@@ -319,7 +334,12 @@ def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = No
             for op, text in sorted(expected.items())
             if op not in errato
         ],
-        extra=[errato[op] for op in sorted(errato) if op not in expected],
+        extra=[errato[op] for op in sorted(errato) if op not in expected and op not in waiting],
+        pending=[
+            errato[op].model_copy(update={"known": waiting[op]})
+            for op in sorted(errato)
+            if op not in expected and op in waiting
+        ],
         cost_usd=usage.cost_usd,
         tokens=usage.input_tokens + usage.output_tokens,
         cache_read_tokens=usage.cache_read_tokens,
@@ -459,6 +479,8 @@ def render_trial(trial: Trial) -> str:
         f"{trial.code_unseen_found} su {trial.code_unseen_total} "
         f"({_percent(trial.code_unseen_found, trial.code_unseen_total)}) |",
         f"| Falsi errori nei cicli giusti | **{trial.false_errors}** |",
+        f"| ERRATO in attesa di una risposta delle persone (non contano) | "
+        f"{trial.pending_errors} |",
         f"| ERRATO da verificare (fuori lista; nei {trial.real_cycles} cicli veri: "
         f"{trial.real_errors}) | {trial.extra_errors} |",
         f"| Precisione (trovati / tutti gli ERRATO) | {round(100 * trial.precision)}% |",
@@ -892,6 +914,27 @@ def render_summary(trials: Sequence[Trial]) -> str:
         ]
     else:
         lines.append("Nessuno.")
+    pending = sorted(
+        {(c.fingerprint, f.op, f.known or "") for t in trials for c in t.cycles for f in c.pending}
+    )
+    lines += [
+        "",
+        "## In attesa di una risposta",
+        "",
+        "Operazioni il cui esito giusto aspetta una domanda alle persone (`in_attesa` negli "
+        "errori noti): un ERRATO lì non conta né come trovato né come falso errore.",
+        "",
+    ]
+    if pending:
+        lines += ["| Ciclo | Op | Domanda | Prove con ERRATO |", "|---|---|---|---|"]
+        for name, op, question in pending:
+            hits = sum(
+                any(f.op == op for c in t.cycles if c.fingerprint == name for f in c.pending)
+                for t in trials
+            )
+            lines.append(f"| {name} | {op} | {_cell(question)} | {hits} su {len(trials)} |")
+    else:
+        lines.append("Nessuna.")
     return "\n".join(lines) + "\n"
 
 

@@ -794,6 +794,15 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   operazioni adatte (un numero nelle due lingue e nel testo del task del manuale), non il
   tetto. Un seme nuovo non ne aggiunge (stesse operazioni adatte). Per misurare bene
   `numeri_manuale` servono errori di quel tipo nel gruppo nascosto.
+- **24-11, prime due prove `base` sul piccolo (14:41 e 14:47):** visti trovati 8 e 7 su 12,
+  costo 0,16 e 0,14 $. Due problemi, corretti lo stesso giorno: (1) le 31 copie cieche uscivano
+  come cicli «vero» (`mai visti 0 su 0`): `eval muta` le scriveva con `write_text`, che su
+  Windows mette `\r\n`, quindi l'impronta del file non era quella di `errori.yaml`. Ora le
+  scrive byte per byte ed `eval prova` toglie i `\r` prima dell'impronta (le copie già fatte
+  vanno bene). Nelle due prove 4-5 copie avevano un ERRATO (contato come «da verificare»).
+  (2) 1 falso errore su `04ecaabe` op. 050, la stampa giusta di f355dc3c: è P7 («4 volte»
+  contro «3 volte» dell'SPM). Nuovo campo `in_attesa` in `errori-noti.yaml`: un ERRATO lì non
+  conta finché P7 non ha risposta. Le due prove si cancellano e la base si rifà.
 
 Con Bedrock Haiku 5.5 e la conoscenza di prova:
 

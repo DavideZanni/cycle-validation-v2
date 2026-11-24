@@ -560,8 +560,13 @@ def test_eval_prova_scores_blind_copies_without_showing_them(tmp_path: Path, pdf
     full.write_text(cycle.model_dump_json(), encoding="utf-8")
     blind = tmp_path / "cieco.json"
     only = cycle.model_copy(update={"operations": [cycle.operations[1]]})  # il 46,00 contraddice
-    blind.write_text(only.model_dump_json(), encoding="utf-8")
-    fp = {path: hashlib.sha256(path.read_bytes()).hexdigest()[:8] for path in (full, blind)}
+    text = only.model_dump_json(indent=2)
+    # come su Windows prima del 24-11: il file ha \r\n, l'impronta in errori.yaml è sul testo
+    blind.write_bytes(text.replace("\n", "\r\n").encode("utf-8"))
+    fp = {
+        full: hashlib.sha256(full.read_bytes()).hexdigest()[:8],
+        blind: hashlib.sha256(text.encode("utf-8")).hexdigest()[:8],
+    }
     known = tmp_path / "noti.yaml"
     known.write_text(f"cicli:\n  '{fp[full]}':\n    giusto: true\n", encoding="utf-8")
     hidden = tmp_path / "ciechi.yaml"
@@ -605,3 +610,10 @@ def test_eval_muta_writes_blind_copies_and_hides_them(tmp_path: Path) -> None:
     assert "Cicli veri letti: 1" in result.output
     assert "numero_una_lingua:" in result.output
     assert (out / "errori.yaml").is_file() and (out / "lista.txt").is_file()
+    import hashlib
+
+    import yaml
+
+    keys = set(yaml.safe_load((out / "errori.yaml").read_text("utf-8"))["cicli"])
+    copies = {hashlib.sha256(p.read_bytes()).hexdigest()[:8] for p in out.glob("*.json")}
+    assert keys and keys == copies  # l'impronta del file è quella scritta in errori.yaml
