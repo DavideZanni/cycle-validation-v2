@@ -3,6 +3,9 @@
 Questo file dice **cosa fare sul PC aziendale**, un passo alla volta, e contiene **tutti i
 comandi** da lanciare. È scritto per chi lo apre senza sapere niente del progetto.
 
+**Per sapere cosa fare adesso vai alla [sezione 1](#1-cosa-fare-adesso-24-11-2026)**: c'è la strada con tutte le tappe e i passi
+di oggi, con 👉 dove sei. Le altre sezioni sono da consultare quando un passo te lo dice.
+
 **Chi fa cosa:**
 
 | Chi | Cosa fa |
@@ -21,7 +24,7 @@ prove, problemi già risolti, decisioni prese), `AZIENDA.md` (installare e confi
 
 - **0. Prima di iniziare**: le parole, come si lancia un comando, le regole, cosa fare se va
   storto
-- **1. Cosa fare adesso**: dove siamo e la lista dei passi, in ordine
+- **1. Cosa fare adesso**: la strada con tutte le tappe e i passi di adesso, uno per uno
 - **2. Aggiornare e salvare**
   - 2.1 Aggiornare il codice sul PC
   - 2.2 Salvare nel repository aziendale
@@ -135,114 +138,137 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ## 1. Cosa fare adesso (24-11-2026)
 
-### Dove siamo
+### La strada: tutte le tappe
 
-- La v2 funziona sul PC, con il login e con il frontend.
-- **Pronti per le prove** (preparazione fatta il 24-11):
-  - **insieme grande: 23 cicli**, i 10 noti e 13 veri; per tipo **MOS 17, DR 6**;
-  - **copie cieche: 31** (seme 1): `numero_una_lingua` 5, `numero_manuale` 3,
-    `negazione_una_lingua` 18, `task_inesistente` 5;
-  - **gruppo nascosto: rinviato** (vedi «In parallelo»). Il file `data\errori-nascosti.yaml`
-    per ora è vuoto: non disturba.
-- **Prima prova della base valida** (24-11, 15:08, Haiku, piccolo): errori visti **8 su 12**,
-  mai visti per il modello **1 su 21**, per il codice **9 su 10**, **0 falsi errori**, 0,17 $.
-  Il modello quasi non vede le negazioni tolte in una lingua sola.
-- Gli errori visti che mancano hanno bisogno di cose che non ci sono ancora: tre documenti non
-  nella conoscenza (vedi «In parallelo») e le risposte alle domande P6, P7 e P8 (sezione 6.1).
-- I risultati di ogni prova e i problemi già risolti sono in `MEMORIA.md`.
-- **Adesso:** fase 1, la campagna.
+| | Tappa | Cosa si fa | Quando |
+|---|---|---|---|
+| ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, fare le copie cieche | fatta il 24-11 |
+| 👉 | **2. La campagna** | tutte le prove in automatico, con Haiku e con Sonnet | **adesso** |
+| ⬜ | **3. Migliorie** | Claude scrive le migliorie sugli errori trovati peggio; tu rilanci la campagna | dopo la 2 |
+| ⬜ | **4. Tempo e costo** | spendere meno e fare prima, trovando gli stessi errori | dopo la 3 |
+| ⬜ | **5. Chiusura** | prova finale, prove dal frontend, salvare | dopo la 4 |
+| ⬜ | **6. QA** | pubblicare nell'ambiente di prova dell'azienda | alla fine |
 
-### Come si usa questa lista
+**Dove siamo in breve:** la v2 funziona sul PC. La prima prova trova 8 dei 12 errori noti, con 0
+falsi errori, ma quasi nessuno degli errori «mai visti» (1 su 21). La campagna dice se va meglio
+con altre impostazioni o con Sonnet. I risultati di tutte le prove sono in `MEMORIA.md`.
 
-- Si fa **un passo alla volta, in ordine**. Ogni passo dice quale sezione usare.
-- Dopo ogni passo manda a Claude la foto di **Deve uscire**. Claude risponde se va bene e qual è
-  il passo dopo. Quando un passo è fatto, Claude lo toglie da qui.
-- «Gratis» vuol dire che il passo non usa il modello e non costa niente.
+### 👉 Tappa 2, passo per passo
 
-### Fase 1: la campagna (tutto in automatico)
+Fai un passo alla volta. Dopo ogni passo manda a Claude la foto che dice **Mandami**: Claude
+risponde se va bene. Se esce qualcosa di strano, **fermati** e manda la foto
+([cosa fare se va storto](#04-se-qualcosa-va-storto)).
 
-Tutte le prove le lancia **un solo comando**, la **campagna** (sezione 3.5). Fa da sola, in
-ordine:
+---
 
-1. con **Haiku**: la base e le 6 migliorie senza codice nuovo, due prove ciascuna, sul
-   **piccolo**; poi sul **grande** la base e le migliorie che sul piccolo «si tengono»;
-2. con **Sonnet**: le stesse cose, con una base sua (così si vede se il limite è il modello);
-3. alla fine scrive **un report unico**, `runs\campagna.md`.
+**⬜ Passo 1 · Aggiornare il codice** · gratis · 2 minuti
 
-Le prove già fatte non si rifanno: se la campagna si ferma, la rilanci e riparte da dove era.
-L'elenco degli esperimenti sta in `eval/campagna.yaml` e lo aggiorna Claude: tu non cambi
-niente.
+Porta sul PC l'ultima versione e lancia i test.
 
-- [ ] **1. Aggiornare** (2.1).
-- [ ] **2. Il piano** (3.5, primo blocco, gratis): dice cosa farà, senza lanciare niente. Foto.
-- [ ] **3. La campagna** (3.5, secondo blocco). Dura **alcune ore** (stima: Haiku 1,5-2 ore,
-  Sonnet di più) e costa al massimo 60 $ (stima: Haiku circa 5 $, Sonnet circa 10 volte).
-  Lascia il PC acceso, con VS Code aperto e senza sospensione. Se si ferma, rilancia lo stesso
-  blocco.
-- [ ] **4. Il report finale** `runs\campagna.md` (si apre da solo; **Ctrl+Shift+V** per vederlo
-  impaginato). Manda a Claude la foto di ogni sezione: le tabelle per modello e insieme, «I
-  modelli a confronto» ed «Errori mai visti per tipo». Ci sono solo numeri: si può
-  fotografare.
+- **Copia** il blocco della sezione [2.1 Aggiornare](#21-aggiornare-il-codice-sul-pc).
+- **Deve uscire:** in fondo `... passed` e **nessun** `failed`.
+- **Mandami:** la foto dell'ultima riga.
 
-Per lanciare solo una parte (un modello, un insieme, una variante): sezione 3.5, «Solo una
-parte».
+---
 
-### Fase 2: migliorie scelte sugli errori mai visti (il codice lo scrive Claude)
+**⬜ Passo 2 · Azzerare le prove vecchie** · gratis · facoltativo
 
-Le migliorie non si scelgono guardando gli errori noti che mancano: sarebbe come imparare a
-memoria le risposte di un compito. Si scelgono sui **tipi** di errori mai visti che la v2 trova
-peggio (tabella «Errori mai visti per tipo» del report della campagna).
+Solo se vuoi ripartire da zero: cancella tutte le prove fatte finora. Se le vuoi tenere, salta
+questo passo (la campagna le conta e non le rifà).
 
-- [ ] **5.** Claude propone una miglioria per il tipo «modello» trovato peggio (la prima pronta
-  sarà `numeri_manuale`), la scrive e la aggiunge a `eval/campagna.yaml`.
-- [ ] **6. Aggiornare** (2.1), poi **la campagna** (3.5): fa solo le prove nuove.
-- [ ] **7.** Foto del report finale, come al passo 4. Si ripete dal passo 5 finché i tipi
-  «modello» non migliorano più.
+- **Copia** il blocco «Azzerare tutte le prove» della sezione
+  [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove).
+- **Deve uscire:** righe `tolta: runs\prove-...` e alla fine
+  `resta: runs\prove-grande\cicli.txt`.
+- **Mandami:** la foto.
 
-**Quando una miglioria entra nella base** (Claude te lo dice):
+---
 
-1. archivia le prove fatte (3.8);
-2. rifai la scelta dei cicli veri (3.2) e le copie cieche (3.3) con un **seme nuovo**:
-   `$seme = 2`, la volta dopo 3, e così via. Il seme nuovo crea errori nuovi, così restano
-   davvero «mai visti»;
-3. rilancia la campagna (3.5).
+**⬜ Passo 3 · Il piano** · gratis · 1 minuto
 
-### Fase 3: tempo e costo
+Dice cosa farà la campagna, senza lanciare niente.
 
-Qui si cerca di spendere meno o fare prima, **trovando gli stessi errori**. Il codice lo scrive
-Claude e lo aggiunge alla campagna; tu fai i passi 6 e 7.
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+uv run cycle-validation eval campagna --piano
+```
 
-- [ ] **8. B1**: chiamata diretta a Bedrock (toglie circa 4 secondi di avvio per operazione).
-- [ ] **9. Cache dei prompt** (H10): nel report di una prova (3.6) guarda la riga «Token di
-  input riletti dalla cache» e mandala a Claude.
-- [ ] **10. B4**: più operazioni controllate insieme.
+- **Deve uscire:** `Piano (gratis, niente viene lanciato)` e, per `haiku` e `sonnet`, una riga
+  per ogni prova: `base: 2 da fare → runs/...`, `effort_medio: 2 da fare → ...`, e così via.
+- **Mandami:** la foto.
 
-### Fase 4: chiusura prima della QA
+---
 
-- [ ] **11. Prova finale**: la campagna con la base finale, poi il report: foto.
-- [ ] **12. Prove dal frontend** (sezione 4): almeno un ciclo MOS e un DR.
-- [ ] **13. Salvare** (2.2).
+**⬜ Passo 4 · La campagna** · costa al massimo 60 $ · **alcune ore**
 
-### Fase 5: QA (sezione 7)
+Lancia da sola tutte le prove: prima Haiku (circa 2 ore, circa 5 $), poi Sonnet (più lento,
+circa 10 volte il costo). Alla fine apre il report.
 
-- [ ] **14. Pull request** da `feature/cycle-validation-v2` verso `develop`.
-- [ ] **15. Prova in QA** dal frontend con un ciclo MOS e un DR: foto dell'intestazione dei
-  risultati.
-- [ ] **16.** Se la v2 in QA non parte: blocco «torna alla v1» (sezione 7), poi Salvare e pull
-  request.
-- [ ] **17. Cicli militari**, solo dopo una prova QA riuscita.
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+uv run cycle-validation eval campagna
+code runs/campagna.md
+```
 
-**Attenzione:** quando il ramo arriva su `main`, anche la **produzione** passa alla v2. Prima
-serve una prova QA riuscita.
+- **Prima di lanciarla:** PC acceso, collegato alla corrente, senza sospensione; VS Code aperto.
+- **Mentre gira:** per ogni prova esce `=== haiku · piccolo · ... · prova 1 di 2 · spesa finora
+  ... $`. Puoi lasciarla da sola.
+- **Deve uscire alla fine:** `Campagna finita. Prove fatte ora: N · spesa ... $.`
+- **Se esce `Campagna fermata: ...`:** se dice accesso AWS scaduto, lancia `aws sso login`;
+  poi **rilancia lo stesso blocco**: riparte da dove era.
+- **Mandami:** la foto della riga `Campagna finita` (o `fermata`).
 
-### In parallelo, quando puoi
+---
 
-- Le **domande** alle persone (sezione 6.1): P6, P7, P8.
-- Il **messaggio** al collega del frontend (sezione 6.2), se non l'hai già mandato.
-- Il **gruppo nascosto** (sezione 3.4), rinviato il 24-11.
-- I **file che mancano**: il capitolo 70-23 dell'SPM, il manuale d'ispezione del motore, due
-  REPAIR della sezione 72-56-31. Cercali dove prendi i manuali; se li trovi, fai l'ingestion e
-  poi la sezione 5.
+**⬜ Passo 5 · Leggere il report** · gratis
+
+Il report `runs\campagna.md` si apre da solo alla fine del passo 4 (se no: `code
+runs/campagna.md`). Premi **Ctrl+Shift+V** per vederlo impaginato.
+
+- **Mandami:** una foto per ogni sezione del report:
+  - le tabelle «haiku · piccolo», «haiku · grande», «sonnet · piccolo», «sonnet · grande»;
+  - «I modelli a confronto»;
+  - «Errori mai visti per tipo».
+
+  Ci sono solo numeri: si possono fotografare.
+
+Poi Claude scrive le considerazioni e propone la tappa 3.
+
+### ⬜ Le tappe dopo (le dettaglia Claude quando ci arriviamo)
+
+**Tappa 3 · Migliorie sugli errori mai visti.** Claude sceglie il tipo di errore «modello»
+trovato peggio, scrive la miglioria (la prima sarà `numeri_manuale`) e la aggiunge alla
+campagna. Tu: Aggiornare (passo 1), poi la campagna (passo 4, fa solo le prove nuove), poi il
+report (passo 5). Si ripete finché i risultati non migliorano più.
+
+**Quando una miglioria entra nella base** (te lo dice Claude): archivia le prove (sezione
+[3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove)), rifai la scelta dei cicli
+(3.2) e le copie cieche (3.3) con un **seme nuovo** (`$seme = 2`, poi 3, ...), poi la campagna.
+
+**Tappa 4 · Tempo e costo.** Claude scrive B1 (chiamata diretta a Bedrock), la cache dei prompt
+(H10) e B4 (più operazioni insieme); tu fai i passi 1, 4 e 5.
+
+**Tappa 5 · Chiusura.** La campagna con la base finale; le prove dal frontend (sezione
+[4](#4-prove-dal-frontend)); Salvare (sezione
+[2.2](#22-salvare-nel-repository-aziendale)).
+
+**Tappa 6 · QA** (sezione [7](#7-qa-più-avanti)). Pull request verso `develop`, prova in QA con
+un MOS e un DR, e solo dopo i cicli militari. **Attenzione:** quando il ramo arriva su `main`,
+anche la produzione passa alla v2.
+
+### ⬜ Quando hai tempo (in qualsiasi momento)
+
+- ⬜ **Domande alle persone** P6, P7, P8 (sezione [6.1](#61-domande)): scrivimi le risposte a
+  parole.
+- ⬜ **Messaggio al collega del frontend** (sezione
+  [6.2](#62-messaggio-per-il-collega-del-frontend)), se non l'hai già mandato.
+- ⬜ **Gruppo nascosto** (sezione [3.4](#34-il-gruppo-nascosto-facoltativo)): una decina di
+  stampe con errori messi a mano. Migliora molto la misura.
+- ⬜ **File che mancano**: il capitolo 70-23 dell'SPM, il manuale d'ispezione del motore, due
+  REPAIR della sezione 72-56-31. Se li trovi: ingestion, poi sezione
+  [5](#5-dopo-una-nuova-ingestion).
 
 ---
 
@@ -527,7 +553,7 @@ uv run cycle-validation eval campagna --piano
 cicli.` e per ogni modello e insieme una riga per variante: `base: 1 da fare → runs/...` (una
 base Haiku sul piccolo c'è già), `effort_medio: 2 da fare → ...`, e così via.
 
-**Secondo blocco: la campagna** (costa: vedi sezione 1, fase 1, passo 3; dura ore):
+**Secondo blocco: la campagna** (costa al massimo 60 $; dura ore: vedi sezione 1, tappa 2, passo 4):
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -542,7 +568,7 @@ spesa finora ... $`, le righe dei cicli e la riga finale della prova; alla fine
 motivo) e `Report finale: runs\campagna.md`, che si apre da solo.
 
 **Manda a Claude:** la foto della riga `Campagna finita` (o `fermata`) e del report (sezione 1,
-fase 1, passo 4).
+tappa 2, passo 5).
 
 **Solo una parte.** Stesso secondo blocco, con in fondo alla riga `uv run cycle-validation eval
 campagna` una o più di queste aggiunte:

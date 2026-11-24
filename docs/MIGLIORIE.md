@@ -78,7 +78,7 @@ in `DOCUMENTAZIONE.md`.
 7. **Claude scrive nel registro** (sezione 13) la decisione e le considerazioni: cosa si è
    capito, perché è andata così, cosa fare dopo.
 8. **Se entra nella base:** si archiviano le prove, si fanno copie cieche nuove con un seme
-   nuovo e si rilancia la campagna (COPILOT, sezione 1, fase 2).
+   nuovo e si rilancia la campagna (COPILOT, sezione 1, tappa 3).
 
 Prima delle prove, gratis: i test (`uv run pytest -q`) e, per una miglioria sulle descrizioni,
 il comando `leggi --lingue`.

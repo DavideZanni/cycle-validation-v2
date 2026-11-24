@@ -1001,7 +1001,10 @@ stessa targa compare in tre righe (pagine 14, 17, 18) con funzioni diverse. Come
 
 - Struttura (riscritta il 24-11-2026, su richiesta dell'utente: «estremamente semplice, non
   dare per scontato nulla»): 0 prima di iniziare (parole, come si lancia un blocco, regole,
-  cosa fare se va storto), 1 cosa fare adesso (dove siamo, corto, e passi numerati per fasi),
+  cosa fare se va storto), 1 cosa fare adesso (dal 24-11: la strada con tutte le tappe e ✅ fatta,
+  👉 adesso, ⬜ dopo; «dove siamo» in tre righe; i passi di adesso uno per uno, ognuno con titolo,
+  costo e tempo, il comando da copiare o il link al blocco, «Deve uscire» e «Mandami»; poi le
+  tappe dopo e «Quando hai tempo»),
   2 aggiornare e salvare (2.1, 2.2), 3 le prove (3.1 come funzionano, 3.2 cicli veri, 3.3
   copie cieche, 3.4 gruppo nascosto, 3.5 campagna, 3.6 leggere i risultati, 3.7 prova a mano,
   3.8 togliere, azzerare, archiviare), 4 frontend, 5 ingestion, 6 persone, 7 QA. Riordinato il
