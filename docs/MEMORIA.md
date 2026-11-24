@@ -772,6 +772,12 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
 
 ## 10. Stato delle prove (22-11-2026)
 
+- **24-11, cicli dell'insieme grande (`eval scegli`, COPILOT 2.3 A0):** sotto
+  `ProgettoDocumenti` ci sono 2600 PDF; 29 sono cicli PVRM320 diversi, gli altri 2531 sono
+  manuali o altri documenti. Scelti 23: i 10 noti e 13 veri (dalle 9 alle 21 operazioni, quasi
+  tutte confrontabili). Lasciati fuori 1 EJ200 e 5 con poche operazioni confrontabili. Il
+  grande è piccolo: 23 cicli, nessun limite da mettere.
+
 Con Bedrock Haiku 5.5 e la conoscenza di prova:
 
 - **MOS:** terzo ciclo con 7 corretti, 16 warning, 0 errati, 14 N/A, 0,0058 USD. I warning

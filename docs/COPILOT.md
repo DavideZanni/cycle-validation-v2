@@ -131,6 +131,10 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
   - risposte delle persone: domande P6, P7 e P8 (sezione 3.1).
 - 24-11: al primo *Aggiornare* tre test sono falliti perché il blocco non copiava
   `eval/errori-noti.yaml`. Claude ha corretto il blocco 2.1: **rilancialo** (passo 1).
+- 24-11, **fatto il passo 3** (scegliere i cicli veri, 2.3 A0): su 2600 PDF, 29 sono cicli; ne
+  sono stati scelti **23** (i 10 noti e 13 veri). Fuori: 1 EJ200 e 5 con poche operazioni
+  confrontabili. L'insieme grande è quindi di 23 cicli: le sue prove durano poco più del
+  piccolo.
 
 ### Come si usa questa lista
 
@@ -145,8 +149,6 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
   Deve uscire: solo `passed` (qualche `skipped` va bene), **nessun** `failed`.
 - [ ] **2. Salvare** (blocco 2.2). Salva il codice sul ramo `feature/cycle-validation-v2` del
   repository aziendale.
-- [ ] **3. Scegliere i cicli veri** (blocco 2.3 A0). Deve uscire: `Scelti N: noti 10, veri …`.
-  Se N è più di 100, dillo a Claude: si mette un limite.
 - [ ] **4. Fare le copie cieche** (blocco 2.3 A1). Escono solo quante copie ci sono per tipo.
   Non aprire `runs\mutazioni\errori.yaml`.
 - [ ] **5. Gruppo nascosto** (facoltativo, blocco 2.3 N). Prima del passo 6 dì a Claude se lo
