@@ -324,6 +324,9 @@ def blind_mutations(
     failed: set[tuple[str, str, str]] = set()  # (ciclo, operazione, tipo) che non si applica
     found: list[Mutation] = []
     per_kind: dict[str, int] = {}
+    # due stampe dello stesso ciclo (stesso contenuto, PDF diversi) danno la stessa copia: la
+    # seconda avrebbe la stessa impronta e sparirebbe (24-11: 41 copie scritte, 39 diverse)
+    copies: set[str] = set()
     for round_ in range(len(pairs)):
         progress = False
         for kind in kinds:
@@ -339,12 +342,16 @@ def blind_mutations(
                 if changed is None or changed == operation:
                     failed.add((*key, kind))
                     continue
+                copy = _alone(cycle, changed)
+                text = copy.model_dump_json()
+                if text in copies:
+                    failed.add((*key, kind))
+                    continue
+                copies.add(text)
                 taken.add(key)
                 used[name] = used.get(name, 0) + 1
                 per_kind[kind] = per_kind.get(kind, 0) + 1
-                found.append(
-                    Mutation(kind, name, operation.operation_number, _alone(cycle, changed))
-                )
+                found.append(Mutation(kind, name, operation.operation_number, copy))
                 progress = True
                 break
         if not progress or round_ > count:

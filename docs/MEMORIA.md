@@ -1018,6 +1018,15 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   negazione_due_lingue 9, limite_invertito 10 (mai visti per il modello 31, del codice 10;
   prima 21 e 10). Piano: piccolo 51 cicli e copie, grande 23, tutto `2 da fare`, grande solo
   base (dipende dal piccolo). Sonnet sul piccolo potrebbe stare vicino al tetto di 50 $.
+- **24-11 sera, campagna sul piccolo finita** (Sonnet 19:20-21:12, Haiku 19:20-21:22, in
+  parallelo senza problemi). Cicli 49 (non 51): due copie cieche erano doppie (due stampe dello
+  stesso ciclo, stessa copia, stessa impronta); corretto in `blind_mutations`, vale dalle
+  prossime copie. Haiku: base 19 stabili (visti 8 su 10, mai visti 2 su 29, codice 9 su 10),
+  `elementi_uno_per_uno` 21 (mai visti 4), `lingue_separate` 20 (4). Sonnet: base 18 (mai
+  visti 1), `lingue_separate` 19, costo ×12. Visti mancati sempre 298bc28e 035 e f355dc3c 010,
+  con `EVIDENZA_NON_TROVATA`: il testo del manuale giusto non arriva al modello. Regola «si
+  tiene» resa più severa (serve più errori o un risparmio vero): quattro varianti per
+  differenze di rumore finivano anche sul grande. Registro e considerazioni in MIGLIORIE 13.
 - **`.gitignore` di `docs/` (24-11-2026):** in git entra solo `DOCUMENTAZIONE.md`; gli altri
   quattro file erano già seguiti e restano (servono al blocco Aggiornare e alla memoria).
 

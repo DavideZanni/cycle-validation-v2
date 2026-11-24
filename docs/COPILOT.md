@@ -233,6 +233,11 @@ uv run cycle-validation eval campagna --piano
 
 **👉 Passo 5 · La campagna** · costa al massimo 60 $ · **alcune ore**
 
+> **Stato del 24-11 alle 21:30:** il piccolo è finito per Haiku e per Sonnet (Claude ha letto i
+> riepiloghi). Sonnet non è meglio di Haiku e costa 12 volte tanto: **il terminale di Sonnet
+> si può fermare** con Ctrl+C (scrive comunque il suo report). Il terminale di Haiku continua
+> sul grande: lascialo finire.
+
 Lancia da sola tutte le prove. Haiku e Sonnet girano **insieme, in due terminali**: così ci
 vuole il tempo di Sonnet (il più lento), non la somma dei due. Haiku costa circa 6 $; Sonnet
 circa 10 volte tanto. Ogni terminale ha il suo tetto di spesa: 10 $ per Haiku, 50 $ per Sonnet

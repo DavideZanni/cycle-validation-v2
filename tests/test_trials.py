@@ -146,7 +146,7 @@ def test_the_rule_picks_the_best_variant(tmp_path: Path) -> None:
     lingue = variants["lingue"]
     # stabile solo lo 005: lo 030 è trovato in una prova su due
     assert (lingue.stable, lingue.found_min, lingue.found_mean) == (1, 1, 1.5)
-    assert lingue.decision == "si tiene: meglio della base"
+    assert lingue.decision == "si tiene: più errori stabili (1 contro 0)"
     assert variants["rumorosa"].decision == "scartata: 1 falsi errori nei cicli giusti"
     assert variants["una-volta"].decision.startswith("da ripetere")
     best = best_variant(build_variants(trials))
@@ -166,7 +166,7 @@ def test_a_variant_that_loses_a_stable_error_is_not_kept(tmp_path: Path) -> None
     ]
     variants = {v.name: v for v in build_variants(trials)}
     # stessi numeri (1 stabile), ma non è meglio: si resta sulla base
-    assert variants["altra"].decision == "non si tiene: non è meglio della base"
+    assert variants["altra"].decision.startswith("non si tiene: pari alla base")
 
 
 def test_a_real_cycle_has_no_known_errors_and_counts_apart(tmp_path: Path) -> None:
@@ -250,7 +250,7 @@ def test_the_proposal_sits_next_to_the_results(tmp_path: Path) -> None:
     assert "## Le proposte e la decisione" in summary
     assert (
         "| medio | più ragionamento | vede le frasi / al contrario | più errori stabili | "
-        "non si tiene: non è meglio della base |" in summary
+        "non si tiene: pari alla base" in summary
     )
     assert "| base | - | - | - | riferimento |" in summary
 
@@ -310,3 +310,20 @@ def test_a_known_error_waiting_for_a_document_is_not_counted_as_missed(tmp_path:
     assert trial.cycles[0].waiting == {"030": "manca il manuale"}
     assert "**Errori visti trovati** | **1 su 1** (100%)" in render_trial(trial)
     assert "| aaaa1111 | 030 | manca il manuale | 0 su 1 |" in render_summary([trial])
+
+
+def test_same_errors_are_kept_only_for_a_real_saving(tmp_path: Path) -> None:
+    """24-11: con gli stessi errori quattro varianti «si tenevano» per 0,2 WARNING o il 3% di
+    costo in meno. Ora serve un risparmio vero; sotto è pari alla base."""
+    from cycle_validation.evaluation.trials import build_variants
+
+    trials = [_trial(tmp_path, n, h, ["005"]) for h, n in enumerate(["base", "base", "a", "a"])]
+    for trial in trials[2:]:
+        trial.cycles[0].cost_usd = trials[0].cycles[0].cost_usd
+    variants = {v.name: v for v in build_variants(trials)}
+    assert variants["a"].decision.startswith("non si tiene: pari alla base")
+    for trial in trials:  # la base costa 1 $ a ciclo, la variante 0,5 $
+        for cycle in trial.cycles:
+            cycle.cost_usd = 1.0 if trial.name == "base" else 0.5
+    variants = {v.name: v for v in build_variants(trials)}
+    assert variants["a"].decision == "si tiene: stessi errori, costo -50%"

@@ -190,13 +190,20 @@ ordine:
    - non ha meno errori stabili della base;
    - non ha meno errori **mai visti per il modello** stabili della base (se no: «non
      generalizza»);
-   - sta sopra la base in classifica.
+   - e in più: trova **più errori stabili** della base, oppure trova gli stessi e fa
+     **risparmiare davvero** (costo almeno 10% in meno, tempo almeno 20% in meno, oppure almeno
+     1 WARNING per ciclo in meno).
+
+   Se trova gli stessi errori e le differenze sono più piccole, è **«pari alla base»**: con 2
+   prove sono rumore, e non si tiene. (Prima del 24-11 sera bastava stare sopra la base in
+   classifica: 0,2 WARNING in meno bastavano.)
 
 La **scelta migliore** è la prima della classifica che si tiene (oppure la base, se nessuna la
 batte).
 
 I numeri della regola sono nel codice, in `evaluation/trials.py`: `MIN_REPETITIONS` (2),
-`MAX_CYCLE_MS` (10 minuti), `MAX_COST_RATIO` (2).
+`MAX_CYCLE_MS` (10 minuti), `MAX_COST_RATIO` (2), `MIN_COST_SAVING` (10%), `MIN_TIME_SAVING`
+(20%), `MIN_WARNING_SAVING` (1).
 
 ---
 
@@ -500,3 +507,38 @@ rianalisi del 24-11 sera (visti su 12, mai visti su 21): non si confrontano con 
 | 2026-11-24 | come sopra | `effort_pieno` | stabili 18; mai visti 1 su 21; da verificare 0 in una prova | 0,19 $ (+20%) | 6 min 20 s | non si tiene | conferma B2: con `low` nei controlli non si perde niente, si spende meno. B2 resta |
 | 2026-11-24 | come sopra | `prompt_task_mancante` | stabili 19; mai visti 2 su 21 (come la base) | 0,16-0,17 $ | 5 min 20 s | non si tiene | stessi errori, ma più WARNING per ciclo senza errori (14,7 contro 14,2): B6 resta |
 | 2026-11-24 | come sopra | `concorrenza_12` | 19; mai visti 2 su 21 (1 prova) | 0,15 $ | 4 min 33 s (-12%) | da ripetere | prima prova: stessi errori e più veloce. Se la seconda conferma, si tiene (solo tempo) |
+
+**Sintesi del 24-11 sera (campagna Haiku e Sonnet, piccolo, copie cieche nuove).** Insieme
+piccolo di 49 cicli e copie (39 copie diverse, non 41: due erano doppie, ora corretto); errori
+da trovare 49: visti 10, mai visti per il modello 29, controlli del codice 10. Risultati:
+1. **Le due migliorie sul metodo funzionano con Haiku**: `elementi_uno_per_uno` 21 stabili e
+   mai visti 4 su 29, `lingue_separate` 20 e 4 su 29, contro 19 e 2 su 29 della base. Sono le
+   uniche con più errori stabili; 0 falsi errori, costo uguale.
+2. **Sonnet non è meglio di Haiku** e costa circa 12 volte tanto (0,043 $ contro 0,0035 $ a
+   ciclo): base 18 stabili e mai visti 1 su 29, più instabile (`f355dc3c` 050 trovato 14 volte
+   su 18). Su `298bc28e` 035 risponde CORRETTO VERIFICATO. Solo `lingue_separate` lo porta a 19.
+3. **Le impostazioni non contano**: effort, conferme, testo lungo, concorrenza, prompt del task
+   mancante danno gli stessi errori della base o meno. Con la regola vecchia quattro
+   «si tenevano» per differenze piccole (0,2 WARNING, 3% di costo): ora sono «pari alla base».
+4. **I visti mancati sono un problema di testo, non di giudizio**: `298bc28e` 035 e
+   `f355dc3c` 010 escono in tutte le 36 prove con WARNING `EVIDENZA_NON_TROVATA` (Haiku): il
+   modello non trova nel testo che riceve il passo del manuale da confrontare.
+5. **Mai visti ancora bassi** (4 su 29 nel migliore): il prossimo passo si sceglie dalla
+   tabella «Errori mai visti per tipo» di `campagna-haiku.md` (cosa risponde la v2 sui
+   mancati).
+
+| Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
+|---|---|---|---|---|---|---|---|
+| 2026-11-24 sera | campagna, Haiku, piccolo (49 cicli e copie), 2 prove | `base` | stabili 19 su 49: visti 8 su 10, mai visti per il modello 2 su 29, codice 9 su 10; 0 falsi errori; 1 da verificare | 0,0034 $ a ciclo, 0,17 $ a prova | 8 s a ciclo, 6 min 45 s a prova | riferimento | uguale nelle due prove; visti mancati sempre 298bc28e 035 e f355dc3c 010 (`EVIDENZA_NON_TROVATA`) |
+| 2026-11-24 sera | come sopra | `elementi_uno_per_uno` | stabili 21 (21 e 21); mai visti 4 su 29 | 0,0037 $ (+9%) | 8 s | si tiene (più errori stabili) | la migliore: due errori in più in tutte e due le prove, nessun falso errore. Da provare sul grande e insieme a `lingue_separate` |
+| 2026-11-24 sera | come sopra | `lingue_separate` | stabili 20 (21 e 20); mai visti 4 su 29 | 0,0038 $ (+12%) | 9 s | si tiene (più errori stabili) | aiuta come atteso; un errore trovato in una prova sola. f355dc3c 050 mancato nella seconda prova |
+| 2026-11-24 sera | come sopra | `testo_lungo` | stabili 19 (20 e 19); mai visti 2 su 29 | 0,0035 $ | 8 s | pari alla base (prima «si tiene») | una copia in più in una prova sola: rumore. Il testo in più non fa trovare i visti mancati: il passo che manca non è vicino |
+| 2026-11-24 sera | come sopra | `prompt_task_mancante` | stabili 19; mai visti 2 su 29 | 0,0035 $ | 9 s | pari alla base (prima «si tiene») | 13,7 WARNING per ciclo contro 14,5: meno di 1 |
+| 2026-11-24 sera | come sopra | `concorrenza_12` | stabili 19; mai visti 2 su 29 | 0,0036 $ | 8 s (massimo 1 min 34 s) | pari alla base (prima «si tiene») | non più veloce a ciclo con due campagne insieme; un ciclo lento. Da rimisurare da sola nella tappa 4 |
+| 2026-11-24 sera | come sopra | `conferme_1` | stabili 19; mai visti 2 su 29 | 0,0033 $ (-3%) | 9 s | pari alla base (prima «si tiene») | risparmio troppo piccolo per contare |
+| 2026-11-24 sera | come sopra | `effort_medio` | stabili 18; mai visti 1 su 29 | 0,0037 $ | 9 s | non si tiene | come il 24-11: più ragionamento non aiuta |
+| 2026-11-24 sera | come sopra | `effort_pieno` | stabili 17; mai visti 1 su 29 | 0,0038 $ | 8 s | non si tiene | B2 confermata un'altra volta |
+| 2026-11-24 sera | campagna, Sonnet, piccolo, 2 prove | `base` | stabili 18 su 49 (19 e 18); mai visti 1 su 29; 0 falsi errori | 0,043 $ a ciclo (×12 Haiku), 2,10 $ a prova | 8 s a ciclo | riferimento Sonnet | peggio di Haiku a ×12 il costo. Più instabile (f355dc3c 050 14 su 18 prove; ERRATO su 04ecaabe 050, P7, solo 6 su 18 contro 14 di Haiku) |
+| 2026-11-24 sera | come sopra | `lingue_separate` | stabili 19 (19 e 19); mai visti 2 su 29 | 0,049 $ (+15%) | 9 s | si tiene (più errori stabili) | l'unica che aiuta anche Sonnet; arriva al livello della base Haiku |
+| 2026-11-24 sera | come sopra | `prompt_task_mancante`, `concorrenza_12`, `conferme_1` | stabili 18; mai visti 1 su 29 | 0,040-0,043 $ | 7-8 s | pari alla base (prima «si tiene») | differenze di rumore |
+| 2026-11-24 sera | come sopra | `testo_lungo`, `elementi_uno_per_uno`, `effort_medio`, `effort_pieno` | stabili 18, 17, 17, 16 | 0,042-0,048 $ | 7-8 s | non si tiene | `elementi_uno_per_uno` con Sonnet trova 18 per prova ma non sempre gli stessi |

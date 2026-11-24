@@ -1017,7 +1017,16 @@ massimo_dollari: 60
 3. **classifica**: errori stabili (trovati in tutte le prove), trovati minimo, trovati medio,
    meno da verificare, meno warning, meno costo, meno tempo;
 4. **si tiene** se non perde errori stabili, **non perde errori mai visti per il modello
-   stabili** (altrimenti «non generalizza») e sta sopra la base.
+   stabili** (altrimenti «non generalizza») e: trova **più errori stabili** della base, oppure
+   trova gli stessi con un **risparmio vero** (costo per ciclo almeno 10% in meno, tempo almeno
+   20% in meno o almeno 1 WARNING per ciclo in meno: `MIN_COST_SAVING`, `MIN_TIME_SAVING`,
+   `MIN_WARNING_SAVING`). Con gli stessi errori e differenze più piccole è **«pari alla
+   base»** e non si tiene (dal 24-11 sera: prima bastava stare sopra la base in classifica, e
+   quattro varianti «si tenevano» per 0,2 WARNING o il 3% di costo, finendo anche sul grande).
+
+Le copie cieche (`eval muta`) sono tutte diverse: se due stampe dello stesso ciclo danno la
+stessa copia, la seconda si salta (24-11: 41 copie scritte ma 39 diverse, perché due avevano
+la stessa impronta).
 
 **Come si scelgono le migliorie (dal 23-11):** non dagli errori noti che mancano. Si fa la
 base, si guarda nel report la tabella «Errori mai visti, per tipo» (trovati per tipo e, sui

@@ -724,10 +724,17 @@ def load_trials(root: Path) -> list[Trial]:
 # 2. servono almeno `MIN_REPETITIONS` prove: il modello non risponde sempre uguale;
 # 3. classifica: errori trovati in tutte le ripetizioni (stabili), poi il minimo e la media dei
 #    trovati, poi meno ERRATO da verificare, meno WARNING per ciclo senza errori noti, meno costo, meno tempo;
-# 4. si tiene se è valida, ripetuta abbastanza, non trova meno errori stabili della base e sta
-#    sopra la base in classifica. La scelta migliore è la prima valida della classifica.
+# 4. si tiene se è valida, ripetuta abbastanza, non perde errori stabili né mai visti e: trova
+#    più errori stabili della base, oppure trova gli stessi e fa risparmiare davvero (costo
+#    almeno `MIN_COST_SAVING` in meno, tempo almeno `MIN_TIME_SAVING` in meno, almeno
+#    `MIN_WARNING_SAVING` WARNING per ciclo in meno). Con gli stessi errori e differenze più
+#    piccole è «pari alla base»: con 2 prove sono rumore (24-11: quattro varianti «si tenevano»
+#    per 0,2 WARNING o 3% di costo). La scelta migliore è la prima valida della classifica.
 
 MIN_REPETITIONS = 2
+MIN_COST_SAVING = 0.10
+MIN_TIME_SAVING = 0.20
+MIN_WARNING_SAVING = 1.0
 MAX_CYCLE_MS = 10 * 60 * 1000
 MAX_COST_RATIO = 2.0
 BASE_NAME = "base"
@@ -834,9 +841,26 @@ def _decide(variant: Variant, base: Variant | None) -> str:
             f"non si tiene: errori mai visti {variant.unseen_stable} contro "
             f"{base.unseen_stable} della base (non generalizza)"
         )
-    if variant.rank_key() > base.rank_key():
-        return "si tiene: meglio della base"
-    return "non si tiene: non è meglio della base"
+    if variant.stable > base.stable:
+        return f"si tiene: più errori stabili ({variant.stable} contro {base.stable})"
+    savings = _savings(variant, base)
+    if savings and variant.found_min >= base.found_min:
+        return f"si tiene: stessi errori, {savings}"
+    return "non si tiene: pari alla base (differenze piccole, dentro il rumore)"
+
+
+def _savings(variant: Variant, base: Variant) -> str:
+    """Il risparmio vero rispetto alla base, a parole; vuoto se non ce n'è."""
+    found: list[str] = []
+    if base.cost_per_cycle > 0 and variant.cost_per_cycle <= (1 - MIN_COST_SAVING) * (
+        base.cost_per_cycle
+    ):
+        found.append(f"costo -{1 - variant.cost_per_cycle / base.cost_per_cycle:.0%}")
+    if base.mean_ms > 0 and variant.mean_ms <= (1 - MIN_TIME_SAVING) * base.mean_ms:
+        found.append(f"tempo -{1 - variant.mean_ms / base.mean_ms:.0%}")
+    if variant.clean_warnings <= base.clean_warnings - MIN_WARNING_SAVING:
+        found.append(f"WARNING per ciclo -{base.clean_warnings - variant.clean_warnings:.1f}")
+    return ", ".join(found)
 
 
 def best_variant(variants: Sequence[Variant]) -> Variant | None:
@@ -859,7 +883,10 @@ METRICS_HELP = (
     "trovati (minimo, poi media), meno da verificare, meno warning per ciclo senza errori noti, meno "
     "costo, meno tempo. Si tiene se non perde errori stabili, né errori **mai visti per il "
     "modello** (copie cieche che deve trovare il modello e gruppo nascosto: dicono se la v2 "
-    "generalizza o ha imparato la lista), e sta sopra la base."
+    "generalizza o ha imparato la lista) e trova più errori stabili della base, oppure gli "
+    f"stessi con un risparmio vero (costo almeno {MIN_COST_SAVING:.0%} in meno, tempo almeno "
+    f"{MIN_TIME_SAVING:.0%} in meno, almeno {MIN_WARNING_SAVING:g} WARNING per ciclo in meno). "
+    "Con gli stessi errori e differenze più piccole è «pari alla base»: con 2 prove è rumore."
 )
 
 

@@ -131,3 +131,13 @@ def test_a_limit_is_inverted_in_both_languages() -> None:
     assert _mutated("limite_invertito", _cycle("ASCIUGARE / DRY")) is None
     # «min» dentro una parola non è un limite
     assert _mutated("limite_invertito", _cycle("MINUTI 5 / MINUTES 5")) is None
+
+
+def test_two_prints_of_the_same_cycle_do_not_give_the_same_copy_twice() -> None:
+    """24-11: due PDF con lo stesso ciclo davano due copie uguali (stessa impronta): 41 copie
+    scritte, 39 diverse. Ora la seconda si salta e il posto va a un'altra copia."""
+    kb = load_local_knowledge(KNOWLEDGE)
+    twins = [("c1", _cycle(BILINGUAL)), ("c2", _cycle(BILINGUAL))]
+    found = blind_mutations(twins, kb, count=10, seed=1, kinds=["negazione_due_lingue"])
+    texts = [m.cycle.model_dump_json() for m in found]
+    assert len(found) == 1 and len(set(texts)) == len(texts)
