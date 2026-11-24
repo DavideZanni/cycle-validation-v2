@@ -207,7 +207,7 @@ I numeri della regola sono nel codice, in `evaluation/trials.py`: `MIN_REPETITIO
 
 ---
 
-## 7. Da provare adesso (lista del 23-11-2026)
+## 7. Da provare adesso (lista del 25-11-2026)
 
 ### 7.1 Come si scelgono le migliorie (dal 23-11)
 
@@ -225,9 +225,17 @@ Per questo motivo il 23-11 sono state tolte sei migliorie pensate sugli errori n
 `negazioni_lingue`, `classi_lingue`, `prompt_confronto`, `contesto_sezione`, `fatti_incerti` e
 `modello_grande_sui_dubbi`.
 
-Per ognuna: due prove sul piccolo con `$nome` = il nome; se si tiene, due sul grande.
+Dal 25-11 la campagna fa **tre** prove per variante sul piccolo; sul grande solo la base e
+le varianti che si tengono.
 
-### 7.2 Subito: basta il file della variante (nessun codice nuovo)
+**Il 24-11 sera la campagna ha detto** (sezione 13): le impostazioni (7.2) non cambiano gli
+errori trovati; le migliorie sul metodo (7.3) sì; Sonnet non trova più errori di Haiku e costa
+12 volte tanto. Per questo dal 25-11 si lavora **solo sul metodo** e **solo con Haiku**.
+
+### 7.2 Impostazioni (provate il 24-11: nessuna cambia gli errori trovati)
+
+Tolte dalla campagna il 25-11. Le loro prove restano nelle cartelle; si riprovano solo per
+tempo e costo (7.4) o se cambia il modello.
 
 | `$nome` | Cosa cambia | Cosa può migliorare | Rischio |
 |---|---|---|---|
@@ -238,21 +246,28 @@ Per ognuna: due prove sul piccolo con `$nome` = il nome; se si tiene, due sul gr
 | `prompt_task_mancante` | se il task citato manca nel manuale, il modello giudica lo stesso (A2) invece di dare subito WARNING (B6) | operazioni che oggi escono `FONTE_ASSENTE` | falsi errori, costo |
 | `concorrenza_12` | 12 operazioni controllate insieme invece di 6 (B4) | solo il tempo | limiti di Bedrock: cicli non eseguiti |
 
-**Sonnet** (un modello più grande): dal 24-11 la campagna fa **tutte** le varianti anche con
-Sonnet, in cartelle sue e con una base sua (modello `sonnet` di `eval/campagna.yaml`). Costa
-circa 10 volte per ciclo, quindi in produzione la regola lo scarterebbe (sopra 2 volte), ma il
-confronto dice se gli errori mai visti mancati dipendono dal modello o dal modo di chiedere.
-La variante `sonnet` (`eval/varianti/sonnet.yaml`) resta per le prove a mano. Se Sonnet li trova, una miglioria
-possibile è usarlo solo sulle operazioni dubbie; se li manca anche lui, si lavora su prompt e
-controlli. Su Bedrock c'è Sonnet 5.5 (`eu.anthropic.claude-sonnet-5-5`, stesso schema di Haiku).
+Risultato del 24-11 sera (Haiku, piccolo, 2 prove): `effort_medio` 18 e `effort_pieno` 17
+errori stabili contro 19 della base (peggio); `testo_lungo`, `prompt_task_mancante`,
+`concorrenza_12`, `conferme_1` 19 come la base (pari: differenze di rumore). B2 (`effort: low`)
+è confermata.
+
+**Sonnet** (un modello più grande), provato il 24-11 sera con tutte le varianti: base 18
+errori stabili e mai visti 1 su 29 (Haiku: 19 e 2 su 29), più instabile, **12 volte il costo**
+(0,043 $ a ciclo contro 0,0035 $). Anche con `lingue_separate` arriva solo a 19. Quindi gli
+errori mancati **non dipendono dal modello**, ma da cosa gli si chiede e da quale testo
+riceve. Tolto dalla campagna il 25-11 (in `eval/campagna.yaml` c'è la riga per rimetterlo);
+la variante `sonnet` resta per le prove a mano.
 
 ### 7.3 Con codice nuovo (lo scrive Claude; la variante lo accende, la base non cambia)
 
 | `$nome` | Cosa fa | Cosa può migliorare | Costo del lavoro |
 |---|---|---|---|
-| `lingue_separate` (dal 24-11, pronta) | nella domanda al modello la parte italiana e quella inglese separate, con l'istruzione di confrontare **ognuna** con il manuale: se una sola dice altro, `contraddetto` (`agent.separate_languages`) | gli errori in una lingua sola che oggi una lingua giusta «copre»: le negazioni tolte (la base ne trova 1-2 su 18), ma anche parole o frasi cambiate. È una richiesta generale: le copie cieche con la negazione restano una misura onesta | piccolo |
-| `elementi_uno_per_uno` (dal 24-11, pronta) | prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione, valori, limiti, divieti, materiali) e li confronta con il manuale uno per uno (`agent.itemized_check`) | il prompt di oggi dice che «conta il contenuto tecnico» e il modello giudica a colpo d'occhio: limiti invertiti, divieti tolti in tutte e due le lingue, parole cambiate (il visto `298bc28e` op. 035, mancato sempre) | piccolo |
-| `numeri_manuale` (I4, è H12) | confronta i numeri e le classi della descrizione con quelli del passo del manuale. Alla sessione passa le differenze da guardare; se tutto coincide, CORRETTO senza modello | numeri cambiati in tutte e due le lingue; 7 errori noti su 10 sono numeri, classi o codici; meno sessioni | medio |
+| `lingue_separate` (24-11; **Haiku: 20 stabili, mai visti 4 su 29, si tiene**) | nella domanda al modello la parte italiana e quella inglese separate, con l'istruzione di confrontare **ognuna** con il manuale: se una sola dice altro, `contraddetto` (`agent.separate_languages`) | gli errori in una lingua sola che oggi una lingua giusta «copre»: le negazioni tolte (la base ne trova 1-2 su 18), ma anche parole o frasi cambiate. È una richiesta generale: le copie cieche con la negazione restano una misura onesta | piccolo |
+| `elementi_uno_per_uno` (24-11; **Haiku: 21 stabili, mai visti 4 su 29, la migliore**) | prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione, valori, limiti, divieti, materiali) e li confronta con il manuale uno per uno (`agent.itemized_check`) | il prompt di oggi dice che «conta il contenuto tecnico» e il modello giudica a colpo d'occhio: limiti invertiti, divieti tolti in tutte e due le lingue, parole cambiate (il visto `298bc28e` op. 035, mancato sempre) | piccolo |
+| `seconda_ricerca` (25-11, pronta) | se il primo giudizio è «non verificabile», una seconda sessione cerca con Grep e Read in **tutti i documenti citati dal ciclo** (più quelli del task e, per DR, quelli del profilo), non solo nel task dell'operazione. Un CORRETTO o ERRATO con citazione verificata prende il posto del WARNING; un ERRATO si conferma (G1) sugli stessi documenti; il costo delle due sessioni si somma (`agent.search_when_unverifiable`) | i due visti mai trovati (`298bc28e` 035, `f355dc3c` 010) escono in tutte le 36 prove con `EVIDENZA_NON_TROVATA`: il passo giusto non è nel testo del task, che spesso arriva nel messaggio **senza tool** (sotto 150 righe). Meno WARNING per ciclo | piccolo |
+| `elementi_e_lingue` (25-11, pronta) | `elementi_uno_per_uno` e `lingue_separate` insieme | se le due trovano errori diversi, insieme ne trovano di più | nessuno |
+| `tutto_insieme` (25-11, pronta) | le tre insieme: elementi, lingue, seconda ricerca | come si guarda la descrizione e dove si cerca nel manuale sono due cose diverse: possono sommarsi | nessuno |
+| `numeri_manuale` (I4, è H12; **rimandata**) | confronta i numeri e le classi della descrizione con quelli del passo del manuale. Alla sessione passa le differenze da guardare; se tutto coincide, CORRETTO senza modello | numeri cambiati in tutte e due le lingue; 7 errori noti su 10 sono numeri, classi o codici; meno sessioni | medio |
 
 **Attenzione a `numeri_manuale` (24-11).** Le copie cieche «numero del manuale» sono fatte
 cambiando un numero del manuale con un valore che **nel manuale non c'è**: è proprio quello che
@@ -261,7 +276,14 @@ non misurano la generalizzazione. Prima di provarla serve che la regola le tolga
 (per la variante e per la base), e la misura onesta restano gli errori visti numerici e il
 gruppo nascosto. Lo stesso vale per un controllo delle negazioni fatto dal codice.
 
-Le migliorie successive si decidono dopo la base, dai tipi «modello» trovati peggio.
+**Cosa entra nella base.** Dopo la campagna del 25-11 entra la migliore che si tiene (con 3
+prove). Claude la accende in `config/settings.yaml`; poi copie cieche con un **seme nuovo**,
+per misurare su errori che nessuno ha mai visto, e la campagna di nuovo.
+
+Le migliorie successive si decidono dalla tabella «Errori mai visti per tipo» della campagna
+del 25-11: il tipo «modello» trovato peggio, e cosa risponde la v2 su quelli mancati
+(`CORRETTO` = il modello vede il passo ma non la differenza; `EVIDENZA_NON_TROVATA` = non
+trova il passo).
 
 ### 7.4 Tempo e costo (dopo: non cambiano gli errori trovati)
 
@@ -306,12 +328,15 @@ Questi errori noti mancano per motivi che non dipendono dalla v2:
 
 **Prove sui cicli veri** (lo stesso ordine di COPILOT, sezione 1):
 
-1. la base, sul piccolo e sul grande;
-2. le varianti senza codice: `effort_medio`, `conferme_1`, `testo_lungo`, `effort_pieno`,
-   `prompt_task_mancante`, `concorrenza_12`;
-3. `numeri_manuale`;
-4. le migliorie scelte sui tipi «modello» trovati peggio;
-5. tempo e costo.
+1. ✅ la base, sul piccolo e sul grande (24-11);
+2. ✅ le varianti senza codice e Sonnet (24-11): non cambiano gli errori trovati;
+3. ✅ `lingue_separate`, `elementi_uno_per_uno` (24-11): si tengono;
+4. 👉 **25-11:** `elementi_e_lingue`, `seconda_ricerca`, `tutto_insieme`, e la terza prova
+   di base, `lingue_separate`, `elementi_uno_per_uno`;
+5. la migliore entra nella base; copie cieche con seme nuovo; campagna;
+6. le migliorie scelte sui tipi «modello» trovati peggio (dalla tabella per tipo);
+7. `numeri_manuale`, solo dopo aver tolto dal confronto le copie che troverebbe per costruzione;
+8. tempo e costo (7.4).
 
 **Il resto**, dopo i punti per la consegna (`MEMORIA.md`, sezione 1):
 
@@ -358,6 +383,10 @@ Ogni miglioria ha un codice (Id) che si usa nei documenti e nel codice.
 | G8 | (22-11-2026) stampa modificata a mano: se nel PDF le righe sono in un ordine diverso da quello della pagina, la lettura le rimette in ordine di posizione e unisce i pezzi della stessa riga (`ingest/pdf.py`); `leggi` dice quali pagine. Le stampe normali restano come prima |
 | G9 | (22-11-2026) comando `macchine`: elenco delle macchine attive da Redshift per le prove sul PC, con il secret e la tabella della v1 e la Data API. `leggi --breve` e `--senza-riordino`. Nelle pagine rimesse in ordine una riga senza colonne resta nell'operazione in corso |
 | G10 | (22-11-2026) il titolo «OPERAZIONE EVENTUALE» diventa un blocco a sé, attaccato all'operazione dopo. `confronta --primo-senza-riordino`. `macchine` prende `SECRET_NAME` dal secret «di ambiente» della v1 e il database dalla connessione della v1 (o da `--database`). Nelle descrizioni rimesse in ordine si tolgono gli asterischi di cornice e le righe fatte solo di segni. Il riordino recupera nelle stampe DR testo che prima si perdeva |
+| I5 | (24-11-2026) `lingue_separate`: italiano e inglese confrontati con il manuale uno alla volta (`agent.separate_languages`). Spenta nella base; con Haiku si tiene (20 stabili contro 19) |
+| I6 | (24-11-2026) `elementi_uno_per_uno`: la descrizione scomposta in elementi tecnici controllati uno a uno (`agent.itemized_check`). Spenta nella base; con Haiku la migliore (21 stabili, mai visti 4 su 29) |
+| I7 | (25-11-2026) `seconda_ricerca`: dopo un «non verificabile», una seconda sessione con Grep e Read in tutti i documenti del ciclo (`agent.search_when_unverifiable`). Spenta nella base; da misurare |
+| — | (24-11 e 25-11-2026) misura: punteggio diviso (visti, mai visti per il modello, controlli del codice, falsi errori), errori noti `in_attesa`, sei tipi di copie cieche senza copie doppie, WARNING per motivo, «Ultimo esito»; campagna (`eval campagna`) con report unico, in più terminali; regola «si tiene» severa (più errori stabili o risparmio vero) |
 | G11 | (22-11-2026 sera) accesso come la v1: `API_AUTH=sdk` con `chatbot_ai_sdk` (token dal cookie, permessi da `permissions.json`, utente da `current_user`), scelto da solo quando c'è il secret della v1. `CV_ENV_SECRET` per leggere all'avvio il secret «di ambiente» della v1. `macchine` segue il database fino alla funzione delle credenziali della v1 |
 
 ---

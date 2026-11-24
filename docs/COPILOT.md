@@ -3,7 +3,7 @@
 Questo file dice **cosa fare sul PC aziendale**, un passo alla volta, e contiene **tutti i
 comandi** da lanciare. È scritto per chi lo apre senza sapere niente del progetto.
 
-**Per sapere cosa fare adesso vai alla [sezione 1](#1-cosa-fare-adesso-24-11-2026)**: c'è la strada con tutte le tappe e i passi
+**Per sapere cosa fare adesso vai alla [sezione 1](#1-cosa-fare-adesso-25-11-2026)**: c'è la strada con tutte le tappe e i passi
 di oggi, con 👉 dove sei. Le altre sezioni sono da consultare quando un passo te lo dice.
 
 **Chi fa cosa:**
@@ -136,36 +136,65 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ---
 
-## 1. Cosa fare adesso (24-11-2026)
+## 1. Cosa fare adesso (25-11-2026)
 
 ### La strada: tutte le tappe
 
 | | Tappa | Cosa si fa | Quando |
 |---|---|---|---|
 | ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, fare le copie cieche | fatta il 24-11 |
-| 👉 | **2. La campagna** | tutte le prove in automatico, con Haiku e con Sonnet | **adesso** |
-| ⬜ | **3. Migliorie** | Claude scrive le migliorie sugli errori trovati peggio; tu rilanci la campagna | dopo la 2 |
+| ✅ | **2. La prima campagna** | tutte le impostazioni, con Haiku e con Sonnet | fatta il 24-11 sera |
+| 👉 | **3. Migliorie** | Claude scrive le migliorie sul metodo; tu lanci la campagna e mandi il report | **adesso (25-11)** |
 | ⬜ | **4. Tempo e costo** | spendere meno e fare prima, trovando gli stessi errori | dopo la 3 |
-| ⬜ | **5. Chiusura** | prova finale, prove dal frontend, salvare | dopo la 4 |
+| ⬜ | **5. Chiusura** | prova finale con copie cieche nuove, prove dal frontend, salvare | dopo la 4 |
 | ⬜ | **6. QA** | pubblicare nell'ambiente di prova dell'azienda | alla fine |
 
-**Dove siamo in breve:** la v2 funziona sul PC. Il 24-11 una prima campagna (Haiku, piccolo)
-ha detto: sugli errori noti è stabile e non dà falsi errori, ma trova pochissimi errori «mai
-visti» per il modello (2 su 21), e nessuna impostazione lo migliora. Claude ha rianalizzato
-tutto e ha sistemato **come si misura** (punteggio chiaro, errori che oggi non si possono
-trovare messi a parte, più copie cieche e di tipi diversi, WARNING per motivo) e **due migliorie
-sul metodo** (`lingue_separate`, `elementi_uno_per_uno`). Per questo si **riparte da zero**: le
-copie cieche cambiano. I risultati di tutte le prove sono in `MEMORIA.md`.
+**Cosa ha detto la tappa 2** (dettagli e considerazioni in `MIGLIORIE.md`, sezione 13):
 
-### 👉 Tappa 2, passo per passo (si riparte il 24-11 sera)
+| | Haiku | Sonnet |
+|---|---|---|
+| Base: errori stabili (su 49) | 19 | 18 |
+| Base: mai visti per il modello | 2 su 29 | 1 su 29 |
+| La migliore | `elementi_uno_per_uno`: **21**, mai visti **4 su 29** | `lingue_separate`: 19 |
+| Falsi errori | 0 in tutte le prove | 0 in tutte le prove |
+| Costo a ciclo | 0,0034 $ | 0,043 $ (12 volte tanto) |
 
-Fai un passo alla volta. Dopo ogni passo manda a Claude la foto che dice **Mandami**: Claude
-risponde se va bene. Se esce qualcosa di strano, **fermati** e manda la foto
-([cosa fare se va storto](#04-se-qualcosa-va-storto)).
+- **Le migliorie sul metodo funzionano** (`elementi_uno_per_uno`, `lingue_separate`); le
+  impostazioni (effort, conferme, testo lungo, concorrenza) non cambiano niente.
+- **Sonnet non serve**: non trova di più e costa 12 volte tanto. Da oggi solo Haiku.
+- **I due errori noti mai trovati** (`298bc28e` op. 035, `f355dc3c` op. 010) escono sempre con
+  WARNING «evidenza non trovata»: il modello non trova il passo giusto del manuale nel testo
+  che riceve.
+
+**Cosa ha cambiato Claude per oggi:**
+1. una miglioria nuova, **`seconda_ricerca`**: se il modello dice «non verificabile», una
+   seconda sessione cerca in **tutti i documenti** del ciclo, non solo nel task;
+2. due varianti che mettono insieme le migliorie: **`elementi_e_lingue`** e
+   **`tutto_insieme`** (tutte e tre);
+3. la regola «si tiene» è più severa: serve **trovare più errori**, oppure gli stessi
+   risparmiando davvero (costo -10%, tempo -20% o 1 WARNING in meno per ciclo). Prima bastavano
+   differenze di rumore;
+4. le copie cieche doppie si saltano (il 24-11 erano 41, ma 2 erano uguali). Le copie di
+   adesso **restano** (39 diverse): così le prove di ieri valgono ancora e si confrontano con
+   quelle di oggi;
+5. la campagna: solo Haiku, solo le migliorie, **3 prove** per variante (le differenze sono di
+   uno o due errori: con tre prove sono più sicure). Le prove di ieri contano: alla base e alle
+   due migliorie di ieri manca solo la terza.
+
+### 👉 Tappa 3, passo per passo (25-11)
+
+Fai un passo alla volta. Dopo ogni passo manda a Claude la foto che dice **Mandami**. Se esce
+qualcosa di strano, **fermati** e manda la foto
+([cosa fare se va storto](#04-se-qualcosa-va-storto)). **Non** si azzera niente e **non** si
+rifanno le copie cieche.
+
+**Se ieri sera qualcosa gira ancora:** il terminale di Sonnet si ferma con **Ctrl+C**; quello
+di Haiku, se è ancora sul grande, lascialo finire (o fermalo con Ctrl+C: oggi riparte da dove
+era). Prima del passo 1 non deve girare niente.
 
 ---
 
-**✅ Passo 1 · Aggiornare il codice** · gratis · 2 minuti
+**⬜ Passo 1 · Aggiornare il codice** · gratis · 2 minuti
 
 Porta sul PC l'ultima versione e lancia i test.
 
@@ -175,46 +204,7 @@ Porta sul PC l'ultima versione e lancia i test.
 
 ---
 
-**✅ Passo 2 · Azzerare le prove vecchie** · gratis · **questa volta serve**
-
-Le prove del 24-11 sono state fatte con le copie cieche vecchie: non si possono confrontare con
-quelle nuove. I loro numeri restano scritti in `MEMORIA.md` e in `MIGLIORIE.md`.
-
-- **Copia** il blocco «Azzerare tutte le prove» della sezione
-  [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove).
-- **Deve uscire:** righe `tolta: runs\prove-...` e alla fine
-  `resta: runs\prove-grande\cicli.txt`.
-- **Mandami:** la foto.
-
----
-
-**✅ Passo 3 · Le copie cieche nuove** · gratis · 1 minuto
-
-*Fatto il 24-11 sera: 41 copie, sei tipi (31 per il modello, 10 per il codice).*
-
-Rifà le copie cieche con i due tipi nuovi (negazione tolta in tutte e due le lingue, limite
-invertito). Lascia `$seme = 1`.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$seme = 1
-$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
-$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-Remove-Item runs/mutazioni -Recurse -ErrorAction SilentlyContinue
-uv run cycle-validation eval muta --lista runs/prove-grande/cicli.txt --knowledge $v --quanti 100 --seme $seme --out runs/mutazioni
-```
-
-- **Deve uscire:** `Cicli veri letti: 16 ... Copie con un errore cieco: N su 100 chieste, seme 1.`
-  e una riga per **sei** tipi. Le copie «codice» (`numero_una_lingua`, `task_inesistente`)
-  arrivano al massimo a 5.
-- **Non aprire** `runs\mutazioni\errori.yaml`. **Mandami:** la foto dei conteggi.
-
----
-
-**✅ Passo 4 · Il piano** · gratis · 1 minuto
-
-*Fatto il 24-11 sera: piccolo 51 cicli e copie, grande 23; tutto `2 da fare`.*
+**⬜ Passo 2 · Il piano** · gratis · 1 minuto
 
 Dice cosa farà la campagna, senza lanciare niente.
 
@@ -224,113 +214,79 @@ $env:UV_PYTHON = "3.14"
 uv run cycle-validation eval campagna --piano
 ```
 
-- **Deve uscire:** `Piano (gratis, niente viene lanciato)` e, per `haiku` e `sonnet`, una riga
-  per ogni prova, tutte `2 da fare`: `base`, le 6 impostazioni di prima, `lingue_separate`,
-  `elementi_uno_per_uno`.
+- **Deve uscire:** `Piano (gratis, niente viene lanciato). Piccolo: 51 cicli e copie; grande:
+  23 cicli.` (51 righe di lista: due copie sono uguali e si contano una volta sola, come ieri),
+  solo `haiku`, e sul piccolo:
+  - `base`, `elementi_uno_per_uno`, `lingue_separate`: **1 da fare** (la terza prova);
+  - `elementi_e_lingue`, `seconda_ricerca`, `tutto_insieme`: **3 da fare**.
+
+  Sul grande: `base` e le varianti che oggi si tengono (`elementi_uno_per_uno`,
+  `lingue_separate`), con `1 da fare` se ieri sera Haiku ha finito il grande, altrimenti di più.
 - **Mandami:** la foto.
 
 ---
 
-**👉 Passo 5 · La campagna** · costa al massimo 60 $ · **alcune ore**
+**⬜ Passo 3 · La campagna** · costa al massimo 15 $ (stima 3-5 $) · **circa 2 ore e mezza**
 
-> **Stato del 24-11 alle 21:30:** il piccolo è finito per Haiku e per Sonnet (Claude ha letto i
-> riepiloghi). Sonnet non è meglio di Haiku e costa 12 volte tanto: **il terminale di Sonnet
-> si può fermare** con Ctrl+C (scrive comunque il suo report). Il terminale di Haiku continua
-> sul grande: lascialo finire.
-
-Lancia da sola tutte le prove. Haiku e Sonnet girano **insieme, in due terminali**: così ci
-vuole il tempo di Sonnet (il più lento), non la somma dei due. Haiku costa circa 6 $; Sonnet
-circa 10 volte tanto. Ogni terminale ha il suo tetto di spesa: 10 $ per Haiku, 50 $ per Sonnet
-(insieme 60 $).
-
-**Prima di lanciarla:** PC acceso, collegato alla corrente, senza sospensione; VS Code aperto.
-
-**Terminale 1 · Haiku.** Nel terminale di sempre:
+Un solo terminale: c'è solo Haiku.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-uv run cycle-validation eval campagna --modelli haiku --massimo-dollari 10
-```
-
-**Terminale 2 · Sonnet.** Apri un secondo terminale: in VS Code, nel pannello del terminale,
-clicca **+** (in alto a destra del pannello). Il terminale nuovo parte nella cartella aperta in
-VS Code: se non è `app_cycle_validation_v2`, entra lì con `cd` come per il primo. Poi:
-
-```powershell
-$env:UV_PYTHON = "3.14"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-uv run cycle-validation eval campagna --modelli sonnet --massimo-dollari 50
-```
-
-Passi da un terminale all'altro con l'elenco a destra del pannello.
-
-**Due terminali, non quattro** (uno per modello e per insieme):
-- il grande aspetta il piccolo: prova sul grande solo le varianti che sul piccolo si tengono.
-  Lanciato insieme al piccolo, troverebbe il piccolo vuoto e farebbe solo la base;
-- due terminali con lo stesso modello si dividono lo stesso limite di richieste AWS. Non va in
-  crash, ma alcuni controlli finiscono in attesa e diventano WARNING («errore tecnico»): i
-  numeri escono peggiori del vero, e sono proprio i numeri che stiamo misurando.
-
-Con due terminali ognuno fa da solo prima il piccolo, poi il grande.
-
-- **Mentre girano:** in ogni terminale, per ogni prova esce `=== haiku · piccolo · ... · prova 1
-  di 2 · spesa finora ... $` (nel secondo `=== sonnet · ...`), e alla fine di ogni prova
-  `Prova «...»: visti ... · mai visti per il modello ... · falsi errori ...`. Puoi lasciarli da
-  soli.
-- **Deve uscire alla fine, in tutti e due:** `Campagna finita. Prove fatte ora: N · spesa ...
-  $.` Haiku finisce prima: lascia girare Sonnet.
-- **Se esce `Campagna fermata: ...`:** se dice accesso AWS scaduto, lancia `aws sso login` e poi
-  **rilancia lo stesso blocco in quel terminale**: riparte da dove era. Di solito si fermano
-  tutti e due insieme: rilanciali tutti e due.
-- **Se esce `cicli non eseguiti`** in mezzo: mandami la foto (forse due campagne insieme sono
-  troppe per AWS; si rifà Sonnet da solo dopo Haiku).
-- **Se vuoi vedere i risultati a metà:** il blocco del passo 6 funziona anche mentre girano.
-- **Mandami:** la foto della riga `Campagna finita` (o `fermata`) di tutti e due i terminali.
-
----
-
-**⬜ Passo 6 · Leggere il report** · gratis · 1 minuto
-
-Quando **tutti e due** i terminali hanno finito, in uno dei due:
-
-```powershell
-$env:UV_PYTHON = "3.14"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-uv run cycle-validation eval campagna --solo-report
+uv run cycle-validation eval campagna
 code runs/campagna.md
 ```
 
-- **Deve uscire:** `Report scritto (niente lanciato): runs\campagna.md`. Non lancia prove e non
-  costa niente: mette insieme Haiku e Sonnet in un solo report. Premi **Ctrl+Shift+V** per
-  vederlo impaginato.
-- **Mandami:** una foto per ogni sezione del report:
-  - le tabelle «haiku · piccolo», «haiku · grande», «sonnet · piccolo», «sonnet · grande»;
-  - «I modelli a confronto»;
-  - «Errori mai visti per tipo» e «WARNING per motivo».
+- **Prima di lanciarla:** PC acceso, collegato alla corrente, senza sospensione; VS Code aperto.
+- **Mentre gira:** per ogni prova esce `=== haiku · piccolo · ... · prova 3 di 3 · spesa
+  finora ... $`, e alla fine di ogni prova `Prova «...»: visti ... · mai visti per il modello
+  ... · falsi errori ...`. Prima tutto il piccolo (12 prove), poi il grande. Puoi lasciarla da
+  sola.
+- **Deve uscire alla fine:** `Campagna finita. Prove fatte ora: N · spesa ... $.` e
+  `Report finale: runs\campagna.md`, che si apre da solo.
+- **Se esce `Campagna fermata: ...`:** se dice accesso AWS scaduto, lancia `aws sso login`;
+  poi **rilancia lo stesso blocco**: riparte da dove era.
+- **Mandami:** la foto della riga `Campagna finita` (o `fermata`).
 
-  Ci sono solo numeri: si possono fotografare.
-- **E dal riepilogo** `runs\prove-piccolo\riepilogo.md`: la foto della tabella «Errore per
-  errore» (ora ha la colonna «Ultimo esito»).
+---
 
-Poi Claude scrive le considerazioni e propone la tappa 3.
+**⬜ Passo 4 · Il report** · gratis · 5 minuti
+
+Il report `runs\campagna.md` si apre da solo alla fine del passo 3 (se no: `code
+runs/campagna.md`). Premi **Ctrl+Shift+V** per vederlo impaginato. Ci sono solo numeri: si
+possono fotografare.
+
+- **Mandami** una foto per ognuna di queste sezioni (sono quelle che servono a Claude per
+  scegliere la miglioria dopo):
+  1. la tabella **«haiku · piccolo»**;
+  2. la tabella **«haiku · grande»**;
+  3. **«Errori mai visti per tipo»**: per ogni tipo di copia cieca, quante ne trova e cosa
+     risponde sulle altre;
+  4. **«WARNING per motivo»**: da dove vengono i WARNING.
+- **E dal riepilogo del piccolo:**
+
+  ```powershell
+  code runs/prove-piccolo/riepilogo.md
+  ```
+
+  la foto di **«Le prove»** (le righe di oggi) e di **«Errore per errore»** (con «Ultimo
+  esito»).
+
+Poi Claude scrive le considerazioni in `MIGLIORIE.md` e dice quale miglioria entra nella base.
 
 ### ⬜ Le tappe dopo (le dettaglia Claude quando ci arriviamo)
 
-**Tappa 3 · Migliorie sugli errori mai visti.** Claude sceglie il tipo di errore «modello»
-trovato peggio, scrive la miglioria (la prima sarà `numeri_manuale`) e la aggiunge alla
-campagna. Tu: Aggiornare (passo 1), poi la campagna (passo 5, fa solo le prove nuove), poi il
-report (passo 6). Si ripete finché i risultati non migliorano più.
-
-**Quando una miglioria entra nella base** (te lo dice Claude): archivia le prove (sezione
-[3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove)), rifai la scelta dei cicli
-(3.2) e le copie cieche (3.3) con un **seme nuovo** (`$seme = 2`, poi 3, ...), poi la campagna.
+**Quando una miglioria entra nella base** (te lo dice Claude): Claude la accende in
+`config/settings.yaml` (la base cambia); tu archivi le prove (sezione
+[3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove)) e rifai le copie cieche
+(3.3) con un **seme nuovo** (`$seme = 2`): così si misura su errori che nessuno ha mai visto,
+né il modello né Claude. Poi la campagna.
 
 **Tappa 4 · Tempo e costo.** Claude scrive B1 (chiamata diretta a Bedrock), la cache dei prompt
-(H10) e B4 (più operazioni insieme); tu fai i passi 1, 5 e 6.
+(H10) e B4 (più operazioni insieme); tu: Aggiornare, campagna, report.
 
-**Tappa 5 · Chiusura.** La campagna con la base finale; le prove dal frontend (sezione
-[4](#4-prove-dal-frontend)); Salvare (sezione
+**Tappa 5 · Chiusura.** La campagna con la base finale e copie cieche nuove; le prove dal
+frontend (sezione [4](#4-prove-dal-frontend)); Salvare (sezione
 [2.2](#22-salvare-nel-repository-aziendale)).
 
 **Tappa 6 · QA** (sezione [7](#7-qa-più-avanti)). Pull request verso `develop`, prova in QA con
@@ -612,13 +568,14 @@ $righe = Get-ChildItem data/nascosti -Filter *.pdf | ForEach-Object { "  '" + (G
 ### 3.5 La campagna: tutte le prove in automatico
 
 - **A cosa serve:** lancia da sola tutte le prove di `eval/campagna.yaml`: per ogni modello
-  (Haiku, poi Sonnet) la base e le varianti sul piccolo, poi sul grande la base e le varianti
-  che si tengono. Alla fine scrive `runs\campagna.md`, il report unico da leggere.
+  del file (dal 25-11 solo Haiku) la base e le varianti sul piccolo, poi sul grande la base e
+  le varianti che si tengono. Alla fine scrive `runs\campagna.md`, il report unico da leggere.
+  L'elenco (varianti, prove per variante, modelli, tetto) lo aggiorna Claude.
 - **Da sola:** trova l'ultima fotografia della conoscenza, i cicli scelti (3.2), le copie cieche
   (3.3) e il gruppo nascosto (3.4), se ci sono; sceglie MOS o DR per ogni ciclo.
 - **Riprende da dove era:** le prove già fatte (anche quelle lanciate a mano) si contano e non
   si rifanno.
-- **Si ferma da sola:** al tetto di spesa (`massimo_dollari`, oggi 60 $), se una prova non
+- **Si ferma da sola:** al tetto di spesa (`massimo_dollari`, oggi 15 $), se una prova non
   riesce a eseguire nessun ciclo (accesso AWS scaduto: `aws sso login`, poi rilancia) o se
   premi Ctrl+C. In ogni caso scrive il report con quello che c'è.
 
@@ -631,12 +588,14 @@ uv run cycle-validation eval campagna --piano
 ```
 
 **Deve uscire:** `Piano (gratis, niente viene lanciato). Piccolo: N cicli e copie; grande: 23
-cicli.` e per ogni modello e insieme una riga per variante: `base: 1 da fare → runs/...` (una
-base Haiku sul piccolo c'è già), `effort_medio: 2 da fare → ...`, e così via.
+cicli.` e per ogni modello e insieme una riga per variante, per esempio `base: 1 da fare →
+runs/prove-piccolo` oppure `seconda_ricerca: 3 da fare → ...` (`già fatte` se non manca
+niente).
 
-**Secondo blocco: la campagna** (costa al massimo 60 $; dura ore). Di solito si lancia in due
-terminali, uno per modello, come nella sezione 1, tappa 2, passo 5. Tutto in un terminale solo
-(prima Haiku, poi Sonnet; ci vuole di più):
+**Secondo blocco: la campagna** (costa al massimo `massimo_dollari`; dura ore). Con un modello
+solo nel file basta un terminale. Con due modelli si possono usare due terminali, uno per
+modello (vedi «Due terminali insieme» qui sotto); in un terminale solo fa prima uno e poi
+l'altro:
 
 ```powershell
 $env:UV_PYTHON = "3.14"

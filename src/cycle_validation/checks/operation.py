@@ -215,6 +215,51 @@ def plan_operation_checks(
     return jobs, immediate
 
 
+def wider_job(
+    ctx: CheckContext, job: OperationJob, settings: AgentSettings, system_prompt: str
+) -> OperationJob | None:
+    """La seconda ricerca di un'operazione «non verificabile»: con Grep e Read in tutti i
+    documenti citati dal ciclo (più quelli del task e, per DR, quelli del profilo). Nessuna
+    se non c'è niente di nuovo da cercare: stessi documenti e la prima aveva già i tool."""
+    documents = {location.document.key: location.document for location in job.locations}
+    try:
+        for document in cited_documents(ctx.cycle, ctx.kb, ctx.profile.document_order):
+            documents.setdefault(document.key, document)
+        for document in dr_documents(ctx.kb, ctx.selectors):
+            documents.setdefault(document.key, document)
+        locations = tuple(whole_document(document) for document in documents.values())
+    except SourceUnavailableError:
+        return None
+    if job.request.use_tools and {d.key for d in documents.values()} == {
+        location.document.key for location in job.locations
+    }:
+        return None
+    operation = job.operation
+    prompt = build_operation_prompt(
+        ctx.cycle,
+        operation,
+        _facts(ctx, operation),
+        locations,
+        inline=False,
+        settings=settings,
+        missing_tasks=_missing_tasks(ctx, operation, settings),
+        languages=(
+            language_parts(operation.operation_description) if settings.separate_languages else None
+        ),
+        second_search=True,
+    )
+    request = SessionRequest(
+        session_id=f"{job.request.session_id}-ricerca",
+        system_prompt=system_prompt,
+        prompt=prompt,
+        output_schema=job.request.output_schema,
+        use_tools=True,
+        allowed_files=tuple(location.document.path for location in locations),
+        max_turns=settings.max_turns,
+    )
+    return OperationJob(job.index, operation, locations, request)
+
+
 def _failure(
     job: OperationJob, outcome: SessionOutcome
 ) -> tuple[CheckResult, PipelineError | None]:
@@ -343,6 +388,48 @@ async def _run(
     )
 
 
+async def _second_search(
+    ctx: CheckContext,
+    session: AgentSession,
+    settings: AgentSettings,
+    system_prompt: str,
+    jobs: list[OperationJob],
+    decided: list[tuple[CheckResult, PipelineError | None]],
+    stats: dict[str, int] | None,
+) -> list[PipelineError]:
+    """Le operazioni «non verificabili» si rifanno cercando in tutti i documenti del ciclo. Un
+    giudizio nuovo (CORRETTO o ERRATO, con citazione verificata) prende il posto del primo e la
+    sua sessione diventa quella dell'operazione (le conferme di un ERRATO si rifanno su questa);
+    altrimenti resta il primo. Il costo delle due sessioni si somma."""
+    unclear = [
+        i for i, (result, _) in enumerate(decided) if result.reason is Reason.EVIDENZA_NON_TROVATA
+    ]
+    if not unclear:
+        return []
+    wider = await asyncio.to_thread(
+        lambda: [(i, wider_job(ctx, jobs[i], settings, system_prompt)) for i in unclear]
+    )
+    pairs = [(i, job) for i, job in wider if job is not None]
+    if stats is not None:
+        stats["ricerca"] = len(pairs)
+    if not pairs:
+        return []
+    outcomes = await _run(session, [job.request for _, job in pairs], settings)
+    errors: list[PipelineError] = []
+    for (i, job), outcome in zip(pairs, outcomes, strict=True):
+        result, error = decide_operation(job, outcome, settings)
+        if error is not None:
+            errors.append(error)
+        first = decided[i][0]
+        usage = first.usage + result.usage
+        if result.reason in (Reason.VERIFICATO, Reason.CONTRADDIZIONE):
+            decided[i] = (result.model_copy(update={"usage": usage}), None)
+            jobs[i] = job
+        else:
+            decided[i] = (first.model_copy(update={"usage": usage}), decided[i][1])
+    return errors
+
+
 async def check_operations(
     ctx: CheckContext,
     session: AgentSession,
@@ -364,6 +451,9 @@ async def check_operations(
         for job, outcome in zip(jobs, outcomes, strict=True)
     ]
     errors = [error for _, error in decided if error is not None]
+
+    if settings.search_when_unverifiable:
+        errors += await _second_search(ctx, session, settings, system_prompt, jobs, decided, stats)
 
     repeats = settings.confirm_contradiction
     doubtful = [

@@ -1,0 +1,7 @@
+nome: seconda_ricerca
+descrizione: se il primo giudizio è «non verificabile», una seconda sessione cerca con Grep e Read in tutti i documenti citati dal ciclo, non solo nel task dell'operazione
+ipotesi: "i due errori visti sempre mancati (298bc28e 035, f355dc3c 010) escono in tutte le 36 prove del 24-11 con EVIDENZA_NON_TROVATA: il passo del manuale che li decide non è nel testo del task citato, che spesso il modello riceve già nel messaggio e senza tool"
+atteso: "uno o due visti in più, meno WARNING EVIDENZA_NON_TROVATA per ciclo, forse qualche mai visto in più; falsi errori sempre 0; costo e tempo più alti solo sulle operazioni non verificabili"
+base: baseline
+agent:
+  search_when_unverifiable: true

@@ -1027,6 +1027,14 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   con `EVIDENZA_NON_TROVATA`: il testo del manuale giusto non arriva al modello. Regola «si
   tiene» resa più severa (serve più errori o un risparmio vero): quattro varianti per
   differenze di rumore finivano anche sul grande. Registro e considerazioni in MIGLIORIE 13.
+- **24-11 notte, preparato il 25-11** (richiesta: «risolvi tutti i problemi», domani si
+  rilancia). Nuova miglioria `seconda_ricerca` (`agent.search_when_unverifiable`): dopo un
+  «non verificabile» una seconda sessione cerca con i tool in tutti i documenti del ciclo
+  (ipotesi: il testo del task arriva spesso nel messaggio, senza tool, e il passo giusto è
+  altrove). Varianti `elementi_e_lingue` e `tutto_insieme`. Campagna: solo Haiku (Sonnet tolto),
+  solo le migliorie, 3 prove, tetto 15 $. Copie cieche **non** rifatte (restano le 39 diverse):
+  le prove del 24-11 valgono ancora. COPILOT sezione 1: tappa 3, passi Aggiornare, piano,
+  campagna, report (con «Errori mai visti per tipo» e «WARNING per motivo», che mancano ancora).
 - **`.gitignore` di `docs/` (24-11-2026):** in git entra solo `DOCUMENTAZIONE.md`; gli altri
   quattro file erano già seguiti e restano (servono al blocco Aggiornare e alla memoria).
 

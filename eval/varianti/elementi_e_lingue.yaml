@@ -1,0 +1,8 @@
+nome: elementi_e_lingue
+descrizione: le due migliorie del 24-11 insieme, elementi uno per uno e lingue separate
+ipotesi: "con Haiku elementi_uno_per_uno (21 stabili) e lingue_separate (20) battono la base (19) e trovano 4 mai visti su 29 ciascuna: se trovano errori diversi, insieme ne trovano di più"
+atteso: "almeno gli errori stabili della migliore delle due (21), mai visti più di 4 su 29; falsi errori sempre 0; costo un po' più alto"
+base: baseline
+agent:
+  itemized_check: true
+  separate_languages: true

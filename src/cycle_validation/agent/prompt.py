@@ -128,6 +128,15 @@ def _header(
     return lines
 
 
+SECOND_SEARCH_NOTE = (
+    "Una prima verifica, solo sul testo del task citato dall'operazione, non ha trovato il "
+    "passo che parla di questa operazione. Qui hai **tutti i documenti citati dal ciclo**: "
+    "cerca con Grep le parole chiave della descrizione (la lavorazione, i valori con la loro "
+    "unità, i materiali, gli attrezzi; in inglese, se il documento è in inglese) e giudica sul "
+    "passo che trovi. Se nemmeno così trovi un passo che ne parli, rispondi `non_verificabile`."
+)
+
+
 def _where(location: TaskLocation) -> str:
     label = f"task {location.task}" if location.task else "documento intero"
     return f"{location.document.path} ({label}, righe {location.line_start}-{location.line_end})"
@@ -143,12 +152,16 @@ def build_operation_prompt(
     settings: AgentSettings,
     missing_tasks: Sequence[str] = (),
     languages: tuple[str, str] | None = None,
+    second_search: bool = False,
 ) -> str:
     """`languages`: le due parti della descrizione, se vanno giudicate separatamente
-    (`AgentSettings.separate_languages`)."""
+    (`AgentSettings.separate_languages`). `second_search`: è la seconda ricerca, nei documenti
+    interi, dopo un primo giudizio «non verificabile» (`AgentSettings.search_when_unverifiable`)."""
     lines = _header(
         cycle, operation, facts, missing_tasks, languages, itemized=settings.itemized_check
     )
+    if second_search:
+        lines.append(SECOND_SEARCH_NOTE)
     lines.append("")
     if inline:
         lines.append("Testo di riferimento, con il numero di riga di ciascun file:")

@@ -450,3 +450,57 @@ def test_the_elements_are_checked_one_by_one_only_when_asked() -> None:
     assert "scomponi la descrizione" not in plain  # la base non cambia
     itemized = job_for(op(), AgentSettings(retry_backoff_s=0, itemized_check=True)).request.prompt
     assert "scomponi la descrizione nei suoi elementi tecnici" in itemized
+
+
+def _second_search(second: str) -> ScriptedSession:
+    """Prima verifica: non verificabile; seconda ricerca (sessione `-ricerca`): `second`."""
+    return ScriptedSession(
+        lambda r, a: (
+            answer(second, [QUOTE_OK])
+            if "-ricerca" in r.session_id
+            else answer("non_verificabile", [])
+        )
+    )
+
+
+SEARCH = SETTINGS.model_copy(update={"search_when_unverifiable": True})
+
+
+def test_without_the_second_search_a_not_verifiable_stays_a_warning() -> None:
+    session = _second_search("coerente")
+    results, _ = asyncio.run(check_operations(ctx([op()]), session, SETTINGS, "s"))
+    assert results[0].reason is Reason.EVIDENZA_NON_TROVATA
+    assert len(session.requests) == 1
+
+
+def test_the_second_search_looks_in_the_whole_cited_documents_with_tools() -> None:
+    session = _second_search("coerente")
+    results, errors = asyncio.run(check_operations(ctx([op()]), session, SEARCH, "s"))
+    assert errors == []
+    assert results[0].reason is Reason.VERIFICATO
+    first, second = session.requests
+    assert not first.use_tools and second.use_tools
+    assert second.session_id == "op-000-0010-ricerca"
+    assert "tutti i documenti citati dal ciclo" in second.prompt
+    assert "documento intero" in second.prompt
+    assert {p.name for p in second.allowed_files} == {"MAN-DEMO-72.md"}
+    assert results[0].usage.sessions == 2 * ONE_CALL.sessions  # si pagano tutte e due
+
+
+def test_a_second_search_that_finds_nothing_keeps_the_first_warning() -> None:
+    session = _second_search("non_verificabile")
+    results, _ = asyncio.run(check_operations(ctx([op()]), session, SEARCH, "s"))
+    assert results[0].reason is Reason.EVIDENZA_NON_TROVATA
+    assert results[0].usage.sessions == 2 * ONE_CALL.sessions
+
+
+def test_a_contradiction_from_the_second_search_is_confirmed_on_the_same_documents() -> None:
+    session = _second_search("contraddetto")
+    results, _ = asyncio.run(check_operations(ctx([op()]), session, SEARCH, "s"))
+    assert results[0].reason is Reason.CONTRADDIZIONE
+    assert [r.session_id for r in session.requests] == [
+        "op-000-0010",
+        "op-000-0010-ricerca",
+        "op-000-0010-ricerca-conferma-1",
+        "op-000-0010-ricerca-conferma-2",
+    ]

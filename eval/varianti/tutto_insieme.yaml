@@ -1,0 +1,9 @@
+nome: tutto_insieme
+descrizione: elementi uno per uno, lingue separate e seconda ricerca, tutte e tre insieme
+ipotesi: "le tre migliorie agiscono su cose diverse: come si guarda la descrizione (elementi, lingue) e dove si cerca nel manuale (seconda ricerca)"
+atteso: "la più alta in errori stabili e mai visti; meno WARNING per ciclo; falsi errori sempre 0; costo più alto ma sotto il doppio della base"
+base: baseline
+agent:
+  itemized_check: true
+  separate_languages: true
+  search_when_unverifiable: true

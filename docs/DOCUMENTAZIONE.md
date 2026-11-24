@@ -419,6 +419,16 @@ EJ200: i documenti citati interi, in ordine RDR, EF, RN.
 | sessione finita senza risposta (passi esauriti) | — | WARNING `BUDGET_ESAURITO` |
 | errore, tempo scaduto, output storto | — | WARNING `ERRORE_TECNICO` |
 
+**Seconda ricerca (`agent.search_when_unverifiable`, spenta nella base; variante
+`seconda_ricerca`, 25-11).** Un `non_verificabile` (WARNING `EVIDENZA_NON_TROVATA`) si rifà con
+una sessione `-ricerca` che ha Grep e Read su **tutti i documenti citati dal ciclo**, interi
+(più quelli del task e, per DR, quelli del profilo), con una nota che dice che il testo del task
+non bastava (`checks/operation.py`, `wider_job`; `agent/prompt.py`, `SECOND_SEARCH_NOTE`). Non si
+fa se i documenti sono gli stessi e la prima sessione aveva già i tool. Se la seconda dà
+CORRETTO o ERRATO con citazione verificata, prende il posto del WARNING e la sua sessione
+diventa quella dell'operazione (la conferma G1 si rifà su questa); se no resta il WARNING. Il
+costo delle due sessioni si somma.
+
 **Conferma degli ERRATO (regola G1).** Ogni `CONTRADDIZIONE` si rifà con
 `confirm_contradiction` sessioni uguali (2). Resta ERRATO solo se **tutte** ritrovano la
 contraddizione. Se una la smentisce: WARNING `GIUDIZIO_INSTABILE` («contraddizione ritrovata in
@@ -668,6 +678,7 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.missing_task_note` | `false` | (con lo skip spento) dire al modello che il task manca |
 | `agent.separate_languages` | `false` | descrizione in due lingue: nella domanda al modello la parte italiana e quella inglese separate, con l'istruzione di confrontarle **ognuna** con il testo di riferimento (se una sola dice altro, `contraddetto`). Variante `lingue_separate` |
 | `agent.itemized_check` | `false` | prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione, valori, limiti, divieti, materiali) e li confronta uno per uno; se uno solo è incompatibile, `contraddetto`. Variante `elementi_uno_per_uno` |
+| `agent.search_when_unverifiable` | `false` | dopo un `non_verificabile`, una seconda sessione cerca in tutti i documenti citati dal ciclo, con i tool. Variante `seconda_ricerca` |
 | `agent.confirm_contradiction` | 2 | sessioni di conferma per ogni ERRATO del modello |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
 | `paths.*` | `config/profiles`, `prompts`, `data/knowledge`, `runs` | cartelle |
@@ -951,12 +962,12 @@ proposta e le conclusioni, senza dati veri.
 tutte le prove dell'elenco `eval/campagna.yaml`:
 
 ```yaml
-varianti: [effort_medio, conferme_1, ...]  # la base si fa sempre per prima
-ripetizioni: 2
-modelli: {haiku: , sonnet: eu.anthropic.claude-sonnet-5-5}  # vuoto = quello delle impostazioni
+varianti: [elementi_uno_per_uno, lingue_separate, ...]  # la base si fa sempre per prima
+ripetizioni: 3
+modelli: {haiku: }    # vuoto = quello delle impostazioni; sonnet: eu.anthropic.claude-sonnet-5-5
 insiemi: [piccolo, grande]
 grande: se_si_tiene   # sempre | mai
-massimo_dollari: 60
+massimo_dollari: 15
 ```
 
 - Per ogni modello, in ordine: base e varianti sul piccolo; poi sul grande la base e le varianti

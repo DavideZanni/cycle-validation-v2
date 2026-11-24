@@ -64,6 +64,12 @@ class AgentSettings(_Strict):
     # valori, limiti, divieti, materiali) e li controlla uno per uno. Variante
     # `elementi_uno_per_uno` (24-11-2026).
     itemized_check: bool = False
+    # Se il primo giudizio è «non verificabile» (WARNING EVIDENZA_NON_TROVATA), una seconda
+    # sessione cerca con Grep e Read in tutti i documenti citati dal ciclo, non solo nel task
+    # dell'operazione. Variante `seconda_ricerca` (25-11-2026): i due errori noti sempre
+    # mancati uscivano in tutte le 36 prove del 24-11 con EVIDENZA_NON_TROVATA. Costa solo
+    # sulle operazioni non verificabili.
+    search_when_unverifiable: bool = False
     # Una contraddizione (ERRATO) si conferma con altrettante sessioni uguali: resta ERRATO
     # solo se la ritrovano tutte, altrimenti WARNING GIUDIZIO_INSTABILE. Su un ciclo DR vero
     # lo stesso confronto dava ERRATO 3 volte su 6 (21-11-2026). Costa solo sugli ERRATO.

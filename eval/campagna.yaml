@@ -3,32 +3,36 @@
 # già fatte si saltano. Il report finale è runs/campagna.md. Questo file lo aggiorna Claude.
 
 # Le varianti (eval/varianti/<nome>.yaml), in ordine. La base si fa sempre per prima.
+# Dal 25-11 (tappa 3) solo le migliorie sul metodo. Le impostazioni provate il 24-11
+# (effort_medio, effort_pieno, conferme_1, testo_lungo, prompt_task_mancante, concorrenza_12)
+# non cambiano gli errori trovati: sono tolte; le loro prove restano nelle cartelle.
 varianti:
-  - effort_medio
-  - conferme_1
-  - testo_lungo
-  - effort_pieno
-  - prompt_task_mancante
-  - concorrenza_12
-  # dal 24-11: migliorie sul metodo (tappa 3)
-  - lingue_separate
   - elementi_uno_per_uno
+  - lingue_separate
+  # nuove del 25-11
+  - elementi_e_lingue
+  - seconda_ricerca
+  - tutto_insieme
 
-# Prove per variante: almeno 2 (il modello non risponde sempre uguale).
-ripetizioni: 2
+# Prove per variante. Dal 25-11 tre: le differenze tra le migliorie sono di uno o due errori,
+# con tre prove un errore «stabile» è più sicuro. Alla base e alle due varianti del 24-11 manca
+# solo la terza.
+ripetizioni: 3
 
 # Nome → id del modello. Vuoto = quello di data/settings.yaml (Haiku). Il primo usa le
-# cartelle di sempre (runs/prove-piccolo, runs/prove-grande); gli altri le loro
-# (runs/prove-piccolo-sonnet, ...), con una base loro.
+# cartelle di sempre (runs/prove-piccolo, runs/prove-grande); gli altri le loro.
+# Sonnet tolto il 24-11 sera: sul piccolo non trova più errori di Haiku e costa 12 volte tanto
+# (le sue prove restano in runs/prove-piccolo-sonnet). Per riprovarlo:
+#   sonnet: eu.anthropic.claude-sonnet-5-5
 modelli:
   haiku:
-  sonnet: eu.anthropic.claude-sonnet-5-5
 
 insiemi: [piccolo, grande]
 
 # Sul grande: se_si_tiene (base + varianti che si tengono sul piccolo), sempre, mai.
 grande: se_si_tiene
 
-# Tetto di spesa della campagna, in dollari. Stima del 24-11 (9 varianti): Haiku circa 6 $ in
-# tutto, Sonnet circa 10 volte. Arrivata al tetto la campagna si ferma; rilanciata, riparte da dove era.
-massimo_dollari: 60
+# Tetto di spesa della campagna, in dollari. Stima del 25-11: Haiku circa 0,20 $ a prova sul
+# piccolo, circa 0,10 $ sul grande; in tutto 3-5 $. Arrivata al tetto la campagna si ferma;
+# rilanciata, riparte da dove era.
+massimo_dollari: 15
