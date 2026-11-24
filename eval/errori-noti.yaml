@@ -1,6 +1,6 @@
 # Errori noti dei cicli «con errori» (stampe modificate a mano) e stampe giuste.
 # Chiave: prime 8 cifre dell'impronta SHA-256 del PDF. Niente codici veri: solo numeri di
-# operazione e descrizioni generiche. Si usa con `cycle-validation eval prova` (COPILOT 2.7).
+# operazione e descrizioni generiche. Si usa con `cycle-validation eval prova` (COPILOT sezione 3).
 # Gli errori dei quattro cicli senza stampa giusta conosciuta sono quelli trovati dal controllo
 # delle due lingue il 23-11: da confermare con chi ha preparato le stampe.
 cicli:

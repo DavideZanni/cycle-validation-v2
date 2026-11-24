@@ -4,7 +4,7 @@ Questo file spiega **come si migliora la v2**: come si prova una modifica, come 
 tenerla, cosa è già stato fatto, cosa resta da fare e in che ordine. In fondo c'è il **registro**
 di tutte le prove già decise.
 
-I comandi da lanciare sul PC sono in `COPILOT.md` (sezione 2.3). Come funziona il programma è
+I comandi da lanciare sul PC sono in `COPILOT.md` (sezione 3). Come funziona il programma è
 in `DOCUMENTAZIONE.md`.
 
 ---
@@ -69,16 +69,16 @@ in `DOCUMENTAZIONE.md`.
    ```
 
 4. **Si aggiunge la variante a `eval/campagna.yaml`** (lo fa Claude) e si lancia la
-   **campagna** (COPILOT 2.3 G, comando `eval campagna`). Da sola, per ogni modello del file
+   **campagna** (COPILOT 3.5, comando `eval campagna`). Da sola, per ogni modello del file
    (Haiku, poi Sonnet): due prove sull'insieme piccolo, stessi cicli e stessa conoscenza della
    base; poi, se sul piccolo si tiene, due prove sul grande. Le prove già fatte si saltano.
 5. **Si legge il report della campagna** (`runs/campagna.md`). Il programma decide da solo con
    la regola della sezione 6: «si tiene», «non si tiene», «scartata» o «da ripetere».
-6. Una prova si può lanciare anche a mano (COPILOT 2.3 A), per esempio per ripeterne una sola.
+6. Una prova si può lanciare anche a mano (COPILOT 3.7), per esempio per ripeterne una sola.
 7. **Claude scrive nel registro** (sezione 13) la decisione e le considerazioni: cosa si è
    capito, perché è andata così, cosa fare dopo.
 8. **Se entra nella base:** si archiviano le prove, si fanno copie cieche nuove con un seme
-   nuovo e si rifà la base (COPILOT, fase 3).
+   nuovo e si rilancia la campagna (COPILOT, sezione 1, fase 2).
 
 Prima delle prove, gratis: i test (`uv run pytest -q`) e, per una miglioria sulle descrizioni,
 il comando `leggi --lingue`.
@@ -140,7 +140,7 @@ Regole:
 - le prove si confrontano **solo sullo stesso insieme**. Le cartelle sono `runs/prove-piccolo`
   e `runs/prove-grande`;
 - il riepilogo avvisa se in una cartella ci sono prove fatte su cicli diversi;
-- quando cambiano il seme o la conoscenza, le prove vecchie si archiviano (COPILOT 2.3 F).
+- quando cambiano il seme o la conoscenza, le prove vecchie si archiviano (COPILOT 3.8).
 
 Ogni prova scrive il suo report (`<data>-<nome>/prestazioni.md`, con la proposta in cima).
 `riepilogo.md` mette insieme le prove, fa la classifica e dà la scelta migliore. Una miglioria
@@ -276,7 +276,7 @@ Questi errori noti mancano per motivi che non dipendono dalla v2:
 
 - **f355dc3c op. 040, e forse 010:** servono documenti che non sono nella conoscenza (capitolo
   70-23 dell'SPM, manuale d'ispezione del motore, due REPAIR della sezione 72-56-31). Si fa
-  l'ingestion, poi COPILOT 2.5 e una prova `conoscenza-<data>`.
+  l'ingestion, poi COPILOT sezione 5 e la campagna `conoscenza-<data>`.
 - **c5ff3cd6 op. 030** (scheda tolta): aspetta la regola della domanda P6.
 - **f355dc3c op. 050:** aspetta la risposta alla domanda P7 («4 volte» c'è anche nella stampa
   giusta).

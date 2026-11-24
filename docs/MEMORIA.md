@@ -55,7 +55,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
 | 3 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto nel codice**: `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets` (22-11 sera); macchine attive come la v1 con `MACHINES_SOURCE=diretta`: `redshift_connector` con il secret `SECRET_NAME` (22-11 notte). Da provare in QA | C, poi U |
 | 4 | Prova in locale | è il passo prima di develop | **fatto** (22-11 notte): login, frontend e v2 da Run and Debug; ciclo MOS di esempio `Validation Passed` in circa 20 s, con accesso e permessi della v1. Configurazione in `AZIENDA.md`, sezione 7 | — |
 | 5 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | **pronto nel codice** (22-11 notte): `cycle-validation qa` sul PC scrive il Dockerfile della v2 da quello della v1 (base, certificati), copia la libreria in `vendor/`, mette i valori aziendali nelle righe `ENV`, copia le impostazioni in `config/settings.azienda.yaml` e sposta il buildspec sulla v2. Primo passaggio con EJ200 spento. Dockerfile e buildspec scritti sul PC e controllati (22-11). Manca la pull request verso develop: COPILOT 4 | U |
-| 6 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 3.2 | U |
+| 6 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 6.2 | U |
 | 7 | Prova in QA: EJ200 e targhe | i dati EJ200 non escono da AWS; Redshift si raggiunge solo da AWS | dopo il punto 5, dal frontend QA | U |
 | 8 | Domande agli esperti | P1, P2, P6 (P4 per chi cura l'indice); P7 (Redshift dal PC, facoltativa) tolta da COPILOT il 23-11 | quando capita | U |
 
@@ -71,7 +71,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
   della v1) e `MACHINES_QUERY` (la query di `verify_active_TM`), a meno che non stiano già nel
   secret di ambiente.
 - **D2. Quando passare a QA.** **Deciso dall'utente (22-11 notte):** prima altre prove in
-  locale dal frontend (COPILOT 2.4), poi QA quando lo dice lui. Il comando `qa` e il salvataggio
+  locale dal frontend (COPILOT sezione 4), poi QA quando lo dice lui. Il comando `qa` e il salvataggio
   sul ramo `feature/cycle-validation-v2` si fanno subito; solo la pull request verso `develop`
   aspetta (è quella che fa passare QA alla v2). La misura sugli errori (punto 1) può andare avanti in parallelo.
 
@@ -201,7 +201,7 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
 I **manuali dei motori non ci sono**: le righe che ne hanno bisogno escono WARNING
 `FONTE_ASSENTE`, ed è giusto. Decisione del 21-11-2026: per ora non si ingestiona altro.
 **Cambiata il 22-11 notte:** l'utente ingestiona i manuali (solo i capitoli citati) di tutti i
-cicli di prova sul PC. La lista la fa il comando `manuali` (COPILOT 2.3): legge con il parser
+cicli di prova sul PC. La lista la fa il comando `manuali` (COPILOT sezione 5): legge con il parser
 tutte le stampe di `ProgettoDocumenti`, confronta con l'ultima fotografia della conoscenza e mette
 in cima i manuali che servono per i 10 errori noti. Codici veri solo nel file sul PC
 (`runs/manuali-da-ingestionare.txt`).
@@ -217,7 +217,7 @@ cicli con «errori» nel nome sono 7, non 3: il blocco dei cicli con errori (COP
 versione pubblicata. Il controllo di Copilot sull'indice diceva che mancano alcuni task (tipo
 `REPAIR 00N` di M1, uno del capitolo 72-56 e quello del 70-23), ma guardava solo l'indice: la v2,
 se l'indice non ha un task, lo cerca nel testo del manuale (`kb/task_text.py`). Per sapere
-quali mancano davvero alla v2 c'è il blocco COPILOT 2.3: `manuali` con la fotografia nuova, che
+quali mancano davvero alla v2 c'è il blocco COPILOT sezione 5 B: `manuali` con la fotografia nuova, che
 per ogni task mancante dice perché (nel testo ma non come titolo, solo la sezione, non nel
 testo, forma non da task) e nel file sul PC scrive le righe del manuale dove compare. Dal codice di
 `knowledge-index` (repository personale, collegato il 23-11): l'indice registra come titolo di
@@ -385,7 +385,7 @@ cicli veri civili con almeno l'80% delle operazioni confrontabili con la conosce
 Un ciclo vero non ha errori noti: tipo `vero`, i suoi ERRATO sono «da verificare», i suoi
 WARNING contano nel lavoro a mano. Si confrontano solo prove sullo stesso insieme (colonna
 «Cicli» con l'impronta dell'insieme nel riepilogo). Una miglioria con file
-`eval/varianti/<nome>.yaml` si lancia con `eval prova --variante`; il blocco 2.3 A lo fa da
+`eval/varianti/<nome>.yaml` si lancia con `eval prova --variante`; il blocco della prova a mano (COPILOT 3.7) lo fa da
 solo. La lista delle migliorie da provare è in `MIGLIORIE.md`, «Da provare».
 
 **Errori mai visti (23-11 sera).** L'utente vuole sapere se la v2 generalizza o ha imparato la
@@ -395,7 +395,7 @@ errore per copia, quattro tipi, seme; `runs/mutazioni` sul PC), gruppo nascosto 
 attesi. I report danno visti e mai visti a parte, i mai visti solo per tipo; la regola non tiene
 una variante che perde errori mai visti stabili. Il piccolo ora = 10 noti + copie cieche +
 nascosti; il grande = 10 noti + tutti i cicli veri confrontabili (`--quanti 0`). Quando cambia
-il seme o la conoscenza, le prove si archiviano (COPILOT 2.3 F). Non chiedere mai foto degli
+il seme o la conoscenza, le prove si archiviano (COPILOT 3.8). Non chiedere mai foto degli
 errori ciechi o nascosti.
 
 **Migliorie scelte sui mai visti (23-11 notte).** Decisione dell'utente: le migliorie non si
@@ -772,7 +772,7 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
 
 ## 10. Stato delle prove (22-11-2026)
 
-- **24-11, cicli dell'insieme grande (`eval scegli`, COPILOT 2.3 A0):** sotto
+- **24-11, cicli dell'insieme grande (`eval scegli`, COPILOT 3.2):** sotto
   `ProgettoDocumenti` ci sono 2600 PDF; 29 sono cicli PVRM320 diversi, gli altri 2531 sono
   manuali o altri documenti. Scelti 23: i 10 noti e 13 veri (dalle 9 alle 21 operazioni, quasi
   tutte confrontabili). Lasciati fuori 1 EJ200 e 5 con poche operazioni confrontabili. Il
@@ -922,7 +922,7 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 
 ## 12. Decisioni prese
 
-Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 3.1).
+Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.1).
 
 - **Task citato che il manuale non ha:** WARNING `FONTE_ASSENTE` subito, senza chiamare il
   modello (interruttore `agent.skip_missing_task`, acceso).
@@ -1001,8 +1001,12 @@ stessa targa compare in tre righe (pagine 14, 17, 18) con funzioni diverse. Come
 
 - Struttura (riscritta il 24-11-2026, su richiesta dell'utente: «estremamente semplice, non
   dare per scontato nulla»): 0 prima di iniziare (parole, come si lancia un blocco, regole,
-  cosa fare se va storto), 1 cosa fare adesso (passi numerati per fasi), 2 blocchi (2.1-2.5),
-  3 persone, 4 QA. I numeri 2.x, 3.x e 4 non si cambiano: gli altri documenti li citano.
+  cosa fare se va storto), 1 cosa fare adesso (dove siamo, corto, e passi numerati per fasi),
+  2 aggiornare e salvare (2.1, 2.2), 3 le prove (3.1 come funzionano, 3.2 cicli veri, 3.3
+  copie cieche, 3.4 gruppo nascosto, 3.5 campagna, 3.6 leggere i risultati, 3.7 prova a mano,
+  3.8 togliere, azzerare, archiviare), 4 frontend, 5 ingestion, 6 persone, 7 QA. Riordinato il
+  24-11: se si cambia la numerazione, aggiornare i rimandi negli altri documenti e nel codice.
+  In «Dove siamo» solo lo stato di oggi: la storia va qui in MEMORIA.
 - Prima di ogni blocco: **a cosa serve**, **quando**, se **costa**; per i blocchi lunghi anche
   cosa fa passo per passo.
 - Blocchi PowerShell da copiare così come sono, senza niente da cambiare; ognuno comincia con

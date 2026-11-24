@@ -1131,12 +1131,12 @@ KNOWLEDGE_SNAPSHOTS = Path("eval/casi/aziendali/conoscenza")
 
 
 def _latest_knowledge(root: Path = KNOWLEDGE_SNAPSHOTS) -> Path:
-    """La versione pubblicata della conoscenza civile nell'ultima fotografia (COPILOT 2.5 A),
+    """La versione pubblicata della conoscenza civile nell'ultima fotografia (COPILOT sezione 5 A),
     come la trovano i blocchi PowerShell: `.../knowledge/civil/current.json` → `path`."""
     snapshots = sorted(p for p in root.glob("foto-*") if p.is_dir()) if root.is_dir() else []
     if not snapshots:
         raise CycleValidationError(
-            f"Nessuna fotografia della conoscenza in {root} (COPILOT 2.5 A)."
+            f"Nessuna fotografia della conoscenza in {root} (COPILOT sezione 5 A)."
         )
     pointers = sorted(snapshots[-1].rglob("current.json"))
     civil = [p for p in pointers if p.parent.name == "civil"] or pointers
@@ -1153,11 +1153,11 @@ class _CampaignSet:
 
 
 def _campaign_sets(runs: Path, known_file: Path) -> dict[str, _CampaignSet]:
-    """I due insiemi come li fa il blocco 2.3 A: il grande è la lista di `eval scegli`; il
+    """I due insiemi come li fa la prova a mano (COPILOT 3.7): il grande è la lista di `eval scegli`; il
     piccolo sono i cicli noti di quella lista, le copie cieche e il gruppo nascosto."""
     big_list = runs / "prove-grande" / "cicli.txt"
     if not big_list.is_file():
-        raise CycleValidationError(f"Manca {big_list}: prima la scelta dei cicli (COPILOT 2.3 A0).")
+        raise CycleValidationError(f"Manca {big_list}: prima la scelta dei cicli (COPILOT 3.2).")
     known = load_known_errors(known_file)
     big = _list_entries([big_list])
     noted: list[tuple[Path, Path | None]] = [

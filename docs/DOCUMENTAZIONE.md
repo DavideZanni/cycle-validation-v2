@@ -842,7 +842,7 @@ simula guasti e **regge** se nessun guasto diventa ERRATO. Dettagli in `AZIENDA.
 
 ### 15.3 Prove sui cicli veri (`evaluation/trials.py`, `evaluation/blind.py`)
 
-È il sistema usato adesso (COPILOT 2.3). Non serve rivedere ogni riga: si conoscono solo gli
+È il sistema usato adesso (COPILOT sezione 3). Non serve rivedere ogni riga: si conoscono solo gli
 **errori** di alcuni cicli.
 
 **Tipi di ciclo:**
@@ -930,7 +930,7 @@ Le **considerazioni** (cosa si è capito, cosa fare dopo) le scrive Claude nel r
 e decisione stanno sul PC in `runs/` (che git ignora), e nel repository restano solo la
 proposta e le conclusioni, senza dati veri.
 
-**La campagna** (`eval campagna`, `evaluation/campaign.py`, COPILOT 2.3 G). Lancia da sola
+**La campagna** (`eval campagna`, `evaluation/campaign.py`, COPILOT 3.5). Lancia da sola
 tutte le prove dell'elenco `eval/campagna.yaml`:
 
 ```yaml
@@ -948,7 +948,7 @@ massimo_dollari: 60
 - Cartelle: il primo modello del file usa `runs/prove-<insieme>` (contano anche le prove fatte a
   mano), gli altri `runs/prove-<insieme>-<modello>`, con una base loro: una variante si
   confronta solo con la base dello stesso modello.
-- Insiemi come il blocco 2.3 A: il grande è `runs/prove-grande/cicli.txt` (A0); il piccolo
+- Insiemi come la prova a mano (COPILOT 3.7): il grande è `runs/prove-grande/cicli.txt` (3.2); il piccolo
   sono i cicli di quella lista che sono in `eval/errori-noti.yaml`, più le copie cieche
   (`runs/mutazioni`) e il gruppo nascosto (`data/nascosti`), se ci sono. La conoscenza è
   l'ultima fotografia (`eval/casi/aziendali/conoscenza/foto-*`, `.../civil/current.json`).
@@ -1016,7 +1016,7 @@ in `MIGLIORIE.md`, «Da provare».
 - Il Dockerfile del repository personale resta generico (Python 3.14, gunicorn, extra `aws` e
   `redshift`): in azienda vale quello scritto da `qa`.
 
-I passi da fare sono in `COPILOT.md`, sezione 4.
+I passi da fare sono in `COPILOT.md`, sezione 7.
 
 ---
 
@@ -1139,7 +1139,7 @@ completo è in `AZIENDA.md`, parte C):
 - oltre il 20% di parole della descrizione assenti dal PDF: niente modello, WARNING;
 - chi vede i cicli militari vede anche i civili (come nella v1).
 
-**Domande aperte alle persone:** in `COPILOT.md`, sezione 3.1.
+**Domande aperte alle persone:** in `COPILOT.md`, sezione 6.1.
 
 ---
 

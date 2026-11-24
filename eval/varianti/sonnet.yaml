@@ -1,6 +1,6 @@
 # Prova di diagnosi (24-11): Sonnet al posto di Haiku nei controlli. L'id segue quello di Haiku
 # in data/settings.yaml (Bedrock eu-south-1, profilo di inferenza «eu.»). Se Bedrock risponde
-# che il modello non c'è, l'id giusto si trova con Copilot (COPILOT, passo 6c).
+# che il modello non c'è, l'id giusto si trova con Copilot (chiedere a Copilot in modalità Ask).
 nome: sonnet
 descrizione: modello più grande (Sonnet 5.5 al posto di Haiku 5.5) nei controlli delle descrizioni
 ipotesi: "se Sonnet trova le negazioni tolte in una lingua sola, il limite è il modello; se le manca anche lui, è il modo di chiedere (prompt e controlli)"
