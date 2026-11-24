@@ -969,6 +969,11 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 3.
   `descrizione`, `ipotesi` e `atteso`; `eval prova` li mette in cima a `prestazioni.md` e nella
   tabella «Le proposte e la decisione» del riepilogo. Le considerazioni le scrive Claude nel
   registro di `MIGLIORIE.md`, colonna «Considerazioni».
+- **Campagna di prove (24-11-2026, richiesta dell'utente):** «lanciare tutti gli esperimenti
+  in automatico, prima con Haiku e poi con Sonnet, sul piccolo e sul grande; io leggo solo i
+  risultati finali», e poterne lanciare anche solo una parte. Fatto con `eval campagna` ed
+  `eval/campagna.yaml` (lo aggiorna Claude). Sonnet ha cartelle e base sue. Le prove fatte si
+  saltano; tetto di spesa 60 $. Report unico `runs/campagna.md`.
 - **`.gitignore` di `docs/` (24-11-2026):** in git entra solo `DOCUMENTAZIONE.md`; gli altri
   quattro file erano già seguiti e restano (servono al blocco Aggiornare e alla memoria).
 

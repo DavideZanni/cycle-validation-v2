@@ -414,7 +414,7 @@ def generalizes(text: str | None) -> bool:
     return error_kind(text) not in CODE_KINDS
 
 
-def _unseen_by_kind(trial: Trial) -> dict[str, tuple[int, int]]:
+def unseen_by_kind(trial: Trial) -> dict[str, tuple[int, int]]:
     """Tipo → (trovati, totali) degli errori mai visti."""
     counts: dict[str, list[int]] = {}
     for cycle in trial.cycles:
@@ -428,7 +428,7 @@ def _unseen_by_kind(trial: Trial) -> dict[str, tuple[int, int]]:
     return {kind: (found, total) for kind, (found, total) in sorted(counts.items())}
 
 
-def _unseen_answers(trial: Trial) -> dict[str, str]:
+def unseen_answers(trial: Trial) -> dict[str, str]:
     """Tipo → cosa ha risposto la v2 sugli errori mai visti mancati, solo esito e motivo
     contati (per esempio «CORRETTO 12, WARNING EVIDENZA_NON_TROVATA 4»): dice perché li manca
     senza dire quali sono."""
@@ -555,7 +555,7 @@ def render_trial(trial: Trial) -> str:
             f"{sum(c.cost_usd for c in hidden):.2f} $ | "
             f"{_seconds(sum(c.duration_ms for c in hidden))} |"
         )
-    by_kind = _unseen_by_kind(trial)
+    by_kind = unseen_by_kind(trial)
     if by_kind:
         lines += [
             "",
@@ -570,7 +570,7 @@ def render_trial(trial: Trial) -> str:
             "| Tipo | Chi lo deve trovare | Trovati | Cosa ha risposto la v2 sui mancati |",
             "|---|---|---|---|",
         ]
-        answers = _unseen_answers(trial)
+        answers = unseen_answers(trial)
         lines += [
             f"| {kind} | {'modello' if kind not in CODE_KINDS else 'codice'} | "
             f"{found} su {total} ({_percent(found, total)}) | {answers.get(kind, '-')} |"

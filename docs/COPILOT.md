@@ -156,7 +156,7 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
   modello **1 su 21**, per il codice **9 su 10**, **0 falsi errori**, 1 ERRATO da verificare
   (5ff17062 op. 050), 0,17 $. Il codice ora funziona; il modello quasi non trova gli errori mai
   visti (18 sono negazioni tolte in una lingua sola). Le prove sbagliate di prima sono tolte.
-- **Adesso:** seconda prova della base sul piccolo (passo 6), poi la tabella (passo 6b).
+- **Adesso:** la campagna (fase 2): fa da sola la seconda base, le migliorie e Sonnet.
 
 ### Come si usa questa lista
 
@@ -165,95 +165,76 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
   il passo dopo. Quando un passo è fatto, Claude lo toglie da qui.
 - «Gratis» vuol dire che il passo non usa il modello e non costa niente.
 
-### Fase 2: la base (il punto di partenza)
+### Fase 2: la campagna (tutto in automatico)
 
-La base è la v2 di oggi, senza modifiche. Tutte le migliorie si confrontano con lei.
+Dal 24-11 tutte le prove le lancia **un solo comando**, la **campagna** (blocco 2.3 G). Fa da
+solo, in ordine:
 
-- [ ] **6.** Blocco 2.3 A con `$nome = "base"` e `$insieme = "piccolo"`, **due volte**. Foto
-  della riga finale di ognuna. **La prima è fatta** (24-11, 15:08). Prima della seconda:
-  **Aggiornare** (2.1), che aggiunge al report una colonna sui mancati mai visti.
-- [ ] **6b.** Apri il report della seconda prova (blocco 2.3 B) e manda a Claude la foto della
-  tabella **«Errori mai visti, per tipo»** (solo conteggi: si può fotografare).
-- [ ] **6c. Prova di diagnosi con Sonnet** (dopo 6b): blocco 2.3 A con `$nome = "sonnet"` e
-  `$insieme = "piccolo"`, **due volte**. Costa circa 10 volte la base (circa 1,5-2 $ a prova).
-  Serve a capire se gli errori mai visti mancati dipendono dal modello (Sonnet li trova) o dal
-  modo di chiedere (li manca anche lui). Nel riepilogo uscirà «scartata» per il costo: è
-  previsto, contano le righe «mai visti». Se esce un errore sul modello (`model`,
-  `ValidationException`, `not found`), chiedi a Copilot: «Rispondi solo leggendo, senza
-  modificare: quali profili di inferenza Claude Sonnet ci sono su Bedrock in eu-south-1? Dammi
-  il comando aws da lanciare» e manda a Claude l'id che esce.
-- [ ] **7.** Blocco 2.3 A con `$nome = "base"` e `$insieme = "grande"`, **due volte**. Durano a
-  lungo: si possono lasciare girare.
-- [ ] **8. Riepilogo** (blocco 2.3 C), per il piccolo e per il grande: foto delle tabelle.
+1. con **Haiku**: la base e le 6 migliorie senza codice nuovo, due prove ciascuna, sul
+   **piccolo**; poi sul **grande** la base e le migliorie che sul piccolo «si tengono»;
+2. con **Sonnet**: le stesse cose, con una base sua (così si vede se il limite è il modello);
+3. alla fine scrive **un report unico**, `runs\campagna.md`.
 
-Perché due volte: il modello non risponde sempre uguale. Con due prove si vede quali errori
-trova **sempre** (si chiamano *stabili*).
+Le prove già fatte non si rifanno: se la campagna si ferma (tetto di spesa, accesso AWS
+scaduto, PC spento), la rilanci e riparte da dove era. L'elenco degli esperimenti sta in
+`eval/campagna.yaml` e lo aggiorna Claude: tu non cambi niente.
 
-### Fase 3: migliorie che non hanno bisogno di codice nuovo
+- [ ] **6. Aggiornare** (2.1).
+- [ ] **7. Il piano** (blocco 2.3 G1, gratis): dice cosa farà, senza lanciare niente. Foto.
+- [ ] **8. La campagna** (blocco 2.3 G2). Dura **alcune ore** (stima: Haiku 1,5-2 ore, Sonnet
+  di più) e costa al massimo 60 $ (stima: Haiku circa 5 $, Sonnet circa 10 volte). Lascia il PC
+  acceso, con VS Code aperto e senza sospensione. Se si ferma, lancia di nuovo G2.
+- [ ] **9. Il report finale** `runs\campagna.md` (G2 lo apre da solo; **Ctrl+Shift+V** per
+  vederlo impaginato). Manda a Claude la foto di ogni sezione: le tabelle per modello e insieme,
+  «I modelli a confronto» ed «Errori mai visti per tipo». Ci sono solo numeri: si può
+  fotografare.
 
-Il file della variante c'è già: cambi solo `$nome` nel blocco 2.3 A. Per **ognuna**:
-
-1. due prove sul piccolo (`$insieme = "piccolo"`);
-2. il riepilogo del piccolo (blocco 2.3 C): foto;
-3. se nella tabella «Classifica delle varianti» la variante dice **«si tiene»**: due prove anche
-   sul grande, poi il riepilogo del grande.
-
-- [ ] **9.** `effort_medio`
-- [ ] **10.** `conferme_1`
-- [ ] **11.** `testo_lungo`
-- [ ] **12.** `effort_pieno`
-- [ ] **13.** `prompt_task_mancante`
-- [ ] **14.** `concorrenza_12` (cambia solo il tempo)
-
-Cosa fa ognuna e perché: `MIGLIORIE.md`, sezione 7.
+Se vuoi lanciare solo una parte (un modello, un insieme, una variante): blocco 2.3 G3.
 
 **Quando una miglioria entra nella base** (Claude te lo dice):
 
 1. archivia le prove fatte (blocco 2.3 F);
-2. rifai le copie cieche (blocco 2.3 A1) con un **seme nuovo**: `$seme = 2`, la volta dopo 3, e
-   così via. Il seme nuovo crea errori nuovi, così restano davvero «mai visti»;
-3. rifai la base: passi 6, 7 e 8.
+2. rifai la scelta dei cicli veri (2.3 A0) e le copie cieche (2.3 A1) con un **seme nuovo**:
+   `$seme = 2`, la volta dopo 3, e così via. Il seme nuovo crea errori nuovi, così restano
+   davvero «mai visti»;
+3. rilancia la campagna (G2).
 
-### Fase 4: migliorie scelte sugli errori mai visti (il codice lo scrive Claude)
+### Fase 3: migliorie scelte sugli errori mai visti (il codice lo scrive Claude)
 
 Le migliorie non si scelgono guardando gli errori noti che mancano: sarebbe come imparare a
 memoria le risposte di un compito. Si scelgono sui **tipi** di errori mai visti che la v2 trova
-peggio.
+peggio (tabella «Errori mai visti per tipo» del report della campagna).
 
-- [ ] **15.** `numeri_manuale`. Aspetta che Claude dica che è pronta. Poi **Aggiornare** (2.1),
-  due prove sul piccolo con `$nome = "numeri_manuale"`, riepilogo; se si tiene, due prove sul
-  grande.
-- [ ] **16.** Apri il report dell'ultima base (blocco 2.3 B) e manda a Claude la foto della
-  tabella **«Errori mai visti, per tipo»**. Ci sono solo numeri, niente errori: si può
-  fotografare. Contano le righe con scritto «modello»; le righe «codice» servono solo a vedere
-  che non si è rotto niente.
-- [ ] **17.** Claude propone una miglioria per il tipo «modello» trovato peggio e la scrive. La
-  provi come al passo 15. Poi di nuovo il passo 16, finché i tipi «modello» non migliorano più.
+- [ ] **10.** Claude propone una miglioria per il tipo «modello» trovato peggio (la prima
+  pronta sarà `numeri_manuale`), la scrive e la aggiunge a `eval/campagna.yaml`.
+- [ ] **11. Aggiornare** (2.1), poi **la campagna** (G2): fa solo le prove nuove.
+- [ ] **12.** Foto del report finale, come al passo 9. Si ripete dal passo 10 finché i tipi
+  «modello» non migliorano più.
 
-### Fase 5: tempo e costo
+### Fase 4: tempo e costo
 
 Qui si cerca di spendere meno o fare prima, **trovando gli stessi errori**. Il codice lo scrive
-Claude; tu provi come al passo 15.
+Claude e lo aggiunge alla campagna; tu fai i passi 11 e 12.
 
-- [ ] **18. B1**: chiamata diretta a Bedrock (toglie circa 4 secondi di avvio per operazione).
-- [ ] **19. Cache dei prompt** (H10): nel report della prova guarda la riga «Token di input
-  riletti dalla cache» e mandala a Claude.
-- [ ] **20. B4**: più operazioni controllate insieme.
+- [ ] **13. B1**: chiamata diretta a Bedrock (toglie circa 4 secondi di avvio per operazione).
+- [ ] **14. Cache dei prompt** (H10): nel report di una prova (blocco 2.3 B) guarda la riga
+  «Token di input riletti dalla cache» e mandala a Claude.
+- [ ] **15. B4**: più operazioni controllate insieme.
 
-### Fase 6: chiusura prima della QA
+### Fase 5: chiusura prima della QA
 
-- [ ] **21. Prova finale**: due prove sul grande con la base finale, poi il riepilogo: foto.
-- [ ] **22. Prove dal frontend** (blocco 2.4): almeno un ciclo MOS e un DR.
-- [ ] **23. Salvare** (blocco 2.2).
+- [ ] **16. Prova finale**: la campagna con la base finale, poi il report: foto.
+- [ ] **17. Prove dal frontend** (blocco 2.4): almeno un ciclo MOS e un DR.
+- [ ] **18. Salvare** (blocco 2.2).
 
-### Fase 7: QA (sezione 4)
+### Fase 6: QA (sezione 4)
 
-- [ ] **24. Pull request** da `feature/cycle-validation-v2` verso `develop`.
-- [ ] **25. Prova in QA** dal frontend con un ciclo MOS e un DR: foto dell'intestazione dei
+- [ ] **19. Pull request** da `feature/cycle-validation-v2` verso `develop`.
+- [ ] **20. Prova in QA** dal frontend con un ciclo MOS e un DR: foto dell'intestazione dei
   risultati.
-- [ ] **26.** Se la v2 in QA non parte: blocco «torna alla v1» (sezione 4), poi Salvare e pull
+- [ ] **21.** Se la v2 in QA non parte: blocco «torna alla v1» (sezione 4), poi Salvare e pull
   request.
-- [ ] **27. Cicli militari**, solo dopo una prova QA riuscita.
+- [ ] **22. Cicli militari**, solo dopo una prova QA riuscita.
 
 **Attenzione:** quando il ramo arriva su `main`, anche la **produzione** passa alla v2. Prima
 serve una prova QA riuscita.
@@ -310,7 +291,7 @@ $qui = (Get-Location).ProviderPath; $mirror = "src", "tests", "prompts", "eval\c
 $ok = (Test-Path "$tmp\src\cycle_validation\cli.py") -and ((Split-Path -Leaf $qui) -eq "app_cycle_validation_v2"); if (-not $ok) { "FERMO: download non riuscito o terminale non nella cartella app_cycle_validation_v2. Niente cambiato." }
 if ($ok) { $tolti = @(foreach ($d in $mirror) { if (Test-Path $d) { Get-ChildItem $d -Recurse -File | Where-Object { $_.FullName -notmatch '\\__pycache__\\' -and -not (Test-Path -LiteralPath (Join-Path $tmp $_.FullName.Substring($qui.Length + 1))) } } }) + @(Get-ChildItem docs -File -Filter *.md | Where-Object { -not (Test-Path -LiteralPath "$tmp\docs\$($_.Name)") }); $tolti | ForEach-Object { "tolto: " + $_.FullName.Substring($qui.Length + 1); Remove-Item -LiteralPath $_.FullName -Force } }
 if ($ok) { foreach ($d in $mirror) { robocopy "$tmp\$d" $d /MIR /XD __pycache__ /NFL /NDL /NJH /NJS /NP | Out-Null }; foreach ($d in "docs", "config", "eval\modelli") { robocopy "$tmp\$d" $d /E /NFL /NDL /NJH /NJS /NP | Out-Null } }
-if ($ok) { Copy-Item "$tmp\pyproject.toml", "$tmp\uv.lock", "$tmp\README.md", "$tmp\.gitignore" . -Force; Copy-Item "$tmp\eval\errori-noti.yaml" eval -Force }
+if ($ok) { Copy-Item "$tmp\pyproject.toml", "$tmp\uv.lock", "$tmp\README.md", "$tmp\.gitignore" . -Force; Copy-Item "$tmp\eval\errori-noti.yaml", "$tmp\eval\campagna.yaml" eval -Force }
 if ($ok) { Get-ChildItem src, tests -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force; Remove-Item -Recurse -Force .pytest_cache, .mypy_cache, .ruff_cache -ErrorAction SilentlyContinue }
 Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
 uv run pytest -q
@@ -337,7 +318,7 @@ Si fa in **due blocchi**: prima il commit (salva sul PC), poi il push (manda al 
 **Primo blocco: commit**
 
 ```powershell
-git add src tests docs examples eval/errori-noti.yaml eval/casi/sintetici eval/varianti eval/modelli config prompts pyproject.toml uv.lock README.md .gitignore Dockerfile ../buildspec.yml
+git add src tests docs examples eval/errori-noti.yaml eval/campagna.yaml eval/casi/sintetici eval/varianti eval/modelli config prompts pyproject.toml uv.lock README.md .gitignore Dockerfile ../buildspec.yml
 if (Test-Path vendor) { git add vendor }
 git status --short
 git commit -m "v2: fonti per riparazione, subtask, task SPM, controllo delle due lingue, prove con metriche, cicli veri, errori ciechi e gruppo nascosto"
@@ -353,7 +334,7 @@ solo i file previsti; se no scrive `FERMO` e non manda niente.
 
 ```powershell
 $branch = git branch --show-current
-$fuori = git show --name-only --format= HEAD | Where-Object { $_ -and $_ -notmatch '^app_cycle_validation_v2/(src|tests|docs|examples|eval/casi/sintetici|eval/varianti|eval/modelli|config|prompts|vendor)/|^app_cycle_validation_v2/(pyproject\.toml|uv\.lock|README\.md|\.gitignore|Dockerfile|eval/errori-noti\.yaml)$|^buildspec\.yml$' }
+$fuori = git show --name-only --format= HEAD | Where-Object { $_ -and $_ -notmatch '^app_cycle_validation_v2/(src|tests|docs|examples|eval/casi/sintetici|eval/varianti|eval/modelli|config|prompts|vendor)/|^app_cycle_validation_v2/(pyproject\.toml|uv\.lock|README\.md|\.gitignore|Dockerfile|eval/errori-noti\.yaml|eval/campagna\.yaml)$|^buildspec\.yml$' }
 if ($branch -ne "feature/cycle-validation-v2") {
   "FERMO: sei sul branch '$branch', non su feature/cycle-validation-v2. Niente push."
 } elseif ($fuori) {
@@ -600,6 +581,65 @@ Per **togliere** una prova dal riepilogo: cancella la sua cartella e lancia D.
 ```powershell
 $d = Get-Date -Format "yyyyMMdd-HHmm"; "piccolo", "grande" | ForEach-Object { if (Test-Path "runs/prove-$_") { Move-Item "runs/prove-$_" "runs/archivio-$d-$_" } }
 ```
+
+#### G. La campagna: tutte le prove in automatico
+
+- **A cosa serve:** lancia da sola tutte le prove di `eval/campagna.yaml`: per ogni modello
+  (Haiku, poi Sonnet) la base e le varianti sul piccolo, poi sul grande la base e le varianti
+  che si tengono. Alla fine scrive `runs\campagna.md`, il report unico da leggere.
+- **Dove finiscono le prove:** Haiku nelle cartelle di sempre (`runs\prove-piccolo`,
+  `runs\prove-grande`: valgono anche le prove lanciate a mano); Sonnet in
+  `runs\prove-piccolo-sonnet` e `runs\prove-grande-sonnet`, con una base sua. Ogni cartella ha
+  il suo `riepilogo.md`.
+- **Da sola:** trova l'ultima fotografia della conoscenza, i cicli scelti (A0), le copie cieche
+  (A1) e il gruppo nascosto (N), se ci sono; sceglie MOS o DR per ogni ciclo.
+- **Si ferma da sola:** al tetto di spesa (`massimo_dollari`, oggi 60 $), se una prova non
+  riesce a eseguire nessun ciclo (accesso AWS scaduto: `aws sso login`, poi rilancia) o se
+  premi Ctrl+C. In ogni caso scrive il report con quello che c'è. Rilanciata, salta le prove
+  già fatte.
+
+**G1. Il piano** (gratis, non lancia niente):
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+uv run cycle-validation eval campagna --piano
+```
+
+**Deve uscire:** `Piano (gratis, niente viene lanciato). Piccolo: N cicli e copie; grande: 23
+cicli.` e per ogni modello e insieme una riga per variante: `base: 1 da fare → runs/...` (una
+base Haiku sul piccolo c'è già), `effort_medio: 2 da fare → ...`, e così via.
+
+**G2. La campagna** (costa: vedi passo 8; dura ore):
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+uv run cycle-validation eval campagna
+code runs/campagna.md
+```
+
+**Deve uscire:** per ogni prova una riga `=== haiku · piccolo · effort_medio · prova 1 di 2 ·
+spesa finora ... $`, le righe dei cicli e la riga finale della prova; alla fine
+`Campagna finita. Prove fatte ora: N · spesa ... $.` (oppure `Campagna fermata: ...` con il
+motivo) e `Report finale: runs\campagna.md`, che si apre da solo.
+
+**Manda a Claude:** la foto della riga `Campagna finita` (o `fermata`) e del report (passo 9).
+
+**G3. Solo una parte.** Stesso blocco G2, con in fondo alla riga `uv run cycle-validation eval
+campagna` una o più di queste aggiunte:
+
+| Aggiunta | Cosa fa |
+|---|---|
+| `--modelli haiku` | solo Haiku (oppure `--modelli sonnet`) |
+| `--insiemi piccolo` | solo il piccolo (oppure `--insiemi grande`) |
+| `--varianti effort_medio,conferme_1` | solo queste varianti (la base si fa sempre per prima) |
+| `--ripetizioni 3` | tre prove per variante invece di due |
+| `--grande sempre` | sul grande tutte le varianti, non solo quelle che si tengono (`mai` = niente grande) |
+| `--massimo-dollari 10` | tetto di spesa diverso per questa volta |
+| `--piano` | mostra solo cosa farebbe |
+
+Esempio: `uv run cycle-validation eval campagna --modelli sonnet --insiemi piccolo`.
 
 #### N. Il gruppo nascosto (facoltativo)
 

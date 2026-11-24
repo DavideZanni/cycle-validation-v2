@@ -68,11 +68,13 @@ in `DOCUMENTAZIONE.md`.
      effort: medium
    ```
 
-4. **Due prove sull'insieme piccolo** (COPILOT 2.3 A con `$nome` = il nome della variante).
-   Stessi cicli e stessa conoscenza della base.
-5. **Si guarda il riepilogo** (COPILOT 2.3 C). Il programma decide da solo con la regola della
-   sezione 6: «si tiene», «non si tiene», «scartata» o «da ripetere».
-6. **Se si tiene sul piccolo:** due prove sull'insieme grande, poi di nuovo il riepilogo.
+4. **Si aggiunge la variante a `eval/campagna.yaml`** (lo fa Claude) e si lancia la
+   **campagna** (COPILOT 2.3 G, comando `eval campagna`). Da sola, per ogni modello del file
+   (Haiku, poi Sonnet): due prove sull'insieme piccolo, stessi cicli e stessa conoscenza della
+   base; poi, se sul piccolo si tiene, due prove sul grande. Le prove già fatte si saltano.
+5. **Si legge il report della campagna** (`runs/campagna.md`). Il programma decide da solo con
+   la regola della sezione 6: «si tiene», «non si tiene», «scartata» o «da ripetere».
+6. Una prova si può lanciare anche a mano (COPILOT 2.3 A), per esempio per ripeterne una sola.
 7. **Claude scrive nel registro** (sezione 13) la decisione e le considerazioni: cosa si è
    capito, perché è andata così, cosa fare dopo.
 8. **Se entra nella base:** si archiviano le prove, si fanno copie cieche nuove con un seme
@@ -226,9 +228,11 @@ Per ognuna: due prove sul piccolo con `$nome` = il nome; se si tiene, due sul gr
 | `prompt_task_mancante` | se il task citato manca nel manuale, il modello giudica lo stesso (A2) invece di dare subito WARNING (B6) | operazioni che oggi escono `FONTE_ASSENTE` | falsi errori, costo |
 | `concorrenza_12` | 12 operazioni controllate insieme invece di 6 (B4) | solo il tempo | limiti di Bedrock: cicli non eseguiti |
 
-`sonnet` (un modello più grande) **solo come diagnosi** (dal 24-11, COPILOT passo 6c): costa
-circa 10 volte per ciclo, quindi la regola la scarta (sopra 2 volte), ma dice se gli errori mai
-visti mancati dipendono dal modello o dal modo di chiedere. Se Sonnet li trova, una miglioria
+**Sonnet** (un modello più grande): dal 24-11 la campagna fa **tutte** le varianti anche con
+Sonnet, in cartelle sue e con una base sua (modello `sonnet` di `eval/campagna.yaml`). Costa
+circa 10 volte per ciclo, quindi in produzione la regola lo scarterebbe (sopra 2 volte), ma il
+confronto dice se gli errori mai visti mancati dipendono dal modello o dal modo di chiedere.
+La variante `sonnet` (`eval/varianti/sonnet.yaml`) resta per le prove a mano. Se Sonnet li trova, una miglioria
 possibile è usarlo solo sulle operazioni dubbie; se li manca anche lui, si lavora su prompt e
 controlli. Su Bedrock c'è Sonnet 5.5 (`eu.anthropic.claude-sonnet-5-5`, stesso schema di Haiku).
 

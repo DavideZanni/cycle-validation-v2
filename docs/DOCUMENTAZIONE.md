@@ -800,6 +800,7 @@ opzioni.
 | `eval muta` | fa le copie cieche: `--lista`, `--knowledge`, `--quanti`, `--seme`, `--per-ciclo` (6) | no |
 | `eval prova [pdf]…` | valida, confronta con gli errori noti, scrive `prestazioni.md` e `riepilogo.md`. `--nome`, `--variante`, `--lista` (ripetibile), `--attesi` (ripetibile), `--cartella`, `--profile` (predefinito `auto`: MOS o DR ciclo per ciclo, dalla testata, così un DR nella lista non si ferma con «Modulo sbagliato») | sì |
 | `eval riepilogo` | riscrive `riepilogo.md` della cartella | no |
+| `eval campagna` | tutte le prove di `eval/campagna.yaml` in fila, per ogni modello e insieme, e il report unico `runs/campagna.md`. `--piano` (gratis), `--modelli`, `--insiemi`, `--varianti`, `--ripetizioni`, `--grande`, `--massimo-dollari`, `--knowledge` (vuoto = ultima fotografia), `--config` (vuoto = `data/settings.yaml` se c'è), `--file`, `--cartella` | sì |
 
 ### 14.3 Esperimenti con i casi rivisti (sezione 15.2)
 
@@ -928,6 +929,40 @@ Le **considerazioni** (cosa si è capito, cosa fare dopo) le scrive Claude nel r
 `MIGLIORIE.md`, colonna «Considerazioni», quando la variante è decisa. Così proposta, risultati
 e decisione stanno sul PC in `runs/` (che git ignora), e nel repository restano solo la
 proposta e le conclusioni, senza dati veri.
+
+**La campagna** (`eval campagna`, `evaluation/campaign.py`, COPILOT 2.3 G). Lancia da sola
+tutte le prove dell'elenco `eval/campagna.yaml`:
+
+```yaml
+varianti: [effort_medio, conferme_1, ...]  # la base si fa sempre per prima
+ripetizioni: 2
+modelli: {haiku: , sonnet: eu.anthropic.claude-sonnet-5-5}  # vuoto = quello delle impostazioni
+insiemi: [piccolo, grande]
+grande: se_si_tiene   # sempre | mai
+massimo_dollari: 60
+```
+
+- Per ogni modello, in ordine: base e varianti sul piccolo; poi sul grande la base e le varianti
+  che sul piccolo «si tengono» (`se_si_tiene`). Il modello della campagna sostituisce
+  `agent.model` di base e varianti.
+- Cartelle: il primo modello del file usa `runs/prove-<insieme>` (contano anche le prove fatte a
+  mano), gli altri `runs/prove-<insieme>-<modello>`, con una base loro: una variante si
+  confronta solo con la base dello stesso modello.
+- Insiemi come il blocco 2.3 A: il grande è `runs/prove-grande/cicli.txt` (A0); il piccolo
+  sono i cicli di quella lista che sono in `eval/errori-noti.yaml`, più le copie cieche
+  (`runs/mutazioni`) e il gruppo nascosto (`data/nascosti`), se ci sono. La conoscenza è
+  l'ultima fotografia (`eval/casi/aziendali/conoscenza/foto-*`, `.../civil/current.json`).
+- Le prove già fatte (stesso nome nella cartella) si contano e non si rifanno: una campagna
+  interrotta, rilanciata, riparte da dove era.
+- Si ferma da sola al tetto di spesa (somma dei costi delle prove), se una prova non esegue
+  nessun ciclo (la prova si cancella: di solito l'accesso AWS è scaduto) o con Ctrl+C; in ogni
+  caso scrive il report.
+- Il report `runs/campagna.md`: per ogni modello e insieme la scelta migliore e la classifica
+  (prove, stabili, mai visti per il modello stabili, falsi errori, da verificare, costo e
+  tempo per ciclo, decisione); i modelli a confronto, variante per variante; gli errori mai
+  visti per tipo nell'ultima base sul piccolo, con cosa ha risposto la v2 sui mancati.
+- Le cartelle delle prove hanno i secondi nel nome (`AAAAMMGG-HHMMSS-<nome>`, con `-2`, `-3`
+  se due prove partono nello stesso secondo).
 
 **Metriche di una prova** (`prestazioni.md`):
 

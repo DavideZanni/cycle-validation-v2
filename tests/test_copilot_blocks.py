@@ -22,6 +22,7 @@ NEEDED = (
     "eval/varianti",
     "eval/modelli",
     "eval/errori-noti.yaml",
+    "eval/campagna.yaml",
     "pyproject.toml",
     "uv.lock",
 )

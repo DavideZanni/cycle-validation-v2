@@ -7,8 +7,10 @@ import hashlib
 import json
 import os
 import re
+import shutil
 from collections import Counter
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Any
@@ -29,6 +31,16 @@ from cycle_validation.evaluation.blind import DESCRIPTIONS as BLIND_DESCRIPTIONS
 from cycle_validation.evaluation.blind import KINDS as BLIND_KINDS
 from cycle_validation.evaluation.blind import PER_CYCLE as BLIND_PER_CYCLE
 from cycle_validation.evaluation.blind import blind_mutations
+from cycle_validation.evaluation.campaign import REPORT as CAMPAIGN_REPORT
+from cycle_validation.evaluation.campaign import (
+    CampaignFile,
+    Outcome,
+    Step,
+    done,
+    load_campaign,
+    plan,
+    render_campaign,
+)
 from cycle_validation.evaluation.draft import draft_case
 from cycle_validation.evaluation.leaderboard import build_leaderboard, render_leaderboard
 from cycle_validation.evaluation.metrics import measure
@@ -36,9 +48,13 @@ from cycle_validation.evaluation.mutations import mutate_cases
 from cycle_validation.evaluation.run import load_suites, run_variant
 from cycle_validation.evaluation.snapshot import snapshot_version, take_snapshot
 from cycle_validation.evaluation.trials import (
+    BASE_NAME,
+    SUMMARY_REPORT,
     TRIAL_REPORT,
     CycleScore,
+    KnownErrors,
     Proposal,
+    Trial,
     build_trial,
     failed_cycle,
     load_known_errors,
@@ -966,6 +982,89 @@ def eval_blind(
     typer.echo(f"Lista: {out / 'lista.txt'} · errori: {out / 'errori.yaml'}")
 
 
+def _run_trial(
+    entries: list[tuple[Path, Path | None]],
+    known: KnownErrors,
+    settings: Settings,
+    profile: str,
+    knowledge: Path,
+    nome: str,
+    proposal: Proposal,
+    cartella: Path,
+) -> tuple[Trial, Path]:
+    """Una prova: valida ogni ciclo, lo confronta con gli errori noti, scrive il report della
+    prova e il riepilogo della cartella. La usano `eval prova` ed `eval campagna`."""
+    started = datetime.now()
+    safe = re.sub(r"[^\w.-]+", "-", nome).strip("-") or "prova"
+    # due prove nello stesso secondo (campagna su pochi cicli) non si sovrascrivono
+    folder = cartella / f"{started:%Y%m%d-%H%M%S}-{safe}"
+    copy = 2
+    while folder.exists():
+        folder = cartella / f"{started:%Y%m%d-%H%M%S}-{copy}-{safe}"
+        copy += 1
+    reports: list[Report] = []
+    scores: list[CycleScore] = []
+    seen: set[str] = set()
+    profiles: dict[Path, str] = {}
+    for pdf, cycle_file in entries:
+        if not pdf.is_file() or (cycle_file is not None and not cycle_file.is_file()):
+            typer.echo(f"File non trovato: {(cycle_file or pdf).name}")
+            continue
+        source = cycle_file if cycle_file is not None else pdf
+        data = source.read_bytes()
+        if cycle_file is not None:
+            data = data.replace(b"\r\n", b"\n")  # copie scritte su Windows prima del 24-11
+        fingerprint = hashlib.sha256(data).hexdigest()[:8]
+        if fingerprint in seen:
+            continue
+        seen.add(fingerprint)
+        out = folder / fingerprint
+        extractor = FileCycleExtractor(cycle_file) if cycle_file is not None else None
+        chosen = _trial_profile(pdf, settings, profiles) if profile == "auto" else profile
+        try:
+            deps = build_dependencies(
+                settings,
+                chosen,
+                kb_dir=knowledge,
+                machines_file=None,
+                extractor=extractor,
+                out_dir=out,
+            )
+            # una copia cieca viene dal suo file: il controllo di integrità contro il PDF
+            # originale la declasserebbe (vedi `RunRequest.check_integrity`)
+            request = RunRequest(pdf_path=pdf, check_integrity=cycle_file is None)
+            report = run_validation(request, deps, out)
+        except CycleValidationError as error:
+            scores.append(failed_cycle(fingerprint, known, str(error)))
+            typer.echo(f"{fingerprint} non eseguito")
+            continue
+        reports.append(report)
+        score = score_cycle(report, known, fingerprint)
+        scores.append(score)
+        if score.kind == "errori" and not score.seen:
+            # mai visto: solo l'esito, non dove sta l'errore
+            typer.echo(f"{fingerprint} mai visto: {'trovato' if score.found else 'mancato'}")
+            continue
+        typer.echo(
+            f"{fingerprint} {score.kind} ({chosen.upper()}): trovati "
+            f"{', '.join(f.op for f in score.found) or '-'}"
+            f" · mancati {', '.join(m.op for m in score.missed) or '-'}"
+            f" · ERRATO in più {', '.join(f.op for f in score.extra) or '-'}"
+            + (f" · in attesa {', '.join(f.op for f in score.pending)}" if score.pending else "")
+        )
+    trial = build_trial(nome, started, reports, scores, proposal)
+    write_trial(trial, folder)
+    write_summary(cartella)
+    typer.echo(
+        f"Prova «{nome}»: errori noti trovati {trial.known_found} su {trial.known_total} "
+        f"(visti {trial.seen_found} su {trial.seen_total}, mai visti per il modello "
+        f"{trial.unseen_found} su {trial.unseen_total}, per il codice {trial.code_unseen_found} su "
+        f"{trial.code_unseen_total}) · falsi errori nei cicli giusti {trial.false_errors} · ERRATO in più "
+        f"{trial.extra_errors} · costo {trial.cost_usd:.2f} $"
+    )
+    return trial, folder
+
+
 @eval_app.command("prova")
 def eval_trial(
     pdfs: Annotated[
@@ -1021,71 +1120,252 @@ def eval_trial(
             raise CycleValidationError("Nessun PDF: dai i PDF o --lista.")
     except (CycleValidationError, OSError, ValueError) as error:
         raise _fail(error) from error
-    started = datetime.now()
-    safe = re.sub(r"[^\w.-]+", "-", nome).strip("-") or "prova"
-    folder = cartella / f"{started:%Y%m%d-%H%M}-{safe}"
-    reports: list[Report] = []
-    scores: list[CycleScore] = []
-    seen: set[str] = set()
-    profiles: dict[Path, str] = {}
-    for pdf, cycle_file in entries:
-        if not pdf.is_file() or (cycle_file is not None and not cycle_file.is_file()):
-            typer.echo(f"File non trovato: {(cycle_file or pdf).name}")
-            continue
-        source = cycle_file if cycle_file is not None else pdf
-        data = source.read_bytes()
-        if cycle_file is not None:
-            data = data.replace(b"\r\n", b"\n")  # copie scritte su Windows prima del 24-11
-        fingerprint = hashlib.sha256(data).hexdigest()[:8]
-        if fingerprint in seen:
-            continue
-        seen.add(fingerprint)
-        out = folder / fingerprint
-        extractor = FileCycleExtractor(cycle_file) if cycle_file is not None else None
-        chosen = _trial_profile(pdf, settings, profiles) if profile == "auto" else profile
-        try:
-            deps = build_dependencies(
-                settings,
-                chosen,
-                kb_dir=knowledge,
-                machines_file=None,
-                extractor=extractor,
-                out_dir=out,
-            )
-            # una copia cieca viene dal suo file: il controllo di integrità contro il PDF
-            # originale la declasserebbe (vedi `RunRequest.check_integrity`)
-            request = RunRequest(pdf_path=pdf, check_integrity=cycle_file is None)
-            report = run_validation(request, deps, out)
-        except CycleValidationError as error:
-            scores.append(failed_cycle(fingerprint, known, str(error)))
-            typer.echo(f"{fingerprint} non eseguito")
-            continue
-        reports.append(report)
-        score = score_cycle(report, known, fingerprint)
-        scores.append(score)
-        if score.kind == "errori" and not score.seen:
-            # mai visto: solo l'esito, non dove sta l'errore
-            typer.echo(f"{fingerprint} mai visto: {'trovato' if score.found else 'mancato'}")
-            continue
-        typer.echo(
-            f"{fingerprint} {score.kind} ({chosen.upper()}): trovati "
-            f"{', '.join(f.op for f in score.found) or '-'}"
-            f" · mancati {', '.join(m.op for m in score.missed) or '-'}"
-            f" · ERRATO in più {', '.join(f.op for f in score.extra) or '-'}"
-            + (f" · in attesa {', '.join(f.op for f in score.pending)}" if score.pending else "")
-        )
-    trial = build_trial(nome, started, reports, scores, proposal)
-    write_trial(trial, folder)
-    summary = write_summary(cartella)
-    typer.echo(
-        f"Prova «{nome}»: errori noti trovati {trial.known_found} su {trial.known_total} "
-        f"(visti {trial.seen_found} su {trial.seen_total}, mai visti per il modello "
-        f"{trial.unseen_found} su {trial.unseen_total}, per il codice {trial.code_unseen_found} su "
-        f"{trial.code_unseen_total}) · falsi errori nei cicli giusti {trial.false_errors} · ERRATO in più "
-        f"{trial.extra_errors} · costo {trial.cost_usd:.2f} $"
-    )
+    _, folder = _run_trial(entries, known, settings, profile, knowledge, nome, proposal, cartella)
+    summary = cartella / SUMMARY_REPORT
     typer.echo(f"Report della prova: {folder / TRIAL_REPORT}")
     typer.echo(f"Riepilogo di tutte le prove: {summary}")
+
+
+CAMPAIGN_FILE = Path("eval/campagna.yaml")
+KNOWLEDGE_SNAPSHOTS = Path("eval/casi/aziendali/conoscenza")
+
+
+def _latest_knowledge(root: Path = KNOWLEDGE_SNAPSHOTS) -> Path:
+    """La versione pubblicata della conoscenza civile nell'ultima fotografia (COPILOT 2.5 A),
+    come la trovano i blocchi PowerShell: `.../knowledge/civil/current.json` → `path`."""
+    snapshots = sorted(p for p in root.glob("foto-*") if p.is_dir()) if root.is_dir() else []
+    if not snapshots:
+        raise CycleValidationError(
+            f"Nessuna fotografia della conoscenza in {root} (COPILOT 2.5 A)."
+        )
+    pointers = sorted(snapshots[-1].rglob("current.json"))
+    civil = [p for p in pointers if p.parent.name == "civil"] or pointers
+    if not civil:
+        raise CycleValidationError(f"Nessun current.json in {snapshots[-1]}.")
+    pointer = json.loads(civil[0].read_text("utf-8-sig"))
+    return civil[0].parent / str(pointer["path"])
+
+
+@dataclass
+class _CampaignSet:
+    entries: list[tuple[Path, Path | None]]
+    known: KnownErrors
+
+
+def _campaign_sets(runs: Path, known_file: Path) -> dict[str, _CampaignSet]:
+    """I due insiemi come li fa il blocco 2.3 A: il grande è la lista di `eval scegli`; il
+    piccolo sono i cicli noti di quella lista, le copie cieche e il gruppo nascosto."""
+    big_list = runs / "prove-grande" / "cicli.txt"
+    if not big_list.is_file():
+        raise CycleValidationError(f"Manca {big_list}: prima la scelta dei cicli (COPILOT 2.3 A0).")
+    known = load_known_errors(known_file)
+    big = _list_entries([big_list])
+    noted: list[tuple[Path, Path | None]] = [
+        (pdf, None)
+        for pdf, _ in big
+        if pdf.is_file() and known.cycle(hashlib.sha256(pdf.read_bytes()).hexdigest()[:8])
+    ]
+    small = list(noted)
+    small_known = [known_file]
+    blind = runs / "mutazioni"
+    if (blind / "lista.txt").is_file() and (blind / "errori.yaml").is_file():
+        small += _list_entries([blind / "lista.txt"])
+        small_known.append(blind / "errori.yaml")
+    hidden, hidden_known = Path("data/nascosti"), Path("data/errori-nascosti.yaml")
+    if hidden.is_dir() and hidden_known.is_file():
+        small += [(pdf, None) for pdf in _pdfs_in(hidden)]
+        small_known.append(hidden_known)
+    return {
+        "piccolo": _CampaignSet(small, load_known_errors(small_known)),
+        "grande": _CampaignSet(big, known),
+    }
+
+
+def _campaign_settings(
+    name: str, model_id: str | None, config: Path | None
+) -> tuple[Settings, Proposal]:
+    """Le impostazioni di una prova della campagna: la base sono quelle di `--config`; una
+    variante le cambia con il suo file; il modello della campagna vale per tutte."""
+    proposal = Proposal()
+    if name.casefold() == BASE_NAME:
+        settings = load_settings(config)
+    else:
+        loaded = load_variant(Path("eval/varianti") / f"{name}.yaml", config_override=config)
+        settings = loaded.settings
+        proposal = Proposal(
+            change=loaded.description, hypothesis=loaded.hypothesis, expected=loaded.expected
+        )
+    if model_id:
+        agent = settings.agent.model_copy(update={"model": model_id})
+        settings = settings.model_copy(update={"agent": agent})
+    return settings, proposal
+
+
+def _split(value: str | None) -> list[str] | None:
+    return [item.strip() for item in value.split(",") if item.strip()] if value else None
+
+
+@eval_app.command("campagna")
+def eval_campaign(
+    file: Annotated[Path, typer.Option("--file", help="Elenco degli esperimenti.")] = CAMPAIGN_FILE,
+    varianti: Annotated[
+        str | None, typer.Option(help="Solo queste varianti, separate da virgola.")
+    ] = None,
+    modelli: Annotated[
+        str | None, typer.Option(help="Solo questi modelli del file (haiku, sonnet).")
+    ] = None,
+    insiemi: Annotated[str | None, typer.Option(help="piccolo, grande o tutti e due.")] = None,
+    ripetizioni: Annotated[int | None, typer.Option(help="Prove per variante.")] = None,
+    grande: Annotated[
+        str | None, typer.Option(help="se_si_tiene | sempre | mai (sul grande).")
+    ] = None,
+    massimo_dollari: Annotated[float | None, typer.Option(help="Tetto di spesa.")] = None,
+    knowledge: Annotated[
+        Path | None, typer.Option(help="Conoscenza. Vuoto = l'ultima fotografia.")
+    ] = None,
+    config: Annotated[
+        Path | None, typer.Option(help="settings.yaml. Vuoto = data/settings.yaml se c'è.")
+    ] = None,
+    piano: Annotated[bool, typer.Option(help="Mostra solo cosa farebbe (gratis).")] = False,
+    runs: Annotated[Path, typer.Option("--cartella", help="Cartella dei risultati.")] = Path(
+        "runs"
+    ),
+) -> None:
+    """Tutti gli esperimenti in fila: per ogni modello (Haiku, poi Sonnet) la base e le varianti
+    sul piccolo, poi sul grande quelle che si tengono; le prove già fatte si saltano. Alla fine
+    il report unico `runs/campagna.md`. Le opzioni restringono l'elenco di `eval/campagna.yaml`."""
+    try:
+        campaign = load_campaign(file)
+        updates: dict[str, Any] = {}
+        if (names := _split(varianti)) is not None:
+            updates["varianti"] = names
+        if (chosen := _split(modelli)) is not None:
+            unknown = [m for m in chosen if m not in campaign.modelli]
+            if unknown:
+                raise CycleValidationError(
+                    f"Modelli non nel file: {', '.join(unknown)}. Ci sono: "
+                    f"{', '.join(campaign.modelli)}."
+                )
+            updates["modelli"] = {m: campaign.modelli[m] for m in chosen}
+        if (set_names := _split(insiemi)) is not None:
+            updates["insiemi"] = set_names
+        if ripetizioni is not None:
+            updates["ripetizioni"] = ripetizioni
+        if grande is not None:
+            updates["grande"] = grande
+        if massimo_dollari is not None:
+            updates["massimo_dollari"] = massimo_dollari
+        campaign = CampaignFile.model_validate({**campaign.model_dump(), **updates})
+        # le cartelle del primo modello del file restano quelle di sempre anche se lo si salta
+        all_models = list(load_campaign(file).modelli)
+        models = list(campaign.modelli)
+        if config is None and Path("data/settings.yaml").is_file():
+            config = Path("data/settings.yaml")
+        for name in campaign.varianti:
+            if not (Path("eval/varianti") / f"{name}.yaml").is_file():
+                raise CycleValidationError(f"Variante non trovata: eval/varianti/{name}.yaml")
+        kb = knowledge or _latest_knowledge()
+        sets = _campaign_sets(runs, Path("eval/errori-noti.yaml"))
+    except (CycleValidationError, OSError, ValueError) as error:
+        raise _fail(error) from error
+    outcome = Outcome()
+
+    def steps_for(model: str, set_name: str) -> list[Step]:
+        return plan(campaign, runs, set_name=set_name, model=model, order=all_models)
+
+    if piano:
+        typer.echo(
+            f"Piano (gratis, niente viene lanciato). Piccolo: {len(sets['piccolo'].entries)} "
+            f"cicli e copie; grande: {len(sets['grande'].entries)} cicli. Conoscenza: {kb.name}."
+        )
+        for model in models:
+            for set_name in campaign.insiemi:
+                steps = steps_for(model, set_name)
+                note = (
+                    " (le varianti del grande dipendono dal piccolo: qui quelle che si tengono "
+                    "adesso)"
+                    if set_name == "grande" and campaign.grande == "se_si_tiene"
+                    else ""
+                )
+                typer.echo(f"{model} · {set_name}{note}:")
+                for step in steps:
+                    state = f"{step.missing} da fare" if step.missing else "già fatte"
+                    typer.echo(f"  {step.name}: {state} → {step.folder.as_posix()}")
+        return
+    started = datetime.now()
+    try:
+        for model in models:
+            for set_name in campaign.insiemi:
+                for step in steps_for(model, set_name):
+                    for _ in range(step.missing):
+                        if outcome.spent >= campaign.massimo_dollari:
+                            outcome.stopped = (
+                                f"raggiunto il tetto di {campaign.massimo_dollari:.0f} $"
+                            )
+                            raise _CampaignStop
+                        settings, proposal = _campaign_settings(
+                            step.name, campaign.modelli[model], config
+                        )
+                        typer.echo(
+                            f"=== {model} · {set_name} · {step.name} · prova "
+                            f"{done(step.folder, step.name) + 1} di {campaign.ripetizioni} · "
+                            f"spesa finora {outcome.spent:.2f} $"
+                        )
+                        chosen_set = sets[set_name]
+                        trial, folder = _run_trial(
+                            chosen_set.entries,
+                            chosen_set.known,
+                            settings,
+                            "auto",
+                            kb,
+                            step.name,
+                            proposal,
+                            step.folder,
+                        )
+                        outcome.spent += trial.cost_usd
+                        outcome.run += 1
+                        if trial.cycles and trial.failures == len(trial.cycles):
+                            # nessun ciclo è partito (accesso AWS scaduto, rete): la prova non
+                            # vale e non deve contare come fatta
+                            shutil.rmtree(folder, ignore_errors=True)
+                            write_summary(step.folder)
+                            outcome.stopped = (
+                                "nessun ciclo eseguito nell'ultima prova (accesso AWS scaduto? "
+                                "`aws sso login`)"
+                            )
+                            raise _CampaignStop
+                        if trial.failures:
+                            outcome.errors.append(
+                                f"{model} · {set_name} · {step.name}: {trial.failures} cicli non "
+                                "eseguiti (la variante risulterà scartata)"
+                            )
+    except _CampaignStop:
+        pass
+    except (CycleValidationError, OSError, ValueError) as error:
+        outcome.stopped = f"errore: {error}"
+    finally:
+        report = runs / CAMPAIGN_REPORT
+        runs.mkdir(parents=True, exist_ok=True)
+        report.write_text(
+            render_campaign(
+                campaign,
+                runs,
+                outcome,
+                when=f"{started:%d-%m-%Y %H:%M}",
+                models=models,
+                folder_models=all_models,
+            ),
+            encoding="utf-8",
+        )
+    typer.echo(
+        f"Campagna {'fermata: ' + outcome.stopped if outcome.stopped else 'finita'}. "
+        f"Prove fatte ora: {outcome.run} · spesa {outcome.spent:.2f} $."
+    )
+    typer.echo(f"Report finale: {report}")
+
+
+class _CampaignStop(Exception):
+    """Fine anticipata della campagna (tetto di spesa, nessun ciclo eseguito)."""
 
 
 @eval_app.command("riepilogo")
