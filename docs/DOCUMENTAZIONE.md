@@ -954,7 +954,9 @@ proposta e le conclusioni, senza dati veri.
    stabili** (altrimenti «non generalizza») e sta sopra la base.
 
 **Come si scelgono le migliorie (dal 23-11):** non dagli errori noti che mancano. Si fa la
-base, si guarda nel report la tabella «Errori mai visti, per tipo» e si sceglie una miglioria
+base, si guarda nel report la tabella «Errori mai visti, per tipo» (trovati per tipo e, sui
+mancati, cosa ha risposto la v2: solo esito e motivo contati, per esempio `CORRETTO 12`, mai
+l'operazione o la spiegazione) e si sceglie una miglioria
 per il tipo «modello» trovato peggio. Le varianti pronte sono in `eval/varianti/`; la lista è
 in `MIGLIORIE.md`, «Da provare».
 

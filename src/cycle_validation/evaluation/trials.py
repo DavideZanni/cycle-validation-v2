@@ -428,6 +428,26 @@ def _unseen_by_kind(trial: Trial) -> dict[str, tuple[int, int]]:
     return {kind: (found, total) for kind, (found, total) in sorted(counts.items())}
 
 
+def _unseen_answers(trial: Trial) -> dict[str, str]:
+    """Tipo → cosa ha risposto la v2 sugli errori mai visti mancati, solo esito e motivo
+    contati (per esempio «CORRETTO 12, WARNING EVIDENZA_NON_TROVATA 4»): dice perché li manca
+    senza dire quali sono."""
+    answers: dict[str, dict[str, int]] = {}
+    for cycle in trial.cycles:
+        if cycle.kind != "errori" or cycle.seen:
+            continue
+        for missed in cycle.missed:
+            said = missed.said.split(":", 1)[0].strip() or "nessun esito"
+            if cycle.failure:
+                said = "ciclo non eseguito"
+            bucket = answers.setdefault(error_kind(missed.known), {})
+            bucket[said] = bucket.get(said, 0) + 1
+    return {
+        kind: ", ".join(f"{said} {n}" for said, n in sorted(counts.items(), key=lambda i: -i[1]))
+        for kind, counts in answers.items()
+    }
+
+
 def _render_proposal(proposal: Proposal) -> list[str]:
     """La proposta in cima al report: così risultati e motivo della prova stanno insieme."""
     if not proposal:
@@ -547,12 +567,13 @@ def render_trial(trial: Trial) -> str:
             "trovati peggio; i tipi «codice» li trova il codice con la stessa regola che li ha "
             "messi: servono solo a vedere che non si rompe niente.",
             "",
-            "| Tipo | Chi lo deve trovare | Trovati |",
-            "|---|---|---|",
+            "| Tipo | Chi lo deve trovare | Trovati | Cosa ha risposto la v2 sui mancati |",
+            "|---|---|---|---|",
         ]
+        answers = _unseen_answers(trial)
         lines += [
             f"| {kind} | {'modello' if kind not in CODE_KINDS else 'codice'} | "
-            f"{found} su {total} ({_percent(found, total)}) |"
+            f"{found} su {total} ({_percent(found, total)}) | {answers.get(kind, '-')} |"
             for kind, (found, total) in by_kind.items()
         ]
     lines += [

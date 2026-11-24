@@ -810,6 +810,12 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   aggiungono valori, quindi passavano il controllo: per loro lo 0 su 18 sembra un limite vero
   del modello (da rivedere dopo la base corretta). Ora per le copie il controllo si salta
   (`RunRequest.check_integrity`). Anche questa prova si cancella.
+- **24-11 ore 15:08, prima prova `base` valida (piccolo):** visti **8 su 12**; mai visti per il
+  modello **1 su 21**; per il codice **9 su 10**; **0 falsi errori** (op. 050 di 04ecaabe «in
+  attesa»); 1 ERRATO da verificare (5ff17062 op. 050); 0,17 $. Grande distanza tra visti (67%)
+  e mai visti per il modello (5%): sulle negazioni tolte in una lingua sola il modello quasi
+  non vede l'errore. Per capire il perché senza vedere gli errori, il report dà ora sui
+  mancati mai visti esito e motivo contati per tipo.
 
 Con Bedrock Haiku 5.5 e la conoscenza di prova:
 

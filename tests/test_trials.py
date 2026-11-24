@@ -206,6 +206,9 @@ def test_errors_the_code_puts_and_finds_do_not_count_as_generalization(tmp_path:
     text = render_trial(trial)
     assert "| numero_una_lingua | codice | 1 su 1 (100%) |" in text
     assert "| numero_manuale | modello | 0 su 1 (0%) |" in text
+    # sui mancati solo esito e motivo contati, mai l'operazione o la spiegazione
+    assert "| numero_manuale | modello | 0 su 1 (0%) | WARNING EVIDENZA_NON_TROVATA 1 |" in text
+    assert "non trovato" not in text.split("## Errori mai visti, per tipo")[1].split("##")[0]
     assert "| nascosto | modello | 1 su 1 (100%) |" in text
 
 

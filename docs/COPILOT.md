@@ -152,7 +152,11 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
   il programma controllava la copia contro il PDF originale, dove il numero cambiato non c'è, e
   trasformava ogni ERRATO in WARNING. Corretto da Claude: per le copie quel controllo si salta.
   Visti 8 su 12, 0 falsi errori, 0,16 $.
-- **Adesso:** passo 5b (toglie anche la prova delle 15), poi di nuovo la base (passo 6).
+- **24-11 ore 15:08, prima prova della base valida:** visti **8 su 12**, mai visti per il
+  modello **1 su 21**, per il codice **9 su 10**, **0 falsi errori**, 1 ERRATO da verificare
+  (5ff17062 op. 050), 0,17 $. Il codice ora funziona; il modello quasi non trova gli errori mai
+  visti (18 sono negazioni tolte in una lingua sola). Le prove sbagliate di prima sono tolte.
+- **Adesso:** seconda prova della base sul piccolo (passo 6), poi la tabella (passo 6b).
 
 ### Come si usa questa lista
 
@@ -165,18 +169,11 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 La base è la v2 di oggi, senza modifiche. Tutte le migliorie si confrontano con lei.
 
-- [ ] **5b. Togliere le due prove sbagliate** e aggiornare. Prima **Aggiornare** (2.1), poi
-  questa riga (cancella solo le cartelle delle prove `base` di oggi e rifà il riepilogo):
-
-  ```powershell
-  $env:UV_PYTHON = "3.14"; Get-ChildItem runs/prove-piccolo -Directory -Filter "*-base" | ForEach-Object { "tolta: " + $_.Name; Remove-Item $_.FullName -Recurse -Force }; uv run cycle-validation eval riepilogo --cartella runs/prove-piccolo
-  ```
-
-  Deve uscire una riga `tolta: 20261124-....-base` per ogni prova della base fatta oggi. Le
-  copie cieche **non** vanno rifatte.
 - [ ] **6.** Blocco 2.3 A con `$nome = "base"` e `$insieme = "piccolo"`, **due volte**. Foto
-  della riga finale di ognuna. Ora le copie cieche devono uscire come `<impronta> mai visto:
-  trovato` oppure `mancato`, e nella riga finale `mai visti per il modello N su 21`.
+  della riga finale di ognuna. **La prima è fatta** (24-11, 15:08). Prima della seconda:
+  **Aggiornare** (2.1), che aggiunge al report una colonna sui mancati mai visti.
+- [ ] **6b.** Apri il report della seconda prova (blocco 2.3 B) e manda a Claude la foto della
+  tabella **«Errori mai visti, per tipo»** (solo conteggi: si può fotografare).
 - [ ] **7.** Blocco 2.3 A con `$nome = "base"` e `$insieme = "grande"`, **due volte**. Durano a
   lungo: si possono lasciare girare.
 - [ ] **8. Riepilogo** (blocco 2.3 C), per il piccolo e per il grande: foto delle tabelle.
