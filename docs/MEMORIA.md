@@ -71,7 +71,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
   della v1) e `MACHINES_QUERY` (la query di `verify_active_TM`), a meno che non stiano già nel
   secret di ambiente.
 - **D2. Quando passare a QA.** **Deciso dall'utente (22-11 notte):** prima altre prove in
-  locale dal frontend (COPILOT 2.6), poi QA quando lo dice lui. Il comando `qa` e il salvataggio
+  locale dal frontend (COPILOT 2.4), poi QA quando lo dice lui. Il comando `qa` e il salvataggio
   sul ramo `feature/cycle-validation-v2` si fanno subito; solo la pull request verso `develop`
   aspetta (è quella che fa passare QA alla v2). La misura sugli errori (punto 1) può andare avanti in parallelo.
 
@@ -949,8 +949,14 @@ stessa targa compare in tre righe (pagine 14, 17, 18) con funzioni diverse. Come
 
 ## 14. Come si scrive `COPILOT.md`
 
+- Struttura (riscritta il 24-11-2026, su richiesta dell'utente: «estremamente semplice, non
+  dare per scontato nulla»): 0 prima di iniziare (parole, come si lancia un blocco, regole,
+  cosa fare se va storto), 1 cosa fare adesso (passi numerati per fasi), 2 blocchi (2.1-2.5),
+  3 persone, 4 QA. I numeri 2.x, 3.x e 4 non si cambiano: gli altri documenti li citano.
+- Prima di ogni blocco: **a cosa serve**, **quando**, se **costa**; per i blocchi lunghi anche
+  cosa fa passo per passo.
 - Blocchi PowerShell da copiare così come sono, senza niente da cambiare; ognuno comincia con
-  `$env:UV_PYTHON = "3.14"` (tranne quelli di solo git).
+  `$env:UV_PYTHON = "3.14"` (tranne quelli di solo git o solo apertura di file).
 - Dopo ogni blocco: **Deve uscire** e **Manda a Claude**.
 - Se un blocco costa (Bedrock), dirlo. Per guardare un PDF senza spendere c'è
   `cycle-validation leggi` (`--pagina N` stampa il testo di una pagina).
@@ -964,8 +970,8 @@ stessa targa compare in tre righe (pagine 14, 17, 18) con funzioni diverse. Come
   colonna 31; i PDF si cercano con una parte del nome (`Get-ChildItem -Filter`), mai con il
   codice vero nel blocco.
 - Il blocco di aggiornamento toglie da solo sul PC i file che nel repository personale non ci
-  sono più (`src`, `tests`, `prompts`, `eval/casi/sintetici`, `eval/varianti` e i `.md` di
-  `docs`): un file tolto qui sparisce anche lì al primo aggiornamento, e Salvare lo registra come
+  sono più (`src`, `tests`, `prompts`, `examples`, `eval/casi/sintetici`, `eval/varianti` e i
+  `.md` di `docs`); copia anche `eval/errori-noti.yaml` (dal 24-11): un file tolto qui sparisce anche lì al primo aggiornamento, e Salvare lo registra come
   `D`. Il blocco si ferma (`FERMO`) se il download non riesce o il terminale non è nella cartella
   della v2.
 

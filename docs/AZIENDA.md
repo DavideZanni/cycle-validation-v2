@@ -230,7 +230,7 @@ istruzioni sui certificati, la libreria `chatbot_ai_sdk` dei requirements (copia
 `vendor/`) e i valori che la v1 ha nel codice (secret di ambiente, database e tabella delle
 macchine), che mette nelle righe `ENV`; copia `data/settings.yaml` in
 `config/settings.azienda.yaml`; sposta il buildspec sulla v2 (`--torna-alla-v1` lo rimette).
-Passi e controlli: `COPILOT.md`, sezione 6.
+Passi e controlli: `COPILOT.md`, sezione 4.
 
 **In locale con login e frontend (provato il 22-11-2026).** Come per la v1, da Run and Debug.
 
