@@ -57,7 +57,7 @@ from cycle_validation.golden import GoldenCase, load_cases, run_golden
 from cycle_validation.ingest.pdf import read_pdf, read_pdf_bytes
 from cycle_validation.ingest.transcribe import make_transcriber
 from cycle_validation.kb.local import load_local_knowledge
-from cycle_validation.module_kind import EJ200, detect_module_kind
+from cycle_validation.module_kind import DR, EJ200, detect_module_kind
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
 from cycle_validation.report.manuals import (
     CycleSeen,
@@ -610,11 +610,29 @@ def _read_cycles(
             continue
         try:
             pdf = read_pdf_bytes(data, pdf_path.name, limits)
-            military = detect_module_kind(pdf.text, settings.module_check) == EJ200
-            cycles[name] = from_cycle(name, parse_pvrm320(pdf), military=military)
+            kind = detect_module_kind(pdf.text, settings.module_check) or ""
+            cycles[name] = from_cycle(name, parse_pvrm320(pdf), military=kind == EJ200, kind=kind)
         except CycleValidationError:
             unread += 1
     return unread
+
+
+def _kind_label(kind: str) -> str:
+    """MOS o DR per lo schermo; una testata civile che non dice DR conta come MOS."""
+    return "DR" if kind == DR else "MOS"
+
+
+def _trial_profile(pdf: Path, settings: Settings, seen: dict[Path, str]) -> str:
+    """Il profilo di un ciclo di prova letto dalla testata (zero token): `dr` per una stampa
+    DR, altrimenti `mos`. Così un DR nella lista non si ferma con «Modulo sbagliato»."""
+    if pdf not in seen:
+        try:
+            limits = load_profile("mos", settings.paths.profiles_dir).file_limits
+            text = read_pdf_bytes(pdf.read_bytes(), pdf.name, limits).text
+            seen[pdf] = "dr" if detect_module_kind(text, settings.module_check) == DR else "mos"
+        except (CycleValidationError, OSError):
+            seen[pdf] = "mos"  # il run dirà lui cosa non va
+    return seen[pdf]
 
 
 @app.command("manuali")
@@ -832,13 +850,17 @@ def eval_choose(
             skipped["oltre il numero richiesto"] += 1
             continue
         chosen.append(name)
-        lines.append(f"{name} vero: {covered} operazioni confrontabili su {total}")
+        lines.append(
+            f"{name} vero ({_kind_label(seen.kind)}): {covered} operazioni confrontabili su {total}"
+        )
     missing = [entry for entry in known.cicli if entry not in cycles]
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(str(first[name]) for name in chosen) + "\n", encoding="utf-8")
     typer.echo(
         f"Stampe: {len(pdfs)} file, cicli letti {len(cycles)}, non letti {unread}. "
-        f"Scelti {len(chosen)}: noti {len(noted)}, veri {len(chosen) - len(noted)}."
+        f"Scelti {len(chosen)}: noti {len(noted)}, veri {len(chosen) - len(noted)}. "
+        f"Per tipo: MOS {sum(_kind_label(cycles[n].kind) == 'MOS' for n in chosen)}, "
+        f"DR {sum(_kind_label(cycles[n].kind) == 'DR' for n in chosen)}."
     )
     for line in lines:
         typer.echo(line)
@@ -963,7 +985,9 @@ def eval_trial(
         typer.Option(help="YAML degli errori noti (ripetibile). Vuoto = eval/errori-noti.yaml."),
     ] = None,
     config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
-    profile: Annotated[str, typer.Option(help="mos | dr | ej200")] = "mos",
+    profile: Annotated[
+        str, typer.Option(help="auto (MOS o DR dalla testata di ogni ciclo) | mos | dr | ej200")
+    ] = "auto",
     cartella: Annotated[Path, typer.Option(help="Cartella delle prove.")] = Path("runs/prove"),
 ) -> None:
     """Valida i cicli, li confronta con gli errori noti e scrive il report della prova
@@ -1001,6 +1025,7 @@ def eval_trial(
     reports: list[Report] = []
     scores: list[CycleScore] = []
     seen: set[str] = set()
+    profiles: dict[Path, str] = {}
     for pdf, cycle_file in entries:
         if not pdf.is_file() or (cycle_file is not None and not cycle_file.is_file()):
             typer.echo(f"File non trovato: {(cycle_file or pdf).name}")
@@ -1012,10 +1037,11 @@ def eval_trial(
         seen.add(fingerprint)
         out = folder / fingerprint
         extractor = FileCycleExtractor(cycle_file) if cycle_file is not None else None
+        chosen = _trial_profile(pdf, settings, profiles) if profile == "auto" else profile
         try:
             deps = build_dependencies(
                 settings,
-                profile,
+                chosen,
                 kb_dir=knowledge,
                 machines_file=None,
                 extractor=extractor,
@@ -1034,7 +1060,8 @@ def eval_trial(
             typer.echo(f"{fingerprint} mai visto: {'trovato' if score.found else 'mancato'}")
             continue
         typer.echo(
-            f"{fingerprint} {score.kind}: trovati {', '.join(f.op for f in score.found) or '-'}"
+            f"{fingerprint} {score.kind} ({chosen.upper()}): trovati "
+            f"{', '.join(f.op for f in score.found) or '-'}"
             f" · mancati {', '.join(m.op for m in score.missed) or '-'}"
             f" · ERRATO in più {', '.join(f.op for f in score.extra) or '-'}"
         )

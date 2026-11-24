@@ -309,3 +309,26 @@ def test_every_variant_file_loads() -> None:
     for path in sorted(Path("eval/varianti").glob("*.yaml")):
         variant = load_variant(path)
         assert variant.name == path.stem
+
+
+def test_trials_pick_mos_or_dr_from_the_header(tmp_path: Path) -> None:
+    """Il 24-11 nell'insieme grande potevano esserci stampe DR: con il profilo MOS si sarebbero
+    fermate con «Modulo sbagliato» e la regola avrebbe scartato ogni variante."""
+    from cycle_validation.config import load_settings
+
+    settings = load_settings(None)
+    mos = [page.replace("MOTORE-1/MOTORE-2", "GENX") for page in civil_pages()]
+    dr = [page.replace("TIPO CICLO : NORMALE", "TIPO CICLO : DR    ") for page in mos]
+    (tmp_path / "mos.pdf").write_bytes(build_pdf(mos))
+    (tmp_path / "dr.pdf").write_bytes(build_pdf(dr))
+    seen: dict[Path, str] = {}
+    assert cli._trial_profile(tmp_path / "mos.pdf", settings, seen) == "mos"
+    assert cli._trial_profile(tmp_path / "dr.pdf", settings, seen) == "dr"
+    assert cli._trial_profile(tmp_path / "manca.pdf", settings, seen) == "mos"
+    attesi = tmp_path / "attesi.yaml"
+    attesi.write_text("cicli: {}\n")
+    args = ["eval", "scegli", str(tmp_path), "--knowledge", str(KNOWLEDGE), "--attesi", str(attesi)]
+    result = CliRunner().invoke(cli.app, [*args, "--copertura", "0", "--out", str(tmp_path / "c")])
+    assert result.exit_code == 0, result.output
+    assert "Per tipo: MOS 1, DR 1." in result.output
+    assert " vero (DR): " in result.output and " vero (MOS): " in result.output

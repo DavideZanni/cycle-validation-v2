@@ -81,6 +81,7 @@ class CycleSeen:
     operations: list[dict[str, Any]]
     reasons: dict[int, str] = field(default_factory=dict)
     military: bool = False  # ciclo EJ200: la sua conoscenza resta su AWS, fuori dalla lista
+    kind: str = ""  # dalla testata: mos, dr, ej200, civil o vuoto (vedi `module_kind.py`)
 
 
 def from_report(name: str, report: dict[str, Any]) -> CycleSeen:
@@ -100,10 +101,14 @@ def from_report(name: str, report: dict[str, Any]) -> CycleSeen:
     )
 
 
-def from_cycle(name: str, cycle: Cycle, *, military: bool = False) -> CycleSeen:
+def from_cycle(name: str, cycle: Cycle, *, military: bool = False, kind: str = "") -> CycleSeen:
     data = cycle.model_dump()
     return CycleSeen(
-        name=name, sources=data["sources"], operations=data["operations"], military=military
+        name=name,
+        sources=data["sources"],
+        operations=data["operations"],
+        military=military,
+        kind=kind,
     )
 
 

@@ -782,6 +782,11 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   `task_inesistente` 7. Il tetto di 2 copie per ciclo si era riempito (16 × 2) e i tipi del
   codice, che servono solo come controllo, prendevano metà del posto. Cambiato: 6 copie per
   ciclo (`--per-ciclo`) e al massimo 5 per tipo del codice. Da rifare con lo stesso seme.
+- **24-11, MOS e DR nelle prove:** `eval scegli` lasciava fuori solo gli EJ200, quindi nella
+  lista potevano esserci stampe DR; `eval prova` le avrebbe lanciate tutte come MOS, fermandole
+  con «Modulo sbagliato» (ciclo non eseguito = variante scartata). Ora `eval prova` sceglie il
+  profilo ciclo per ciclo dalla testata (`--profile auto`, predefinito) e `eval scegli` scrive
+  MOS o DR accanto a ogni ciclo. A0 da rifare per vedere quanti DR ci sono.
 
 Con Bedrock Haiku 5.5 e la conoscenza di prova:
 

@@ -149,7 +149,12 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
   Deve uscire: solo `passed` (qualche `skipped` va bene), **nessun** `failed`.
 - [ ] **2. Salvare** (blocco 2.2). Salva il codice sul ramo `feature/cycle-validation-v2` del
   repository aziendale.
-- [ ] **4. Fare le copie cieche** (blocco 2.3 A1), **dopo Aggiornare** (2.1). Escono solo
+- [ ] **3. Aggiornare** (2.1), poi **rifare la scelta dei cicli veri** (2.3 A0, gratis). Il
+  programma ora scrive accanto a ogni ciclo se è **MOS** o **DR** e in fondo `Per tipo: MOS
+  ..., DR ...`. Le prove ora usano da sole il profilo giusto per ogni ciclo: prima un DR
+  nell'insieme grande si sarebbe fermato con «Modulo sbagliato» e ogni variante sarebbe stata
+  scartata.
+- [ ] **4. Fare le copie cieche** (blocco 2.3 A1), **dopo il passo 3**. Escono solo
   quante copie ci sono per tipo. Non aprire `runs\mutazioni\errori.yaml`. Il 24-11 il primo
   giro ha fatto 32 copie, ma solo 3 «numero_manuale»: Claude ha alzato il massimo di copie per
   ciclo da 2 a 6 e limitato a 5 i due tipi del codice. Si rilancia con lo stesso `$seme = 1`
@@ -445,8 +450,9 @@ $kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v 
 uv run cycle-validation eval scegli (Resolve-Path "..\..").Path --knowledge $v --quanti 0 --out runs/prove-grande/cicli.txt
 ```
 
-**Deve uscire:** `Stampe: ... Scelti N: noti 10, veri M.`, poi una riga per ogni ciclo vero e
-quanti sono rimasti fuori e perché. Una prova sul grande dura circa N volte un ciclo: se N è più
+**Deve uscire:** `Stampe: ... Scelti N: noti 10, veri M. Per tipo: MOS ..., DR ....`, poi una
+riga per ogni ciclo vero (`<impronta> vero (MOS): ...` oppure `vero (DR)`) e quanti sono
+rimasti fuori e perché. Una prova sul grande dura circa N volte un ciclo: se N è più
 di 100, manda la foto a Claude e si mette un limite (`--quanti 100`).
 
 **Manda a Claude:** la foto dello schermo.
@@ -506,8 +512,8 @@ uv run cycle-validation eval prova @cicli --nome $nome --knowledge $v --config d
 **Deve uscire:**
 
 - prima `prova «<nome>» sull'insieme <insieme>` (con `con la variante`, se c'è il file);
-- una riga per ciclo: `<impronta> errori|giusto|vero: trovati ... · mancati ... · ERRATO in più
-  ...`; per le copie cieche solo `<impronta> mai visto: trovato` oppure `mancato`;
+- una riga per ciclo: `<impronta> errori|giusto|vero (MOS|DR): trovati ... · mancati ... ·
+  ERRATO in più ...` (MOS o DR è il profilo scelto dalla testata); per le copie cieche solo `<impronta> mai visto: trovato` oppure `mancato`;
 - alla fine `Prova «...»: errori noti trovati N su M (visti ..., mai visti per il modello ...,
   per il codice ...) · falsi errori ... · costo ...` e i percorsi dei due report.
 
