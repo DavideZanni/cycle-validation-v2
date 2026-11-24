@@ -98,6 +98,9 @@ migliorie (Claude) li conosce, quindi può adattarsi a loro senza volerlo.
 - **Copie cieche** (comando `eval muta`, codice in `evaluation/blind.py`). Il programma prende i
   cicli veri e fa delle copie con **una sola** operazione cambiata, in un modo che è sicuramente
   sbagliato. Ogni copia contiene solo l'operazione cambiata, quindi costa come una operazione.
+  Da uno stesso ciclo al massimo 6 copie; dei due tipi del codice al massimo 5 copie ciascuno,
+  così il resto va ai tipi del modello (dal 24-11: prima erano 2 per ciclo, e su 16 cicli
+  uscivano solo 3 copie «numero del manuale»).
   Quali operazioni cambiare dipende da un numero chiamato **seme**: con lo stesso seme le copie
   sono sempre le stesse, con un seme nuovo sono nuove. Quando una miglioria entra nella base si
   cambia seme.

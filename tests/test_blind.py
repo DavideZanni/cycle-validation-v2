@@ -83,3 +83,28 @@ def test_the_copies_have_one_operation_and_the_same_seed_gives_the_same_errors()
     assert {m.kind for m in first} <= set(KINDS)
     assert all(len(m.cycle.operations) == 1 for m in first)
     assert max(sum(m.source == name for m in first) for name, _ in cycles) <= 2
+
+
+def test_code_kinds_are_capped_and_the_room_goes_to_the_model_kinds() -> None:
+    kb = load_local_knowledge(KNOWLEDGE)
+    # molte operazioni con un numero in tutte e due le lingue e un codice di task
+    many = Cycle(
+        sources=[Source(manual="MAN-DEMO-72", task=TASK, repair_code="R1")],
+        operations=[
+            Operation(
+                operation_number=f"{10 * i:03d}",
+                operation_description=f"{BILINGUAL} SECONDO {TASK}",
+                repair_code="R1",
+                task_codes=[TASK],
+            )
+            for i in range(1, 9)
+        ],
+    )
+    cycles = [(f"c{i}", many) for i in range(6)]
+    found = blind_mutations(cycles, kb, count=100, seed=3, code_kind_max=2, per_cycle=8)
+    counts = {kind: sum(m.kind == kind for m in found) for kind in KINDS}
+    assert counts["numero_una_lingua"] <= 2 and counts["task_inesistente"] <= 2
+    assert counts["numero_manuale"] > 2 and counts["negazione_una_lingua"] > 2
+    assert max(sum(m.source == name for m in found) for name, _ in cycles) <= 8
+    narrow = blind_mutations(cycles, kb, count=100, seed=3, per_cycle=1)
+    assert len(narrow) == len(cycles)

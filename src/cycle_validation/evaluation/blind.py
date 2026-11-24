@@ -58,7 +58,12 @@ _ENGLISH_NOT = (
     (re.compile(r"\b(must|shall|should|is|are|can|may|will)\s+not\b", re.IGNORECASE), r"\1"),
 )
 _FULL_TASK = re.compile(r"^(\d{2}-\d{2}-\d{2}-\d{3})-(\d{3})$")
-_PER_CYCLE = 2  # copie al massimo da uno stesso ciclo vero
+# copie al massimo da uno stesso ciclo vero. Era 2: il 24-11 con 16 cicli si è fermato a 32
+# copie e solo 3 «numero_manuale», troppo poche per misurare
+PER_CYCLE = 6
+# i tipi del codice servono solo a vedere che non si rompe niente: bastano pochi, così il posto
+# va ai tipi del modello, che misurano la generalizzazione
+CODE_KIND_MAX = 5
 
 
 @dataclass(frozen=True)
@@ -230,9 +235,12 @@ def blind_mutations(
     count: int,
     seed: int,
     kinds: Sequence[str] = KINDS,
+    per_cycle: int = PER_CYCLE,
+    code_kind_max: int = CODE_KIND_MAX,
 ) -> list[Mutation]:
     """Fino a `count` copie, ognuna con un errore, a turno tra i tipi; sempre le stesse per lo
-    stesso seme e gli stessi cicli. Al massimo `_PER_CYCLE` copie da uno stesso ciclo."""
+    stesso seme e gli stessi cicli. Al massimo `per_cycle` copie da uno stesso ciclo e
+    `code_kind_max` copie per ogni tipo del codice (`CODE_KINDS`)."""
     rng = random.Random(seed)
     pairs = [(name, cycle, op) for name, cycle in cycles for op in cycle.operations]
     rng.shuffle(pairs)
@@ -240,14 +248,17 @@ def blind_mutations(
     taken: set[tuple[str, str]] = set()
     failed: set[tuple[str, str, str]] = set()  # (ciclo, operazione, tipo) che non si applica
     found: list[Mutation] = []
+    per_kind: dict[str, int] = {}
     for round_ in range(len(pairs)):
         progress = False
         for kind in kinds:
             if len(found) >= count:
                 return found
+            if kind in CODE_KINDS and per_kind.get(kind, 0) >= code_kind_max:
+                continue
             for name, cycle, operation in pairs:
                 key = (name, operation.operation_number)
-                if key in taken or (*key, kind) in failed or used.get(name, 0) >= _PER_CYCLE:
+                if key in taken or (*key, kind) in failed or used.get(name, 0) >= per_cycle:
                     continue
                 changed = mutate(cycle, operation, kind, kb, rng)
                 if changed is None or changed == operation:
@@ -255,6 +266,7 @@ def blind_mutations(
                     continue
                 taken.add(key)
                 used[name] = used.get(name, 0) + 1
+                per_kind[kind] = per_kind.get(kind, 0) + 1
                 found.append(
                     Mutation(kind, name, operation.operation_number, _alone(cycle, changed))
                 )

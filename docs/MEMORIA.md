@@ -777,6 +777,11 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   manuali o altri documenti. Scelti 23: i 10 noti e 13 veri (dalle 9 alle 21 operazioni, quasi
   tutte confrontabili). Lasciati fuori 1 EJ200 e 5 con poche operazioni confrontabili. Il
   grande è piccolo: 23 cicli, nessun limite da mettere.
+- **24-11, copie cieche (`eval muta`, seme 1, primo giro):** 16 cicli letti (13 veri e 3
+  giusti), 32 copie: `numero_una_lingua` 11, `numero_manuale` 3, `negazione_una_lingua` 11,
+  `task_inesistente` 7. Il tetto di 2 copie per ciclo si era riempito (16 × 2) e i tipi del
+  codice, che servono solo come controllo, prendevano metà del posto. Cambiato: 6 copie per
+  ciclo (`--per-ciclo`) e al massimo 5 per tipo del codice. Da rifare con lo stesso seme.
 
 Con Bedrock Haiku 5.5 e la conoscenza di prova:
 

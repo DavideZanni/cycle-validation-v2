@@ -149,8 +149,11 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
   Deve uscire: solo `passed` (qualche `skipped` va bene), **nessun** `failed`.
 - [ ] **2. Salvare** (blocco 2.2). Salva il codice sul ramo `feature/cycle-validation-v2` del
   repository aziendale.
-- [ ] **4. Fare le copie cieche** (blocco 2.3 A1). Escono solo quante copie ci sono per tipo.
-  Non aprire `runs\mutazioni\errori.yaml`.
+- [ ] **4. Fare le copie cieche** (blocco 2.3 A1), **dopo Aggiornare** (2.1). Escono solo
+  quante copie ci sono per tipo. Non aprire `runs\mutazioni\errori.yaml`. Il 24-11 il primo
+  giro ha fatto 32 copie, ma solo 3 «numero_manuale»: Claude ha alzato il massimo di copie per
+  ciclo da 2 a 6 e limitato a 5 i due tipi del codice. Si rilancia con lo stesso `$seme = 1`
+  (nessuna prova è ancora stata fatta su quelle copie).
 - [ ] **5. Gruppo nascosto** (facoltativo, blocco 2.3 N). Prima del passo 6 dì a Claude se lo
   fai: cambia l'insieme piccolo.
 
@@ -467,7 +470,9 @@ uv run cycle-validation eval muta --lista runs/prove-grande/cicli.txt --knowledg
 
 **Deve uscire:** `Cicli veri letti: ... Copie con un errore cieco: N su 100 chieste, seme 1.` e
 quante copie ci sono per tipo (`numero_una_lingua`, `numero_manuale`, `negazione_una_lingua`,
-`task_inesistente`).
+`task_inesistente`). N può essere meno di 100: si fanno solo dai cicli veri e dalle stampe
+giuste (16 il 24-11), al massimo 6 per ciclo. I due tipi del codice (`numero_una_lingua`,
+`task_inesistente`) arrivano al massimo a 5 ciascuno: è voluto.
 
 **Non aprire** `runs\mutazioni\errori.yaml`. **Manda a Claude:** la foto dello schermo (solo i
 conteggi).

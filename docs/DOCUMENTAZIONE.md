@@ -797,7 +797,7 @@ opzioni.
 | Comando | Cosa fa | Costa |
 |---|---|---|
 | `eval scegli <cartelle>` | sceglie i cicli: prima quelli noti, poi i veri civili con almeno l'80% di operazioni confrontabili (`--copertura`), fino a `--quanti` (0 = tutti) | no |
-| `eval muta` | fa le copie cieche: `--lista`, `--knowledge`, `--quanti`, `--seme` | no |
+| `eval muta` | fa le copie cieche: `--lista`, `--knowledge`, `--quanti`, `--seme`, `--per-ciclo` (6) | no |
 | `eval prova [pdf]…` | valida, confronta con gli errori noti, scrive `prestazioni.md` e `riepilogo.md`. `--nome`, `--variante`, `--lista` (ripetibile), `--attesi` (ripetibile), `--cartella` | sì |
 | `eval riepilogo` | riscrive `riepilogo.md` della cartella | no |
 
@@ -856,8 +856,9 @@ simula guasti e **regge** se nessun guasto diventa ERRATO. Dettagli in `AZIENDA.
   «impararli a memoria»;
 - **mai visti**: misurano se la v2 **generalizza**:
   - **copie cieche** (`eval muta`): da ogni ciclo vero il programma fa copie con **una sola**
-    operazione cambiata, al massimo 2 copie per ciclo, sempre le stesse per lo stesso seme. I
-    tipi:
+    operazione cambiata, al massimo 6 copie per ciclo (`--per-ciclo`; erano 2 fino al 24-11),
+    sempre le stesse per lo stesso seme. I tipi «codice» si fermano a 5 copie ciascuno
+    (`CODE_KIND_MAX`): il resto del posto va ai tipi «modello». I tipi:
 
     | Tipo | Cosa cambia | Chi lo deve trovare |
     |---|---|---|

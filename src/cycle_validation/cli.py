@@ -27,6 +27,7 @@ from cycle_validation.domain.report import Report
 from cycle_validation.errors import CycleValidationError
 from cycle_validation.evaluation.blind import DESCRIPTIONS as BLIND_DESCRIPTIONS
 from cycle_validation.evaluation.blind import KINDS as BLIND_KINDS
+from cycle_validation.evaluation.blind import PER_CYCLE as BLIND_PER_CYCLE
 from cycle_validation.evaluation.blind import blind_mutations
 from cycle_validation.evaluation.draft import draft_case
 from cycle_validation.evaluation.leaderboard import build_leaderboard, render_leaderboard
@@ -866,6 +867,9 @@ def eval_blind(
     knowledge: Annotated[Path, typer.Option(help="Versione della conoscenza (cartella).")],
     quanti: Annotated[int, typer.Option(help="Copie con un errore cieco.")] = 60,
     seme: Annotated[int, typer.Option(help="Seme: un seme nuovo dà errori nuovi.")] = 1,
+    per_ciclo: Annotated[
+        int, typer.Option(help="Copie al massimo da uno stesso ciclo vero.")
+    ] = BLIND_PER_CYCLE,
     attesi: Annotated[Path, typer.Option(help="YAML degli errori noti.")] = Path(
         "eval/errori-noti.yaml"
     ),
@@ -905,7 +909,7 @@ def eval_blind(
             pdf_of[name] = pdf_path
         except (CycleValidationError, OSError):
             skipped += 1
-    mutations = blind_mutations(cycles, kb, count=quanti, seed=seme)
+    mutations = blind_mutations(cycles, kb, count=quanti, seed=seme, per_cycle=per_ciclo)
     out.mkdir(parents=True, exist_ok=True)
     errors: dict[str, Any] = {}
     lines: list[str] = []
