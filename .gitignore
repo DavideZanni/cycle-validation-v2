@@ -1,5 +1,11 @@
+# Cartella docs: in git entra solo DOCUMENTAZIONE.md.
+# (AZIENDA, COPILOT, MEMORIA e MIGLIORIE erano già in git e restano seguiti:
+#  la regola vale per i file nuovi; per toglierli serve git rm --cached.)
+# Dentro ci sono anche esempi reali, foto e materiale di lavoro: mai in git.
+docs/*
+!docs/DOCUMENTAZIONE.md
+
 # Materiale aziendale: mai in git
-docs/doc_lavoro/
 data/
 runs/
 .env
@@ -12,16 +18,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-# Esempi di input reali (scansioni aziendali)
-docs/Esempio ciclo mos/
-docs/Esempio EJ200/
-# qualunque altra cartella di esempi (per esempio "docs/Esempio ciclo DR/")
-docs/Esempio*/
-
 # Esperimenti: risultati grezzi e casi veri restano sulla macchina che li produce
 eval/risultati/
 eval/casi/aziendali/
 eval/casi/mutazioni/
-
-# Foto del piano dell'indice (dal PC aziendale)
-docs/Indice/

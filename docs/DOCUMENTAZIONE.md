@@ -950,7 +950,9 @@ I passi da fare sono in `COPILOT.md`, sezione 4.
   Negli esempi valori inventati. Si possono scrivere: capitoli, sezioni e task (`72-56-32`),
   impronte dei PDF.
 - **Dati veri solo in cartelle che git ignora:** `data/`, `runs/`, `eval/casi/aziendali/`,
-  `eval/casi/mutazioni/`, `eval/risultati/`, `docs/Esempio*/`, `docs/doc_lavoro/`, `.env`.
+  `eval/casi/mutazioni/`, `eval/risultati/`, `.env`, e tutta `docs/` tranne
+  `DOCUMENTAZIONE.md` (esempi, foto, materiale di lavoro). Gli altri quattro file di `docs/`
+  erano già in git e restano seguiti: la regola vale per i file nuovi.
 - **Nelle foto** possono comparire bucket, codici, percorsi con la matricola: Claude non li
   ripete. `report.md` non si manda (contiene i testi dei manuali).
 - **Nei log e negli errori** del programma: mai valori di secret, mai testo del ciclo o dei
