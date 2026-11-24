@@ -165,7 +165,7 @@ risponde se va bene. Se esce qualcosa di strano, **fermati** e manda la foto
 
 ---
 
-**⬜ Passo 1 · Aggiornare il codice** · gratis · 2 minuti
+**✅ Passo 1 · Aggiornare il codice** · gratis · 2 minuti
 
 Porta sul PC l'ultima versione e lancia i test.
 
@@ -175,7 +175,7 @@ Porta sul PC l'ultima versione e lancia i test.
 
 ---
 
-**⬜ Passo 2 · Azzerare le prove vecchie** · gratis · **questa volta serve**
+**✅ Passo 2 · Azzerare le prove vecchie** · gratis · **questa volta serve**
 
 Le prove del 24-11 sono state fatte con le copie cieche vecchie: non si possono confrontare con
 quelle nuove. I loro numeri restano scritti in `MEMORIA.md` e in `MIGLIORIE.md`.
@@ -188,7 +188,9 @@ quelle nuove. I loro numeri restano scritti in `MEMORIA.md` e in `MIGLIORIE.md`.
 
 ---
 
-**⬜ Passo 3 · Le copie cieche nuove** · gratis · 1 minuto
+**✅ Passo 3 · Le copie cieche nuove** · gratis · 1 minuto
+
+*Fatto il 24-11 sera: 41 copie, sei tipi (31 per il modello, 10 per il codice).*
 
 Rifà le copie cieche con i due tipi nuovi (negazione tolta in tutte e due le lingue, limite
 invertito). Lascia `$seme = 1`.
@@ -210,7 +212,9 @@ uv run cycle-validation eval muta --lista runs/prove-grande/cicli.txt --knowledg
 
 ---
 
-**⬜ Passo 4 · Il piano** · gratis · 1 minuto
+**✅ Passo 4 · Il piano** · gratis · 1 minuto
+
+*Fatto il 24-11 sera: piccolo 51 cicli e copie, grande 23; tutto `2 da fare`.*
 
 Dice cosa farà la campagna, senza lanciare niente.
 
@@ -227,7 +231,7 @@ uv run cycle-validation eval campagna --piano
 
 ---
 
-**⬜ Passo 5 · La campagna** · costa al massimo 60 $ · **alcune ore**
+**👉 Passo 5 · La campagna** · costa al massimo 60 $ · **alcune ore**
 
 Lancia da sola tutte le prove. Haiku e Sonnet girano **insieme, in due terminali**: così ci
 vuole il tempo di Sonnet (il più lento), non la somma dei due. Haiku costa circa 6 $; Sonnet

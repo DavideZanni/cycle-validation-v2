@@ -1013,6 +1013,11 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   dal piccolo (farebbe solo la base) e due terminali dello stesso modello si dividono la quota
   AWS (WARNING per errore tecnico, numeri falsati). Sistemato comunque: report con anche
   l'insieme nel nome, `prova.json` scritto e poi rinominato, prove illeggibili saltate.
+- 24-11 sera, passi 1–4 fatti. Copie cieche nuove (seme 1): 41 su 100 chieste, sei tipi:
+  numero_una_lingua 5, numero_manuale 3, negazione_una_lingua 9, task_inesistente 5,
+  negazione_due_lingue 9, limite_invertito 10 (mai visti per il modello 31, del codice 10;
+  prima 21 e 10). Piano: piccolo 51 cicli e copie, grande 23, tutto `2 da fare`, grande solo
+  base (dipende dal piccolo). Sonnet sul piccolo potrebbe stare vicino al tetto di 50 $.
 - **`.gitignore` di `docs/` (24-11-2026):** in git entra solo `DOCUMENTAZIONE.md`; gli altri
   quattro file erano già seguiti e restano (servono al blocco Aggiornare e alla memoria).
 
