@@ -174,6 +174,14 @@ La base è la v2 di oggi, senza modifiche. Tutte le migliorie si confrontano con
   **Aggiornare** (2.1), che aggiunge al report una colonna sui mancati mai visti.
 - [ ] **6b.** Apri il report della seconda prova (blocco 2.3 B) e manda a Claude la foto della
   tabella **«Errori mai visti, per tipo»** (solo conteggi: si può fotografare).
+- [ ] **6c. Prova di diagnosi con Sonnet** (dopo 6b): blocco 2.3 A con `$nome = "sonnet"` e
+  `$insieme = "piccolo"`, **due volte**. Costa circa 10 volte la base (circa 1,5-2 $ a prova).
+  Serve a capire se gli errori mai visti mancati dipendono dal modello (Sonnet li trova) o dal
+  modo di chiedere (li manca anche lui). Nel riepilogo uscirà «scartata» per il costo: è
+  previsto, contano le righe «mai visti». Se esce un errore sul modello (`model`,
+  `ValidationException`, `not found`), chiedi a Copilot: «Rispondi solo leggendo, senza
+  modificare: quali profili di inferenza Claude Sonnet ci sono su Bedrock in eu-south-1? Dammi
+  il comando aws da lanciare» e manda a Claude l'id che esce.
 - [ ] **7.** Blocco 2.3 A con `$nome = "base"` e `$insieme = "grande"`, **due volte**. Durano a
   lungo: si possono lasciare girare.
 - [ ] **8. Riepilogo** (blocco 2.3 C), per il piccolo e per il grande: foto delle tabelle.

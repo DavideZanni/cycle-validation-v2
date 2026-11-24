@@ -226,8 +226,11 @@ Per ognuna: due prove sul piccolo con `$nome` = il nome; se si tiene, due sul gr
 | `prompt_task_mancante` | se il task citato manca nel manuale, il modello giudica lo stesso (A2) invece di dare subito WARNING (B6) | operazioni che oggi escono `FONTE_ASSENTE` | falsi errori, costo |
 | `concorrenza_12` | 12 operazioni controllate insieme invece di 6 (B4) | solo il tempo | limiti di Bedrock: cicli non eseguiti |
 
-`sonnet` (un modello più grande) **non ora**: costa circa 10 volte per ciclo (la regola scarta
-sopra 2 volte) e serve il codice di Sonnet abilitato su Bedrock.
+`sonnet` (un modello più grande) **solo come diagnosi** (dal 24-11, COPILOT passo 6c): costa
+circa 10 volte per ciclo, quindi la regola la scarta (sopra 2 volte), ma dice se gli errori mai
+visti mancati dipendono dal modello o dal modo di chiedere. Se Sonnet li trova, una miglioria
+possibile è usarlo solo sulle operazioni dubbie; se li manca anche lui, si lavora su prompt e
+controlli. Su Bedrock c'è Sonnet 5.5 (`eu.anthropic.claude-sonnet-5-5`, stesso schema di Haiku).
 
 ### 7.3 Con codice nuovo (lo scrive Claude; la variante lo accende, la base non cambia)
 
