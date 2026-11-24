@@ -3,6 +3,9 @@
 # operazione e descrizioni generiche. Si usa con `cycle-validation eval prova` (COPILOT sezione 3).
 # Gli errori dei quattro cicli senza stampa giusta conosciuta sono quelli trovati dal controllo
 # delle due lingue il 23-11: da confermare con chi ha preparato le stampe.
+# `in_attesa` (operazione → che cosa aspetta): l'operazione oggi non si può giudicare. Un errore
+# noto lì non conta come mancato (24-11: si trova solo con un documento che non c'è o con una
+# regola da chiedere); un ERRATO lì non conta come falso errore.
 cicli:
   298bc28e:
     errori:
@@ -12,12 +15,16 @@ cicli:
     errori:
       "030": scheda tolta
       "040": un numero cambiato (spessore)
+    in_attesa:
+      "030": "domanda P6: quando un'operazione deve avere per forza una scheda"
   f355dc3c:
     errori:
       "010": tre numeri cambiati
       "030": numeri e parole cambiati
       "040": una lettera cambiata (la classe)
       "050": una frase sostituita (dice il contrario)
+    in_attesa:
+      "040": "documento non nella conoscenza (capitolo 70-23 dell'SPM o manuale d'ispezione)"
   38960731:
     errori:
       "050": un numero cambiato (solo in una lingua)

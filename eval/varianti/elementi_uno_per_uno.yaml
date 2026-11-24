@@ -1,0 +1,7 @@
+nome: elementi_uno_per_uno
+descrizione: il modello scompone la descrizione in elementi tecnici (lavorazione, valori, limiti, divieti, materiali) e li confronta con il manuale uno per uno
+ipotesi: "oggi il prompt dice che conta il contenuto tecnico e le parole possono essere diverse: il modello giudica a colpo d'occhio e lascia passare un limite invertito, un divieto tolto, una parola cambiata"
+atteso: "più errori mai visti per il modello (limiti invertiti, negazioni tolte in tutte e due le lingue) e forse il visto «parole cambiate»; falsi errori sempre 0; costo un po' più alto"
+base: baseline
+agent:
+  itemized_check: true

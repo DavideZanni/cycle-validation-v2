@@ -60,6 +60,10 @@ class AgentSettings(_Strict):
     # l'inglese separatamente; se una sola delle due dice altro, è una contraddizione. Variante
     # `lingue_separate` (24-11-2026): la base, spenta, mancava 18 negazioni tolte su 21.
     separate_languages: bool = False
+    # Prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione,
+    # valori, limiti, divieti, materiali) e li controlla uno per uno. Variante
+    # `elementi_uno_per_uno` (24-11-2026).
+    itemized_check: bool = False
     # Una contraddizione (ERRATO) si conferma con altrettante sessioni uguali: resta ERRATO
     # solo se la ritrovano tutte, altrimenti WARNING GIUDIZIO_INSTABILE. Su un ciclo DR vero
     # lo stesso confronto dava ERRATO 3 volte su 6 (21-11-2026). Costa solo sugli ERRATO.

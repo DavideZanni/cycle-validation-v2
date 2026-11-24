@@ -31,6 +31,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from cycle_validation.errors import ConfigError
 from cycle_validation.evaluation.trials import (
     BASE_NAME,
+    WARNING_MEANING,
     Trial,
     Variant,
     best_variant,
@@ -197,6 +198,7 @@ def render_campaign(
     if len(models) > 1:
         lines += _compare(tables, models, config.insiemi)
     lines += _unseen_section(runs, models, order)
+    lines += _warning_section(runs, models, order)
     lines += [
         "Dettagli di ogni insieme: `riepilogo.md` nella sua cartella. Le considerazioni le scrive "
         "Claude nel registro di `docs/MIGLIORIE.md`.",
@@ -274,3 +276,22 @@ def _unseen_section(runs: Path, models: Sequence[str], order: Sequence[str]) -> 
             lines += rows
     lines += ["" if any_row else "Nessuna base sul piccolo con errori mai visti.", ""]
     return lines
+
+
+def _warning_section(runs: Path, models: Sequence[str], order: Sequence[str]) -> list[str]:
+    """Da dove vengono i WARNING dei cicli senza errori noti (ultima base, piccolo)."""
+    lines = ["## WARNING per motivo (ultima base, piccolo, per ciclo senza errori noti)", ""]
+    rows: list[str] = []
+    for model in models:
+        trial = _last_base(folder_for(order, model, "piccolo", runs))
+        if trial is None:
+            continue
+        rows += [
+            f"| {model} | `{reason}` | {per_cycle:.1f} | {WARNING_MEANING.get(reason, '-')} |"
+            for reason, per_cycle in trial.clean_warning_reasons().items()
+        ]
+    if rows:
+        lines += ["| Modello | Motivo | Per ciclo | Cosa vuol dire |", "|---|---|---|---|", *rows]
+    else:
+        lines.append("Nessuna base sul piccolo.")
+    return [*lines, ""]

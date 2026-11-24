@@ -121,6 +121,10 @@ class CycleScore(_Strict):
     extra: list[Finding] = Field(default_factory=list)
     # ERRATO su operazioni in attesa di una risposta (`KnownCycle.in_attesa`): non contano
     pending: list[Finding] = Field(default_factory=list)
+    # tutte le operazioni in attesa del ciclo (operazione → che cosa aspetta), trovate o no
+    waiting: dict[str, str] = Field(default_factory=dict)
+    # WARNING del ciclo per motivo (`Reason`, tutti i controlli): da dove viene il lavoro a mano
+    warnings: dict[str, int] = Field(default_factory=dict)
     cost_usd: float = 0.0
     tokens: int = 0
     cache_read_tokens: int = 0  # token di input riletti dalla cache (prompt caching, H10)
@@ -272,6 +276,18 @@ class Trial(_Strict):
         clean = [c for c in self.cycles if c.kind in ("giusto", "vero") and not c.failure]
         return sum(c.counts.get("warning", 0) for c in clean) / len(clean) if clean else 0.0
 
+    def clean_warning_reasons(self) -> dict[str, float]:
+        """WARNING per ciclo senza errori noti, per motivo, dal più frequente."""
+        clean = [c for c in self.cycles if c.kind in ("giusto", "vero") and not c.failure]
+        totals: dict[str, int] = {}
+        for cycle in clean:
+            for reason, count in cycle.warnings.items():
+                totals[reason] = totals.get(reason, 0) + count
+        return {
+            reason: count / len(clean)
+            for reason, count in sorted(totals.items(), key=lambda item: -item[1])
+        }
+
     @property
     def cost_per_cycle(self) -> float:
         run = [c for c in self.cycles if not c.failure]
@@ -299,11 +315,18 @@ def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = No
     fingerprint = (fingerprint or report.meta.pdf_sha256[:8]).lower()
     entry = known.cycle(fingerprint)
     kind = "vero" if entry is None else ("giusto" if entry.giusto else "errori")
-    expected = entry.errori if entry is not None else {}
     waiting = entry.in_attesa if entry is not None else {}
+    # un errore noto in attesa (documento mancante, regola da chiedere) oggi non si può trovare:
+    # resta fuori dal conto, come un ERRATO in attesa su una stampa giusta
+    expected = {
+        op: text for op, text in (entry.errori if entry else {}).items() if op not in waiting
+    }
     errato: dict[str, Finding] = {}
     said: dict[str, str] = {}
+    warnings: dict[str, int] = {}
     for result in report.results:
+        if result.verdict is Verdict.WARNING:
+            warnings[result.reason.value] = warnings.get(result.reason.value, 0) + 1
         if result.target.kind is not TargetKind.OPERATION:
             continue
         op = op_key(result.target.label)
@@ -345,6 +368,8 @@ def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = No
         cache_read_tokens=usage.cache_read_tokens,
         duration_ms=report.timings_ms.get("total", usage.wall_ms),
         seen=entry.visto if entry is not None else True,
+        waiting=dict(waiting),
+        warnings=warnings,
     )
 
 
@@ -352,7 +377,10 @@ def failed_cycle(fingerprint: str, known: KnownErrors, failure: str) -> CycleSco
     """Un ciclo che la v2 non ha validato: i suoi errori noti contano come mancati."""
     entry = known.cycle(fingerprint)
     kind = "vero" if entry is None else ("giusto" if entry.giusto else "errori")
-    expected = entry.errori if entry is not None else {}
+    waiting = entry.in_attesa if entry is not None else {}
+    expected = {
+        op: text for op, text in (entry.errori if entry else {}).items() if op not in waiting
+    }
     return CycleScore(
         fingerprint=fingerprint,
         kind=kind,
@@ -360,6 +388,7 @@ def failed_cycle(fingerprint: str, known: KnownErrors, failure: str) -> CycleSco
         missed=[Missed(op=op, known=text) for op, text in sorted(expected.items())],
         failure=_short(failure),
         seen=entry.visto if entry is not None else True,
+        waiting=dict(waiting),
     )
 
 
@@ -448,6 +477,42 @@ def unseen_answers(trial: Trial) -> dict[str, str]:
     }
 
 
+WARNING_MEANING = {
+    "TARGA_SCONOSCIUTA": "targa non trovata tra le macchine (sul PC Redshift non si raggiunge: "
+    "esce sempre)",
+    "FONTE_ASSENTE": "il manuale o il task citato non è nella conoscenza",
+    "EVIDENZA_NON_TROVATA": "il modello non ha trovato nel testo la frase che decide",
+    "GIUDIZIO_INSTABILE": "un ERRATO non confermato dalle sessioni di conferma",
+    "CITAZIONE_NON_VERIFICATA": "la citazione del modello non è nel file",
+    "DATO_INCERTO": "voce incerta nell'indice della conoscenza",
+    "RIFERIMENTO_AMBIGUO": "il riferimento porta a più documenti",
+    "VERSIONE_DIVERSA": "il ciclo cita una revisione diversa del manuale",
+    "ESTRAZIONE_NON_CONFERMATA": "il valore letto non compare nel PDF",
+    "ERRORE_TECNICO": "un servizio non ha risposto",
+    "BUDGET_ESAURITO": "la sessione ha finito i passi o il tempo",
+    "DR_NON_VERIFICATA": "DR senza serial number o condition",
+}
+
+
+def _render_warnings(trial: Trial) -> list[str]:
+    """Da dove vengono i WARNING sui cicli senza errori noti: dice quali si tolgono con la
+    conoscenza (manuali), quali sono del PC (targhe) e quali sono dubbi del modello."""
+    reasons = trial.clean_warning_reasons()
+    if not reasons:
+        return []
+    return [
+        "## WARNING per motivo (cicli senza errori noti)",
+        "",
+        "| Motivo | Per ciclo | Cosa vuol dire |",
+        "|---|---|---|",
+        *(
+            f"| `{reason}` | {per_cycle:.1f} | {WARNING_MEANING.get(reason, '-')} |"
+            for reason, per_cycle in reasons.items()
+        ),
+        "",
+    ]
+
+
 def _render_proposal(proposal: Proposal) -> list[str]:
     """La proposta in cima al report: così risultati e motivo della prova stanno insieme."""
     if not proposal:
@@ -487,18 +552,24 @@ def render_trial(trial: Trial) -> str:
         *_render_proposal(trial.proposal),
         "## Punteggio",
         "",
-        "| Misura | Valore |",
-        "|---|---|",
-        f"| Errori noti trovati | **{trial.known_found} su {trial.known_total}** "
-        f"({_percent(trial.known_found, trial.known_total)}) |",
-        f"| … visti (la lista che si conosce) | {trial.seen_found} su {trial.seen_total} "
-        f"({_percent(trial.seen_found, trial.seen_total)}) |",
-        f"| … **mai visti per il modello** (generalizzazione) | **{trial.unseen_found} su "
-        f"{trial.unseen_total}** ({_percent(trial.unseen_found, trial.unseen_total)}) |",
-        f"| … mai visti per il codice (solo controllo che non si rompe niente) | "
-        f"{trial.code_unseen_found} su {trial.code_unseen_total} "
-        f"({_percent(trial.code_unseen_found, trial.code_unseen_total)}) |",
-        f"| Falsi errori nei cicli giusti | **{trial.false_errors}** |",
+        "Tre numeri da leggere separati: non si sommano, misurano cose diverse.",
+        "",
+        "| Misura | Valore | Cosa dice |",
+        "|---|---|---|",
+        f"| **Errori visti trovati** | **{trial.seen_found} su {trial.seen_total}** "
+        f"({_percent(trial.seen_found, trial.seen_total)}) | gli errori noti che oggi si "
+        "possono trovare (quelli in attesa sono a parte) |",
+        f"| **Errori mai visti trovati (modello)** | **{trial.unseen_found} su "
+        f"{trial.unseen_total}** ({_percent(trial.unseen_found, trial.unseen_total)}) | "
+        "errori che nessuno ha usato per scrivere le migliorie: se la v2 **generalizza** |",
+        f"| **Falsi errori nei cicli giusti** | **{trial.false_errors}** | ERRATO su una stampa "
+        "senza errori: deve essere 0 |",
+        f"| Controlli del codice | {trial.code_unseen_found} su {trial.code_unseen_total} "
+        f"({_percent(trial.code_unseen_found, trial.code_unseen_total)}) | copie cieche che il "
+        "codice trova con la stessa regola che le ha fatte: solo un controllo che non si rompe "
+        "niente |",
+        f"| Tutti insieme | {trial.known_found} su {trial.known_total} | solo per contare: "
+        "mescola cose diverse |",
         f"| ERRATO in attesa di una risposta delle persone (non contano) | "
         f"{trial.pending_errors} |",
         f"| ERRATO da verificare (fuori lista; nei {trial.real_cycles} cicli veri: "
@@ -516,6 +587,7 @@ def render_trial(trial: Trial) -> str:
         + " |",
         f"| Tempo totale | {_seconds(trial.duration_ms)} |",
         "",
+        *_render_warnings(trial),
     ]
     reasons: dict[str, int] = {}
     for cycle in trial.cycles:
@@ -819,8 +891,9 @@ def render_summary(trials: Sequence[Trial]) -> str:
         "## Scelta migliore",
         "",
         (
-            f"**«{best.name}»**: {best.stable} errori noti trovati in tutte le "
-            f"{best.repetitions} prove (su {best.known_total}), 0 falsi errori, "
+            f"**«{best.name}»**: {best.stable} errori trovati in tutte le "
+            f"{best.repetitions} prove (su {best.known_total}; mai visti per il modello "
+            f"{best.unseen_stable} su {best.unseen_total}), 0 falsi errori, "
             f"{best.cost_per_cycle:.4f} $ e {_seconds(best.mean_ms)} per ciclo."
             if best is not None
             else "Nessuna variante valida: mancano ripetizioni o ci sono falsi errori."
@@ -903,21 +976,32 @@ def render_summary(trials: Sequence[Trial]) -> str:
     header = (
         "| Ciclo | Op | Errore | "
         + " | ".join(f"{i + 1}" for i in range(len(trials)))
-        + " | Trovato in |"
+        + " | Trovato in | Ultimo esito |"
     )
     lines += [
-        "Colonne numerate come le prove della tabella sopra (1 = la più vecchia).",
+        "Colonne numerate come le prove della tabella sopra (1 = la più vecchia). «Ultimo "
+        "esito»: che cosa ha detto la v2 su quell'operazione nell'ultima prova (solo esito e "
+        "motivo): dice perché un errore viene mancato.",
         "",
         header,
-        "|---|---|---|" + "---|" * len(trials) + "---|",
+        "|---|---|---|" + "---|" * len(trials) + "---|---|",
     ]
+    last_said: dict[tuple[str, str], str] = {}
+    for cycle in trials[-1].cycles:
+        for finding in cycle.found:
+            last_said[(cycle.fingerprint, finding.op)] = f"ERRATO {finding.reason}"
+        for missed in cycle.missed:
+            said = missed.said.split(":", 1)[0].strip()
+            last_said[(cycle.fingerprint, missed.op)] = said or (
+                "ciclo non eseguito" if cycle.failure else "nessun esito"
+            )
     found_sets = [trial.found_ops() - trial.unseen_ops() for trial in trials]
     for (fingerprint, op), text in sorted(known.items()):
         marks = ["✓" if (fingerprint, op) in found else "·" for found in found_sets]
         count = marks.count("✓")
         lines.append(
             f"| {fingerprint} | {op} | {_cell(text)} | " + " | ".join(marks) + f" | "
-            f"{count} su {len(trials)} |"
+            f"{count} su {len(trials)} | {last_said.get((fingerprint, op), '-')} |"
         )
     false_rows = [
         (trial, cycle, finding)
@@ -937,17 +1021,25 @@ def render_summary(trials: Sequence[Trial]) -> str:
         lines.append("Nessuno.")
     pending = sorted(
         {(c.fingerprint, f.op, f.known or "") for t in trials for c in t.cycles for f in c.pending}
+        | {
+            (c.fingerprint, op, why)
+            for t in trials
+            for c in t.cycles
+            for op, why in c.waiting.items()
+        }
     )
     lines += [
         "",
         "## In attesa di una risposta",
         "",
-        "Operazioni il cui esito giusto aspetta una domanda alle persone (`in_attesa` negli "
-        "errori noti): un ERRATO lì non conta né come trovato né come falso errore.",
+        "Operazioni che oggi non si possono giudicare (`in_attesa` negli errori noti): l'esito "
+        "giusto aspetta una domanda alle persone, oppure l'errore noto si trova solo con un "
+        "documento che non è nella conoscenza. Un ERRATO lì non conta né come trovato né come "
+        "falso errore, e un errore noto lì non conta come mancato.",
         "",
     ]
     if pending:
-        lines += ["| Ciclo | Op | Domanda | Prove con ERRATO |", "|---|---|---|---|"]
+        lines += ["| Ciclo | Op | Che cosa aspetta | Prove con ERRATO |", "|---|---|---|---|"]
         for name, op, question in pending:
             hits = sum(
                 any(f.op == op for c in t.cycles if c.fingerprint == name for f in c.pending)

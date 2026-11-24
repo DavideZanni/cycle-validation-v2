@@ -830,6 +830,21 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   (`agent.separate_languages`), aggiunta alla campagna; la base non cambia, quindi le 13 prove
   restano valide. `numeri_manuale` rimandata: troverebbe le copie «numero del manuale» per
   costruzione (vedi MIGLIORIE 7.3).
+- **24-11 sera, rianalisi da capo (richiesta dell'utente: «metriche molto basse»).** Cosa non
+  andava e cosa è cambiato:
+  1. il numero in evidenza («19 su 43, 44%») sommava cose diverse (visti, mai visti per il
+     modello, controlli del codice): ora il report e la riga finale danno separati visti, mai
+     visti per il modello, falsi errori; il totale solo per ultimo;
+  2. 2 errori visti oggi non si possono trovare (c5ff3cd6 030 = P6; f355dc3c 040 = documento
+     mancante): ora sono `in_attesa` e fuori dal conto. Visti contati: 10 (la base ne trova 8;
+     mancati sempre 298bc28e 035 e f355dc3c 010);
+  3. i mai visti per il modello erano 21, 18 dello stesso tipo: due tipi nuovi di copie
+     cieche, `negazione_due_lingue` e `limite_invertito` (si vedono solo con il manuale);
+  4. i 14 WARNING per ciclo non si sapeva da dove venissero: ora il report li conta per motivo;
+  5. per i visti mancati il riepilogo dà l'ultimo esito (solo esito e motivo);
+  6. due migliorie sul metodo: `lingue_separate` e `elementi_uno_per_uno`;
+  7. domanda nuova P9: 5ff17062 op. 050, ERRATO in tutte le prove ma non nella lista.
+  Le copie cieche cambiano: si azzera e si rifà tutto (COPILOT, tappa 2).
 
 Con Bedrock Haiku 5.5 e la conoscenza di prova:
 

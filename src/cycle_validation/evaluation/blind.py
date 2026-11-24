@@ -37,7 +37,16 @@ from cycle_validation.resolve.civil import (
 )
 from cycle_validation.text import normalize_code
 
-KINDS = ("numero_una_lingua", "numero_manuale", "negazione_una_lingua", "task_inesistente")
+KINDS = (
+    "numero_una_lingua",
+    "numero_manuale",
+    "negazione_una_lingua",
+    "task_inesistente",
+    # dal 24-11: errori in tutte e due le lingue, che si vedono solo confrontando con il
+    # manuale (le due lingue restano d'accordo tra loro)
+    "negazione_due_lingue",
+    "limite_invertito",
+)
 # chi deve trovare ogni tipo: il codice (`INCOERENZA_LINGUE`, `TASK_INESISTENTE`) li trova con
 # la stessa regola che li ha messi, quindi non dicono se la v2 generalizza; solo i tipi del
 # modello (e il gruppo nascosto) lo dicono
@@ -48,7 +57,26 @@ DESCRIPTIONS = {
     "numero_manuale": "un numero del manuale cambiato in tutte e due le lingue",
     "negazione_una_lingua": "una negazione tolta in una lingua sola",
     "task_inesistente": "un codice di task che non esiste",
+    "negazione_due_lingue": "una negazione tolta in tutte e due le lingue",
+    "limite_invertito": "un limite invertito (minimo/massimo) in tutte e due le lingue",
 }
+# coppie di parole di limite: si scambia la prima trovata, nelle due lingue
+_ITALIAN_LIMITS = (
+    ("al massimo", "almeno"),
+    ("almeno", "al massimo"),
+    ("massimo", "minimo"),
+    ("minimo", "massimo"),
+    ("max", "min"),
+    ("min", "max"),
+)
+_ENGLISH_LIMITS = (
+    ("at most", "at least"),
+    ("at least", "at most"),
+    ("maximum", "minimum"),
+    ("minimum", "maximum"),
+    ("max", "min"),
+    ("min", "max"),
+)
 # un numero a sé: non attaccato a lettere, trattini (codici e sezioni), barre o altre cifre
 _NUMBER = re.compile(r"(?<![\w.,/-])\d+(?:[.,]\d+)?(?![\w/-]|[.,]\d)")
 _LIST_MARKER = re.compile(r"^\s*(?:[-*#>]+\s*)*\(?\d+[.)]\s+")
@@ -194,6 +222,49 @@ def _one_language_negation(operation: Operation, rng: random.Random) -> Operatio
     return _with(operation, operation_description=_description(italian, english))
 
 
+def _both_languages_negation(operation: Operation) -> Operation | None:
+    parts = language_parts(operation.operation_description)
+    if parts is None:
+        return None
+    italian, english = parts
+    english_hits = [(p, r) for p, r in _ENGLISH_NOT if p.search(english)]
+    if not _ITALIAN_NOT.search(italian) or not english_hits:
+        return None
+    pattern, replacement = english_hits[0]
+    return _with(
+        operation,
+        operation_description=_description(
+            _ITALIAN_NOT.sub("", italian, count=1), pattern.sub(replacement, english, count=1)
+        ),
+    )
+
+
+def _swap_limit(text: str, pairs: Sequence[tuple[str, str]]) -> str | None:
+    """Il testo con la prima parola di limite scambiata (stesse maiuscole), o None."""
+    found: list[tuple[int, re.Match[str], str]] = []
+    for word, other in pairs:
+        match = re.search(rf"(?<![\w.]){re.escape(word)}(?![\w])", text, re.IGNORECASE)
+        if match:
+            found.append((match.start(), match, other))
+    if not found:
+        return None
+    _, match, other = min(found, key=lambda item: (item[0], -len(item[1].group())))
+    original = match.group()
+    new = other.upper() if original.isupper() else other
+    return text[: match.start()] + new + text[match.end() :]
+
+
+def _inverted_limit(operation: Operation) -> Operation | None:
+    parts = language_parts(operation.operation_description)
+    if parts is None:
+        return None
+    italian = _swap_limit(parts[0], _ITALIAN_LIMITS)
+    english = _swap_limit(parts[1], _ENGLISH_LIMITS)
+    if italian is None or english is None:
+        return None
+    return _with(operation, operation_description=_description(italian, english))
+
+
 def _missing_task(cycle: Cycle, operation: Operation, kb: KnowledgeBase) -> Operation | None:
     manuals = manuals_for_operation(cycle, operation)
     for task in operation.task_codes:
@@ -223,6 +294,10 @@ def mutate(
             return _one_language_negation(operation, rng)
         if kind == "task_inesistente":
             return _missing_task(cycle, operation, kb)
+        if kind == "negazione_due_lingue":
+            return _both_languages_negation(operation)
+        if kind == "limite_invertito":
+            return _inverted_limit(operation)
     except CycleValidationError:
         return None  # documento non leggibile: si salta
     raise ValueError(f"tipo di mutazione sconosciuto: {kind}")

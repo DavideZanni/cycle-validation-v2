@@ -83,12 +83,25 @@ LANGUAGES_NOTE = (
 )
 
 
+ITEMS_NOTE = (
+    "Prima di giudicare, scomponi la descrizione nei suoi elementi tecnici: la lavorazione, "
+    "ogni valore con la sua unità, ogni limite (minimo, massimo, almeno, al massimo), ogni "
+    "divieto o negazione, i materiali e gli attrezzi. Per **ognuno** cerca nel testo di "
+    "riferimento che cosa dice. Se anche un solo elemento è incompatibile con il testo (un "
+    "valore diverso, un limite invertito, un divieto diventato un permesso o il contrario, un "
+    "materiale diverso), il giudizio è `contraddetto`: nella spiegazione scrivi quale elemento "
+    "e cita la frase che lo dimostra. Un elemento che il testo non nomina non è una "
+    "contraddizione."
+)
+
+
 def _header(
     cycle: Cycle,
     operation: Operation,
     facts: Sequence[str],
     missing_tasks: Sequence[str],
     languages: tuple[str, str] | None = None,
+    itemized: bool = False,
 ) -> list[str]:
     lines = [
         f"Operazione {operation.operation_number}",
@@ -97,6 +110,8 @@ def _header(
     if languages is not None:
         italian, english = languages
         lines += [f"Parte in italiano: {italian}", f"Parte in inglese: {english}", LANGUAGES_NOTE]
+    if itemized:
+        lines.append(ITEMS_NOTE)
     if operation.task_codes:
         lines.append(f"Task code citati: {', '.join(operation.task_codes)}")
     if missing_tasks:
@@ -131,7 +146,9 @@ def build_operation_prompt(
 ) -> str:
     """`languages`: le due parti della descrizione, se vanno giudicate separatamente
     (`AgentSettings.separate_languages`)."""
-    lines = _header(cycle, operation, facts, missing_tasks, languages)
+    lines = _header(
+        cycle, operation, facts, missing_tasks, languages, itemized=settings.itemized_check
+    )
     lines.append("")
     if inline:
         lines.append("Testo di riferimento, con il numero di riga di ciascun file:")

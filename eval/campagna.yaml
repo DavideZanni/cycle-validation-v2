@@ -12,6 +12,7 @@ varianti:
   - concorrenza_12
   # dal 24-11: migliorie sul metodo (tappa 3)
   - lingue_separate
+  - elementi_uno_per_uno
 
 # Prove per variante: almeno 2 (il modello non risponde sempre uguale).
 ripetizioni: 2
@@ -28,6 +29,6 @@ insiemi: [piccolo, grande]
 # Sul grande: se_si_tiene (base + varianti che si tengono sul piccolo), sempre, mai.
 grande: se_si_tiene
 
-# Tetto di spesa della campagna, in dollari. Stima del 24-11: Haiku circa 5 $ in tutto, Sonnet
-# circa 10 volte. Arrivata al tetto la campagna si ferma; rilanciata, riparte da dove era.
+# Tetto di spesa della campagna, in dollari. Stima del 24-11 (9 varianti): Haiku circa 6 $ in
+# tutto, Sonnet circa 10 volte. Arrivata al tetto la campagna si ferma; rilanciata, riparte da dove era.
 massimo_dollari: 60

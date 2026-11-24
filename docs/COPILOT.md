@@ -149,11 +149,15 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 | ⬜ | **5. Chiusura** | prova finale, prove dal frontend, salvare | dopo la 4 |
 | ⬜ | **6. QA** | pubblicare nell'ambiente di prova dell'azienda | alla fine |
 
-**Dove siamo in breve:** la v2 funziona sul PC. La base (Haiku, due prove uguali) trova 8 dei 12
-errori noti, con 0 falsi errori, ma solo 2 dei 21 errori «mai visti» per il modello. La campagna dice se va meglio
-con altre impostazioni o con Sonnet. I risultati di tutte le prove sono in `MEMORIA.md`.
+**Dove siamo in breve:** la v2 funziona sul PC. Il 24-11 una prima campagna (Haiku, piccolo)
+ha detto: sugli errori noti è stabile e non dà falsi errori, ma trova pochissimi errori «mai
+visti» per il modello (2 su 21), e nessuna impostazione lo migliora. Claude ha rianalizzato
+tutto e ha sistemato **come si misura** (punteggio chiaro, errori che oggi non si possono
+trovare messi a parte, più copie cieche e di tipi diversi, WARNING per motivo) e **due migliorie
+sul metodo** (`lingue_separate`, `elementi_uno_per_uno`). Per questo si **riparte da zero**: le
+copie cieche cambiano. I risultati di tutte le prove sono in `MEMORIA.md`.
 
-### 👉 Tappa 2, passo per passo
+### 👉 Tappa 2, passo per passo (si riparte il 24-11 sera)
 
 Fai un passo alla volta. Dopo ogni passo manda a Claude la foto che dice **Mandami**: Claude
 risponde se va bene. Se esce qualcosa di strano, **fermati** e manda la foto
@@ -161,7 +165,7 @@ risponde se va bene. Se esce qualcosa di strano, **fermati** e manda la foto
 
 ---
 
-**✅ Passo 1 · Aggiornare il codice** · gratis · 2 minuti · *fatto il 24-11*
+**⬜ Passo 1 · Aggiornare il codice** · gratis · 2 minuti
 
 Porta sul PC l'ultima versione e lancia i test.
 
@@ -171,10 +175,10 @@ Porta sul PC l'ultima versione e lancia i test.
 
 ---
 
-**✅ Passo 2 · Azzerare le prove vecchie** · gratis · facoltativo · *fatto il 24-11*
+**⬜ Passo 2 · Azzerare le prove vecchie** · gratis · **questa volta serve**
 
-Solo se vuoi ripartire da zero: cancella tutte le prove fatte finora. Se le vuoi tenere, salta
-questo passo (la campagna le conta e non le rifà).
+Le prove del 24-11 sono state fatte con le copie cieche vecchie: non si possono confrontare con
+quelle nuove. I loro numeri restano scritti in `MEMORIA.md` e in `MIGLIORIE.md`.
 
 - **Copia** il blocco «Azzerare tutte le prove» della sezione
   [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove).
@@ -184,7 +188,29 @@ questo passo (la campagna le conta e non le rifà).
 
 ---
 
-**✅ Passo 3 · Il piano** · gratis · 1 minuto · *fatto il 24-11*
+**⬜ Passo 3 · Le copie cieche nuove** · gratis · 1 minuto
+
+Rifà le copie cieche con i due tipi nuovi (negazione tolta in tutte e due le lingue, limite
+invertito). Lascia `$seme = 1`.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+$seme = 1
+$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
+$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+Remove-Item runs/mutazioni -Recurse -ErrorAction SilentlyContinue
+uv run cycle-validation eval muta --lista runs/prove-grande/cicli.txt --knowledge $v --quanti 100 --seme $seme --out runs/mutazioni
+```
+
+- **Deve uscire:** `Cicli veri letti: 16 ... Copie con un errore cieco: N su 100 chieste, seme 1.`
+  e una riga per **sei** tipi. Le copie «codice» (`numero_una_lingua`, `task_inesistente`)
+  arrivano al massimo a 5.
+- **Non aprire** `runs\mutazioni\errori.yaml`. **Mandami:** la foto dei conteggi.
+
+---
+
+**⬜ Passo 4 · Il piano** · gratis · 1 minuto
 
 Dice cosa farà la campagna, senza lanciare niente.
 
@@ -195,17 +221,16 @@ uv run cycle-validation eval campagna --piano
 ```
 
 - **Deve uscire:** `Piano (gratis, niente viene lanciato)` e, per `haiku` e `sonnet`, una riga
-  per ogni prova: `base: 2 da fare → runs/...`, `effort_medio: 2 da fare → ...`, e così via.
+  per ogni prova, tutte `2 da fare`: `base`, le 6 impostazioni di prima, `lingue_separate`,
+  `elementi_uno_per_uno`.
 - **Mandami:** la foto.
 
 ---
 
-**👉 Passo 4 · La campagna** · costa al massimo 60 $ · **alcune ore** · *fermata il 24-11 dopo Haiku sul piccolo: prima **Aggiornare** (passo 1), poi rilanciala*
+**⬜ Passo 5 · La campagna** · costa al massimo 60 $ · **alcune ore**
 
-Lancia da sola tutte le prove: prima Haiku (circa 2 ore, circa 5 $), poi Sonnet (più lento,
-circa 10 volte il costo). Alla fine apre il report. Le prove già fatte (le 13 di Haiku sul
-piccolo del 24-11) non si rifanno: rilanciata, fa la miglioria nuova `lingue_separate`, la
-seconda prova di `concorrenza_12`, poi il grande e Sonnet.
+Lancia da sola tutte le prove: prima Haiku (circa 2 ore e mezza, circa 6 $), poi Sonnet (più
+lento, circa 10 volte il costo). Alla fine apre il report.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -216,25 +241,30 @@ code runs/campagna.md
 
 - **Prima di lanciarla:** PC acceso, collegato alla corrente, senza sospensione; VS Code aperto.
 - **Mentre gira:** per ogni prova esce `=== haiku · piccolo · ... · prova 1 di 2 · spesa finora
-  ... $`. Puoi lasciarla da sola.
+  ... $`, e alla fine di ogni prova `Prova «...»: visti ... · mai visti per il modello ... ·
+  falsi errori ...`. Puoi lasciarla da sola.
 - **Deve uscire alla fine:** `Campagna finita. Prove fatte ora: N · spesa ... $.`
 - **Se esce `Campagna fermata: ...`:** se dice accesso AWS scaduto, lancia `aws sso login`;
   poi **rilancia lo stesso blocco**: riparte da dove era.
+- **Se vuoi vedere i risultati a metà:** puoi fermarla con Ctrl+C e aprire il report; quando la
+  rilanci riparte da dove era.
 - **Mandami:** la foto della riga `Campagna finita` (o `fermata`).
 
 ---
 
-**⬜ Passo 5 · Leggere il report** · gratis
+**⬜ Passo 6 · Leggere il report** · gratis
 
-Il report `runs\campagna.md` si apre da solo alla fine del passo 4 (se no: `code
+Il report `runs\campagna.md` si apre da solo alla fine del passo 5 (se no: `code
 runs/campagna.md`). Premi **Ctrl+Shift+V** per vederlo impaginato.
 
 - **Mandami:** una foto per ogni sezione del report:
   - le tabelle «haiku · piccolo», «haiku · grande», «sonnet · piccolo», «sonnet · grande»;
   - «I modelli a confronto»;
-  - «Errori mai visti per tipo».
+  - «Errori mai visti per tipo» e «WARNING per motivo».
 
   Ci sono solo numeri: si possono fotografare.
+- **E dal riepilogo** `runs\prove-piccolo\riepilogo.md`: la foto della tabella «Errore per
+  errore» (ora ha la colonna «Ultimo esito»).
 
 Poi Claude scrive le considerazioni e propone la tappa 3.
 
@@ -242,15 +272,15 @@ Poi Claude scrive le considerazioni e propone la tappa 3.
 
 **Tappa 3 · Migliorie sugli errori mai visti.** Claude sceglie il tipo di errore «modello»
 trovato peggio, scrive la miglioria (la prima sarà `numeri_manuale`) e la aggiunge alla
-campagna. Tu: Aggiornare (passo 1), poi la campagna (passo 4, fa solo le prove nuove), poi il
-report (passo 5). Si ripete finché i risultati non migliorano più.
+campagna. Tu: Aggiornare (passo 1), poi la campagna (passo 5, fa solo le prove nuove), poi il
+report (passo 6). Si ripete finché i risultati non migliorano più.
 
 **Quando una miglioria entra nella base** (te lo dice Claude): archivia le prove (sezione
 [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove)), rifai la scelta dei cicli
 (3.2) e le copie cieche (3.3) con un **seme nuovo** (`$seme = 2`, poi 3, ...), poi la campagna.
 
 **Tappa 4 · Tempo e costo.** Claude scrive B1 (chiamata diretta a Bedrock), la cache dei prompt
-(H10) e B4 (più operazioni insieme); tu fai i passi 1, 4 e 5.
+(H10) e B4 (più operazioni insieme); tu fai i passi 1, 5 e 6.
 
 **Tappa 5 · Chiusura.** La campagna con la base finale; le prove dal frontend (sezione
 [4](#4-prove-dal-frontend)); Salvare (sezione
@@ -262,7 +292,7 @@ anche la produzione passa alla v2.
 
 ### ⬜ Quando hai tempo (in qualsiasi momento)
 
-- ⬜ **Domande alle persone** P6, P7, P8 (sezione [6.1](#61-domande)): scrivimi le risposte a
+- ⬜ **Domande alle persone** P6, P7, P8, P9 (sezione [6.1](#61-domande)): scrivimi le risposte a
   parole.
 - ⬜ **Messaggio al collega del frontend** (sezione
   [6.2](#62-messaggio-per-il-collega-del-frontend)), se non l'hai già mandato.
@@ -389,7 +419,7 @@ le lancia la **campagna** (3.5); una prova a mano serve solo per casi particolar
 | **Mai visti: copie cieche** (3.3) | copie di cicli veri in cui il programma cambia una sola operazione. Nessuno guarda quale | dicono se la v2 trova anche errori nuovi (**generalizza**) |
 | **Mai visti: gruppo nascosto** (3.4, facoltativo) | stampe con errori messi da te o da un collega. Claude non le vede mai | come le copie cieche, ma con errori pensati da una persona: è la misura migliore |
 
-I tipi di copie cieche sono quattro:
+I tipi di copie cieche sono sei:
 
 | Tipo | Cosa cambia il programma | Chi lo deve trovare |
 |---|---|---|
@@ -397,6 +427,8 @@ I tipi di copie cieche sono quattro:
 | `numero_manuale` | un numero che c'è nelle due lingue e nel manuale, cambiato in tutte e due con un valore che il manuale non ha | il **modello**: conta per la generalizzazione |
 | `negazione_una_lingua` | un «non» (o «not») tolto in una lingua sola | il **modello**: conta per la generalizzazione |
 | `task_inesistente` | il codice di un task cambiato in uno che non esiste | il **codice**: serve solo a vedere che non si è rotto niente |
+| `negazione_due_lingue` (dal 24-11) | un «non» (o «not») tolto in **tutte e due** le lingue | il **modello**, confrontando con il manuale |
+| `limite_invertito` (dal 24-11) | minimo ↔ massimo, almeno ↔ al massimo, in tutte e due le lingue | il **modello**, confrontando con il manuale |
 
 I report degli errori mai visti danno **solo quanti sono per tipo**, mai quali. Per questo non
 si mandano foto di `runs\mutazioni\errori.yaml` e `data\errori-nascosti.yaml`.
@@ -494,7 +526,7 @@ uv run cycle-validation eval muta --lista runs/prove-grande/cicli.txt --knowledg
 
 **Deve uscire:** `Cicli veri letti: ... Copie con un errore cieco: N su 100 chieste, seme 1.` e
 quante copie ci sono per tipo (`numero_una_lingua`, `numero_manuale`, `negazione_una_lingua`,
-`task_inesistente`). N può essere meno di 100: dipende da quante operazioni adatte ci sono nei
+`task_inesistente`, `negazione_due_lingue`, `limite_invertito`). N può essere meno di 100: dipende da quante operazioni adatte ci sono nei
 cicli (il 24-11: 31).
 
 **Non aprire** `runs\mutazioni\errori.yaml`. **Manda a Claude:** la foto dello schermo (solo i
@@ -555,7 +587,7 @@ uv run cycle-validation eval campagna --piano
 cicli.` e per ogni modello e insieme una riga per variante: `base: 1 da fare → runs/...` (una
 base Haiku sul piccolo c'è già), `effort_medio: 2 da fare → ...`, e così via.
 
-**Secondo blocco: la campagna** (costa al massimo 60 $; dura ore: vedi sezione 1, tappa 2, passo 4):
+**Secondo blocco: la campagna** (costa al massimo 60 $; dura ore: vedi sezione 1, tappa 2, passo 5):
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -570,7 +602,7 @@ spesa finora ... $`, le righe dei cicli e la riga finale della prova; alla fine
 motivo) e `Report finale: runs\campagna.md`, che si apre da solo.
 
 **Manda a Claude:** la foto della riga `Campagna finita` (o `fermata`) e del report (sezione 1,
-tappa 2, passo 5).
+tappa 2, passo 6).
 
 **Solo una parte.** Stesso secondo blocco, con in fondo alla riga `uv run cycle-validation eval
 campagna` una o più di queste aggiunte:
@@ -782,6 +814,7 @@ capita e scrivi a Claude la risposta **a parole**, senza codici veri.
 | **P4** | Targa «90» (per chi cura l'indice): funzione sbagliata e lettere accentate rovinate. I passi sono in `MEMORIA.md`, sezione «Da correggere nell'indice» | l'indice ha un dato rotto |
 | **P6** | Scheda mancante: quando un'operazione deve avere per forza una scheda? | senza una regola la v2 (come la v1) non può sapere che manca |
 | **P7** | Ispezione FPI, indicazione lineare (ciclo f355dc3c e la sua stampa giusta, op. 050): il ciclo dice «lunga almeno **4** volte la larghezza», l'SPM «**3** volte o più». Il ciclo segue un'altra regola (manuale del motore) o è da correggere? | oggi la v2 lo segna ERRATO anche sulla stampa giusta: finché non c'è risposta, quell'operazione è «in attesa» e non conta nelle prove |
+| **P9** | Ciclo «con errori» 5ff17062, op. 050: in tutte le prove la v2 la segna ERRATO, ma nella lista degli errori messi apposta c'è solo l'op. 030. Chi ha preparato la stampa ha cambiato anche la 050? | se sì, è un errore vero che manca nella lista (la v2 lo trova sempre); se no, è un falso errore da capire |
 | **P8** | Riparazione senza task in testata (c5ff3cd6, nota «applicazione lubrificante secco»; 298bc28e): quale task del manuale vale per le operazioni che non ne citano uno? | la v2 non sa con cosa confrontarle |
 
 ### 6.2 Messaggio per il collega del frontend

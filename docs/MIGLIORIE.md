@@ -109,7 +109,8 @@ migliorie (Claude) li conosce, quindi può adattarsi a loro senza volerlo.
 - **Gruppo nascosto.** Stampe con errori messi a mano da te o da un collega, in `data/nascosti`
   sul PC. Claude non le vede mai.
 
-I tipi di copie cieche:
+I tipi di copie cieche (sei dal 24-11: con quattro i mai visti per il modello erano 21, quasi
+tutti negazioni in una lingua, e una copia in più o in meno spostava il risultato):
 
 | Tipo | Cosa cambia | Chi lo deve trovare | Conta per la generalizzazione? |
 |---|---|---|---|
@@ -117,6 +118,8 @@ I tipi di copie cieche:
 | `numero_manuale` | un numero che c'è nelle due lingue e nel manuale, cambiato in tutte e due con un valore che il manuale non ha | il **modello** | sì |
 | `negazione_una_lingua` | un «non» (o «not») tolto in una lingua sola | il **modello** | sì |
 | `task_inesistente` | il codice di un task cambiato in uno che non esiste, mentre i task vicini esistono | il **codice** (`TASK_INESISTENTE`) | no, come sopra |
+| `negazione_due_lingue` (dal 24-11) | un «non» (o «not») tolto in tutte e due le lingue: le lingue restano d'accordo tra loro | il **modello**, solo confrontando con il manuale | sì |
+| `limite_invertito` (dal 24-11) | minimo ↔ massimo, almeno ↔ al massimo, in tutte e due le lingue | il **modello**, solo confrontando con il manuale | sì |
 
 I due tipi del codice sono elencati in `CODE_KINDS` (`evaluation/blind.py`). **La
 generalizzazione la misurano i tipi del modello e il gruppo nascosto.**
@@ -241,6 +244,7 @@ controlli. Su Bedrock c'è Sonnet 5.5 (`eu.anthropic.claude-sonnet-5-5`, stesso 
 | `$nome` | Cosa fa | Cosa può migliorare | Costo del lavoro |
 |---|---|---|---|
 | `lingue_separate` (dal 24-11, pronta) | nella domanda al modello la parte italiana e quella inglese separate, con l'istruzione di confrontare **ognuna** con il manuale: se una sola dice altro, `contraddetto` (`agent.separate_languages`) | gli errori in una lingua sola che oggi una lingua giusta «copre»: le negazioni tolte (la base ne trova 1-2 su 18), ma anche parole o frasi cambiate. È una richiesta generale: le copie cieche con la negazione restano una misura onesta | piccolo |
+| `elementi_uno_per_uno` (dal 24-11, pronta) | prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione, valori, limiti, divieti, materiali) e li confronta con il manuale uno per uno (`agent.itemized_check`) | il prompt di oggi dice che «conta il contenuto tecnico» e il modello giudica a colpo d'occhio: limiti invertiti, divieti tolti in tutte e due le lingue, parole cambiate (il visto `298bc28e` op. 035, mancato sempre) | piccolo |
 | `numeri_manuale` (I4, è H12) | confronta i numeri e le classi della descrizione con quelli del passo del manuale. Alla sessione passa le differenze da guardare; se tutto coincide, CORRETTO senza modello | numeri cambiati in tutte e due le lingue; 7 errori noti su 10 sono numeri, classi o codici; meno sessioni | medio |
 
 **Attenzione a `numeri_manuale` (24-11).** Le copie cieche «numero del manuale» sono fatte
@@ -472,7 +476,8 @@ limite non sta nelle impostazioni ma nel metodo: il modello confronta la descriz
 manuale e non vede un «non» tolto in una lingua sola (18 dei 21 mai visti). Prossimi passi: la
 prova con Sonnet (dice se è il modello) e la tappa 3 con una miglioria sul metodo. Con
 differenze così piccole conviene alzare le ripetizioni a 3 o avere più errori mai visti
-(gruppo nascosto).
+(gruppo nascosto). Queste righe sono con le copie cieche e il conteggio di prima della
+rianalisi del 24-11 sera (visti su 12, mai visti su 21): non si confrontano con le prove dopo.
 
 | Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
 |---|---|---|---|---|---|---|---|

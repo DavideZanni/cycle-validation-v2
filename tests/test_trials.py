@@ -107,9 +107,17 @@ def test_trial_report_and_summary(tmp_path: Path) -> None:
     assert "**1 su 2** (50%)" in text
     assert "`INCOERENZA_LINGUE` 1" in text
     assert "| aaaa1111 | 030 | frase cambiata | no |" in text
+    # da dove vengono i WARNING dei cicli senza errori (qui: la stampa giusta, 3 operazioni)
+    assert "## WARNING per motivo (cicli senza errori noti)" in text
+    assert "| `EVIDENZA_NON_TROVATA` | 3.0 |" in text
     summary = render_summary(trials)
     assert "+1 trovati, +0 falsi" in summary
-    assert "| aaaa1111 | 005 | numero cambiato | · | ✓ | 1 su 2 |" in summary
+    assert (
+        "| aaaa1111 | 005 | numero cambiato | · | ✓ | 1 su 2 | ERRATO INCOERENZA_LINGUE |"
+        in summary
+    )
+    # l'errore mancato: che cosa ha detto la v2 nell'ultima prova, senza la spiegazione
+    assert "| 0 su 2 | WARNING EVIDENZA_NON_TROVATA |" in summary
     assert "Nessuno." in summary
     assert write_summary(root).read_text("utf-8") == summary
 
@@ -280,3 +288,25 @@ def test_an_errato_waiting_for_an_answer_is_not_a_false_error(tmp_path: Path) ->
     summary = render_summary(trials)
     assert "| bbbb2222 | 010 | domanda P9: quale regola vale | 2 su 2 |" in summary
     assert "**«base»**" in summary  # la base resta valida: nessun falso errore
+
+
+def test_a_known_error_waiting_for_a_document_is_not_counted_as_missed(tmp_path: Path) -> None:
+    """24-11: un errore noto che si trova solo con un documento che manca (o una regola da
+    chiedere) non deve abbassare il punteggio dei visti."""
+    path = tmp_path / "errori.yaml"
+    path.write_text(
+        KNOWN.replace(
+            '      "030": frase cambiata\n',
+            '      "030": frase cambiata\n    in_attesa:\n      "030": "manca il manuale"\n',
+        ),
+        "utf-8",
+    )
+    known = load_known_errors(path)
+    reports = [_report("aaaa1111", ["005"]), _report("bbbb2222", [])]
+    trial = build_trial(
+        "base", datetime(2030, 1, 1, 9), reports, [score_cycle(r, known) for r in reports]
+    )
+    assert (trial.seen_found, trial.seen_total) == (1, 1)  # il 030 è fuori dal conto
+    assert trial.cycles[0].waiting == {"030": "manca il manuale"}
+    assert "**Errori visti trovati** | **1 su 1** (100%)" in render_trial(trial)
+    assert "| aaaa1111 | 030 | manca il manuale | 0 su 1 |" in render_summary([trial])

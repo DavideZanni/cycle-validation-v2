@@ -667,6 +667,7 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.skip_missing_task` | `true` | task citato che manca: WARNING subito, senza modello |
 | `agent.missing_task_note` | `false` | (con lo skip spento) dire al modello che il task manca |
 | `agent.separate_languages` | `false` | descrizione in due lingue: nella domanda al modello la parte italiana e quella inglese separate, con l'istruzione di confrontarle **ognuna** con il testo di riferimento (se una sola dice altro, `contraddetto`). Variante `lingue_separate` |
+| `agent.itemized_check` | `false` | prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione, valori, limiti, divieti, materiali) e li confronta uno per uno; se uno solo è incompatibile, `contraddetto`. Variante `elementi_uno_per_uno` |
 | `agent.confirm_contradiction` | 2 | sessioni di conferma per ogni ERRATO del modello |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
 | `paths.*` | `config/profiles`, `prompts`, `data/knowledge`, `runs` | cartelle |
@@ -852,10 +853,23 @@ simula guasti e **regge** se nessun guasto diventa ERRATO. Dettagli in `AZIENDA.
 - `giusto`: la stampa originale di un ciclo «con errori»: non deve dare ERRATO;
 - `vero`: ogni altro ciclo vero: un suo ERRATO è «da verificare».
 
-Un ciclo di `errori-noti.yaml` può avere `in_attesa` (operazione → domanda alle persone): un
-ERRATO su quell'operazione non conta né come trovato né come falso errore, e si vede a parte
-(riga «ERRATO in attesa di una risposta» nel report, sezione «In attesa di una risposta» nel
-riepilogo). Dal 24-11: op. 050 della stampa giusta `04ecaabe`, domanda P7.
+Un ciclo di `errori-noti.yaml` può avere `in_attesa` (operazione → che cosa aspetta): oggi
+quell'operazione non si può giudicare. Un ERRATO lì non conta né come trovato né come falso
+errore; un errore noto lì non conta come mancato (è fuori dal totale dei visti). Si vede a parte
+(riga «ERRATO in attesa» nel report, sezione «In attesa di una risposta» nel riepilogo, con
+tutte le operazioni in attesa). Dal 24-11: op. 050 della stampa giusta `04ecaabe` (domanda P7),
+op. 030 di `c5ff3cd6` (scheda tolta, domanda P6), op. 040 di `f355dc3c` (serve un documento che
+non è nella conoscenza). I visti contati sono quindi 10.
+
+**Come si leggono i numeri** (dal 24-11 il report li dà separati, perché non si sommano):
+**errori visti trovati** (quelli che oggi si possono trovare), **errori mai visti trovati dal
+modello** (la generalizzazione), **falsi errori** (devono essere 0); poi i controlli del codice
+(copie che il codice trova per costruzione) e il totale, solo per contare. La riga finale di
+`eval prova` è `Prova «...»: visti A su B · mai visti per il modello C su D · falsi errori E ·
+controlli del codice F su G · da verificare H · in attesa I · costo ... $`. Il report ha anche
+**«WARNING per motivo»** (per ciclo senza errori noti: quanti sono targhe, manuali mancanti,
+dubbi del modello) e il riepilogo, nella tabella «Errore per errore», l'**ultimo esito** su ogni
+errore noto (solo esito e motivo: perché viene mancato).
 
 Le copie cieche si scrivono byte per byte (`\n`), e `eval prova` toglie i `\r` prima di
 calcolare l'impronta di un file `.json`: su Windows prima del 24-11 l'impronta del file non era
@@ -883,6 +897,8 @@ mai visti per il modello 0 su 21, per il codice 4 su 10).
     | `numero_manuale` | un numero che c'è nelle due lingue e nel manuale, cambiato in tutte e due con un valore che il manuale non ha | **modello** |
     | `negazione_una_lingua` | un «non» / «not» tolto in una lingua sola | **modello** |
     | `task_inesistente` | l'ultimo gruppo di un task cambiato in uno che non c'è, mentre i fratelli ci sono | **codice** (`TASK_INESISTENTE`) |
+    | `negazione_due_lingue` | un «non» / «not» tolto in tutte e due le lingue | **modello** |
+    | `limite_invertito` | minimo ↔ massimo, almeno ↔ al massimo (e min ↔ max), in tutte e due le lingue | **modello** |
 
     I tipi «codice» li trova il codice con la stessa regola che li ha messi: dicono solo che
     non si è rotto niente. **La generalizzazione la misurano i tipi «modello» e il gruppo

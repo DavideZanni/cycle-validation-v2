@@ -108,3 +108,26 @@ def test_code_kinds_are_capped_and_the_room_goes_to_the_model_kinds() -> None:
     assert max(sum(m.source == name for m in found) for name, _ in cycles) <= 8
     narrow = blind_mutations(cycles, kb, count=100, seed=3, per_cycle=1)
     assert len(narrow) == len(cycles)
+
+
+def test_a_negation_is_removed_in_both_languages() -> None:
+    changed = _mutated("negazione_due_lingue", _cycle(BILINGUAL))
+    assert changed is not None
+    italian, english = changed.operation_description.split(" / ")
+    assert "NON USARE" not in italian and "DO NOT USE" not in english
+    assert "USARE SPAZZOLE" in italian and "USE BRUSHES" in english
+    assert not number_mismatches(changed.operation_description)  # le lingue restano d'accordo
+
+
+def test_a_limit_is_inverted_in_both_languages() -> None:
+    cycle = _cycle(
+        "PRESSIONE MASSIMO 2 BAR, ALMENO 3 PASSATE / MAXIMUM PRESSURE 2 BAR, AT LEAST 3 PASSES"
+    )
+    changed = _mutated("limite_invertito", cycle)
+    assert changed is not None
+    assert changed.operation_description == (
+        "PRESSIONE MINIMO 2 BAR, ALMENO 3 PASSATE / MINIMUM PRESSURE 2 BAR, AT LEAST 3 PASSES"
+    )
+    assert _mutated("limite_invertito", _cycle("ASCIUGARE / DRY")) is None
+    # «min» dentro una parola non è un limite
+    assert _mutated("limite_invertito", _cycle("MINUTI 5 / MINUTES 5")) is None
