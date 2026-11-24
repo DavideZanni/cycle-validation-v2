@@ -22,7 +22,7 @@ from cycle_validation.domain.check import CheckName, CheckResult, Usage
 from cycle_validation.domain.report import PipelineError, Report, RunMeta
 from cycle_validation.errors import ExtractionError, ProfileUnavailableError
 from cycle_validation.extract.base import CycleExtractor
-from cycle_validation.extract.integrity import check_extraction_integrity
+from cycle_validation.extract.integrity import IntegrityOutcome, check_extraction_integrity
 from cycle_validation.ingest.document import read_document, read_document_bytes
 from cycle_validation.ingest.pdf import PdfDocument, check_required_text
 from cycle_validation.ingest.transcribe import PageTranscriber
@@ -57,6 +57,10 @@ class RunRequest:
     pdf_name: str = "ciclo.pdf"
     selectors: DrSelectors | None = None
     skip_checks: frozenset[CheckName] = field(default_factory=frozenset)
+    # False per le copie cieche delle prove: il ciclo viene da un file con un errore messo
+    # apposta, quindi il valore cambiato non può comparire nel PDF originale. Il controllo di
+    # integrità lo segnerebbe «non confermato» e ogni ERRATO diventerebbe WARNING (24-11).
+    check_integrity: bool = True
 
 
 @dataclass(frozen=True)
@@ -164,7 +168,11 @@ async def arun_validation(
         cycle = cycle.model_copy(update={"dr_record": record})
     timings["extract"] = _ms(mark)
 
-    integrity = check_extraction_integrity(cycle, pdf)
+    integrity = (
+        check_extraction_integrity(cycle, pdf)
+        if request.check_integrity
+        else IntegrityOutcome((), frozenset())
+    )
     ctx = CheckContext(cycle, deps.kb, deps.machines, profile, selectors, integrity.unconfirmed)
     active = [check for check in profile.checks if check not in request.skip_checks]
     results: list[CheckResult] = []

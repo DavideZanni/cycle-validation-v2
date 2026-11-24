@@ -147,7 +147,12 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
   - **1 falso errore** sulla stampa giusta `04ecaabe`, op. 050: è il caso della domanda **P7**
     («4 volte» nella stampa, «3 volte» nell'SPM). Ora quell'operazione è «in attesa di
     risposta» e non conta; con un falso errore la regola avrebbe scartato tutto, base compresa.
-- **Adesso:** passo 5b, poi di nuovo la base (passo 6).
+- **24-11 ore 15, terza prova della base: da rifare anche questa.** Le copie ora sono
+  riconosciute, ma il risultato era `mai visti per il modello 0 su 21, per il codice 4 su 10`:
+  il programma controllava la copia contro il PDF originale, dove il numero cambiato non c'è, e
+  trasformava ogni ERRATO in WARNING. Corretto da Claude: per le copie quel controllo si salta.
+  Visti 8 su 12, 0 falsi errori, 0,16 $.
+- **Adesso:** passo 5b (toglie anche la prova delle 15), poi di nuovo la base (passo 6).
 
 ### Come si usa questa lista
 
@@ -167,8 +172,8 @@ La base è la v2 di oggi, senza modifiche. Tutte le migliorie si confrontano con
   $env:UV_PYTHON = "3.14"; Get-ChildItem runs/prove-piccolo -Directory -Filter "*-base" | ForEach-Object { "tolta: " + $_.Name; Remove-Item $_.FullName -Recurse -Force }; uv run cycle-validation eval riepilogo --cartella runs/prove-piccolo
   ```
 
-  Deve uscire: `tolta: 20261124-1441-base`, `tolta: 20261124-1447-base`. Le copie cieche
-  **non** vanno rifatte.
+  Deve uscire una riga `tolta: 20261124-....-base` per ogni prova della base fatta oggi. Le
+  copie cieche **non** vanno rifatte.
 - [ ] **6.** Blocco 2.3 A con `$nome = "base"` e `$insieme = "piccolo"`, **due volte**. Foto
   della riga finale di ognuna. Ora le copie cieche devono uscire come `<impronta> mai visto:
   trovato` oppure `mancato`, e nella riga finale `mai visti per il modello N su 21`.

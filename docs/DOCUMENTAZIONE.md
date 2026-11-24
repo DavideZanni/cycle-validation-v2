@@ -859,6 +859,12 @@ Le copie cieche si scrivono byte per byte (`\n`), e `eval prova` toglie i `\r` p
 calcolare l'impronta di un file `.json`: su Windows prima del 24-11 l'impronta del file non era
 quella di `errori.yaml` e le copie uscivano come cicli veri.
 
+Per una copia cieca `eval prova` **non** fa il controllo di integrità contro il PDF
+(`RunRequest.check_integrity=False`): il ciclo viene dal file con l'errore messo apposta, e il
+valore cambiato per costruzione non è nel PDF originale. Con il controllo, ogni ERRATO sul
+numero o sul codice cambiato diventava WARNING `ESTRAZIONE_NON_CONFERMATA` (prova del 24-11:
+mai visti per il modello 0 su 21, per il codice 4 su 10).
+
 **Errori visti e mai visti:**
 
 - **visti**: i 12 errori noti. Chi scrive le migliorie li conosce: una miglioria può

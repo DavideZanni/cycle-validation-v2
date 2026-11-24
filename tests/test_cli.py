@@ -617,3 +617,39 @@ def test_eval_muta_writes_blind_copies_and_hides_them(tmp_path: Path) -> None:
     keys = set(yaml.safe_load((out / "errori.yaml").read_text("utf-8"))["cicli"])
     copies = {hashlib.sha256(p.read_bytes()).hexdigest()[:8] for p in out.glob("*.json")}
     assert keys and keys == copies  # l'impronta del file è quella scritta in errori.yaml
+
+
+def test_a_blind_copy_is_not_downgraded_because_the_pdf_has_the_old_value(
+    tmp_path: Path,
+) -> None:
+    """24-11: le copie cieche con un numero cambiato uscivano WARNING
+    (`ESTRAZIONE_NON_CONFERMATA`): il valore cambiato non è nel PDF originale per costruzione."""
+    import hashlib
+
+    cycle = example_cycle()
+    operations = list(cycle.operations)
+    right = operations[1].model_copy(
+        update={
+            "operation_description": operations[1].operation_description.replace("46,00", "45,00")
+        }
+    )
+    original = cycle.model_copy(update={"operations": [operations[0], right, *operations[2:]]})
+    pdf = write_cycle_pdf(tmp_path / "originale.pdf", original)  # nel PDF c'è 45,00
+    copy = cycle.model_copy(update={"operations": [operations[1]]})  # nella copia 46,00
+    text = copy.model_dump_json(indent=2)
+    blind = tmp_path / "copia.json"
+    blind.write_bytes(text.encode("utf-8"))
+    fingerprint = hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
+    hidden = tmp_path / "ciechi.yaml"
+    hidden.write_text(
+        f"cicli:\n  '{fingerprint}':\n    visto: false\n    errori:\n"
+        "      '0020': '[numero_manuale] un numero del manuale cambiato'\n",
+        encoding="utf-8",
+    )
+    lista = tmp_path / "lista.txt"
+    lista.write_text(f"{pdf}\t{blind}\n", encoding="utf-8")
+    args = ["eval", "prova", "--lista", str(lista), "--knowledge", str(EXAMPLE_KB)]
+    args += ["--attesi", str(hidden), "--cartella", str(tmp_path / "prove"), "--nome", "base"]
+    result = runner.invoke(cli.app, args)
+    assert result.exit_code == 0, result.output
+    assert f"{fingerprint} mai visto: trovato" in result.output

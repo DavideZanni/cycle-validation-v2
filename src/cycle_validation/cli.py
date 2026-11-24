@@ -1052,7 +1052,10 @@ def eval_trial(
                 extractor=extractor,
                 out_dir=out,
             )
-            report = run_validation(RunRequest(pdf_path=pdf), deps, out)
+            # una copia cieca viene dal suo file: il controllo di integrità contro il PDF
+            # originale la declasserebbe (vedi `RunRequest.check_integrity`)
+            request = RunRequest(pdf_path=pdf, check_integrity=cycle_file is None)
+            report = run_validation(request, deps, out)
         except CycleValidationError as error:
             scores.append(failed_cycle(fingerprint, known, str(error)))
             typer.echo(f"{fingerprint} non eseguito")

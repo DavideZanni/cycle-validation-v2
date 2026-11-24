@@ -803,6 +803,13 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   (2) 1 falso errore su `04ecaabe` op. 050, la stampa giusta di f355dc3c: è P7 («4 volte»
   contro «3 volte» dell'SPM). Nuovo campo `in_attesa` in `errori-noti.yaml`: un ERRATO lì non
   conta finché P7 non ha risposta. Le due prove si cancellano e la base si rifà.
+- **24-11 ore 14:57, terza prova `base`:** copie riconosciute, ma mai visti per il modello
+  **0 su 21** e per il codice **4 su 10**; visti 8 su 12, 0 falsi errori, 0,16 $. Causa: il
+  controllo di integrità confrontava la copia con il PDF originale, dove il valore cambiato non
+  c'è, e declassava ogni ERRATO a WARNING `ESTRAZIONE_NON_CONFERMATA`. Le negazioni tolte non
+  aggiungono valori, quindi passavano il controllo: per loro lo 0 su 18 sembra un limite vero
+  del modello (da rivedere dopo la base corretta). Ora per le copie il controllo si salta
+  (`RunRequest.check_integrity`). Anche questa prova si cancella.
 
 Con Bedrock Haiku 5.5 e la conoscenza di prova:
 
