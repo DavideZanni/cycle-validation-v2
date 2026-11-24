@@ -229,34 +229,63 @@ uv run cycle-validation eval campagna --piano
 
 **⬜ Passo 5 · La campagna** · costa al massimo 60 $ · **alcune ore**
 
-Lancia da sola tutte le prove: prima Haiku (circa 2 ore e mezza, circa 6 $), poi Sonnet (più
-lento, circa 10 volte il costo). Alla fine apre il report.
+Lancia da sola tutte le prove. Haiku e Sonnet girano **insieme, in due terminali**: così ci
+vuole il tempo di Sonnet (il più lento), non la somma dei due. Haiku costa circa 6 $; Sonnet
+circa 10 volte tanto. Ogni terminale ha il suo tetto di spesa: 10 $ per Haiku, 50 $ per Sonnet
+(insieme 60 $).
+
+**Prima di lanciarla:** PC acceso, collegato alla corrente, senza sospensione; VS Code aperto.
+
+**Terminale 1 · Haiku.** Nel terminale di sempre:
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-uv run cycle-validation eval campagna
-code runs/campagna.md
+uv run cycle-validation eval campagna --modelli haiku --massimo-dollari 10
 ```
 
-- **Prima di lanciarla:** PC acceso, collegato alla corrente, senza sospensione; VS Code aperto.
-- **Mentre gira:** per ogni prova esce `=== haiku · piccolo · ... · prova 1 di 2 · spesa finora
-  ... $`, e alla fine di ogni prova `Prova «...»: visti ... · mai visti per il modello ... ·
-  falsi errori ...`. Puoi lasciarla da sola.
-- **Deve uscire alla fine:** `Campagna finita. Prove fatte ora: N · spesa ... $.`
-- **Se esce `Campagna fermata: ...`:** se dice accesso AWS scaduto, lancia `aws sso login`;
-  poi **rilancia lo stesso blocco**: riparte da dove era.
-- **Se vuoi vedere i risultati a metà:** puoi fermarla con Ctrl+C e aprire il report; quando la
-  rilanci riparte da dove era.
-- **Mandami:** la foto della riga `Campagna finita` (o `fermata`).
+**Terminale 2 · Sonnet.** Apri un secondo terminale: in VS Code, nel pannello del terminale,
+clicca **+** (in alto a destra del pannello). Il terminale nuovo parte nella cartella aperta in
+VS Code: se non è `app_cycle_validation_v2`, entra lì con `cd` come per il primo. Poi:
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+uv run cycle-validation eval campagna --modelli sonnet --massimo-dollari 50
+```
+
+Passi da un terminale all'altro con l'elenco a destra del pannello.
+
+- **Mentre girano:** in ogni terminale, per ogni prova esce `=== haiku · piccolo · ... · prova 1
+  di 2 · spesa finora ... $` (nel secondo `=== sonnet · ...`), e alla fine di ogni prova
+  `Prova «...»: visti ... · mai visti per il modello ... · falsi errori ...`. Puoi lasciarli da
+  soli.
+- **Deve uscire alla fine, in tutti e due:** `Campagna finita. Prove fatte ora: N · spesa ...
+  $.` Haiku finisce prima: lascia girare Sonnet.
+- **Se esce `Campagna fermata: ...`:** se dice accesso AWS scaduto, lancia `aws sso login` e poi
+  **rilancia lo stesso blocco in quel terminale**: riparte da dove era. Di solito si fermano
+  tutti e due insieme: rilanciali tutti e due.
+- **Se esce `cicli non eseguiti`** in mezzo: mandami la foto (forse due campagne insieme sono
+  troppe per AWS; si rifà Sonnet da solo dopo Haiku).
+- **Se vuoi vedere i risultati a metà:** il blocco del passo 6 funziona anche mentre girano.
+- **Mandami:** la foto della riga `Campagna finita` (o `fermata`) di tutti e due i terminali.
 
 ---
 
-**⬜ Passo 6 · Leggere il report** · gratis
+**⬜ Passo 6 · Leggere il report** · gratis · 1 minuto
 
-Il report `runs\campagna.md` si apre da solo alla fine del passo 5 (se no: `code
-runs/campagna.md`). Premi **Ctrl+Shift+V** per vederlo impaginato.
+Quando **tutti e due** i terminali hanno finito, in uno dei due:
 
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+uv run cycle-validation eval campagna --solo-report
+code runs/campagna.md
+```
+
+- **Deve uscire:** `Report scritto (niente lanciato): runs\campagna.md`. Non lancia prove e non
+  costa niente: mette insieme Haiku e Sonnet in un solo report. Premi **Ctrl+Shift+V** per
+  vederlo impaginato.
 - **Mandami:** una foto per ogni sezione del report:
   - le tabelle «haiku · piccolo», «haiku · grande», «sonnet · piccolo», «sonnet · grande»;
   - «I modelli a confronto»;
@@ -587,7 +616,9 @@ uv run cycle-validation eval campagna --piano
 cicli.` e per ogni modello e insieme una riga per variante: `base: 1 da fare → runs/...` (una
 base Haiku sul piccolo c'è già), `effort_medio: 2 da fare → ...`, e così via.
 
-**Secondo blocco: la campagna** (costa al massimo 60 $; dura ore: vedi sezione 1, tappa 2, passo 5):
+**Secondo blocco: la campagna** (costa al massimo 60 $; dura ore). Di solito si lancia in due
+terminali, uno per modello, come nella sezione 1, tappa 2, passo 5. Tutto in un terminale solo
+(prima Haiku, poi Sonnet; ci vuole di più):
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -601,8 +632,19 @@ spesa finora ... $`, le righe dei cicli e la riga finale della prova; alla fine
 `Campagna finita. Prove fatte ora: N · spesa ... $.` (oppure `Campagna fermata: ...` con il
 motivo) e `Report finale: runs\campagna.md`, che si apre da solo.
 
+**I report.** Lanciata per tutti i modelli, la campagna scrive `runs\campagna.md`. Lanciata con
+`--modelli`, scrive `runs\campagna-haiku.md` (o `-sonnet`): così due terminali non si
+sovrascrivono il report. Ogni report mostra comunque tutti i modelli, con le prove che c'erano
+quando è stato scritto. `--solo-report` riscrive `runs\campagna.md` con tutte le prove che ci
+sono, senza lanciare niente.
+
+**Due terminali insieme:** le cartelle dei due modelli sono diverse, quindi non si danno
+fastidio. Ogni terminale ha il suo tetto di spesa (`--massimo-dollari`): la spesa totale è la
+somma dei due. Il tempo per ciclo esce un po' più alto mentre girano tutti e due: si confronta
+solo tra prove dello stesso modello, quindi la classifica non cambia.
+
 **Manda a Claude:** la foto della riga `Campagna finita` (o `fermata`) e del report (sezione 1,
-tappa 2, passo 6).
+tappa 2, passi 5 e 6).
 
 **Solo una parte.** Stesso secondo blocco, con in fondo alla riga `uv run cycle-validation eval
 campagna` una o più di queste aggiunte:
@@ -616,6 +658,7 @@ campagna` una o più di queste aggiunte:
 | `--grande sempre` | sul grande tutte le varianti, non solo quelle che si tengono (`mai` = niente grande) |
 | `--massimo-dollari 10` | tetto di spesa diverso per questa volta |
 | `--piano` | mostra solo cosa farebbe |
+| `--solo-report` | scrive solo il report `runs\campagna.md` con le prove che ci sono, senza lanciare niente |
 
 Esempio: `uv run cycle-validation eval campagna --modelli sonnet --insiemi piccolo`.
 
@@ -710,7 +753,7 @@ Se vuoi tenere le prove da rileggere, usa invece «Archiviare» qui sotto.
 
 ```powershell
 $ok = (Split-Path -Leaf (Get-Location).ProviderPath) -eq "app_cycle_validation_v2"; if (-not $ok) { "FERMO: terminale non nella cartella app_cycle_validation_v2. Niente cancellato." }
-if ($ok) { $lista = "runs/prove-grande/cicli.txt"; $copia = Join-Path $env:TEMP "cv2-cicli.txt"; $tieni = Test-Path $lista; if ($tieni) { Copy-Item $lista $copia -Force }; $via = @(Get-ChildItem runs -Directory -Filter "prove-*" -ErrorAction SilentlyContinue); $via | ForEach-Object { "tolta: runs\" + $_.Name }; $via | Remove-Item -Recurse -Force; Remove-Item runs/campagna.md -ErrorAction SilentlyContinue; if ($tieni) { New-Item -ItemType Directory -Force runs/prove-grande | Out-Null; Move-Item $copia $lista -Force; "resta: runs\prove-grande\cicli.txt (la lista dei cicli scelti)" } else { "lista dei cicli scelti assente: rifai 3.2" } }
+if ($ok) { $lista = "runs/prove-grande/cicli.txt"; $copia = Join-Path $env:TEMP "cv2-cicli.txt"; $tieni = Test-Path $lista; if ($tieni) { Copy-Item $lista $copia -Force }; $via = @(Get-ChildItem runs -Directory -Filter "prove-*" -ErrorAction SilentlyContinue); $via | ForEach-Object { "tolta: runs\" + $_.Name }; $via | Remove-Item -Recurse -Force; Remove-Item runs/campagna*.md -ErrorAction SilentlyContinue; if ($tieni) { New-Item -ItemType Directory -Force runs/prove-grande | Out-Null; Move-Item $copia $lista -Force; "resta: runs\prove-grande\cicli.txt (la lista dei cicli scelti)" } else { "lista dei cicli scelti assente: rifai 3.2" } }
 ```
 
 **Deve uscire:** una riga `tolta: runs\prove-...` per ogni cartella (fino a quattro), poi

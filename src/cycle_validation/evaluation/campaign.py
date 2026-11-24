@@ -156,24 +156,40 @@ def render_campaign(
     *,
     when: str,
     models: Sequence[str],
-    folder_models: Sequence[str] | None = None,
+    launched: Sequence[str] | None = None,
 ) -> str:
     """Il report finale: per ogni modello e insieme la scelta e la classifica, poi i modelli a
-    confronto e gli errori mai visti per tipo (base, piccolo)."""
+    confronto e gli errori mai visti per tipo (base, piccolo). `models` sono tutti i modelli del
+    file, nel loro ordine (decide le cartelle): il report li mostra tutti, con le prove che ci
+    sono. `launched` sono quelli lanciati ora (vuoto = solo il report, niente lanciato)."""
+    launched = list(models if launched is None else launched)
+    run_line = (
+        f"Lanciati ora: {', '.join(launched)} · spesa {outcome.spent:.2f} $ su "
+        f"{config.massimo_dollari:.0f} $ al massimo · prove fatte ora: {outcome.run}."
+        if launched
+        else "Solo il report: niente lanciato ora."
+    )
     lines = [
         f"# Campagna di prove del {when}",
         "",
         f"Varianti: base, {', '.join(config.varianti) or '-'} · {config.ripetizioni} prove "
-        f"ciascuna · modelli: {', '.join(models)} · grande: {config.grande} · spesa "
-        f"{outcome.spent:.2f} $ su {config.massimo_dollari:.0f} $ al massimo · prove fatte "
-        f"ora: {outcome.run}.",
+        f"ciascuna · modelli: {', '.join(models)} · grande: {config.grande}.",
+        "",
+        run_line,
         "",
     ]
+    if 0 < len(launched) < len(models):
+        lines += [
+            f"Le prove degli altri modelli ({', '.join(m for m in models if m not in launched)}) "
+            "sono quelle che c'erano quando questo report è stato scritto: se girano in un altro "
+            "terminale, alla fine di tutti e due lancia `eval campagna --solo-report`.",
+            "",
+        ]
     if outcome.stopped:
         lines += [f"**Campagna fermata:** {outcome.stopped}. Rilanciala per continuare.", ""]
     if outcome.errors:
         lines += ["**Problemi:**", "", *(f"- {e}" for e in outcome.errors), ""]
-    order = list(folder_models or models)
+    order = list(models)
     tables: dict[tuple[str, str], list[Variant]] = {}
     for model in models:
         for set_name in config.insiemi:

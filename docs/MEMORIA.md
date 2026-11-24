@@ -1004,6 +1004,11 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   risultati finali», e poterne lanciare anche solo una parte. Fatto con `eval campagna` ed
   `eval/campagna.yaml` (lo aggiorna Claude). Sonnet ha cartelle e base sue. Le prove fatte si
   saltano; tetto di spesa 60 $. Report unico `runs/campagna.md`.
+- 24-11 sera, l'utente: Haiku e Sonnet in parallelo, un terminale ciascuno. Si può: cartelle
+  diverse, nessun file in comune tranne il report, che ora con `--modelli` è
+  `runs/campagna-<modello>.md`; alla fine `--solo-report` fa `runs/campagna.md` (gratis). Il
+  tetto vale per terminale: COPILOT dà 10 $ a Haiku e 50 $ a Sonnet. Se escono «cicli non
+  eseguiti» (troppe richieste ad AWS insieme), Sonnet si rifà da solo dopo Haiku.
 - **`.gitignore` di `docs/` (24-11-2026):** in git entra solo `DOCUMENTAZIONE.md`; gli altri
   quattro file erano già seguiti e restano (servono al blocco Aggiornare e alla memoria).
 

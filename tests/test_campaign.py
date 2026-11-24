@@ -116,6 +116,26 @@ def test_only_some_experiments_can_be_run(project: Path) -> None:
     assert "Modelli non nel file" in _campaign("--modelli", "opus").output
 
 
+def test_two_models_can_run_together_in_two_terminals(project: Path) -> None:
+    """Una campagna per modello (due terminali): ognuna scrive il suo report, che mostra tutti
+    i modelli; alla fine `--solo-report` rifà quello unico senza lanciare niente."""
+    runs = project / "runs"
+    assert _campaign("--modelli", "haiku", "--insiemi", "piccolo").exit_code == 0
+    assert _campaign("--modelli", "sonnet", "--insiemi", "piccolo").exit_code == 0
+    assert not (runs / "campagna.md").exists()  # nessuno dei due sovrascrive l'altro
+    haiku = (runs / "campagna-haiku.md").read_text("utf-8")
+    sonnet = (runs / "campagna-sonnet.md").read_text("utf-8")
+    assert "Lanciati ora: haiku" in haiku and "## sonnet · piccolo" in haiku
+    assert "Lanciati ora: sonnet" in sonnet and "## haiku · piccolo" in sonnet
+    assert "## I modelli a confronto" in sonnet
+    result = _campaign("--solo-report")
+    assert result.exit_code == 0, result.output
+    assert "niente lanciato" in result.output
+    report = (runs / "campagna.md").read_text("utf-8")
+    assert "Solo il report" in report and "## sonnet · piccolo" in report
+    assert done(runs / "prove-piccolo", "base") == 2  # niente rifatto
+
+
 def test_the_campaign_stops_at_the_spending_cap(
     project: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

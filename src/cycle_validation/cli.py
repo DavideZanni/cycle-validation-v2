@@ -1227,13 +1227,22 @@ def eval_campaign(
         Path | None, typer.Option(help="settings.yaml. Vuoto = data/settings.yaml se c'è.")
     ] = None,
     piano: Annotated[bool, typer.Option(help="Mostra solo cosa farebbe (gratis).")] = False,
+    solo_report: Annotated[
+        bool,
+        typer.Option(help="Scrive solo il report con le prove che ci sono (gratis)."),
+    ] = False,
     runs: Annotated[Path, typer.Option("--cartella", help="Cartella dei risultati.")] = Path(
         "runs"
     ),
 ) -> None:
     """Tutti gli esperimenti in fila: per ogni modello (Haiku, poi Sonnet) la base e le varianti
     sul piccolo, poi sul grande quelle che si tengono; le prove già fatte si saltano. Alla fine
-    il report unico `runs/campagna.md`. Le opzioni restringono l'elenco di `eval/campagna.yaml`."""
+    il report unico `runs/campagna.md`. Le opzioni restringono l'elenco di `eval/campagna.yaml`.
+
+    Con `--modelli` si possono lanciare due campagne insieme, una per modello, in due terminali:
+    le cartelle sono diverse e ognuna scrive il suo report (`runs/campagna-<modello>.md`), che
+    contiene comunque tutti i modelli del file con le prove che ci sono. Il tetto di spesa vale
+    per ogni terminale."""
     try:
         campaign = load_campaign(file)
         updates: dict[str, Any] = {}
@@ -1273,6 +1282,30 @@ def eval_campaign(
     def steps_for(model: str, set_name: str) -> list[Step]:
         return plan(campaign, runs, set_name=set_name, model=model, order=all_models)
 
+    narrowed = models != all_models
+    report = runs / (
+        CAMPAIGN_REPORT if not narrowed or solo_report else f"campagna-{'-'.join(models)}.md"
+    )
+    started = datetime.now()
+
+    def write_report() -> None:
+        runs.mkdir(parents=True, exist_ok=True)
+        report.write_text(
+            render_campaign(
+                campaign,
+                runs,
+                outcome,
+                when=f"{started:%d-%m-%Y %H:%M}",
+                models=all_models,
+                launched=[] if solo_report else models,
+            ),
+            encoding="utf-8",
+        )
+
+    if solo_report:
+        write_report()
+        typer.echo(f"Report scritto (niente lanciato): {report}")
+        return
     if piano:
         typer.echo(
             f"Piano (gratis, niente viene lanciato). Piccolo: {len(sets['piccolo'].entries)} "
@@ -1292,7 +1325,6 @@ def eval_campaign(
                     state = f"{step.missing} da fare" if step.missing else "già fatte"
                     typer.echo(f"  {step.name}: {state} → {step.folder.as_posix()}")
         return
-    started = datetime.now()
     try:
         for model in models:
             for set_name in campaign.insiemi:
@@ -1344,19 +1376,7 @@ def eval_campaign(
     except (CycleValidationError, OSError, ValueError) as error:
         outcome.stopped = f"errore: {error}"
     finally:
-        report = runs / CAMPAIGN_REPORT
-        runs.mkdir(parents=True, exist_ok=True)
-        report.write_text(
-            render_campaign(
-                campaign,
-                runs,
-                outcome,
-                when=f"{started:%d-%m-%Y %H:%M}",
-                models=models,
-                folder_models=all_models,
-            ),
-            encoding="utf-8",
-        )
+        write_report()
     typer.echo(
         f"Campagna {'fermata: ' + outcome.stopped if outcome.stopped else 'finita'}. "
         f"Prove fatte ora: {outcome.run} · spesa {outcome.spent:.2f} $."

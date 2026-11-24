@@ -802,7 +802,7 @@ opzioni.
 | `eval muta` | fa le copie cieche: `--lista`, `--knowledge`, `--quanti`, `--seme`, `--per-ciclo` (6) | no |
 | `eval prova [pdf]…` | valida, confronta con gli errori noti, scrive `prestazioni.md` e `riepilogo.md`. `--nome`, `--variante`, `--lista` (ripetibile), `--attesi` (ripetibile), `--cartella`, `--profile` (predefinito `auto`: MOS o DR ciclo per ciclo, dalla testata, così un DR nella lista non si ferma con «Modulo sbagliato») | sì |
 | `eval riepilogo` | riscrive `riepilogo.md` della cartella | no |
-| `eval campagna` | tutte le prove di `eval/campagna.yaml` in fila, per ogni modello e insieme, e il report unico `runs/campagna.md`. `--piano` (gratis), `--modelli`, `--insiemi`, `--varianti`, `--ripetizioni`, `--grande`, `--massimo-dollari`, `--knowledge` (vuoto = ultima fotografia), `--config` (vuoto = `data/settings.yaml` se c'è), `--file`, `--cartella` | sì |
+| `eval campagna` | tutte le prove di `eval/campagna.yaml` in fila, per ogni modello e insieme, e il report unico `runs/campagna.md`. `--piano` (gratis), `--solo-report` (gratis: solo il report), `--modelli` (con un solo modello il report è `runs/campagna-<modello>.md`), `--insiemi`, `--varianti`, `--ripetizioni`, `--grande`, `--massimo-dollari`, `--knowledge` (vuoto = ultima fotografia), `--config` (vuoto = `data/settings.yaml` se c'è), `--file`, `--cartella` | sì |
 
 ### 14.3 Esperimenti con i casi rivisti (sezione 15.2)
 
@@ -980,6 +980,14 @@ massimo_dollari: 60
   visti per tipo nell'ultima base sul piccolo, con cosa ha risposto la v2 sui mancati.
 - Le cartelle delle prove hanno i secondi nel nome (`AAAAMMGG-HHMMSS-<nome>`, con `-2`, `-3`
   se due prove partono nello stesso secondo).
+- **Due modelli insieme** (24-11): con `--modelli haiku` in un terminale e `--modelli sonnet`
+  in un altro le due campagne girano in parallelo. Non condividono niente: cartelle diverse e
+  report diversi (lanciata con `--modelli`, la campagna scrive `runs/campagna-<modello>.md`
+  invece di `runs/campagna.md`). Ogni report mostra tutti i modelli del file, con le prove che
+  c'erano quando è stato scritto; la riga «Lanciati ora» dice quali modelli ha fatto girare e
+  quanto ha speso. Il tetto di spesa vale per ogni terminale. `--solo-report` scrive
+  `runs/campagna.md` con tutte le prove che ci sono, senza lanciarne (gratis): si usa quando
+  tutti e due i terminali hanno finito.
 
 **Metriche di una prova** (`prestazioni.md`):
 
