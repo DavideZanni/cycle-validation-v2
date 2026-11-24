@@ -37,6 +37,7 @@ from cycle_validation.evaluation.snapshot import snapshot_version, take_snapshot
 from cycle_validation.evaluation.trials import (
     TRIAL_REPORT,
     CycleScore,
+    Proposal,
     build_trial,
     failed_cycle,
     load_known_errors,
@@ -967,10 +968,16 @@ def eval_trial(
     try:
         if knowledge is None:
             raise CycleValidationError("Manca --knowledge.")
+        proposal = Proposal()
         if variante is not None:
             loaded = load_variant(variante, config_override=config)
             settings = loaded.settings
             nome = nome or loaded.name
+            proposal = Proposal(
+                change=loaded.description,
+                hypothesis=loaded.hypothesis,
+                expected=loaded.expected,
+            )
         else:
             settings = load_settings(config)
         if not nome:
@@ -1027,7 +1034,7 @@ def eval_trial(
             f" · mancati {', '.join(m.op for m in score.missed) or '-'}"
             f" · ERRATO in più {', '.join(f.op for f in score.extra) or '-'}"
         )
-    trial = build_trial(nome, started, reports, scores)
+    trial = build_trial(nome, started, reports, scores, proposal)
     write_trial(trial, folder)
     summary = write_summary(cartella)
     typer.echo(

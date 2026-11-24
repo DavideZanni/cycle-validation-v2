@@ -1,5 +1,7 @@
 nome: prompt_task_mancante
 descrizione: task citato non nel manuale = il modello giudica, sapendo che il task manca (MIGLIORIE A2)
+ipotesi: "molte operazioni con il task mancante hanno comunque il testo giusto nel manuale: il modello le può giudicare"
+atteso: "meno WARNING per ciclo senza errori, falsi errori 0, costo un po' più alto"
 base: baseline
 agent:
   skip_missing_task: false

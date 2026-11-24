@@ -1,5 +1,7 @@
 nome: testo_lungo
 descrizione: fino a 400 righe di manuale nel messaggio invece di 150 (meno ricerca, più contesto)
+ipotesi: "i limiti scritti lontano dal passo restano fuori dalle 150 righe; con 400 il modello li vede"
+atteso: "più errori stabili e meno ricerche; costo per sessione più alto"
 base: baseline
 agent:
   inline_max_lines: 400

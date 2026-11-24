@@ -100,3 +100,24 @@ def test_the_service_keeps_no_transcripts_but_the_experiments_do() -> None:
     for path in (ROOT / "eval" / "varianti").glob("*.yaml"):
         variant = load_variant(path, project_root=ROOT)
         assert variant.settings.agent.save_transcripts is True, path.name
+
+
+def test_the_proposal_is_read_from_the_variant(folder: Path) -> None:
+    path = write(
+        folder,
+        "prova",
+        "nome: prova\ndescrizione: cosa cambia\nipotesi: perché\natteso: cosa deve uscire\n"
+        "base: baseline\n",
+    )
+    variant = load_variant(path)
+    assert (variant.description, variant.hypothesis, variant.expected) == (
+        "cosa cambia",
+        "perché",
+        "cosa deve uscire",
+    )
+
+
+def test_every_variant_in_the_repository_says_why_and_what_to_expect() -> None:
+    for path in sorted((ROOT / "eval" / "varianti").glob("*.yaml")):
+        variant = load_variant(path, project_root=ROOT)
+        assert variant.description and variant.hypothesis and variant.expected, path.name

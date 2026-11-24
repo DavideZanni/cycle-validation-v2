@@ -210,8 +210,11 @@ errore) e i suoi WARNING contano nel lavoro a mano. Le prove si confrontano solo
 stesso insieme e con le stesse copie cieche: il riepilogo avvisa se non è così.
 
 Ogni prova scrive nella cartella del suo insieme `<data>-<nome>\prestazioni.md` (il **report
-della prova**) e aggiorna `riepilogo.md` (il **report finale**: scelta migliore, classifica
-delle varianti con la decisione, tabella delle prove, errore per errore, falsi errori).
+della prova**: in cima la proposta della variante, cioè cosa cambia, perché e cosa ci si
+aspetta, poi i risultati) e aggiorna `riepilogo.md` (il **report finale**: scelta migliore,
+classifica delle varianti, la tabella «Le proposte e la decisione», tabella delle prove,
+errore per errore, falsi errori). Le considerazioni le scrive Claude nel registro di
+`MIGLIORIE.md`, dalle tue foto.
 
 **Quando:**
 
@@ -322,6 +325,9 @@ code runs/prove-piccolo/riepilogo.md
 ```
 
 Per il grande: `code runs/prove-grande/riepilogo.md`. Anche qui **Ctrl+Shift+V**.
+
+**Manda a Claude:** la foto di «Scelta migliore», «Classifica delle varianti» e «Le proposte e
+la decisione».
 
 **D. Rifare il report finale** (gratis; serve solo se hai cancellato o spostato una prova):
 

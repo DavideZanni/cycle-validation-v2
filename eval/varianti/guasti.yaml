@@ -1,5 +1,7 @@
 nome: guasti
 descrizione: guasti simulati (servizio giù, risposta storta, passi finiti, conoscenza irraggiungibile); deve dare WARNING, mai ERRATO
+ipotesi: "un guasto deve diventare WARNING, mai ERRATO"
+atteso: "0 ERRATO falsi; esiti tecnici al posto dei giudizi"
 base: baseline
 guasti:
   errore: 0.3

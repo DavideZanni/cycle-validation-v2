@@ -1,5 +1,7 @@
 nome: conferme_1
 descrizione: un ERRATO del modello si conferma con 1 sessione invece di 2 (G1), meno costo e forse più errori trovati
+ipotesi: "con due conferme un errore che il modello vede solo a volte si perde; una conferma basta a fermare i giudizi instabili"
+atteso: "errori stabili uguali o di più, falsi errori sempre 0, costo più basso"
 base: baseline
 agent:
   confirm_contradiction: 1

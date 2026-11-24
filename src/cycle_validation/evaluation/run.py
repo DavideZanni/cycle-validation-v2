@@ -405,6 +405,8 @@ async def run_variant(
         "formato": FORMAT,
         "variante": variant.name,
         "descrizione": variant.description,
+        "ipotesi": variant.hypothesis,
+        "atteso": variant.expected,
         "catena": variant.chain,
         "sessione": variant.session,
         "file_variante": variant.path.as_posix(),

@@ -2,6 +2,8 @@
 # Tutte le altre varianti ereditano da qui e cambiano solo quello che serve.
 nome: baseline
 descrizione: impostazioni di config/settings.yaml, così come sono
+ipotesi: "il riferimento: nessuna modifica"
+atteso: "i numeri con cui si confrontano tutte le altre varianti"
 config: config/settings.yaml
 agent:
   save_transcripts: true   # negli esperimenti il testo delle sessioni serve a capire un esito strano

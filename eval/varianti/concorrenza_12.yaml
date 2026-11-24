@@ -1,5 +1,7 @@
 nome: concorrenza_12
 descrizione: dodici operazioni controllate insieme invece di sei
+ipotesi: "le operazioni sono indipendenti: più operazioni insieme finiscono prima"
+atteso: "stessi errori stabili, tempo per ciclo più basso, nessun ciclo non eseguito per i limiti di Bedrock"
 base: baseline
 agent:
   concurrency: 12

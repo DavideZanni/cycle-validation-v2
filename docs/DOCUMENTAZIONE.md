@@ -118,7 +118,7 @@ v2 risponde al frontend come la v1, quindi il frontend non va cambiato.
 | **In linea / con ricerca** | sessione con il testo del manuale già nel messaggio (niente tool) oppure con i tool Read e Grep |
 | **GRASP** | la regola che obbliga il modello a leggere solo una finestra di righe del manuale, mai il file intero |
 | **Impronta** | i primi 8 caratteri dell'SHA-256 del PDF: così si chiama un ciclo nei documenti |
-| **Variante** | un file `eval/varianti/<nome>.yaml` che cambia una cosa sola delle impostazioni |
+| **Variante** | un file `eval/varianti/<nome>.yaml` che cambia una cosa sola delle impostazioni, con la sua proposta (`descrizione`, `ipotesi`, `atteso`) |
 | **Prova** | una corsa della v2 su un insieme di cicli, con il punteggio |
 | **Copia cieca** | copia di un ciclo vero con un errore messo dal programma, che nessuno vede |
 
@@ -885,6 +885,33 @@ simula guasti e **regge** se nessun guasto diventa ERRATO. Dettagli in `AZIENDA.
 Le prove si confrontano solo sugli stessi cicli: il riepilogo mostra l'impronta dell'insieme
 (colonna «Cicli») e avvisa se in una cartella sono diversi. Quando cambiano il seme o la
 conoscenza, le prove vecchie si archiviano.
+
+**La variante e la sua proposta.** Ogni file di `eval/varianti/` dice, oltre a cosa cambia
+nelle impostazioni:
+
+```yaml
+nome: effort_medio
+descrizione: ragionamento medium nei controlli invece di low      # cosa cambia
+ipotesi: "con low il modello a volte non vede le frasi al contrario"  # perché dovrebbe migliorare
+atteso: "più errori stabili; costo sotto il doppio della base"     # cosa deve cambiare nei numeri
+base: baseline
+agent:
+  effort: medium
+```
+
+Un valore con `: ` dentro va tra virgolette. Un test controlla che ogni variante del
+repository abbia tutti e tre i campi. `eval prova --variante` copia la proposta nella prova
+(`prova.json`, campo `proposal`):
+
+- in cima a `prestazioni.md`, sezione «La proposta» (senza variante, per esempio la base:
+  «Nessuna variante»);
+- nel `riepilogo.md`, tabella «Le proposte e la decisione»: per ogni variante cosa cambia,
+  ipotesi, atteso e la decisione della regola.
+
+Le **considerazioni** (cosa si è capito, cosa fare dopo) le scrive Claude nel registro di
+`MIGLIORIE.md`, colonna «Considerazioni», quando la variante è decisa. Così proposta, risultati
+e decisione stanno sul PC in `runs/` (che git ignora), e nel repository restano solo la
+proposta e le conclusioni, senza dati veri.
 
 **Metriche di una prova** (`prestazioni.md`):
 

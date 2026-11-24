@@ -1,5 +1,7 @@
 nome: effort_low
 descrizione: meno ragionamento anche nella lettura del PDF (effort low ovunque)
+ipotesi: "anche la lettura del PDF regge con poco ragionamento"
+atteso: "stessa lettura del ciclo e stessi errori stabili, costo più basso"
 base: baseline
 agent:
   effort: low

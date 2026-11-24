@@ -1,5 +1,7 @@
 nome: effort_medio
 descrizione: ragionamento medium nei controlli invece di low (frasi al contrario, parole cambiate)
+ipotesi: "con low il modello a volte non vede frasi al contrario o parole cambiate; un po' più di ragionamento le trova"
+atteso: "più errori stabili, soprattutto mai visti di tipo negazione; costo e tempo un po' più alti, sotto il doppio della base"
 base: baseline
 agent:
   effort: medium

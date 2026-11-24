@@ -918,6 +918,13 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 3.
   condition.
 - **Repository:** si lavora su `main`; un codice vero rimasto in un vecchio messaggio di commit
   si lascia così (nessuna riscrittura della storia).
+- **Proposte delle migliorie (24-11-2026):** niente cartelle con un report per variante in
+  `eval/` (il repository è pubblico e i risultati veri restano in `runs/`). Ogni variante ha
+  `descrizione`, `ipotesi` e `atteso`; `eval prova` li mette in cima a `prestazioni.md` e nella
+  tabella «Le proposte e la decisione» del riepilogo. Le considerazioni le scrive Claude nel
+  registro di `MIGLIORIE.md`, colonna «Considerazioni».
+- **`.gitignore` di `docs/` (24-11-2026):** in git entra solo `DOCUMENTAZIONE.md`; gli altri
+  quattro file erano già seguiti e restano (servono al blocco Aggiornare e alla memoria).
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

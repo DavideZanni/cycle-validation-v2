@@ -1,6 +1,8 @@
 # In azienda: sostituire con l'id del profilo di inferenza Sonnet abilitato su Bedrock.
 nome: sonnet
 descrizione: modello più grande (Sonnet al posto di Haiku)
+ipotesi: "un modello più grande vede meglio le differenze sottili"
+atteso: "più errori stabili, ma costo circa 10 volte: la regola scarta oltre 2 volte"
 base: baseline
 agent:
   model: sonnet

@@ -207,3 +207,50 @@ def test_errors_the_code_puts_and_finds_do_not_count_as_generalization(tmp_path:
     assert "| numero_una_lingua | codice | 1 su 1 (100%) |" in text
     assert "| numero_manuale | modello | 0 su 1 (0%) |" in text
     assert "| nascosto | modello | 1 su 1 (100%) |" in text
+
+
+def test_the_proposal_sits_next_to_the_results(tmp_path: Path) -> None:
+    from cycle_validation.evaluation.trials import Proposal
+
+    known = _known(tmp_path)
+    root = tmp_path / "prove"
+    proposal = Proposal(
+        change="più ragionamento",
+        hypothesis="vede le frasi | al contrario",
+        expected="più errori stabili",
+    )
+    for name, hour, extra in (
+        ("base", 9, None),
+        ("base", 10, None),
+        ("medio", 11, proposal),
+        ("medio", 12, proposal),
+    ):
+        reports = [_report("aaaa1111", ["005"]), _report("bbbb2222", [])]
+        scores = [score_cycle(r, known) for r in reports]
+        trial = build_trial(name, datetime(2030, 1, 1, hour), reports, scores, extra)
+        write_trial(trial, root / f"2030-{hour}-{name}")
+    trials = load_trials(root)
+    assert trials[-1].proposal == proposal  # si rilegge da prova.json
+    text = render_trial(trials[-1])
+    assert "| Cosa cambia | più ragionamento |" in text
+    assert "| Perché (ipotesi) | vede le frasi / al contrario |" in text
+    assert "Nessuna variante" in render_trial(trials[0])
+    summary = render_summary(trials)
+    assert "## Le proposte e la decisione" in summary
+    assert (
+        "| medio | più ragionamento | vede le frasi / al contrario | più errori stabili | "
+        "non si tiene: non è meglio della base |" in summary
+    )
+    assert "| base | - | - | - | riferimento |" in summary
+
+
+def test_an_old_trial_file_without_proposal_still_loads(tmp_path: Path) -> None:
+    trial = _trial(tmp_path, "base", 1, [])
+    raw = trial.model_dump(mode="json")
+    del raw["proposal"]
+    folder = tmp_path / "vecchia"
+    folder.mkdir()
+    import json
+
+    (folder / "prova.json").write_text(json.dumps(raw), "utf-8")
+    assert not load_trials(tmp_path)[0].proposal

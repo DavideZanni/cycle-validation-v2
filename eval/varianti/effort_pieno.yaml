@@ -1,5 +1,7 @@
 nome: effort_pieno
 descrizione: ragionamento predefinito del modello ovunque, per confrontare il low dei controlli (MIGLIORIE B2)
+ipotesi: "controlla la scelta B2: se low perde errori, con il ragionamento pieno si vede"
+atteso: "stessi errori stabili della base (allora low resta); costo più alto"
 base: baseline
 agent:
   effort: null

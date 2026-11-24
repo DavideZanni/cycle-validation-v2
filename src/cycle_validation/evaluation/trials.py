@@ -120,9 +120,22 @@ class CycleScore(_Strict):
     seen: bool = True  # errori noti a chi scrive le migliorie (vedi `KnownCycle.visto`)
 
 
+class Proposal(_Strict):
+    """La proposta della variante (`eval/varianti/<nome>.yaml`): cosa cambia, perché, cosa ci si
+    aspetta. Vuota quando la prova gira senza variante (per esempio la base)."""
+
+    change: str = ""
+    hypothesis: str = ""
+    expected: str = ""
+
+    def __bool__(self) -> bool:
+        return bool(self.change or self.hypothesis or self.expected)
+
+
 class Trial(_Strict):
     name: str
     started_at: datetime
+    proposal: Proposal = Field(default_factory=Proposal)
     model: str = ""
     knowledge_version: str = ""
     prompt_version: str = ""
@@ -331,7 +344,11 @@ def failed_cycle(fingerprint: str, known: KnownErrors, failure: str) -> CycleSco
 
 
 def build_trial(
-    name: str, started_at: datetime, reports: Sequence[Report], cycles: Sequence[CycleScore]
+    name: str,
+    started_at: datetime,
+    reports: Sequence[Report],
+    cycles: Sequence[CycleScore],
+    proposal: Proposal | None = None,
 ) -> Trial:
     """La prova: i punteggi dei cicli, nell'ordine «con errori», giusti, sconosciuti."""
     order = {"errori": 0, "giusto": 1, "vero": 2}
@@ -339,6 +356,7 @@ def build_trial(
     return Trial(
         name=name,
         started_at=started_at,
+        proposal=proposal or Proposal(),
         model=meta.model if meta else "",
         knowledge_version=meta.knowledge_version if meta else "",
         prompt_version=meta.prompt_version if meta else "",
@@ -390,6 +408,33 @@ def _unseen_by_kind(trial: Trial) -> dict[str, tuple[int, int]]:
     return {kind: (found, total) for kind, (found, total) in sorted(counts.items())}
 
 
+def _render_proposal(proposal: Proposal) -> list[str]:
+    """La proposta in cima al report: così risultati e motivo della prova stanno insieme."""
+    if not proposal:
+        return [
+            "## La proposta",
+            "",
+            "Nessuna variante: le impostazioni di `--config`, così come sono.",
+            "",
+        ]
+    rows = (
+        ("Cosa cambia", proposal.change),
+        ("Perché (ipotesi)", proposal.hypothesis),
+        ("Cosa ci si aspetta", proposal.expected),
+    )
+    return [
+        "## La proposta",
+        "",
+        "| | |",
+        "|---|---|",
+        *(f"| {label} | {_cell(text or '-')} |" for label, text in rows),
+        "",
+        "La decisione (si tiene o no) è nel riepilogo; le considerazioni nel registro di "
+        "`docs/MIGLIORIE.md`.",
+        "",
+    ]
+
+
 def render_trial(trial: Trial) -> str:
     """Il report di una prova, da leggere."""
     when = trial.started_at.strftime("%d-%m-%Y %H:%M")
@@ -399,6 +444,7 @@ def render_trial(trial: Trial) -> str:
         f"Modello `{trial.model or '-'}` · prompt `{trial.prompt_version or '-'}` · "
         f"v2 `{trial.tool_version or '-'}` · conoscenza `{trial.knowledge_version or '-'}`",
         "",
+        *_render_proposal(trial.proposal),
         "## Punteggio",
         "",
         "| Misura | Valore |",
@@ -582,6 +628,7 @@ class Variant(_Strict):
     max_ms: int
     failures: int
     decision: str = ""
+    proposal: Proposal = Field(default_factory=Proposal)
 
     def rank_key(self) -> tuple[float, ...]:
         """Più grande = migliore."""
@@ -639,6 +686,7 @@ def build_variants(trials: Sequence[Trial]) -> list[Variant]:
                 mean_ms=round(sum(t.mean_ms for t in group) / len(group)),
                 max_ms=max(t.max_ms for t in group),
                 failures=sum(t.failures for t in group),
+                proposal=next((t.proposal for t in reversed(group) if t.proposal), Proposal()),
             )
         )
     base = next((v for v in variants if v.name.casefold() == BASE_NAME), None)
@@ -755,6 +803,20 @@ def render_summary(trials: Sequence[Trial]) -> str:
     lines += [
         "",
         METRICS_HELP,
+        "",
+        "## Le proposte e la decisione",
+        "",
+        "Cosa voleva provare ogni variante (dal suo file in `eval/varianti/`) accanto a quello "
+        "che è successo. Le considerazioni si scrivono nel registro di `docs/MIGLIORIE.md`.",
+        "",
+        "| Variante | Cosa cambia | Perché (ipotesi) | Cosa ci si aspetta | Decisione |",
+        "|---|---|---|---|---|",
+        *(
+            f"| {_cell(v.name)} | {_cell(v.proposal.change or '-')} | "
+            f"{_cell(v.proposal.hypothesis or '-')} | {_cell(v.proposal.expected or '-')} | "
+            f"{v.decision} |"
+            for v in variants
+        ),
         "",
         "## Le prove",
         "",

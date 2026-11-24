@@ -3,10 +3,15 @@
 ```yaml
 nome: effort_low
 descrizione: meno ragionamento del modello
+ipotesi: il ragionamento lungo non serve a confrontare due testi brevi
+atteso: stessi errori stabili, costo per ciclo più basso
 base: baseline
 agent:
   effort: low
 ```
+
+`descrizione` (cosa cambia), `ipotesi` (perché dovrebbe migliorare) e `atteso` (cosa deve
+cambiare nei numeri) sono la proposta: il report della prova li riporta accanto ai risultati.
 
 La radice della catena (senza `base`) indica il file di impostazioni di partenza (`config`).
 Le sezioni `agent`, `paths` e `module_check` si fondono ricorsivamente su quelle impostazioni.
@@ -33,6 +38,8 @@ class VariantFile(BaseModel):
 
     nome: str = Field(min_length=1)
     descrizione: str = ""
+    ipotesi: str = ""
+    atteso: str = ""
     base: str | None = None
     config: Path | None = None
     sessione: str | None = None
@@ -57,6 +64,8 @@ class Variant:
     # Nomi dalla radice alla variante stessa.
     chain: list[str]
     faults: Faults | None = None
+    hypothesis: str = ""
+    expected: str = ""
 
 
 def _merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
@@ -147,4 +156,6 @@ def load_variant(
         session=session,
         chain=[item.nome for item in chain],
         faults=faults,
+        hypothesis=last.ipotesi,
+        expected=last.atteso,
     )
