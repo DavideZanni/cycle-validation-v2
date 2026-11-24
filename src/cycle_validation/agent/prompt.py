@@ -72,13 +72,31 @@ def prompt_version(*texts: str) -> str:
     return digest.hexdigest()[:12]
 
 
+LANGUAGES_NOTE = (
+    "La descrizione è la stessa operazione scritta in due lingue. Confronta con il testo di "
+    "riferimento **ognuna delle due parti, separatamente**: se anche una sola delle due dice "
+    "qualcosa di incompatibile con il testo (un valore diverso, una negazione aggiunta o tolta, "
+    "una parola che cambia la lavorazione o il materiale), il giudizio è `contraddetto`: nella "
+    "spiegazione scrivi quale lingua e che cosa cambia, e cita la frase del testo che lo "
+    "dimostra. Una traduzione con parole diverse ma con lo stesso contenuto tecnico non è una "
+    "contraddizione."
+)
+
+
 def _header(
-    cycle: Cycle, operation: Operation, facts: Sequence[str], missing_tasks: Sequence[str]
+    cycle: Cycle,
+    operation: Operation,
+    facts: Sequence[str],
+    missing_tasks: Sequence[str],
+    languages: tuple[str, str] | None = None,
 ) -> list[str]:
     lines = [
         f"Operazione {operation.operation_number}",
         f"Descrizione nel ciclo: {operation.operation_description}",
     ]
+    if languages is not None:
+        italian, english = languages
+        lines += [f"Parte in italiano: {italian}", f"Parte in inglese: {english}", LANGUAGES_NOTE]
     if operation.task_codes:
         lines.append(f"Task code citati: {', '.join(operation.task_codes)}")
     if missing_tasks:
@@ -109,8 +127,11 @@ def build_operation_prompt(
     inline: bool,
     settings: AgentSettings,
     missing_tasks: Sequence[str] = (),
+    languages: tuple[str, str] | None = None,
 ) -> str:
-    lines = _header(cycle, operation, facts, missing_tasks)
+    """`languages`: le due parti della descrizione, se vanno giudicate separatamente
+    (`AgentSettings.separate_languages`)."""
+    lines = _header(cycle, operation, facts, missing_tasks, languages)
     lines.append("")
     if inline:
         lines.append("Testo di riferimento, con il numero di riga di ciascun file:")

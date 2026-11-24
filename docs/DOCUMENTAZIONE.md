@@ -666,6 +666,7 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.citation_window` | 3 | tolleranza in righe per le citazioni |
 | `agent.skip_missing_task` | `true` | task citato che manca: WARNING subito, senza modello |
 | `agent.missing_task_note` | `false` | (con lo skip spento) dire al modello che il task manca |
+| `agent.separate_languages` | `false` | descrizione in due lingue: nella domanda al modello la parte italiana e quella inglese separate, con l'istruzione di confrontarle **ognuna** con il testo di riferimento (se una sola dice altro, `contraddetto`). Variante `lingue_separate` |
 | `agent.confirm_contradiction` | 2 | sessioni di conferma per ogni ERRATO del modello |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
 | `paths.*` | `config/profiles`, `prompts`, `data/knowledge`, `runs` | cartelle |

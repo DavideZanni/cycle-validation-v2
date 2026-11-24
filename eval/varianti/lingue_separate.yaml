@@ -1,0 +1,7 @@
+nome: lingue_separate
+descrizione: il modello confronta con il manuale la parte italiana e quella inglese separatamente; se una sola dice altro, è contraddetto
+ipotesi: "oggi il modello giudica la descrizione intera e una lingua giusta basta a farla sembrare coerente: così manca 18 negazioni tolte in una lingua sola su 21"
+atteso: "più errori mai visti per il modello (soprattutto negazioni), forse anche parole cambiate in una lingua; falsi errori sempre 0"
+base: baseline
+agent:
+  separate_languages: true

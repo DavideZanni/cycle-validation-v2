@@ -28,7 +28,7 @@ from cycle_validation.agent.session import (
 )
 from cycle_validation.checks.base import CheckContext, make_result
 from cycle_validation.checks.dr_recommendation import dr_documents, dr_tasks
-from cycle_validation.checks.languages import number_mismatches
+from cycle_validation.checks.languages import language_parts, number_mismatches
 from cycle_validation.checks.process_sheet import engine_family, treatment_for_family
 from cycle_validation.config import AgentSettings
 from cycle_validation.domain.check import (
@@ -196,6 +196,11 @@ def plan_operation_checks(
             inline=inline,
             settings=settings,
             missing_tasks=missing_tasks,
+            languages=(
+                language_parts(operation.operation_description)
+                if settings.separate_languages
+                else None
+            ),
         )
         request = SessionRequest(
             session_id=f"op-{index:03d}-{operation.operation_number}",

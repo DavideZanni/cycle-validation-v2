@@ -56,6 +56,10 @@ class AgentSettings(_Strict):
     # Task citato che il manuale non ha: WARNING subito, senza chiamare il modello (MIGLIORIE
     # B6, scelta il 20-11-2026 al posto di A2). Una sessione in meno.
     skip_missing_task: bool = True
+    # Descrizione in due lingue: il modello confronta con il testo di riferimento l'italiano e
+    # l'inglese separatamente; se una sola delle due dice altro, è una contraddizione. Variante
+    # `lingue_separate` (24-11-2026): la base, spenta, mancava 18 negazioni tolte su 21.
+    separate_languages: bool = False
     # Una contraddizione (ERRATO) si conferma con altrettante sessioni uguali: resta ERRATO
     # solo se la ritrovano tutte, altrimenti WARNING GIUDIZIO_INSTABILE. Su un ciclo DR vero
     # lo stesso confronto dava ERRATO 3 volte su 6 (21-11-2026). Costa solo sugli ERRATO.

@@ -824,6 +824,12 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   `concorrenza_12`): nessuna variante si tiene; decisioni e considerazioni nel registro di
   `MIGLIORIE.md`. I 12 visti sono identici in tutte le prove (8 sempre, 4 mai). Il costo per
   ciclo usciva `0.00 $` (circa 0,004 $ arrotondato): ora i report lo danno con 4 decimali.
+- **24-11 sera, campagna fermata dall'utente** per sistemare prima le migliorie. Perché il
+  modello manca le negazioni: il prompt chiede solo «la descrizione è coerente con il
+  manuale?» e una lingua giusta copre l'altra. Nuova variante `lingue_separate`
+  (`agent.separate_languages`), aggiunta alla campagna; la base non cambia, quindi le 13 prove
+  restano valide. `numeri_manuale` rimandata: troverebbe le copie «numero del manuale» per
+  costruzione (vedi MIGLIORIE 7.3).
 
 Con Bedrock Haiku 5.5 e la conoscenza di prova:
 

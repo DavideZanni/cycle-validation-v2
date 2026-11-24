@@ -240,7 +240,15 @@ controlli. Su Bedrock c'è Sonnet 5.5 (`eu.anthropic.claude-sonnet-5-5`, stesso 
 
 | `$nome` | Cosa fa | Cosa può migliorare | Costo del lavoro |
 |---|---|---|---|
-| `numeri_manuale` (I4, è H12) | confronta i numeri e le classi della descrizione con quelli del passo del manuale. Alla sessione passa le differenze da guardare; se tutto coincide, CORRETTO senza modello | numeri cambiati in tutte e due le lingue (tipo cieco «numero del manuale»). È generale: 7 errori noti su 10 sono numeri, classi o codici. E servono meno sessioni | medio |
+| `lingue_separate` (dal 24-11, pronta) | nella domanda al modello la parte italiana e quella inglese separate, con l'istruzione di confrontare **ognuna** con il manuale: se una sola dice altro, `contraddetto` (`agent.separate_languages`) | gli errori in una lingua sola che oggi una lingua giusta «copre»: le negazioni tolte (la base ne trova 1-2 su 18), ma anche parole o frasi cambiate. È una richiesta generale: le copie cieche con la negazione restano una misura onesta | piccolo |
+| `numeri_manuale` (I4, è H12) | confronta i numeri e le classi della descrizione con quelli del passo del manuale. Alla sessione passa le differenze da guardare; se tutto coincide, CORRETTO senza modello | numeri cambiati in tutte e due le lingue; 7 errori noti su 10 sono numeri, classi o codici; meno sessioni | medio |
+
+**Attenzione a `numeri_manuale` (24-11).** Le copie cieche «numero del manuale» sono fatte
+cambiando un numero del manuale con un valore che **nel manuale non c'è**: è proprio quello che
+`numeri_manuale` cerca. Le troverebbe per costruzione, quindi per questa variante quelle copie
+non misurano la generalizzazione. Prima di provarla serve che la regola le tolga dal confronto
+(per la variante e per la base), e la misura onesta restano gli errori visti numerici e il
+gruppo nascosto. Lo stesso vale per un controllo delle negazioni fatto dal codice.
 
 Le migliorie successive si decidono dopo la base, dai tipi «modello» trovati peggio.
 

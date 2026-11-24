@@ -10,6 +10,8 @@ varianti:
   - effort_pieno
   - prompt_task_mancante
   - concorrenza_12
+  # dal 24-11: migliorie sul metodo (tappa 3)
+  - lingue_separate
 
 # Prove per variante: almeno 2 (il modello non risponde sempre uguale).
 ripetizioni: 2

@@ -427,3 +427,18 @@ def test_numbers_that_differ_between_the_two_languages_are_errato_without_a_sess
     assert immediate[0].reason is Reason.INCOERENZA_LINGUE
     assert immediate[0].verdict is Verdict.ERRATO
     assert "38 → 58" in immediate[0].rationale
+
+
+def test_the_two_languages_are_judged_separately_only_when_asked() -> None:
+    """Variante `lingue_separate` (24-11): una lingua giusta non deve coprire l'altra."""
+    bilingual = op("NON USARE SPAZZOLE / DO NOT USE BRUSHES")
+    plain = job_for(bilingual).request.prompt
+    assert "Parte in italiano" not in plain  # la base non cambia
+    separate = job_for(bilingual, AgentSettings(retry_backoff_s=0, separate_languages=True))
+    prompt = separate.request.prompt
+    assert "Parte in italiano: NON USARE SPAZZOLE" in prompt
+    assert "Parte in inglese: DO NOT USE BRUSHES" in prompt
+    assert "ognuna delle due parti, separatamente" in prompt
+    # una descrizione in una lingua sola resta com'è
+    single = job_for(op(), AgentSettings(retry_backoff_s=0, separate_languages=True))
+    assert "Parte in italiano" not in single.request.prompt

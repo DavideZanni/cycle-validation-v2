@@ -200,10 +200,12 @@ uv run cycle-validation eval campagna --piano
 
 ---
 
-**👉 Passo 4 · La campagna** · costa al massimo 60 $ · **alcune ore** · *in corso dal 24-11 alle 16:09*
+**👉 Passo 4 · La campagna** · costa al massimo 60 $ · **alcune ore** · *fermata il 24-11 dopo Haiku sul piccolo: prima **Aggiornare** (passo 1), poi rilanciala*
 
 Lancia da sola tutte le prove: prima Haiku (circa 2 ore, circa 5 $), poi Sonnet (più lento,
-circa 10 volte il costo). Alla fine apre il report.
+circa 10 volte il costo). Alla fine apre il report. Le prove già fatte (le 13 di Haiku sul
+piccolo del 24-11) non si rifanno: rilanciata, fa la miglioria nuova `lingue_separate`, la
+seconda prova di `concorrenza_12`, poi il grande e Sonnet.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
