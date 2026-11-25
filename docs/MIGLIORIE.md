@@ -296,6 +296,7 @@ la variante `sonnet` resta per le prove a mano.
 | `seconda_ricerca` (25-11, in prova) | se il primo giudizio è «non verificabile», una seconda sessione cerca con Grep e Read in **tutti i documenti citati dal ciclo** (più quelli del task e, per DR, quelli del profilo), non solo nel task dell'operazione. Un CORRETTO o ERRATO con citazione verificata prende il posto del WARNING; un ERRATO si conferma (G1) sugli stessi documenti; il costo delle due sessioni si somma (`agent.search_when_unverifiable`) | i due visti mai trovati (`298bc28e` 035, `f355dc3c` 010) escono in tutte le 36 prove con `EVIDENZA_NON_TROVATA`: il passo giusto non è nel testo del task, che spesso arriva nel messaggio **senza tool** (sotto 150 righe). Meno WARNING per ciclo | piccolo |
 | `elementi_e_lingue` (25-11, in prova) | `elementi_uno_per_uno` e `lingue_separate` insieme | se le due trovano errori diversi, insieme ne trovano di più | nessuno |
 | `tutto_insieme` (25-11, in prova; **prima prova: mai visti 5 su 29, costo 0,37 $ a prova, ×2,2 la base**) | le tre insieme: elementi, lingue, seconda ricerca | come si guarda la descrizione e dove si cerca nel manuale sono due cose diverse: possono sommarsi | nessuno |
+| `fonte_ispezione` (I8, **da scrivere**, dalle risposte P7 e P8 del 25-11) | per le operazioni di controllo e ispezione, tra le fonti anche la **sezione d'ispezione del manuale del motore citato in testata**; per le operazioni che non citano un task, i task della **prima riga di note** del ciclo | P7: la stampa giusta 04ecaabe op. 050 dice «4 volte» come il manuale del motore, la v2 confronta con il task SPM («3 volte») e dà ERRATO (14 prove su 18 con Haiku): è un **falso errore**, che succederebbe anche sui cicli veri. P8: operazioni senza task che oggi escono WARNING | medio. Prima: conferma di P7 e P8 da una persona |
 | `numeri_manuale` (I4, è H12; **rimandata**) | confronta i numeri e le classi della descrizione con quelli del passo del manuale. Alla sessione passa le differenze da guardare; se tutto coincide, CORRETTO senza modello | numeri cambiati in tutte e due le lingue; 7 errori noti su 10 sono numeri, classi o codici; meno sessioni | medio |
 
 **Attenzione a `numeri_manuale` (24-11).** Le copie cieche «numero del manuale» sono fatte
@@ -348,8 +349,15 @@ Questi errori noti mancano per motivi che non dipendono dalla v2:
   70-23 dell'SPM, manuale d'ispezione del motore, due REPAIR della sezione 72-56-31). Si fa
   l'ingestion, poi COPILOT sezione 5 e la campagna `conoscenza-<data>`.
 - **c5ff3cd6 op. 030** (scheda tolta): aspetta la regola della domanda P6.
-- **f355dc3c op. 050:** aspetta la risposta alla domanda P7 («4 volte» c'è anche nella stampa
-  giusta).
+- **04ecaabe op. 050** (stampa giusta di f355dc3c): «4 volte» contro «3 volte» dell'SPM. Per
+  Copilot (25-11, da confermare) il «4 volte» è giusto (manuale del motore): l'ERRATO della v2 è
+  un falso errore e si toglie con `fonte_ispezione` (7.3). Finché non è confermato resta «in
+  attesa».
+- **5ff17062** (P9): per Copilot ha cambiate anche 010, 040 e 050, come f355dc3c. Se
+  `confronta` lo conferma, nella lista entrano 010 (tre numeri), 040 (la classe, in attesa come
+  f355dc3c 040) e 050 (frase sui limiti sostituita, negazioni tolte in inglese): il suo «ERRATO
+  in più» sulla 050 diventa un errore trovato. La lista si cambia quando cambia la base (prove
+  archiviate e seme nuovo), non a metà campagna.
 
 ---
 

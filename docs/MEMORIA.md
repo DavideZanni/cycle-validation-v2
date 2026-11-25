@@ -1048,6 +1048,15 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   `tutto_insieme`: mai visti 5 su 29 ma 0,37 $ a prova (×2,2 la base: rischio «scartata» per
   costo). `COPILOT.md` riscritto corto (stesse sezioni 0-7, stessi blocchi); `MIGLIORIE.md` con
   «In breve», regola della prova non valida e registro del 25-11.
+- **25-11, risposte di Copilot alle domande** (chat in modalità *Agent* con «Allow all»:
+  ricordato all'utente di tornare in **Ask**; Copilot si offriva di cambiare
+  `eval/errori-noti.yaml`, lo fa Claude). P1 chiusa (capitolo 70 civile = SPM). P4 confermata
+  (lettere rovinate in `�`). P6, P7, P8 proposte da confermare (COPILOT 6.1). P7: il «4 volte»
+  viene dalla sezione d'ispezione del manuale del motore citato in testata → l'ERRATO della v2
+  sulla stampa giusta sarebbe un **falso errore**: la v2 confronta solo con il task SPM. P9:
+  5ff17062 sarebbe una copia di 04ecaabe con 010, 030, 040, 050 cambiate (come f355dc3c):
+  da verificare con `confronta`. La lista degli errori noti **non** si cambia durante la
+  campagna: si cambia quando la base cambia (prove archiviate, seme nuovo).
 - **`.gitignore` di `docs/` (24-11-2026):** in git entra solo `DOCUMENTAZIONE.md`; gli altri
   quattro file erano già seguiti e restano (servono al blocco Aggiornare e alla memoria).
 
@@ -1064,7 +1073,8 @@ stessa targa compare in tre righe (pagine 14, 17, 18) con funzioni diverse. Come
 
 1. aprire il PDF TM alle pagine 14, 17 e 18 e guardare la colonna della funzione;
 2. scartare le righe dove la "funzione" è una frase (è una nota della tabella);
-3. leggere il testo con la codifica giusta: nei file pubblicati non devono esserci `Ã` o `â€`;
+3. leggere il testo con la codifica giusta: nei file pubblicati non devono esserci `Ã`, `â€`
+   né `�` (25-11: nel file delle targhe le lettere accentate sono diventate `�`);
 4. con la stessa targa su più righe, unire le funzioni con `; ` invece di tenere solo la prima;
 5. se non c'è tempo: in `uncertainty.json` scrivere
    `{"format": 1, "machine_tags": {"90": ["da_record_parziale"]}}` (la targa esce WARNING

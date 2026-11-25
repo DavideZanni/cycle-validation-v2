@@ -214,7 +214,10 @@ Dopo, Claude scrive le considerazioni in `MIGLIORIE.md` e dice quale miglioria e
 
 ### ⬜ Quando hai tempo
 
-- ⬜ **Domande** P6, P7, P8, P9 (sezione [6.1](#61-domande)): scrivimi le risposte a parole.
+- ⬜ **Verifica della P9** (gratis, 2 minuti, anche in un secondo terminale mentre la
+  campagna gira): blocco in sezione [6.1](#61-domande). Mandami la foto.
+- ⬜ **Domande** P2, P6, P7, P8 (sezione [6.1](#61-domande)): le risposte di Copilot del 25-11
+  sono proposte, da confermare con chi conosce i cicli.
 - ⬜ **Messaggio al collega del frontend** (sezione [6.2](#62-messaggio-per-il-collega-del-frontend)),
   se non l'hai già mandato.
 - ⬜ **Gruppo nascosto** (sezione [3.4](#34-il-gruppo-nascosto-facoltativo)): una decina di
@@ -603,18 +606,36 @@ uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --er
 
 ### 6.1 Domande
 
-Per chi conosce cicli e manuali (Copilot non può rispondere). Scrivi a Claude la risposta **a
-parole**, senza codici veri.
+Per chi conosce cicli e manuali. Scrivi a Claude la risposta **a parole**, senza codici veri.
+Il 25-11 Copilot ha dato delle risposte guardando i dati: sono **proposte**, finché non le
+conferma una persona (tranne P1, che viene dai dati, e P9, che si verifica con il blocco qui
+sotto).
 
-| Id | Domanda | Perché serve |
+| Id | Domanda | Stato (25-11) |
 |---|---|---|
-| **P1** | I task che iniziano con «70-» stanno sempre nell'SPM? C'è un altro gruppo con la stessa regola? | la v2 li cerca nell'SPM |
-| **P2** | Op. 060 del ciclo DR (condition 3): la v2 l'ha segnata ERRATO. Lo era? Il dettaglio è in `runs\dr-condition-3\report.md`, da far guardare a chi conosce il ciclo (non mandarlo a Claude) | capire se l'ERRATO è giusto |
-| **P4** | Targa «90» (per chi cura l'indice): funzione sbagliata e lettere accentate rovinate (`MEMORIA.md`, «Da correggere nell'indice») | l'indice ha un dato rotto |
-| **P6** | Scheda mancante: quando un'operazione deve avere per forza una scheda? | senza regola la v2 non sa che manca |
-| **P7** | Ispezione FPI (f355dc3c e la sua stampa giusta, op. 050): il ciclo dice «almeno **4** volte la larghezza», l'SPM «**3** volte o più». Regola diversa o da correggere? | oggi è ERRATO anche sulla stampa giusta: finché non c'è risposta non conta |
-| **P8** | Riparazione senza task in testata (c5ff3cd6, «applicazione lubrificante secco»; 298bc28e): quale task vale per le operazioni che non ne citano uno? | la v2 non sa con cosa confrontarle |
-| **P9** | Ciclo 5ff17062, op. 050: la v2 la segna sempre ERRATO, ma nella lista c'è solo la 030. Chi ha preparato la stampa ha cambiato anche la 050? | se sì è un errore vero da aggiungere; se no un falso errore da capire |
+| **P1** | I task che iniziano con «70-» stanno sempre nell'SPM? | ✅ sì (dai dati: nei documenti civili tutti i task del capitolo 70 sono SPM). La v2 fa già così |
+| **P2** | Op. 060 del ciclo DR (condition 3): la v2 l'ha segnata ERRATO. Lo era? Il dettaglio è in `runs\dr-condition-3\report.md`, da far guardare a chi conosce il ciclo (non mandarlo a Claude) | ⬜ aperta |
+| **P4** | Targa «90» (per chi cura l'indice): funzione sbagliata e lettere accentate rovinate (`MEMORIA.md`, «Da correggere nell'indice») | ⬜ confermato il problema; da correggere nell'indice |
+| **P6** | Scheda mancante: quando un'operazione deve avere per forza una scheda? | ⬜ proposta: per i processi speciali (lubrificante secco, rivestimenti, attacco chimico, liquidi penetranti); non per presa in carico, mascheratura, raccordatura, lucidatura, controlli visivi, preservazione, collaudo. Da confermare |
+| **P7** | Ispezione FPI (f355dc3c e la sua stampa giusta, op. 050): il ciclo dice «almeno **4** volte la larghezza», l'SPM «**3** volte o più». Regola diversa o da correggere? | ⬜ proposta: il «4 volte» è copiato dalla sezione d'ispezione del manuale del motore citato in testata, quindi è giusto e l'ERRATO della v2 è un falso errore. Da confermare |
+| **P8** | Operazioni che non citano un task (c5ff3cd6, 298bc28e): con quale task si confrontano? | ⬜ proposta: con i task della prima riga di note del ciclo (valgono per tutta la riparazione); per controlli e ispezioni anche la sezione d'ispezione del manuale del motore. Da confermare |
+| **P9** | Ciclo 5ff17062: oltre alla 030 sono cambiate altre operazioni? | ⬜ secondo Copilot è una copia della stampa giusta 04ecaabe con 010, 030, 040 e 050 cambiate. **Da verificare con il blocco qui sotto** |
+
+**Verifica della P9** (gratis, senza modello: confronta le stampe con il parser e mostra solo
+le operazioni diverse, con i codici nascosti):
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+$pdf = @{}; Get-ChildItem (Resolve-Path "..\..").Path -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | ForEach-Object { $h = (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower(); if ($h -in @("04ecaabe", "5ff17062", "f355dc3c") -and -not $pdf[$h]) { $pdf[$h] = $_.FullName } }
+"trovate: " + (($pdf.Keys | Sort-Object) -join ", ")
+"=== 04ecaabe contro 5ff17062"; uv run cycle-validation confronta $pdf["04ecaabe"] $pdf["5ff17062"]
+"=== 04ecaabe contro f355dc3c"; uv run cycle-validation confronta $pdf["04ecaabe"] $pdf["f355dc3c"]
+```
+
+- **Deve uscire:** `trovate: 04ecaabe, 5ff17062, f355dc3c` e, per ogni confronto, le
+  operazioni diverse.
+- **Mandami:** la foto dei due confronti.
 
 ### 6.2 Messaggio per il collega del frontend
 
