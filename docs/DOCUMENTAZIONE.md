@@ -985,6 +985,17 @@ massimo_dollari: 15
 - Si ferma da sola al tetto di spesa (somma dei costi delle prove), se una prova non esegue
   nessun ciclo (la prova si cancella: di solito l'accesso AWS è scaduto) o con Ctrl+C; in ogni
   caso scrive il report.
+- **Prova in cui il modello non ha risposto** (25-11): con l'accesso AWS scaduto i cicli
+  girano lo stesso, ma ogni controllo del modello finisce in WARNING `ERRORE_TECNICO` e la
+  prova costa 0 $. Una prova così non misura niente: `Trial.unusable` è vera se almeno 5
+  controlli del modello (`decided_by` agent) e più del 20% di quelli della prova sono finiti
+  in errore tecnico. Gli errori tecnici del codice (una fonte, un servizio) non contano. Una
+  prova così non entra nel riepilogo né nel conto delle prove fatte (`load_trials` la salta);
+  la campagna la cancella appena finita e si ferma con «il modello non ha risposto (N
+  controlli …) · Primo errore: …» (il primo guasto, senza ARN né numeri di account); al lancio
+  dopo cancella quelle rimaste e le rifà. Per le prove scritte prima del 25-11, che non hanno
+  il conto dei controlli del modello, vale il conto di tutti i WARNING `ERRORE_TECNICO` su
+  tutti i controlli. `eval prova` scrive `ATTENZIONE: prova non valida` in fondo.
 - Il report `runs/campagna.md`: per ogni modello e insieme la scelta migliore e la classifica
   (prove, stabili, mai visti per il modello stabili, falsi errori, da verificare, costo e
   tempo per ciclo, decisione); i modelli a confronto, variante per variante; gli errori mai

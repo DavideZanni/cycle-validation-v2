@@ -14,6 +14,7 @@ sono da verificare e i suoi WARNING contano nel lavoro a mano.
 """
 
 import hashlib
+import re
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
@@ -21,8 +22,8 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-from cycle_validation.domain.check import CheckName, TargetKind, Verdict
-from cycle_validation.domain.report import Report
+from cycle_validation.domain.check import CheckName, Reason, TargetKind, Verdict
+from cycle_validation.domain.report import PipelineError, Report
 from cycle_validation.evaluation.blind import CODE_KINDS
 
 TRIAL_FILE = "prova.json"
@@ -130,6 +131,14 @@ class CycleScore(_Strict):
     cache_read_tokens: int = 0  # token di input riletti dalla cache (prompt caching, H10)
     duration_ms: int = 0
     failure: str | None = None
+    # il primo guasto tecnico del ciclo (servizio che non risponde, accesso scaduto), senza
+    # testo del ciclo né dei manuali: dice perché una prova non vale (`Trial.unusable`)
+    technical: str = ""
+    # controlli fatti dal modello e, tra questi, quelli finiti in errore tecnico (il modello
+    # non ha risposto): dicono se la prova misura qualcosa (`Trial.unusable`)
+    # (None nelle prove scritte prima del 25-11: lì vale il conto dei WARNING per errore tecnico)
+    model_checks: int | None = None
+    model_failures: int = 0
     seen: bool = True  # errori noti a chi scrive le migliorie (vedi `KnownCycle.visto`)
 
 
@@ -260,6 +269,40 @@ class Trial(_Strict):
     def failures(self) -> int:
         return sum(1 for c in self.cycles if c.failure)
 
+    @property
+    def model_failures(self) -> int:
+        """Controlli del modello finiti in errore tecnico: il modello non ha risposto (nelle
+        prove di prima del 25-11: tutti i WARNING per errore tecnico)."""
+        return sum(
+            c.model_failures if c.model_checks is not None else c.warnings.get("ERRORE_TECNICO", 0)
+            for c in self.cycles
+        )
+
+    @property
+    def unusable(self) -> bool:
+        """La prova non misura niente: il modello non ha risposto (accesso AWS scaduto, rete,
+        quota). Il 25-11 una prova con l'accesso scaduto ha dato «costo 0.00 $» e solo
+        WARNING per errore tecnico, e contava come fatta. Non vale se più di
+        `MAX_TECHNICAL_SHARE` dei controlli del modello è finita in errore tecnico (almeno
+        `MIN_TECHNICAL`). Gli errori tecnici del codice (un servizio, una fonte) non contano."""
+        if any(c.model_checks is None for c in self.cycles):
+            # prova scritta prima del 25-11: tutti i WARNING per errore tecnico su tutti i
+            # controlli (in una prova normale sono pochi)
+            failures = sum(c.warnings.get("ERRORE_TECNICO", 0) for c in self.cycles)
+            checks = sum(
+                c.counts.get("corretto", 0) + c.counts.get("warning", 0) + c.counts.get("errato", 0)
+                for c in self.cycles
+            )
+        else:
+            failures = self.model_failures
+            checks = sum(c.model_checks or 0 for c in self.cycles)
+        return failures >= MIN_TECHNICAL and failures > MAX_TECHNICAL_SHARE * checks
+
+    @property
+    def technical_detail(self) -> str:
+        """Il primo guasto tecnico della prova, per capire perché non vale."""
+        return next((c.technical for c in self.cycles if c.technical), "")
+
     def found_ops(self) -> set[tuple[str, str]]:
         return {(c.fingerprint, f.op) for c in self.cycles for f in c.found}
 
@@ -308,6 +351,23 @@ def _short(text: str, limit: int = _RATIONALE_CHARS) -> str:
     return flat if len(flat) <= limit else flat[: limit - 1] + "…"
 
 
+# Una prova in cui più di questa parte dei controlli è un errore tecnico non vale (vedi
+# `Trial.unusable`). Una prova normale ne ha pochi o nessuno.
+MIN_TECHNICAL = 5
+MAX_TECHNICAL_SHARE = 0.2
+_SECRET_LIKE = (re.compile(r"arn:[^\s'\"]+"), re.compile(r"\b\d{12}\b"))
+
+
+def technical_message(errors: Sequence[PipelineError]) -> str:
+    """Il primo guasto, corto e senza ARN né numeri di account (finisce nelle foto)."""
+    if not errors:
+        return ""
+    text = f"{errors[0].stage}: {errors[0].message}"
+    for pattern in _SECRET_LIKE:
+        text = pattern.sub("…", text)
+    return text[:200]
+
+
 def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = None) -> CycleScore:
     """Punteggio di un ciclo: ERRATO sulle operazioni confrontati con gli errori noti.
     `fingerprint` sostituisce l'impronta del PDF (una copia con un errore cieco ha il PDF del
@@ -324,7 +384,11 @@ def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = No
     errato: dict[str, Finding] = {}
     said: dict[str, str] = {}
     warnings: dict[str, int] = {}
+    model_checks = model_failures = 0
     for result in report.results:
+        if result.decided_by == "agent":
+            model_checks += 1
+            model_failures += result.reason is Reason.ERRORE_TECNICO
         if result.verdict is Verdict.WARNING:
             warnings[result.reason.value] = warnings.get(result.reason.value, 0) + 1
         if result.target.kind is not TargetKind.OPERATION:
@@ -368,6 +432,9 @@ def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = No
         cache_read_tokens=usage.cache_read_tokens,
         duration_ms=report.timings_ms.get("total", usage.wall_ms),
         seen=entry.visto if entry is not None else True,
+        technical=technical_message(report.pipeline_errors),
+        model_checks=model_checks,
+        model_failures=model_failures,
         waiting=dict(waiting),
         warnings=warnings,
     )
@@ -704,15 +771,32 @@ def write_trial(trial: Trial, folder: Path) -> None:
 
 
 def load_trials(root: Path) -> list[Trial]:
-    """Tutte le prove della cartella, dalla più vecchia. Un file che non si legge (scritto a
-    metà da una versione vecchia, rovinato) si salta invece di fermare tutto."""
+    """Tutte le prove valide della cartella, dalla più vecchia. Un file che non si legge
+    (scritto a metà da una versione vecchia, rovinato) si salta invece di fermare tutto; una
+    prova in cui il modello non ha risposto (`Trial.unusable`) si salta: non misura niente."""
     trials: list[Trial] = []
     for path in root.glob(f"*/{TRIAL_FILE}"):
         try:
-            trials.append(Trial.model_validate_json(path.read_text("utf-8")))
+            trial = Trial.model_validate_json(path.read_text("utf-8"))
         except (OSError, ValueError):
             continue
+        if not trial.unusable:
+            trials.append(trial)
     return sorted(trials, key=lambda t: t.started_at)
+
+
+def unusable_trials(root: Path) -> list[Path]:
+    """Le cartelle delle prove in cui il modello non ha risposto: la campagna le toglie e le
+    rifà."""
+    folders: list[Path] = []
+    for path in sorted(root.glob(f"*/{TRIAL_FILE}")):
+        try:
+            trial = Trial.model_validate_json(path.read_text("utf-8"))
+        except (OSError, ValueError):
+            continue
+        if trial.unusable:
+            folders.append(path.parent)
+    return folders
 
 
 # --- Metriche e scelta della variante migliore -------------------------------------------

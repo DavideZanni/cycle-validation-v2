@@ -37,6 +37,7 @@ from cycle_validation.evaluation.campaign import (
     Outcome,
     Step,
     done,
+    folder_for,
     load_campaign,
     plan,
     render_campaign,
@@ -60,6 +61,7 @@ from cycle_validation.evaluation.trials import (
     load_known_errors,
     load_trials,
     score_cycle,
+    unusable_trials,
     write_summary,
     write_trial,
 )
@@ -1062,6 +1064,11 @@ def _run_trial(
         f"{trial.code_unseen_total} · da verificare {trial.extra_errors} · in attesa "
         f"{sum(len(c.waiting) for c in trial.cycles)} · costo {trial.cost_usd:.2f} $"
     )
+    if trial.unusable:
+        typer.echo(
+            f"ATTENZIONE: prova non valida, il modello non ha risposto ({trial.model_failures} "
+            f"controlli con errore tecnico). Primo errore: {trial.technical_detail or '-'}"
+        )
     return trial, folder
 
 
@@ -1330,6 +1337,17 @@ def eval_campaign(
                     state = f"{step.missing} da fare" if step.missing else "già fatte"
                     typer.echo(f"  {step.name}: {state} → {step.folder.as_posix()}")
         return
+    # le prove in cui il modello non ha risposto (accesso scaduto) non contano: si tolgono e
+    # la campagna le rifà
+    for model in models:
+        for set_name in campaign.insiemi:
+            folder = folder_for(all_models, model, set_name, runs)
+            dropped = unusable_trials(folder)
+            for bad in dropped:
+                shutil.rmtree(bad, ignore_errors=True)
+                typer.echo(f"Tolta la prova non valida (il modello non aveva risposto): {bad.name}")
+            if dropped:
+                write_summary(folder)
     try:
         for model in models:
             for set_name in campaign.insiemi:
@@ -1369,6 +1387,16 @@ def eval_campaign(
                             outcome.stopped = (
                                 "nessun ciclo eseguito nell'ultima prova (accesso AWS scaduto? "
                                 "`aws sso login`)"
+                            )
+                            raise _CampaignStop
+                        if trial.unusable:
+                            # il modello non ha risposto: la prova non misura niente
+                            shutil.rmtree(folder, ignore_errors=True)
+                            write_summary(step.folder)
+                            outcome.stopped = (
+                                f"il modello non ha risposto ({trial.model_failures} "
+                                "controlli con errore tecnico; accesso AWS scaduto? "
+                                f"`aws sso login`). Primo errore: {trial.technical_detail or '-'}"
                             )
                             raise _CampaignStop
                         if trial.failures:

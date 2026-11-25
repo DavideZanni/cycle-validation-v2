@@ -195,3 +195,76 @@ def test_a_half_written_trial_does_not_stop_the_others(project: Path) -> None:
     broken.write_text('{"name": "ba', encoding="utf-8")
     assert done(runs / "prove-piccolo", "base") == 1
     assert not list((runs / "prove-piccolo").glob("*/*.scrittura"))  # niente file a metà
+
+
+EXPIRED = (
+    "ExpiredTokenException: the security token included in the request is expired "
+    "(arn:aws:sts::000000000000:assumed-role/finto)"
+)
+
+
+def _no_answer(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Il modello non risponde: accesso AWS scaduto (25-11). Il ciclo finto delle prove non
+    arriva al modello (fonti assenti): i conti del modello si mettono sulla prova."""
+    from cycle_validation.domain.report import PipelineError
+    from cycle_validation.evaluation.trials import technical_message
+
+    real_trial = cli._run_trial
+
+    def expired(*args, **kwargs):  # type: ignore[no-untyped-def]
+        trial, folder = real_trial(*args, **kwargs)
+        for cycle in trial.cycles:
+            cycle.model_checks, cycle.model_failures = 12, 12
+            cycle.technical = technical_message(
+                [PipelineError(stage="controllo", target="op 005", message=EXPIRED)]
+            )
+        return trial, folder
+
+    monkeypatch.setattr(cli, "_run_trial", expired)
+
+
+def test_a_trial_without_answers_does_not_count_and_stops_the_campaign(
+    project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Il 25-11 l'accesso era scaduto: la prova dava «costo 0.00 $», solo WARNING per errore
+    tecnico, e contava come fatta. Ora non conta, la campagna si ferma e dice perché."""
+    _no_answer(monkeypatch)
+    result = _campaign("--modelli", "haiku", "--insiemi", "piccolo", "--ripetizioni", "1")
+    assert result.exit_code == 0, result.output
+    assert "Campagna fermata: il modello non ha risposto (12 controlli" in result.output
+    assert "ExpiredTokenException" in result.output
+    # niente ARN né numero di account nelle foto
+    assert "arn:" not in result.output and "000000000000" not in result.output
+    assert done(project / "runs" / "prove-piccolo", "base") == 0
+    assert not list((project / "runs" / "prove-piccolo").glob("*-base"))  # tolta
+    assert "Prove fatte ora: 1" in result.output
+
+
+def test_a_trial_without_answers_already_written_is_removed_and_done_again(
+    project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import json
+
+    small = project / "runs" / "prove-piccolo"
+    assert (
+        _campaign("--modelli", "haiku", "--insiemi", "piccolo", "--ripetizioni", "1").exit_code == 0
+    )
+    good = next(small.glob("*-base"))
+    data = json.loads((good / "prova.json").read_text(encoding="utf-8"))
+    for cycle in data["cycles"]:
+        # come la prova del 25-11, scritta prima di questa correzione: senza il conto dei
+        # controlli del modello, con tutti WARNING per errore tecnico
+        cycle.pop("model_checks", None)
+        cycle.pop("model_failures", None)
+        cycle["warnings"] = {"ERRORE_TECNICO": 50}
+        cycle["counts"]["warning"] = 50
+    bad = small / "20991231-235959-base"
+    bad.mkdir()
+    (bad / "prova.json").write_text(json.dumps(data), encoding="utf-8")
+    (good / "prova.json").unlink()  # resta solo quella non valida
+    shutil.rmtree(good)
+    assert done(small, "base") == 0  # non conta
+    again = _campaign("--modelli", "haiku", "--insiemi", "piccolo", "--ripetizioni", "1")
+    assert "Tolta la prova non valida" in again.output, again.output
+    assert not bad.exists()
+    assert done(small, "base") == 1

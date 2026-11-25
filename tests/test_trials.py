@@ -327,3 +327,64 @@ def test_same_errors_are_kept_only_for_a_real_saving(tmp_path: Path) -> None:
             cycle.cost_usd = 1.0 if trial.name == "base" else 0.5
     variants = {v.name: v for v in build_variants(trials)}
     assert variants["a"].decision == "si tiene: stessi errori, costo -50%"
+
+
+def _answers(tmp_path: Path, failed: int, total: int, *, by: str = "agent"):  # type: ignore[no-untyped-def]
+    """Un ciclo con `total` controlli del modello, `failed` finiti in errore tecnico."""
+    from cycle_validation.domain.report import PipelineError
+
+    operations = [
+        Operation(operation_number=f"{n:03d}", operation_description="T") for n in range(total)
+    ]
+    cycle = Cycle(operations=operations)
+    results = [
+        make_result(
+            CheckName.OPERATION_DESCRIPTION,
+            Target.operation(index, operation),
+            Reason.ERRORE_TECNICO if index < failed else Reason.EVIDENZA_NON_TROVATA,
+            "guasto" if index < failed else "non trovato",
+            decided_by=by,  # type: ignore[arg-type]
+        )
+        for index, operation in enumerate(operations)
+    ]
+    meta = RunMeta(
+        run_id="r",
+        started_at=datetime(2030, 1, 1, tzinfo=UTC),
+        pdf_name="x.pdf",
+        pdf_sha256="c" * 64,
+        profile="mos",
+        knowledge_version="kb",
+        model="modello",
+        prompt_version="p1",
+        tool_version="0.1",
+    )
+    errors = [
+        PipelineError(
+            stage="controllo",
+            message="ExpiredTokenException (arn:aws:sts::000000000000:assumed-role/finto) "
+            "conto 000000000000",
+        )
+    ]
+    report = build_report(
+        meta, cycle, results, timings_ms={"total": 1}, pipeline_errors=errors, blocked=False
+    )
+    score = score_cycle(report, _known(tmp_path), "cccc3333")
+    return build_trial("base", datetime(2030, 1, 1), [report], [score])
+
+
+def test_a_trial_where_the_model_did_not_answer_does_not_count(tmp_path: Path) -> None:
+    """25-11: accesso AWS scaduto, «costo 0.00 $», e la prova contava come fatta."""
+    dead = _answers(tmp_path, failed=20, total=20)
+    assert dead.unusable and dead.model_failures == 20
+    # il primo guasto si vede, senza ARN né numero di account
+    assert "ExpiredTokenException" in dead.technical_detail
+    assert "arn:" not in dead.technical_detail and "000000000000" not in dead.technical_detail
+    # qualche guasto in una prova normale (una risposta persa) non la butta via
+    assert not _answers(tmp_path, failed=2, total=20).unusable
+    assert not _answers(tmp_path, failed=4, total=4).unusable  # troppo pochi per dirlo
+    # gli errori tecnici del codice (una fonte, un servizio) non dicono che il modello è giù
+    assert not _answers(tmp_path, failed=20, total=20, by="code").unusable
+    # e non entra nel riepilogo
+    write_trial(dead, tmp_path / "prove" / "1-base")
+    write_trial(_answers(tmp_path, failed=0, total=20), tmp_path / "prove" / "2-base")
+    assert len(load_trials(tmp_path / "prove")) == 1

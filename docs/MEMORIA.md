@@ -948,6 +948,7 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | Avviando «CV» partono v1 e v2 insieme | la v2 aggiunta alla voce composta della v1: tutte e due sulla porta 8003 | voce composta a parte «CV v2» (login, frontend, v2): `AZIENDA.md`, sezione 7 |
 | Avvio della v2 in locale: `Secret '...' non leggibile o non valido (ResourceNotFoundException)` | in `CV_ENV_SECRET` un nome diverso da quello della v1 (per esempio con `_v2` in fondo) | lo stesso nome di `load_secrets` della v1: `AZIENDA.md`, sezione 7 |
 | Nel pannello di Claude in VS Code tante chat con i nomi delle operazioni dei cicli | il Claude Agent SDK (le sessioni della v2, con Bedrock) salva ogni sessione in `~/.claude/projects` come una chat di Claude Code; il pannello le mostra. Non sono Copilot e non sono chat dell'utente | dal 23-11 la v2 passa `--no-session-persistence` (provato: nessun file scritto); le vecchie (167 chat) spostate il 23-11 in `.claude\chat-validazioni-v2`; il blocco è tolto da COPILOT |
+| In una prova della campagna `costo 0.00 $`, nel riepilogo `WARNING ERRORE_TECNICO` come ultimo esito e «mai visti 0 su 29» (25-11 mattina) | l'accesso AWS (SSO) della sera prima era scaduto: i cicli girano, ma ogni chiamata al modello fallisce; la prova contava come fatta | dal 25-11 una prova così non conta (`Trial.unusable`): la campagna si ferma con «il modello non ha risposto» e al lancio dopo la toglie e la rifà. Prima di una campagna: `aws sso login` |
 | Blocco della libreria: mancano delle classi (`libreria pronta: False`) | in `vendor` ci sono la 0.3.0 e la 0.4.0rc2; era stata presa la 0.3.0 | installare la riga dei requirements della v1, 0.4.0rc2 con `[auth]` (`AZIENDA.md`, sezione 7) |
 
 ## 12. Decisioni prese
@@ -1035,6 +1036,12 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   solo le migliorie, 3 prove, tetto 15 $. Copie cieche **non** rifatte (restano le 39 diverse):
   le prove del 24-11 valgono ancora. COPILOT sezione 1: tappa 3, passi Aggiornare, piano,
   campagna, report (con «Errori mai visti per tipo» e «WARNING per motivo», che mancano ancora).
+- **25-11 mattina, tappa 3.** Aggiornare e piano a posto (piccolo come previsto; grande 3 da
+  fare per base, elementi e lingue: la sera del 24-11 Haiku non era arrivato al grande). La
+  campagna partita con l'accesso AWS scaduto: prova «base» con `costo 0.00 $`, visti 7 su 10
+  (solo i controlli del codice), mai visti 0 su 29. Il riepilogo **non sovrascrive**: ogni
+  prova è una colonna in più (da 18 a 19), «Ultimo esito» è quello dell'ultima prova. Corretto:
+  le prove senza risposte del modello non contano, la campagna si ferma e le rifà.
 - **`.gitignore` di `docs/` (24-11-2026):** in git entra solo `DOCUMENTAZIONE.md`; gli altri
   quattro file erano già seguiti e restano (servono al blocco Aggiornare e alla memoria).
 

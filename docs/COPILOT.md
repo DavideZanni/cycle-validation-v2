@@ -124,6 +124,7 @@ Python 3.14, quello installato sul PC. Non toglierla.
 | `Token has expired`, `ExpiredToken` o `SSO session` | l'accesso ad AWS è scaduto | lancia `aws sso login`, accedi dal browser, poi rilancia il blocco |
 | `SELF_SIGNED_CERT_IN_CHAIN` o `unable to get local issuer certificate` | il filtro di rete aziendale (Zscaler) blocca il certificato | lancia la riga qui sotto, poi rilancia il blocco. Vale finché non chiudi il terminale |
 | `FERMO: ...` | il blocco si è fermato da solo prima di fare danni: non è cambiato niente | leggi il motivo scritto dopo `FERMO`, correggi (di solito la cartella del terminale) e rilancia; se non è chiaro, foto a Claude |
+| `Campagna fermata: il modello non ha risposto` oppure, in una prova, `costo 0.00 $` | l'accesso AWS è scaduto: i cicli girano ma il modello non risponde | Ctrl+C se gira ancora; `aws sso login`; rilancia la campagna: toglie da sola le prove senza risposte e le rifà |
 | `Campagna fermata: ...` | la campagna si è fermata da sola (tetto di spesa, accesso AWS scaduto) | leggi il motivo; per l'accesso: `aws sso login`, poi rilancia la campagna: riparte da dove era |
 | `failed` nei test, o una scritta rossa `Errore` | qualcosa non va | **fermati**, non andare al passo dopo, foto a Claude |
 | Il blocco non finisce dopo molti minuti | la campagna e le prove sul grande durano a lungo: è normale | lascialo girare. Se è un altro blocco, foto a Claude |
@@ -194,7 +195,7 @@ era). Prima del passo 1 non deve girare niente.
 
 ---
 
-**✅ Passo 1 · Aggiornare il codice** · gratis · 2 minuti
+**👉 Passo 1 · Aggiornare il codice (di nuovo, 25-11 ore 10)** · gratis · 2 minuti
 
 Porta sul PC l'ultima versione e lancia i test.
 
@@ -226,7 +227,7 @@ uv run cycle-validation eval campagna --piano
 
 ---
 
-**👉 Passo 3 · La campagna** · costa al massimo 15 $ (stima 3-5 $) · **circa 3 ore e mezza**
+**⬜ Passo 3 · La campagna** · costa al massimo 15 $ (stima 3-5 $) · **circa 3 ore e mezza**
 
 Il piano del 25-11 dice: piccolo 12 prove; grande 9 prove (3 per `base`, `elementi_uno_per_uno`,
 `lingue_separate`: ieri il grande non era stato fatto). Sul grande si aggiungono le varianti
@@ -241,7 +242,12 @@ uv run cycle-validation eval campagna
 code runs/campagna.md
 ```
 
-- **Prima di lanciarla:** PC acceso, collegato alla corrente, senza sospensione; VS Code aperto.
+- **Prima di lanciarla:** PC acceso, collegato alla corrente, senza sospensione; VS Code aperto;
+  **`aws sso login`** (il 25-11 mattina l'accesso della sera prima era scaduto: la prova
+  «base» è uscita con `costo 0.00 $`). Fai prima Aggiornare (passo 1): con il codice nuovo la
+  campagna toglie da sola le prove senza risposte (`Tolta la prova non valida ...`) e le rifà.
+- **Se in una prova esce `costo 0.00 $`:** il modello non risponde. Con il codice nuovo la
+  campagna si ferma da sola («il modello non ha risposto»): `aws sso login` e rilancia.
 - **Mentre gira:** per ogni prova esce `=== haiku · piccolo · ... · prova 3 di 3 · spesa
   finora ... $`, e alla fine di ogni prova `Prova «...»: visti ... · mai visti per il modello
   ... · falsi errori ...`. Prima tutto il piccolo (12 prove), poi il grande. Puoi lasciarla da
@@ -580,8 +586,11 @@ $righe = Get-ChildItem data/nascosti -Filter *.pdf | ForEach-Object { "  '" + (G
 - **Riprende da dove era:** le prove già fatte (anche quelle lanciate a mano) si contano e non
   si rifanno.
 - **Si ferma da sola:** al tetto di spesa (`massimo_dollari`, oggi 15 $), se una prova non
-  riesce a eseguire nessun ciclo (accesso AWS scaduto: `aws sso login`, poi rilancia) o se
-  premi Ctrl+C. In ogni caso scrive il report con quello che c'è.
+  riesce a eseguire nessun ciclo o se il modello non ha risposto (in tutti e due i casi di
+  solito è l'accesso AWS scaduto: `aws sso login`, poi rilancia) o se premi Ctrl+C. In ogni
+  caso scrive il report con quello che c'è.
+- **Le prove in cui il modello non ha risposto non contano:** al lancio dopo si tolgono
+  (`Tolta la prova non valida ...`) e si rifanno.
 
 **Primo blocco: il piano** (gratis, non lancia niente):
 
