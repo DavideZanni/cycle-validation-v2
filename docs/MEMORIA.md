@@ -1042,6 +1042,12 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   (solo i controlli del codice), mai visti 0 su 29. Il riepilogo **non sovrascrive**: ogni
   prova è una colonna in più (da 18 a 19), «Ultimo esito» è quello dell'ultima prova. Corretto:
   le prove senza risposte del modello non contano, la campagna si ferma e le rifà.
+- **25-11 mezzogiorno.** Piccolo finito (12 prove, circa 4 $); l'utente ferma con Ctrl+C alla
+  prima riga del grande, stacca il PC per il pranzo e rilancia lo stesso blocco: il piccolo si
+  salta da solo (prove già fatte), una prova interrotta non conta. Prima prova di
+  `tutto_insieme`: mai visti 5 su 29 ma 0,37 $ a prova (×2,2 la base: rischio «scartata» per
+  costo). `COPILOT.md` riscritto corto (stesse sezioni 0-7, stessi blocchi); `MIGLIORIE.md` con
+  «In breve», regola della prova non valida e registro del 25-11.
 - **`.gitignore` di `docs/` (24-11-2026):** in git entra solo `DOCUMENTAZIONE.md`; gli altri
   quattro file erano già seguiti e restano (servono al blocco Aggiornare e alla memoria).
 

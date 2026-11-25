@@ -9,6 +9,19 @@ in `DOCUMENTAZIONE.md`.
 
 ---
 
+## In breve (25-11-2026)
+
+| Domanda | Risposta |
+|---|---|
+| **Cosa trova oggi la base** (Haiku, piccolo) | 19 errori stabili su 49: visti 8 su 10, mai visti per il modello 2 su 29, controlli del codice 9 su 10. 0 falsi errori. 0,0034 $ e 8 secondi a ciclo |
+| **Cosa ha funzionato** | le migliorie sul **metodo**: `elementi_uno_per_uno` (21 stabili, mai visti 4 su 29) e `lingue_separate` (20, 4 su 29) |
+| **Cosa non serve** | le **impostazioni** (effort, conferme, testo lungo, concorrenza, task mancante) e **Sonnet** (non trova di più, costa 12 volte tanto) |
+| **Il limite di oggi** | i mai visti per il modello: 2-4 su 29. E due visti mai trovati (`298bc28e` 035, `f355dc3c` 010), sempre con «evidenza non trovata» |
+| **Cosa si prova il 25-11** | `seconda_ricerca`, `elementi_e_lingue`, `tutto_insieme`, e la terza prova di base ed elementi e lingue (sezione 7.3) |
+| **Prossima decisione** | quale miglioria entra nella base, dal report della campagna del 25-11 (sezione 8) |
+
+---
+
 ## Indice
 
 1. Le parole che servono
@@ -69,9 +82,10 @@ in `DOCUMENTAZIONE.md`.
    ```
 
 4. **Si aggiunge la variante a `eval/campagna.yaml`** (lo fa Claude) e si lancia la
-   **campagna** (COPILOT 3.5, comando `eval campagna`). Da sola, per ogni modello del file
-   (Haiku, poi Sonnet): due prove sull'insieme piccolo, stessi cicli e stessa conoscenza della
-   base; poi, se sul piccolo si tiene, due prove sul grande. Le prove già fatte si saltano.
+   **campagna** (COPILOT 3.5, comando `eval campagna`). Da sola, per ogni modello del file (dal
+   25-11 solo Haiku): tre prove sull'insieme piccolo (`ripetizioni`), stessi cicli e stessa
+   conoscenza della base; poi, se sul piccolo si tiene, tre prove sul grande. Le prove già
+   fatte si saltano; una prova in cui il modello non ha risposto non conta e si rifà.
 5. **Si legge il report della campagna** (`runs/campagna.md`). Il programma decide da solo con
    la regola della sezione 6: «si tiene», «non si tiene», «scartata» o «da ripetere».
 6. Una prova si può lanciare anche a mano (COPILOT 3.7), per esempio per ripeterne una sola.
@@ -92,8 +106,11 @@ Sul computer personale, con i casi inventati, le varianti si provano anche con `
 
 Ogni prova conta quanti errori messi apposta la v2 trova. Gli errori sono di due specie.
 
-**Visti.** I 12 errori noti di `eval/errori-noti.yaml`, in 7 cicli «con errori». Chi scrive le
-migliorie (Claude) li conosce, quindi può adattarsi a loro senza volerlo.
+**Visti.** Gli errori noti di `eval/errori-noti.yaml`, in 7 cicli «con errori»: 12 scritti, di
+cui 2 «in attesa» di una risposta delle persone (c5ff3cd6 030, domanda P6; f355dc3c 040,
+documenti mancanti), quindi **10 contano**. Le 3 stampe giuste hanno 1 operazione in attesa
+(04ecaabe 050, domanda P7). Chi scrive le migliorie (Claude) li conosce, quindi può adattarsi
+a loro senza volerlo.
 
 **Mai visti.** Misurano se la v2 **generalizza**. Sono di due tipi:
 
@@ -164,6 +181,7 @@ con un file `eval/varianti/<nome>.yaml` si lancia con `--variante`, sopra le imp
 | **Costo e tempo per ciclo** | la media, più il tempo del ciclo più lento |
 | **Token riletti dalla cache** | dice se la cache dei prompt funziona (questi token costano circa un decimo) |
 | **Non eseguiti** | cicli andati in errore |
+| **Controlli del modello in errore tecnico** | controlli in cui il modello non ha risposto. Se sono almeno 5 e più del 20% dei controlli del modello, la prova **non vale** (25-11: accesso AWS scaduto, prova con «costo 0.00 $») |
 
 ---
 
@@ -201,9 +219,20 @@ ordine:
 La **scelta migliore** è la prima della classifica che si tiene (oppure la base, se nessuna la
 batte).
 
-I numeri della regola sono nel codice, in `evaluation/trials.py`: `MIN_REPETITIONS` (2),
-`MAX_CYCLE_MS` (10 minuti), `MAX_COST_RATIO` (2), `MIN_COST_SAVING` (10%), `MIN_TIME_SAVING`
-(20%), `MIN_WARNING_SAVING` (1).
+Prima di tutto questo, **una prova non vale** (non entra nel riepilogo e non conta come fatta)
+se il modello non ha risposto: almeno 5 controlli del modello in errore tecnico e più del 20%
+dei suoi controlli (25-11). La campagna la toglie e la rifà.
+
+I numeri della regola sono nel codice, in `evaluation/trials.py`: `MIN_REPETITIONS` (2; la
+campagna dal 25-11 ne fa 3), `MAX_CYCLE_MS` (10 minuti), `MAX_COST_RATIO` (2), `MIN_COST_SAVING`
+(10%), `MIN_TIME_SAVING` (20%), `MIN_WARNING_SAVING` (1), `MIN_TECHNICAL` (5),
+`MAX_TECHNICAL_SHARE` (20%).
+
+**Attenzione al costo (25-11).** Il limite «costo per ciclo non più del doppio della base»
+conta anche per le migliorie che trovano di più. `tutto_insieme` alla prima prova costava 0,37 $
+contro circa 0,17 $ della base (×2,2): se resta così è **scartata** anche se trova più errori.
+In quel caso si guarda se il costo viene dalla seconda ricerca (sessioni con i tool su tutti i
+documenti) e si limita dove parte.
 
 ---
 
@@ -264,9 +293,9 @@ la variante `sonnet` resta per le prove a mano.
 |---|---|---|---|
 | `lingue_separate` (24-11; **Haiku: 20 stabili, mai visti 4 su 29, si tiene**) | nella domanda al modello la parte italiana e quella inglese separate, con l'istruzione di confrontare **ognuna** con il manuale: se una sola dice altro, `contraddetto` (`agent.separate_languages`) | gli errori in una lingua sola che oggi una lingua giusta «copre»: le negazioni tolte (la base ne trova 1-2 su 18), ma anche parole o frasi cambiate. È una richiesta generale: le copie cieche con la negazione restano una misura onesta | piccolo |
 | `elementi_uno_per_uno` (24-11; **Haiku: 21 stabili, mai visti 4 su 29, la migliore**) | prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione, valori, limiti, divieti, materiali) e li confronta con il manuale uno per uno (`agent.itemized_check`) | il prompt di oggi dice che «conta il contenuto tecnico» e il modello giudica a colpo d'occhio: limiti invertiti, divieti tolti in tutte e due le lingue, parole cambiate (il visto `298bc28e` op. 035, mancato sempre) | piccolo |
-| `seconda_ricerca` (25-11, pronta) | se il primo giudizio è «non verificabile», una seconda sessione cerca con Grep e Read in **tutti i documenti citati dal ciclo** (più quelli del task e, per DR, quelli del profilo), non solo nel task dell'operazione. Un CORRETTO o ERRATO con citazione verificata prende il posto del WARNING; un ERRATO si conferma (G1) sugli stessi documenti; il costo delle due sessioni si somma (`agent.search_when_unverifiable`) | i due visti mai trovati (`298bc28e` 035, `f355dc3c` 010) escono in tutte le 36 prove con `EVIDENZA_NON_TROVATA`: il passo giusto non è nel testo del task, che spesso arriva nel messaggio **senza tool** (sotto 150 righe). Meno WARNING per ciclo | piccolo |
-| `elementi_e_lingue` (25-11, pronta) | `elementi_uno_per_uno` e `lingue_separate` insieme | se le due trovano errori diversi, insieme ne trovano di più | nessuno |
-| `tutto_insieme` (25-11, pronta) | le tre insieme: elementi, lingue, seconda ricerca | come si guarda la descrizione e dove si cerca nel manuale sono due cose diverse: possono sommarsi | nessuno |
+| `seconda_ricerca` (25-11, in prova) | se il primo giudizio è «non verificabile», una seconda sessione cerca con Grep e Read in **tutti i documenti citati dal ciclo** (più quelli del task e, per DR, quelli del profilo), non solo nel task dell'operazione. Un CORRETTO o ERRATO con citazione verificata prende il posto del WARNING; un ERRATO si conferma (G1) sugli stessi documenti; il costo delle due sessioni si somma (`agent.search_when_unverifiable`) | i due visti mai trovati (`298bc28e` 035, `f355dc3c` 010) escono in tutte le 36 prove con `EVIDENZA_NON_TROVATA`: il passo giusto non è nel testo del task, che spesso arriva nel messaggio **senza tool** (sotto 150 righe). Meno WARNING per ciclo | piccolo |
+| `elementi_e_lingue` (25-11, in prova) | `elementi_uno_per_uno` e `lingue_separate` insieme | se le due trovano errori diversi, insieme ne trovano di più | nessuno |
+| `tutto_insieme` (25-11, in prova; **prima prova: mai visti 5 su 29, costo 0,37 $ a prova, ×2,2 la base**) | le tre insieme: elementi, lingue, seconda ricerca | come si guarda la descrizione e dove si cerca nel manuale sono due cose diverse: possono sommarsi | nessuno |
 | `numeri_manuale` (I4, è H12; **rimandata**) | confronta i numeri e le classi della descrizione con quelli del passo del manuale. Alla sessione passa le differenze da guardare; se tutto coincide, CORRETTO senza modello | numeri cambiati in tutte e due le lingue; 7 errori noti su 10 sono numeri, classi o codici; meno sessioni | medio |
 
 **Attenzione a `numeri_manuale` (24-11).** Le copie cieche «numero del manuale» sono fatte
@@ -332,8 +361,10 @@ Questi errori noti mancano per motivi che non dipendono dalla v2:
 2. ✅ le varianti senza codice e Sonnet (24-11): non cambiano gli errori trovati;
 3. ✅ `lingue_separate`, `elementi_uno_per_uno` (24-11): si tengono;
 4. 👉 **25-11:** `elementi_e_lingue`, `seconda_ricerca`, `tutto_insieme`, e la terza prova
-   di base, `lingue_separate`, `elementi_uno_per_uno`;
-5. la migliore entra nella base; copie cieche con seme nuovo; campagna;
+   di base, `lingue_separate`, `elementi_uno_per_uno` (piccolo fatto a mezzogiorno; il grande
+   nel pomeriggio);
+5. la migliore entra nella base (Claude la accende in `config/settings.yaml`); prove
+   archiviate; copie cieche con seme nuovo (2); campagna;
 6. le migliorie scelte sui tipi «modello» trovati peggio (dalla tabella per tipo);
 7. `numeri_manuale`, solo dopo aver tolto dal confronto le copie che troverebbe per costruzione;
 8. tempo e costo (7.4).
@@ -385,7 +416,8 @@ Ogni miglioria ha un codice (Id) che si usa nei documenti e nel codice.
 | G10 | (22-11-2026) il titolo «OPERAZIONE EVENTUALE» diventa un blocco a sé, attaccato all'operazione dopo. `confronta --primo-senza-riordino`. `macchine` prende `SECRET_NAME` dal secret «di ambiente» della v1 e il database dalla connessione della v1 (o da `--database`). Nelle descrizioni rimesse in ordine si tolgono gli asterischi di cornice e le righe fatte solo di segni. Il riordino recupera nelle stampe DR testo che prima si perdeva |
 | I5 | (24-11-2026) `lingue_separate`: italiano e inglese confrontati con il manuale uno alla volta (`agent.separate_languages`). Spenta nella base; con Haiku si tiene (20 stabili contro 19) |
 | I6 | (24-11-2026) `elementi_uno_per_uno`: la descrizione scomposta in elementi tecnici controllati uno a uno (`agent.itemized_check`). Spenta nella base; con Haiku la migliore (21 stabili, mai visti 4 su 29) |
-| I7 | (25-11-2026) `seconda_ricerca`: dopo un «non verificabile», una seconda sessione con Grep e Read in tutti i documenti del ciclo (`agent.search_when_unverifiable`). Spenta nella base; da misurare |
+| I7 | (25-11-2026) `seconda_ricerca`: dopo un «non verificabile», una seconda sessione con Grep e Read in tutti i documenti del ciclo (`agent.search_when_unverifiable`). Spenta nella base; in prova il 25-11 |
+| — | (25-11-2026) prova in cui il modello non ha risposto (accesso AWS scaduto): non conta, la campagna si ferma con «il modello non ha risposto» e al lancio dopo la toglie e la rifà (`Trial.unusable`). Il primo guasto si stampa senza ARN né numeri di account |
 | — | (24-11 e 25-11-2026) misura: punteggio diviso (visti, mai visti per il modello, controlli del codice, falsi errori), errori noti `in_attesa`, sei tipi di copie cieche senza copie doppie, WARNING per motivo, «Ultimo esito»; campagna (`eval campagna`) con report unico, in più terminali; regola «si tiene» severa (più errori stabili o risparmio vero) |
 | G11 | (22-11-2026 sera) accesso come la v1: `API_AUTH=sdk` con `chatbot_ai_sdk` (token dal cookie, permessi da `permissions.json`, utente da `current_user`), scelto da solo quando c'è il secret della v1. `CV_ENV_SECRET` per leggere all'avvio il secret «di ambiente» della v1. `macchine` segue il database fino alla funzione delle credenziali della v1 |
 
@@ -571,3 +603,25 @@ da trovare 49: visti 10, mai visti per il modello 29, controlli del codice 10. R
 | 2026-11-24 sera | come sopra | `lingue_separate` | stabili 19 (19 e 19); mai visti 2 su 29 | 0,049 $ (+15%) | 9 s | si tiene (più errori stabili) | l'unica che aiuta anche Sonnet; arriva al livello della base Haiku |
 | 2026-11-24 sera | come sopra | `prompt_task_mancante`, `concorrenza_12`, `conferme_1` | stabili 18; mai visti 1 su 29 | 0,040-0,043 $ | 7-8 s | pari alla base (prima «si tiene») | differenze di rumore |
 | 2026-11-24 sera | come sopra | `testo_lungo`, `elementi_uno_per_uno`, `effort_medio`, `effort_pieno` | stabili 18, 17, 17, 16 | 0,042-0,048 $ | 7-8 s | non si tiene | `elementi_uno_per_uno` con Sonnet trova 18 per prova ma non sempre gli stessi |
+
+**25-11 (campagna Haiku, 3 prove per variante; stesse copie cieche del 24-11 sera).**
+
+- **Mattina, prova non valida.** La campagna è partita con l'accesso AWS della sera prima
+  scaduto: la prova `base` è uscita con `costo 0.00 $`, visti 7 su 10 (solo quelli che trova il
+  codice), mai visti per il modello 0 su 29, WARNING `ERRORE_TECNICO` come ultimo esito. Contava
+  come fatta. Corretto nel codice (sezione 9): una prova così non conta e si rifà. **Lezione:**
+  prima di ogni campagna `aws sso login`, e dopo la prima prova si guarda che il costo non sia
+  0.
+- **Piccolo, rifatto dalle 10.** Le prove sono arrivate tutte (12). Primi numeri visti nel
+  terminale: `tutto_insieme` prova 1 visti 8 su 10, **mai visti per il modello 5 su 29** (il
+  massimo finora), codice 9 su 10, 0 falsi errori, 1 da verificare, **0,37 $** a prova; prova 2:
+  `f355dc3c` 030 e 050 trovati, 010 ancora mancato. Spesa del piccolo circa 4 $.
+- **Grande:** nel pomeriggio.
+- **Da scrivere quando arriva il report:** le righe del registro per ogni variante, la scelta
+  della miglioria da mettere nella base, e cosa dice la tabella «Errori mai visti per tipo» per
+  il passo dopo.
+
+| Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
+|---|---|---|---|---|---|---|---|
+| 2026-11-25 mattina | campagna, Haiku, piccolo, accesso AWS scaduto | `base` (prova 3) | visti 7 su 10, mai visti 0 su 29: il modello non ha risposto | 0,00 $ | — | **non valida** (tolta) | da qui la regola «la prova non vale» (sezione 6) |
+| 2026-11-25 | campagna, Haiku, piccolo, prova 1 di 3 | `tutto_insieme` | visti 8 su 10; mai visti 5 su 29; codice 9 su 10; 0 falsi errori | 0,37 $ a prova (×2,2 la base) | — | da decidere (report) | trova di più, ma il costo supera il limite del doppio: se resta così è scartata; vedere quanto costa `seconda_ricerca` da sola |

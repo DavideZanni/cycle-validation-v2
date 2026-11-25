@@ -1,46 +1,34 @@
 # Lavorare sul PC aziendale
 
-Questo file dice **cosa fare sul PC aziendale**, un passo alla volta, e contiene **tutti i
-comandi** da lanciare. È scritto per chi lo apre senza sapere niente del progetto.
+Cosa fare sul PC aziendale, un passo alla volta, con tutti i comandi pronti da copiare.
 
-**Per sapere cosa fare adesso vai alla [sezione 1](#1-cosa-fare-adesso-25-11-2026)**: c'è la strada con tutte le tappe e i passi
-di oggi, con 👉 dove sei. Le altre sezioni sono da consultare quando un passo te lo dice.
-
-**Chi fa cosa:**
+👉 **Cosa fare adesso: [sezione 1](#1-cosa-fare-adesso).** Le altre sezioni si aprono solo
+quando un passo lo dice.
 
 | Chi | Cosa fa |
 |---|---|
-| **Tu** | lanci i comandi sul PC aziendale e mandi a Claude la foto dello schermo |
-| **Claude** | scrive e corregge tutto il codice, legge le foto, dice il passo dopo |
-| **Copilot** (in VS Code sul PC) | può leggere i file e lanciare i comandi di prova; **non cambia mai il codice** |
+| **Tu** | lanci i blocchi sul PC e mandi a Claude la foto dello schermo |
+| **Claude** | scrive tutto il codice, legge le foto, dice il passo dopo |
+| **Copilot** | sempre in modalità **Ask**: legge i file e lancia i comandi di prova, **non cambia mai il codice** |
 
-Gli altri documenti: `DOCUMENTAZIONE.md` (come è fatto tutto il programma), `MIGLIORIE.md`
-(cosa migliorare e come si sceglie), `MEMORIA.md` (cosa è successo finora, risultati delle
-prove, problemi già risolti, decisioni prese), `AZIENDA.md` (installare e configurare).
+Gli altri documenti: `DOCUMENTAZIONE.md` (come funziona il programma), `MIGLIORIE.md` (cosa si
+prova e cosa si è deciso), `MEMORIA.md` (cosa è successo finora), `AZIENDA.md` (installare e
+configurare).
 
 ---
 
 ## Indice
 
-- **0. Prima di iniziare**: le parole, come si lancia un comando, le regole, cosa fare se va
-  storto
-- **1. Cosa fare adesso**: la strada con tutte le tappe e i passi di adesso, uno per uno
-- **2. Aggiornare e salvare**
-  - 2.1 Aggiornare il codice sul PC
-  - 2.2 Salvare nel repository aziendale
-- **3. Le prove**
-  - 3.1 Come funzionano
-  - 3.2 Scegliere i cicli veri
-  - 3.3 Fare le copie cieche
-  - 3.4 Il gruppo nascosto (facoltativo)
-  - 3.5 La campagna: tutte le prove in automatico
-  - 3.6 Leggere i risultati
-  - 3.7 Una prova a mano
-  - 3.8 Mettere ordine: togliere, azzerare, archiviare le prove
-- **4. Prove dal frontend**
-- **5. Dopo una nuova ingestion**
-- **6. Le persone**: domande da fare, messaggio per il collega del frontend
-- **7. QA**: la pubblicazione nell'ambiente di prova
+| Sezione | Cosa c'è |
+|---|---|
+| **0. Prima di iniziare** | parole, come si lancia un blocco, regole, cosa fare se va storto |
+| **1. Cosa fare adesso** | le tappe e i passi di oggi |
+| **2. Aggiornare e salvare** | 2.1 Aggiornare il codice · 2.2 Salvare nel repository aziendale |
+| **3. Le prove** | 3.1 Come funzionano · 3.2 Cicli veri · 3.3 Copie cieche · 3.4 Gruppo nascosto · 3.5 Campagna · 3.6 Leggere i risultati · 3.7 Prova a mano · 3.8 Mettere ordine |
+| **4. Prove dal frontend** | la v2 dalla pagina web |
+| **5. Dopo una nuova ingestion** | fotografia della conoscenza e lista dei manuali |
+| **6. Le persone** | domande aperte, messaggio per il collega del frontend |
+| **7. QA** | la pubblicazione nell'ambiente di prova |
 
 ---
 
@@ -50,86 +38,60 @@ prove, problemi già risolti, decisioni prese), `AZIENDA.md` (installare e confi
 
 | Parola | Cosa vuol dire |
 |---|---|
-| **v1** | il programma di oggi, quello che usano gli utenti. Non si tocca |
-| **v2** | il programma nuovo, quello su cui lavoriamo. Sta nella cartella `app_cycle_validation_v2` |
-| **Repository personale** | la copia del codice su GitHub dove scrive Claude. È pubblica: dentro non ci sono mai dati aziendali |
-| **Repository aziendale** | il repository dell'azienda. La v2 sta sul ramo `feature/cycle-validation-v2` |
-| **Ramo** (branch) | una linea di lavoro separata nel repository. `develop` = ambiente di prova (QA), `main` = produzione |
-| **Terminale** | la finestra di VS Code dove si scrivono i comandi (in basso, scheda *Terminal*). Usa PowerShell 7 |
-| **Blocco** | un gruppo di comandi di questo file, dentro un riquadro grigio. Si copia tutto insieme |
-| **Ciclo** (o **stampa**) | il PDF di un ciclo di lavorazione (PVRM320). La v2 lo legge e controlla ogni operazione |
-| **MOS, DR, EJ200** | i tre tipi di ciclo: civile normale, civile con Deviation Request, militare |
-| **Impronta** | 8 lettere e cifre calcolate dal contenuto del PDF (per esempio `aaaa1111`). Si usa al posto del nome del file, così nelle foto non compaiono codici veri |
-| **Conoscenza** | i manuali già letti e preparati (ingestion) con cui la v2 confronta il ciclo. Sta su AWS; sul PC c'è una copia chiamata **fotografia** |
-| **Ingestion** | il lavoro che prende i manuali PDF e li trasforma in conoscenza |
-| **Esiti** | per ogni controllo la v2 dice **CORRETTO**, **ERRATO** (c'è un errore) o **WARNING** (non può decidere da sola: serve un controllo a mano) |
-| **Errore noto** | un errore messo apposta in una stampa per vedere se la v2 lo trova. Sono 12, in 7 cicli «con errori», scritti in `eval/errori-noti.yaml` |
-| **Stampa giusta** | la stampa originale di un ciclo «con errori». Non deve avere nessun ERRATO |
-| **Falso errore** | un ERRATO dove non c'è un errore. Deve essere sempre 0 |
-| **Errori visti / mai visti** | *visti* = i 12 errori noti, che Claude conosce. *Mai visti* = errori che Claude non conosce (copie cieche e gruppo nascosto): dicono se la v2 funziona anche su errori nuovi |
-| **Copie cieche** | copie di cicli veri in cui il programma cambia da solo una operazione. Nessuno sa quale |
-| **Gruppo nascosto** | stampe in cui tu o un collega mettete errori a mano. Claude non le vede mai |
-| **Prova** | un giro della v2 su un gruppo di cicli: conta gli errori trovati, i falsi errori, il costo e il tempo |
-| **Insieme** | il gruppo di cicli di una prova: **piccolo** (veloce) o **grande** (tutti i cicli veri) |
-| **Miglioria** | una modifica che dovrebbe far trovare più errori, o costare meno, o andare più veloce |
-| **Variante** | una miglioria da provare. Il suo file è `eval/varianti/<nome>.yaml` e dice cosa cambia, perché e cosa ci si aspetta |
-| **Base** | la v2 di oggi, senza modifiche. Ogni variante si confronta con la base |
-| **Campagna** | un solo comando che lancia tutte le prove in fila (con Haiku e con Sonnet) e scrive un report unico |
-| **Report della prova** | il file `prestazioni.md` che ogni prova scrive con i suoi risultati |
-| **Riepilogo** | il file `riepilogo.md` di ogni cartella di prove: le mette insieme, fa la classifica e dice quale variante tenere |
-| **Modello** | l'intelligenza artificiale che legge e confronta i testi: Claude Haiku (piccolo, economico) o Claude Sonnet (più grande, costa circa 10 volte), su Amazon Bedrock |
-| **Copilot in modalità Ask** | Copilot risponde e lancia comandi, ma non modifica file. La modalità si sceglie in basso nella chat di Copilot: deve esserci scritto **Ask**, non *Agent* |
+| **v1 / v2** | v1 = il programma di oggi, usato dagli utenti: non si tocca. v2 = quello nuovo, nella cartella `app_cycle_validation_v2` |
+| **Repository personale / aziendale** | personale = dove scrive Claude (pubblico, mai dati aziendali). Aziendale = quello dell'azienda; la v2 sta sul ramo `feature/cycle-validation-v2` (`develop` = QA, `main` = produzione) |
+| **Blocco** | i comandi dentro un riquadro grigio di questo file. Si copia tutto insieme |
+| **Ciclo** (o **stampa**) | il PDF PVRM320 di un ciclo di lavorazione. Tipi: **MOS** (civile), **DR** (civile con Deviation Request), **EJ200** (militare) |
+| **Impronta** | 8 caratteri calcolati dal PDF (es. `aaaa1111`): si usa al posto del nome, così nelle foto non ci sono codici veri |
+| **Conoscenza / fotografia** | i manuali preparati (ingestion) con cui la v2 confronta il ciclo. Sta su AWS; sul PC ce n'è una copia, la fotografia |
+| **Esiti** | **CORRETTO**, **ERRATO** (c'è un errore), **WARNING** (serve un controllo a mano) |
+| **Modello** | l'IA che confronta i testi: Claude **Haiku** su Amazon Bedrock (dal 25-11 solo Haiku) |
+| **Errori visti** | i 10 errori noti messi apposta in 7 stampe (`eval/errori-noti.yaml`). Claude li conosce |
+| **Errori mai visti** | errori che Claude non conosce: **copie cieche** (il programma cambia da solo un'operazione di un ciclo vero) e **gruppo nascosto** (stampe con errori messi a mano da te). Dicono se la v2 funziona anche su errori nuovi |
+| **Stampa giusta / falso errore** | stampa originale senza errori / un ERRATO dove non c'è errore. I falsi errori devono essere **0** |
+| **Prova** | un giro della v2 su un insieme di cicli: conta errori trovati, falsi errori, costo e tempo |
+| **Insieme** | **piccolo** (cicli noti + copie cieche, veloce) o **grande** (cicli noti + tutti i cicli veri) |
+| **Base / variante** | base = la v2 di oggi. Variante = una miglioria da provare (`eval/varianti/<nome>.yaml`), sempre confrontata con la base |
+| **Campagna** | un solo comando che lancia tutte le prove in fila e scrive il report `runs\campagna.md` |
+| **Riepilogo** | `riepilogo.md` di ogni cartella di prove: classifica e decisione |
+| **Modalità Ask** | in basso nella chat di Copilot deve esserci scritto **Ask**, non *Agent* |
 
 ### 0.2 Come si lancia un blocco
 
-1. Apri VS Code sul PC aziendale.
-2. Apri il terminale: menu **Terminal → New Terminal**.
-3. Controlla che la riga del terminale **finisca con** `app_cycle_validation_v2>`. Se no, scrivi
-   `cd` seguito dal percorso della cartella `app_cycle_validation_v2` e premi Invio.
-4. In questo file, passa con il mouse sul blocco e premi il pulsante di copia in alto a destra
-   del riquadro (oppure seleziona **tutto** il blocco e premi Ctrl+C).
-5. Clicca nel terminale e incolla con **Ctrl+V**. Se VS Code chiede conferma per incollare più
-   righe, conferma.
-6. Premi **Invio** e aspetta che torni la riga con `app_cycle_validation_v2>`.
-7. Leggi la parte **Deve uscire** sotto il blocco e confronta con lo schermo.
-8. Fai la foto dello schermo e mandala a Claude, come dice **Manda a Claude**.
+1. VS Code → menu **Terminal → New Terminal**.
+2. La riga del terminale deve **finire con** `app_cycle_validation_v2>`. Se no: `cd` + il
+   percorso della cartella `app_cycle_validation_v2`, Invio.
+3. Copia il blocco (pulsante di copia in alto a destra del riquadro).
+4. Incolla nel terminale con **Ctrl+V** (conferma se chiede di incollare più righe) e premi
+   **Invio**.
+5. Aspetta che torni `app_cycle_validation_v2>`, confronta con **Deve uscire**, manda la foto
+   come dice **Mandami**.
 
-Quasi tutti i blocchi iniziano con `$env:UV_PYTHON = "3.14"`: dice al programma di usare
-Python 3.14, quello installato sul PC. Non toglierla.
+La riga `$env:UV_PYTHON = "3.14"` all'inizio dei blocchi serve: non toglierla.
 
 ### 0.3 Le regole
 
-- **Copilot sempre in modalità Ask.** Può leggere e lanciare le prove; il codice lo cambia solo
-  Claude.
-- **Non mandare mai foto** di questi file:
-  - `runs\mutazioni\errori.yaml`, `data\errori-nascosti.yaml` e le stampe in
-    `data\nascosti\`: se li vedesse, Claude conoscerebbe gli errori «mai visti» e la misura non
-    varrebbe più;
-  - i `report.md` dei cicli, i `prestazioni.md` interi e i file in `transcripts`: contengono
-    testo dei manuali.
-
-  Si possono fotografare: le righe del terminale, `runs\campagna.md`, i `riepilogo.md` e le
-  tabelle dei report che Claude chiede.
-- **Nei messaggi a Claude non scrivere codici veri**: numeri di manuali, numeri DR, serial number,
-  part number, codici dei cicli, nomi di bucket o di account. Usa le impronte o descrivi a
-  parole. Se compaiono in una foto, Claude non li ripete.
-- **Mai `--force`** nei comandi git. Se un push è rifiutato, manda la foto a Claude.
-- **Non cambiare i blocchi.** Si cambiano solo i valori che il testo dice (per esempio `$nome` e
-  `$insieme` nel blocco della sezione 3.7).
+- **Copilot sempre in modalità Ask.** Il codice lo cambia solo Claude.
+- **Mai foto di:** `runs\mutazioni\errori.yaml`, `data\errori-nascosti.yaml`, le stampe in
+  `data\nascosti\` (Claude non deve conoscere gli errori mai visti); i `report.md`, i
+  `prestazioni.md` interi e i file in `transcripts` (contengono testo dei manuali).
+- **Si possono fotografare:** il terminale, `runs\campagna.md`, i `riepilogo.md`, le tabelle che
+  Claude chiede.
+- **Niente codici veri nei messaggi** (manuali, DR, serial e part number, cicli, bucket,
+  account): usa le impronte o le parole.
+- **Mai `--force`** in git. **Non cambiare i blocchi**, tranne i valori che il testo indica.
 
 ### 0.4 Se qualcosa va storto
 
 | Cosa vedi | Cosa vuol dire | Cosa fare |
 |---|---|---|
-| `Token has expired`, `ExpiredToken` o `SSO session` | l'accesso ad AWS è scaduto | lancia `aws sso login`, accedi dal browser, poi rilancia il blocco |
-| `SELF_SIGNED_CERT_IN_CHAIN` o `unable to get local issuer certificate` | il filtro di rete aziendale (Zscaler) blocca il certificato | lancia la riga qui sotto, poi rilancia il blocco. Vale finché non chiudi il terminale |
-| `FERMO: ...` | il blocco si è fermato da solo prima di fare danni: non è cambiato niente | leggi il motivo scritto dopo `FERMO`, correggi (di solito la cartella del terminale) e rilancia; se non è chiaro, foto a Claude |
-| `Campagna fermata: il modello non ha risposto` oppure, in una prova, `costo 0.00 $` | l'accesso AWS è scaduto: i cicli girano ma il modello non risponde | Ctrl+C se gira ancora; `aws sso login`; rilancia la campagna: toglie da sola le prove senza risposte e le rifà |
-| `Campagna fermata: ...` | la campagna si è fermata da sola (tetto di spesa, accesso AWS scaduto) | leggi il motivo; per l'accesso: `aws sso login`, poi rilancia la campagna: riparte da dove era |
-| `failed` nei test, o una scritta rossa `Errore` | qualcosa non va | **fermati**, non andare al passo dopo, foto a Claude |
-| Il blocco non finisce dopo molti minuti | la campagna e le prove sul grande durano a lungo: è normale | lascialo girare. Se è un altro blocco, foto a Claude |
-
-La riga per il certificato:
+| `costo 0.00 $` in una prova, oppure `Campagna fermata: il modello non ha risposto` | l'accesso AWS è scaduto: i cicli girano ma il modello non risponde | Ctrl+C se gira ancora → `aws sso login` → rilancia lo stesso blocco: toglie da solo le prove senza risposte e le rifà |
+| `Token has expired`, `ExpiredToken`, `SSO session` | accesso AWS scaduto | `aws sso login`, accedi dal browser, rilancia il blocco |
+| `Campagna fermata: ...` (altro motivo) | si è fermata da sola (es. tetto di spesa) | leggi il motivo; foto a Claude |
+| `SELF_SIGNED_CERT_IN_CHAIN`, `unable to get local issuer certificate` | il filtro di rete (Zscaler) blocca il certificato | lancia la riga qui sotto e rilancia il blocco (vale fino alla chiusura del terminale) |
+| `FERMO: ...` | il blocco si è fermato prima di fare danni: niente è cambiato | leggi il motivo (di solito la cartella del terminale), correggi, rilancia |
+| `failed` nei test o una scritta rossa `Errore` | qualcosa non va | **fermati** e manda la foto a Claude |
+| la campagna non finisce dopo ore | è normale: dura ore | lasciala girare |
 
 ```powershell
 $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Path; $env:AWS_CA_BUNDLE = $env:NODE_EXTRA_CA_CERTS
@@ -137,118 +99,70 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ---
 
-## 1. Cosa fare adesso (25-11-2026)
+## 1. Cosa fare adesso
 
-### La strada: tutte le tappe
+### Le tappe
 
 | | Tappa | Cosa si fa | Quando |
 |---|---|---|---|
-| ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, fare le copie cieche | fatta il 24-11 |
-| ✅ | **2. La prima campagna** | tutte le impostazioni, con Haiku e con Sonnet | fatta il 24-11 sera |
-| 👉 | **3. Migliorie** | Claude scrive le migliorie sul metodo; tu lanci la campagna e mandi il report | **adesso (25-11)** |
-| ⬜ | **4. Tempo e costo** | spendere meno e fare prima, trovando gli stessi errori | dopo la 3 |
+| ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, copie cieche | 24-11 |
+| ✅ | **2. Prima campagna** | tutte le impostazioni, Haiku e Sonnet | 24-11 sera |
+| 👉 | **3. Migliorie** | campagna con le migliorie sul metodo, poi Claude sceglie la migliore | **25-11** |
+| ⬜ | **4. Tempo e costo** | spendere meno e fare prima, con gli stessi errori trovati | dopo la 3 |
 | ⬜ | **5. Chiusura** | prova finale con copie cieche nuove, prove dal frontend, salvare | dopo la 4 |
-| ⬜ | **6. QA** | pubblicare nell'ambiente di prova dell'azienda | alla fine |
+| ⬜ | **6. QA** | pubblicare nell'ambiente di prova | alla fine |
 
-**Cosa ha detto la tappa 2** (dettagli e considerazioni in `MIGLIORIE.md`, sezione 13):
+Risultati delle tappe e decisioni: `MIGLIORIE.md`, sezioni 7 e 13.
 
-| | Haiku | Sonnet |
+### 👉 Tappa 3, passo per passo (25-11)
+
+La campagna di oggi: **solo Haiku**, 3 prove per variante. Prima il **piccolo** (12 prove),
+poi il **grande** (9 prove, più le varianti nuove che sul piccolo si tengono). Tetto 15 $.
+Le prove già fatte restano salvate: rilanciando, la campagna fa solo quello che manca.
+
+| | Passo | Quando |
 |---|---|---|
-| Base: errori stabili (su 49) | 19 | 18 |
-| Base: mai visti per il modello | 2 su 29 | 1 su 29 |
-| La migliore | `elementi_uno_per_uno`: **21**, mai visti **4 su 29** | `lingue_separate`: 19 |
-| Falsi errori | 0 in tutte le prove | 0 in tutte le prove |
-| Costo a ciclo | 0,0034 $ | 0,043 $ (12 volte tanto) |
-
-- **Le migliorie sul metodo funzionano** (`elementi_uno_per_uno`, `lingue_separate`); le
-  impostazioni (effort, conferme, testo lungo, concorrenza) non cambiano niente.
-- **Sonnet non serve**: non trova di più e costa 12 volte tanto. Da oggi solo Haiku.
-- **I due errori noti mai trovati** (`298bc28e` op. 035, `f355dc3c` op. 010) escono sempre con
-  WARNING «evidenza non trovata»: il modello non trova il passo giusto del manuale nel testo
-  che riceve.
-
-**Cosa ha cambiato Claude per oggi:**
-1. una miglioria nuova, **`seconda_ricerca`**: se il modello dice «non verificabile», una
-   seconda sessione cerca in **tutti i documenti** del ciclo, non solo nel task;
-2. due varianti che mettono insieme le migliorie: **`elementi_e_lingue`** e
-   **`tutto_insieme`** (tutte e tre);
-3. la regola «si tiene» è più severa: serve **trovare più errori**, oppure gli stessi
-   risparmiando davvero (costo -10%, tempo -20% o 1 WARNING in meno per ciclo). Prima bastavano
-   differenze di rumore;
-4. le copie cieche doppie si saltano (il 24-11 erano 41, ma 2 erano uguali). Le copie di
-   adesso **restano** (39 diverse): così le prove di ieri valgono ancora e si confrontano con
-   quelle di oggi;
-5. la campagna: solo Haiku, solo le migliorie, **3 prove** per variante (le differenze sono di
-   uno o due errori: con tre prove sono più sicure). Le prove di ieri contano: alla base e alle
-   due migliorie di ieri manca solo la terza.
-
-### 👉 Tappa 3, passo per passo (25-11, si riparte alle 10)
-
-Fai un passo alla volta. Dopo ogni passo manda a Claude la foto che dice **Mandami**. Se esce
-qualcosa di strano, **fermati** e manda la foto
-([cosa fare se va storto](#04-se-qualcosa-va-storto)). **Non** si azzera niente e **non** si
-rifanno le copie cieche.
-
-**Cosa è successo alle 9:30:** la campagna è partita con l'accesso AWS della sera prima
-scaduto. I cicli giravano, ma il modello non rispondeva: la prova «base» è uscita con
-`costo 0.00 $`, «mai visti 0 su 29» e WARNING `ERRORE_TECNICO`, e contava come fatta. Claude
-ha corretto il codice (25-11): una prova in cui il modello non ha risposto non conta, la
-campagna si ferma subito e, al lancio dopo, toglie da sola quelle rimaste e le rifà. Il
-riepilogo non sovrascrive niente: ogni prova è una colonna in più.
+| ✅ | 0 · Accesso AWS · 1 · Aggiornare · 2 · Piano | mattina (alle 9:30 l'accesso era scaduto: prove rifatte con il codice corretto) |
+| 👉 | **3 · Finire il piccolo e fermarsi** | adesso, prima di pranzo |
+| ⬜ | **4 · Accesso e piano** | al ritorno |
+| ⬜ | **5 · Il grande** | subito dopo il 4 (1-2 ore e mezza) |
+| ⬜ | **6 · Il report** | alla fine |
 
 ---
 
-**👉 Passo 0 · Fermare e rifare l'accesso** · gratis · 2 minuti
+**👉 Passo 3 · Finire il piccolo e fermarsi** · la campagna sta già girando
 
-- Se la campagna gira ancora: **Ctrl+C** nel suo terminale.
-- Poi l'accesso ad AWS:
+- **Aspetta** che il piccolo finisca: l'ultima prova è `tutto_insieme · prova 3 di 3`.
+- **Appena compare** la riga `=== haiku · grande · base · prova 1 di 3 ...` premi **Ctrl+C**.
+  La prova appena partita non viene salvata e non conta: si perdono pochi secondi.
+- **Mandami:** la foto delle ultime righe (la riga `Prova «tutto_insieme»: ...` della prova 3).
+- Poi puoi staccare il PC.
+
+---
+
+**⬜ Passo 4 · Accesso e piano** · gratis · 3 minuti · al ritorno
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 aws sso login
-```
-
-- **Deve uscire:** si apre il browser, accedi; nel terminale `Successfully logged into Start
-  URL: ...`.
-- **Mandami:** niente (solo se esce un errore).
-
----
-
-**⬜ Passo 1 · Aggiornare il codice** · gratis · 2 minuti
-
-Porta sul PC la correzione e lancia i test.
-
-- **Copia** il blocco della sezione [2.1 Aggiornare](#21-aggiornare-il-codice-sul-pc).
-- **Deve uscire:** in fondo `... passed` e **nessun** `failed`.
-- **Mandami:** la foto dell'ultima riga.
-
----
-
-**⬜ Passo 2 · Il piano** · gratis · 1 minuto
-
-Dice cosa farà la campagna, senza lanciare niente. Le prove senza risposte di stamattina non
-contano più.
-
-```powershell
-$env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
 uv run cycle-validation eval campagna --piano
 ```
 
-- **Deve uscire:** `Piccolo: 51 cicli e copie; grande: 23 cicli.`, solo `haiku`, e:
-  - piccolo: `base`, `elementi_uno_per_uno`, `lingue_separate`: **1 da fare**;
-    `elementi_e_lingue`, `seconda_ricerca`, `tutto_insieme`: **3 da fare**;
-  - grande: `base`, `elementi_uno_per_uno`, `lingue_separate`: **3 da fare**.
-- **Se il piccolo dice `già fatte` per `base`:** fermati e mandami la foto (vuol dire che la
-  prova di stamattina conta ancora).
-- **Mandami:** la foto.
+- **Deve uscire:**
+  - si apre il browser per l'accesso;
+  - `haiku · piccolo`: **tutte** le varianti `già fatte`;
+  - `haiku · grande`: `base`, `elementi_uno_per_uno`, `lingue_separate` **3 da fare**, più le
+    varianti nuove che sul piccolo si tengono.
+- **Se sul piccolo una riga dice `1 da fare`:** va bene, la campagna la rifà prima del grande
+  (10-15 minuti in più).
+- **Mandami:** la foto del piano.
 
 ---
 
-**⬜ Passo 3 · La campagna** · costa al massimo 15 $ (stima 3-5 $) · **circa 3 ore e mezza**
+**⬜ Passo 5 · Il grande** · fino a 15 $ in tutto · da 1 ora a 2 ore e mezza
 
-Piccolo 12 prove, poi grande 9 prove (più le varianti nuove che sul piccolo «si tengono»).
-Un solo terminale: c'è solo Haiku.
+Lo stesso blocco della campagna, senza aggiunte: il piccolo lo salta da solo.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -257,77 +171,56 @@ uv run cycle-validation eval campagna
 code runs/campagna.md
 ```
 
-- **Prima di lanciarla:** PC acceso, collegato alla corrente, senza sospensione; VS Code aperto.
-- **Appena parte:** una o due righe `Tolta la prova non valida (il modello non aveva
-  risposto): ...` (le prove di stamattina). Vanno bene.
-- **Dopo la prima prova (circa 10 minuti):** la riga `Prova «base»: ... · costo ... $` deve
-  dire un costo **intorno a 0,15-0,20 $**, non `0.00 $`. **Mandami** la foto di questa riga.
-- **Mentre gira:** per ogni prova esce `=== haiku · piccolo · ... · prova ... di 3 · spesa
-  finora ... $`, e alla fine di ogni prova `Prova «...»: visti ... · mai visti per il modello
-  ... · falsi errori ... · costo ... $`. Puoi lasciarla da sola.
-- **Deve uscire alla fine:** `Campagna finita. Prove fatte ora: N · spesa ... $.` e
-  `Report finale: runs\campagna.md`, che si apre da solo.
-- **Se esce `Campagna fermata: il modello non ha risposto ...`:** l'accesso è scaduto di
-  nuovo: passo 0 (`aws sso login`), poi **rilancia lo stesso blocco**: riparte da dove era e
-  rifà la prova persa.
-- **Se esce un'altra `Campagna fermata: ...`:** mandami la foto.
-- **Mandami:** la foto della riga `Campagna finita` (o `fermata`).
+- **Prima:** PC acceso, attaccato alla corrente, senza sospensione.
+- **Deve uscire subito:** `=== haiku · grande · base · prova 1 di 3 ...` (nessuna riga
+  `piccolo`).
+- **Dopo la prima prova:** nella riga `Prova «base»: ... · costo ... $` il costo **non** deve
+  essere `0.00 $` (se lo è: sezione 0.4, prima riga).
+- **Alla fine:** `Campagna finita. Prove fatte ora: N · spesa ... $.`; si apre `runs\campagna.md`.
+- **Mandami:** la foto della prima prova e quella della riga finale.
 
 ---
 
-**⬜ Passo 4 · Il report** · gratis · 5 minuti
+**⬜ Passo 6 · Il report** · gratis · 5 minuti
 
-Il report `runs\campagna.md` si apre da solo alla fine del passo 3 (se no: `code
-runs/campagna.md`). Premi **Ctrl+Shift+V** per vederlo impaginato. Ci sono solo numeri: si
-possono fotografare.
+Nel report aperto premi **Ctrl+Shift+V** (vista impaginata). **Mandami** una foto per ognuna:
 
-- **Mandami** una foto per ognuna di queste sezioni (sono quelle che servono a Claude per
-  scegliere la miglioria dopo):
-  1. la tabella **«haiku · piccolo»**;
-  2. la tabella **«haiku · grande»**;
-  3. **«Errori mai visti per tipo»**: per ogni tipo di copia cieca, quante ne trova e cosa
-     risponde sulle altre;
-  4. **«WARNING per motivo»**: da dove vengono i WARNING.
-- **E dal riepilogo del piccolo:**
+1. la tabella **«haiku · piccolo»**;
+2. la tabella **«haiku · grande»**;
+3. **«Errori mai visti per tipo»**;
+4. **«WARNING per motivo»**.
 
-  ```powershell
-  code runs/prove-piccolo/riepilogo.md
-  ```
+Poi:
 
-  la foto di **«Le prove»** (le righe di oggi) e di **«Errore per errore»** (con «Ultimo
-  esito»).
+```powershell
+code runs/prove-piccolo/riepilogo.md
+```
 
-Poi Claude scrive le considerazioni in `MIGLIORIE.md` e dice quale miglioria entra nella base.
+e **mandami** le foto di **«Le prove»** e **«Errore per errore»**.
 
-### ⬜ Le tappe dopo (le dettaglia Claude quando ci arriviamo)
+Dopo, Claude scrive le considerazioni in `MIGLIORIE.md` e dice quale miglioria entra nella base.
 
-**Quando una miglioria entra nella base** (te lo dice Claude): Claude la accende in
-`config/settings.yaml` (la base cambia); tu archivi le prove (sezione
-[3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove)) e rifai le copie cieche
-(3.3) con un **seme nuovo** (`$seme = 2`): così si misura su errori che nessuno ha mai visto,
-né il modello né Claude. Poi la campagna.
+### ⬜ Le tappe dopo (Claude le dettaglia quando ci arriviamo)
 
-**Tappa 4 · Tempo e costo.** Claude scrive B1 (chiamata diretta a Bedrock), la cache dei prompt
-(H10) e B4 (più operazioni insieme); tu: Aggiornare, campagna, report.
+- **La miglioria entra nella base:** Claude la accende in `config/settings.yaml`. Tu:
+  Aggiornare (2.1), archiviare le prove (3.8), copie cieche con **seme nuovo** (3.3,
+  `$seme = 2`), campagna (3.5).
+- **Tappa 4 · Tempo e costo:** Claude scrive B1, H10, B4 (`MIGLIORIE.md` 7.4). Tu: Aggiornare,
+  campagna, report.
+- **Tappa 5 · Chiusura:** campagna finale con copie cieche nuove, prove dal frontend
+  (sezione 4), Salvare (2.2).
+- **Tappa 6 · QA** (sezione 7): pull request verso `develop`, prova con un MOS e un DR, poi i
+  cicli militari. Quando il ramo arriva su `main` anche la produzione passa alla v2.
 
-**Tappa 5 · Chiusura.** La campagna con la base finale e copie cieche nuove; le prove dal
-frontend (sezione [4](#4-prove-dal-frontend)); Salvare (sezione
-[2.2](#22-salvare-nel-repository-aziendale)).
+### ⬜ Quando hai tempo
 
-**Tappa 6 · QA** (sezione [7](#7-qa-più-avanti)). Pull request verso `develop`, prova in QA con
-un MOS e un DR, e solo dopo i cicli militari. **Attenzione:** quando il ramo arriva su `main`,
-anche la produzione passa alla v2.
-
-### ⬜ Quando hai tempo (in qualsiasi momento)
-
-- ⬜ **Domande alle persone** P6, P7, P8, P9 (sezione [6.1](#61-domande)): scrivimi le risposte a
-  parole.
-- ⬜ **Messaggio al collega del frontend** (sezione
-  [6.2](#62-messaggio-per-il-collega-del-frontend)), se non l'hai già mandato.
+- ⬜ **Domande** P6, P7, P8, P9 (sezione [6.1](#61-domande)): scrivimi le risposte a parole.
+- ⬜ **Messaggio al collega del frontend** (sezione [6.2](#62-messaggio-per-il-collega-del-frontend)),
+  se non l'hai già mandato.
 - ⬜ **Gruppo nascosto** (sezione [3.4](#34-il-gruppo-nascosto-facoltativo)): una decina di
-  stampe con errori messi a mano. Migliora molto la misura.
-- ⬜ **File che mancano**: il capitolo 70-23 dell'SPM, il manuale d'ispezione del motore, due
-  REPAIR della sezione 72-56-31. Se li trovi: ingestion, poi sezione
+  stampe con errori messi a mano. È la misura migliore.
+- ⬜ **File che mancano** nella conoscenza: capitolo 70-23 dell'SPM, manuale d'ispezione del
+  motore, due REPAIR della sezione 72-56-31. Se li trovi: ingestion, poi sezione
   [5](#5-dopo-una-nuova-ingestion).
 
 ---
@@ -336,21 +229,13 @@ anche la produzione passa alla v2.
 
 ### 2.1 Aggiornare il codice sul PC
 
-- **A cosa serve:** porta sul PC l'ultima versione del codice scritto da Claude e controlla che
-  funzioni (lancia i test).
-- **Quando:** ogni volta che Claude dice di aver cambiato qualcosa.
-- **Costa:** niente.
-- **Cosa fa, passo per passo:**
-  1. scarica il repository personale in una cartella temporanea;
-  2. controlla che il terminale sia nella cartella `app_cycle_validation_v2`; se no scrive
-     `FERMO` e non tocca niente;
-  3. toglie dal PC i file di codice che nel repository personale non ci sono più (scrive
-     `tolto: ...` per ognuno);
-  4. copia il codice (`src`, `tests`, `prompts`, `examples`, `config`, le cartelle di `eval/`, la
-     lista degli errori noti, l'elenco della campagna, i documenti di `docs/`);
-  5. cancella la cartella temporanea e lancia i test.
-- **Non tocca:** i dati aziendali (`data/`, `runs/`, `eval/casi/aziendali/`), il `Dockerfile`,
-  `vendor/` e `config/settings.azienda.yaml`.
+**Quando:** ogni volta che Claude dice di aver cambiato qualcosa. **Costa:** niente.
+
+**Cosa fa:** scarica il repository personale; controlla di essere nella cartella
+`app_cycle_validation_v2` (se no scrive `FERMO` e non tocca niente); toglie i file che non ci sono
+più (`tolto: ...`); copia codice, test, prompt, impostazioni, varianti, campagna, errori noti e
+documenti; lancia i test. **Non tocca** `data/`, `runs/`, `eval/casi/aziendali/`, `Dockerfile`,
+`vendor/`, `config/settings.azienda.yaml`.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -366,25 +251,19 @@ Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
 uv run pytest -q
 ```
 
-**Deve uscire:** forse qualche riga `tolto: ...`; poi una lunga fila di puntini e, in fondo, una
-riga con il numero di test `passed` (qualche `skipped` va bene) e **nessun** `failed`. Se esce
-`FERMO`, non è cambiato niente: controlla la cartella del terminale (0.2, punto 3) e rilancia.
-
-**Manda a Claude:** la foto dell'ultima riga dei test (e delle righe `tolto:`, se ci sono). Se
-c'è un `failed`, la foto dell'elenco `FAILED` in fondo.
+- **Deve uscire:** forse qualche `tolto: ...`; poi puntini e, in fondo, `... passed` (qualche
+  `skipped` va bene) e **nessun** `failed`. Con `FERMO` niente è cambiato: controlla la cartella
+  del terminale (0.2) e rilancia.
+- **Mandami:** la foto dell'ultima riga (e delle righe `tolto:`). Se c'è `failed`: la foto
+  dell'elenco `FAILED`.
 
 ### 2.2 Salvare nel repository aziendale
 
-- **A cosa serve:** salva il codice della v2 nel repository aziendale, sul ramo
-  `feature/cycle-validation-v2`. I rami `develop` (QA) e `main` (produzione) **non cambiano**
-  finché non apri tu la pull request.
-- **Quando:** dopo ogni *Aggiornare* andato bene.
-- **Costa:** niente.
-- I dati aziendali restano fuori: git li ignora.
+**Quando:** dopo un Aggiornare andato bene, quando Claude lo dice. **Costa:** niente. Salva la v2
+sul ramo `feature/cycle-validation-v2`; `develop` e `main` non cambiano. I dati aziendali restano
+fuori (git li ignora). Due blocchi: commit, poi push.
 
-Si fa in **due blocchi**: prima il commit (salva sul PC), poi il push (manda al server).
-
-**Primo blocco: commit**
+**Blocco 1: commit**
 
 ```powershell
 git add src tests docs examples eval/errori-noti.yaml eval/campagna.yaml eval/casi/sintetici eval/varianti eval/modelli config prompts pyproject.toml uv.lock README.md .gitignore Dockerfile ../buildspec.yml
@@ -393,13 +272,12 @@ git status --short
 git commit -m "v2: fonti per riparazione, subtask, task SPM, controllo delle due lingue, prove con metriche, cicli veri, errori ciechi e gruppo nascosto"
 ```
 
-**Deve uscire:** l'elenco di `git status`, con righe solo sotto le cartelle del `git add`
-(`M` = cambiato, `A` = nuovo, `D` = tolto) e **niente** sotto `data/` o `runs/`; poi il riepilogo
-del commit. Se dice `nothing to commit`, non c'era niente di nuovo: va bene, lancia lo stesso il
-secondo blocco.
+- **Deve uscire:** righe `M`/`A`/`D` solo sotto le cartelle del `git add`, **niente** sotto
+  `data/` o `runs/`; poi il riepilogo del commit. `nothing to commit` va bene: lancia lo stesso
+  il blocco 2.
 
-**Secondo blocco: push.** Controlla da solo di essere sul ramo giusto e che nel commit ci siano
-solo i file previsti; se no scrive `FERMO` e non manda niente.
+**Blocco 2: push** (controlla da solo ramo e file; se qualcosa non torna scrive `FERMO` e non
+manda niente)
 
 ```powershell
 $branch = git branch --show-current
@@ -413,13 +291,10 @@ if ($branch -ne "feature/cycle-validation-v2") {
 }
 ```
 
-**Deve uscire:** la riga del push, l'ultimo commit e
-`## feature/cycle-validation-v2...origin/feature/cycle-validation-v2` **senza** `[ahead ...]`.
-
-**Se esce `FERMO` o il push è rifiutato:** non insistere e non usare `--force`: manda la foto a
-Claude.
-
-**Manda a Claude:** la foto dell'ultima parte (push e riga `## feature/...`).
+- **Deve uscire:** la riga del push, l'ultimo commit e
+  `## feature/cycle-validation-v2...origin/feature/cycle-validation-v2` **senza** `[ahead ...]`.
+- **Se esce `FERMO` o il push è rifiutato:** non insistere, niente `--force`: foto a Claude.
+- **Mandami:** la foto della parte finale.
 
 ---
 
@@ -427,96 +302,60 @@ Claude.
 
 ### 3.1 Come funzionano
 
-#### Cos'è una prova
+**Una prova** fa girare la v2 su un insieme di cicli e conta errori trovati, falsi errori, costo
+e tempo. Più prove con lo stesso nome formano una **variante**; servono almeno 2 prove (oggi 3),
+perché il modello non risponde sempre uguale. Di solito le lancia la **campagna** (3.5).
 
-Una **prova** fa girare la v2 su un gruppo di cicli (un **insieme**) e conta:
+**Gli errori da trovare**
 
-- quanti errori trova tra quelli messi apposta;
-- quanti falsi errori dà sulle stampe giuste;
-- quanto costa e quanto tempo ci mette.
-
-Ogni prova ha un **nome**. Due o più prove con lo stesso nome formano una **variante**. Servono
-almeno due prove per variante, perché il modello non risponde sempre uguale. Di solito le prove
-le lancia la **campagna** (3.5); una prova a mano serve solo per casi particolari (3.7).
-
-#### Gli errori da trovare
-
-| Specie | Cosa sono | A cosa servono |
+| Specie | Cosa sono | Cosa dicono |
 |---|---|---|
-| **Visti** | i 12 errori noti di `eval/errori-noti.yaml`. Claude li conosce | dicono se la v2 trova gli errori che conosciamo. Rischio: una miglioria può «impararli a memoria» |
-| **Mai visti: copie cieche** (3.3) | copie di cicli veri in cui il programma cambia una sola operazione. Nessuno guarda quale | dicono se la v2 trova anche errori nuovi (**generalizza**) |
-| **Mai visti: gruppo nascosto** (3.4, facoltativo) | stampe con errori messi da te o da un collega. Claude non le vede mai | come le copie cieche, ma con errori pensati da una persona: è la misura migliore |
+| **Visti** | i 10 errori noti di `eval/errori-noti.yaml` | se la v2 trova gli errori che conosciamo |
+| **Mai visti: copie cieche** (3.3) | copie di cicli veri con **una** operazione cambiata dal programma | se la v2 trova anche errori nuovi (**generalizza**) |
+| **Mai visti: gruppo nascosto** (3.4) | stampe con errori messi a mano | come sopra, con errori pensati da una persona: la misura migliore |
 
-I tipi di copie cieche sono sei:
+I sei tipi di copie cieche:
 
-| Tipo | Cosa cambia il programma | Chi lo deve trovare |
+| Tipo | Cosa cambia | Chi lo trova |
 |---|---|---|
-| `numero_una_lingua` | un numero, solo nel testo italiano o solo in quello inglese | il **codice**: serve solo a vedere che non si è rotto niente |
-| `numero_manuale` | un numero che c'è nelle due lingue e nel manuale, cambiato in tutte e due con un valore che il manuale non ha | il **modello**: conta per la generalizzazione |
-| `negazione_una_lingua` | un «non» (o «not») tolto in una lingua sola | il **modello**: conta per la generalizzazione |
-| `task_inesistente` | il codice di un task cambiato in uno che non esiste | il **codice**: serve solo a vedere che non si è rotto niente |
-| `negazione_due_lingue` (dal 24-11) | un «non» (o «not») tolto in **tutte e due** le lingue | il **modello**, confrontando con il manuale |
-| `limite_invertito` (dal 24-11) | minimo ↔ massimo, almeno ↔ al massimo, in tutte e due le lingue | il **modello**, confrontando con il manuale |
+| `numero_una_lingua` | un numero, in una lingua sola | il **codice** (serve solo a vedere che non si è rotto niente) |
+| `task_inesistente` | il codice di un task in uno che non esiste | il **codice** (come sopra) |
+| `numero_manuale` | un numero cambiato nelle due lingue con un valore che il manuale non ha | il **modello** |
+| `negazione_una_lingua` | un «non»/«not» tolto in una lingua | il **modello** |
+| `negazione_due_lingue` | un «non»/«not» tolto in tutte e due le lingue | il **modello**, confrontando con il manuale |
+| `limite_invertito` | minimo ↔ massimo, almeno ↔ al massimo, nelle due lingue | il **modello**, confrontando con il manuale |
 
-I report degli errori mai visti danno **solo quanti sono per tipo**, mai quali. Per questo non
-si mandano foto di `runs\mutazioni\errori.yaml` e `data\errori-nascosti.yaml`.
+I report dicono solo **quanti** errori mai visti ci sono per tipo, mai quali.
 
-#### I due insiemi
+**I due insiemi**
 
-| Insieme | Quali cicli | Quando si usa |
+| Insieme | Cicli | Quando |
 |---|---|---|
-| **piccolo** | i 10 cicli noti (7 «con errori» e 3 giusti), le copie cieche (3.3) e il gruppo nascosto (3.4), se c'è | **ogni** miglioria. È veloce: qualche minuto a prova |
-| **grande** | i 10 noti e **tutti** i cicli veri civili confrontabili con la conoscenza (3.2) | solo le migliorie che **si tengono** sul piccolo: si controlla che sui cicli veri non escano ERRATO o WARNING in più |
+| **piccolo** | i 10 cicli noti (7 con errori, 3 giusti), le copie cieche, il gruppo nascosto | ogni variante |
+| **grande** | i 10 noti e tutti i cicli veri civili confrontabili (3.2) | solo le varianti che si tengono sul piccolo: controlla che sui cicli veri non escano più ERRATO o WARNING |
 
-Un ciclo vero non ha errori noti: se la v2 dà un ERRATO, è «da verificare» (quasi sempre un
-falso errore), e i suoi WARNING sono lavoro a mano in più. Le prove si confrontano **solo dentro
-lo stesso insieme** e con le stesse copie cieche: il riepilogo avvisa se non è così.
+Le prove si confrontano solo dentro lo stesso insieme e con le stesse copie cieche.
 
-#### Dove finiscono i risultati
+**Dove finiscono i risultati**
 
 | Cosa | Dove |
 |---|---|
-| Le prove con Haiku | `runs\prove-piccolo\` e `runs\prove-grande\` |
-| Le prove con Sonnet | `runs\prove-piccolo-sonnet\` e `runs\prove-grande-sonnet\` |
-| Il report di una prova | `<cartella>\<data>-<nome>\prestazioni.md`: in cima la proposta della variante (cosa cambia, perché, cosa ci si aspetta), poi i risultati |
-| Il riepilogo di una cartella | `<cartella>\riepilogo.md`: scelta migliore, classifica, «Le proposte e la decisione», tutte le prove, errore per errore, falsi errori |
-| Il report della campagna | `runs\campagna.md`: tutto insieme, per modello e insieme, più Haiku e Sonnet a confronto |
+| Prove con Haiku | `runs\prove-piccolo\`, `runs\prove-grande\` (Sonnet, 24-11: `...-sonnet\`) |
+| Report di una prova | `<cartella>\<data>-<nome>\prestazioni.md` (non fotografarlo intero) |
+| Riepilogo di una cartella | `<cartella>\riepilogo.md`: scelta migliore, classifica, tutte le prove, errore per errore |
+| Report della campagna | `runs\campagna.md` |
 
-Le **considerazioni** (cosa si è capito) le scrive Claude in `MIGLIORIE.md`, dalle tue foto.
-
-#### Come si sceglie
-
-Lo fa da solo il riepilogo, nella sezione «Scelta migliore». Le regole:
-
-| Misura | Cosa misura | Regola |
-|---|---|---|
-| Falsi errori | ERRATO nelle 3 stampe giuste | deve essere **0**, altrimenti la variante è scartata (non contano le operazioni «in attesa» di una risposta delle persone) |
-| Cicli non eseguiti | cicli andati in errore | deve essere 0 |
-| Tempo del ciclo più lento | il frontend aspetta al massimo 11 minuti | sotto **10 minuti** |
-| Costo per ciclo | dollari per ciclo | non più del **doppio** della base dello stesso modello |
-| **Stabili** | errori (visti e mai visti) trovati in **tutte** le prove della variante | 1° criterio: più alto è meglio; mai meno della base |
-| **Mai visti stabili** | errori mai visti per il modello (copie «numero del manuale» e «negazione», gruppo nascosto) trovati in tutte le prove | mai meno della base: se scende, la miglioria **non generalizza** |
-| Trovati (minimo, media) | errori trovati in ogni prova | 2° e 3° criterio |
-| Da verificare | ERRATO fuori dalla lista (cicli con errori e cicli veri) | 4°: meno è meglio |
-| Warning per ciclo senza errori | lavoro a mano lasciato su una stampa giusta o vera | 5°: meno è meglio |
-| Costo, tempo | per ciclo | 6° e 7°: meno è meglio |
-| Precisione | trovati diviso tutti gli ERRATO | solo da guardare |
-
-Il report di ogni prova mette accanto **visti** e **mai visti per il modello**. Se i visti sono
-trovati molto più spesso dei mai visti, la v2 ha «imparato la lista». La tabella «Errori mai
-visti, per tipo» dice quali tipi la v2 trova peggio e cosa ha risposto sui mancati (solo esito e
-motivo contati): le migliorie si scelgono su quelli.
+**Come si decide** (da solo, nel riepilogo; dettagli in `MIGLIORIE.md`, sezione 6): una variante
+è **scartata** con un solo falso errore, un ciclo non eseguito, un ciclo oltre 10 minuti o un
+costo oltre il doppio della base. **Si tiene** se trova più errori **stabili** (trovati in tutte
+le prove) della base senza perdere errori mai visti, oppure gli stessi errori con un risparmio
+vero (costo -10%, tempo -20% o 1 WARNING in meno per ciclo).
 
 ### 3.2 Scegliere i cicli veri
 
-- **A cosa serve:** sceglie i cicli dell'insieme grande: i 10 cicli noti e **tutti** i cicli
-  veri civili che hanno almeno l'80% delle operazioni confrontabili con la conoscenza. Sono
-  sempre gli stessi. Accanto a ogni ciclo scrive se è MOS o DR.
-- **Quando:** una volta (fatto il 24-11), e di nuovo dopo una nuova ingestion (sezione 5) o
-  quando una miglioria entra nella base.
-- **Costa:** niente (legge le stampe con il parser, senza modello).
-- I percorsi dei file restano nel file `runs\prove-grande\cicli.txt` sul PC; sullo schermo
-  escono solo le impronte.
+**Cosa fa:** sceglie i cicli del grande (i 10 noti e tutti i cicli veri civili con almeno l'80%
+delle operazioni confrontabili). **Quando:** fatto il 24-11; di nuovo dopo una nuova ingestion.
+**Costa:** niente. I percorsi restano in `runs\prove-grande\cicli.txt`; a schermo solo impronte.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -526,21 +365,16 @@ $kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v 
 uv run cycle-validation eval scegli (Resolve-Path "..\..").Path --knowledge $v --quanti 0 --out runs/prove-grande/cicli.txt
 ```
 
-**Deve uscire:** `Stampe: ... Scelti N: noti 10, veri M. Per tipo: MOS ..., DR ....`, poi una
-riga per ogni ciclo vero (`<impronta> vero (MOS): ...` oppure `vero (DR)`) e quanti sono
-rimasti fuori e perché. Una prova sul grande dura circa N volte un ciclo: se N è più di 100,
-manda la foto a Claude e si mette un limite (`--quanti 100`).
-
-**Manda a Claude:** la foto dello schermo.
+- **Deve uscire:** `Stampe: ... Scelti N: noti 10, veri M. Per tipo: MOS ..., DR ....` e una riga
+  per ciclo. Se N è più di 100: foto a Claude (si mette `--quanti 100`).
+- **Mandami:** la foto.
 
 ### 3.3 Fare le copie cieche
 
-- **A cosa serve:** dai cicli veri scelti in 3.2 (e dalle 3 stampe giuste) fa le copie con un
-  errore ciascuna: al massimo 6 da uno stesso ciclo, e al massimo 5 per ognuno dei due tipi del
-  «codice».
-- **Quando:** dopo 3.2 (fatto il 24-11), poi solo quando una miglioria entra nella base, con un
-  **seme nuovo**: cambia `$seme = 1` in `2`, poi `3`, e così via.
-- **Costa:** niente.
+**Cosa fa:** dai cicli scelti fa copie con un errore ciascuna (al massimo 6 per ciclo, 5 per
+ognuno dei due tipi del codice; le copie uguali si saltano). **Quando:** fatto il 24-11 (seme 1);
+di nuovo solo quando una miglioria entra nella base, con un **seme nuovo** (`$seme = 2`, poi
+`3`...). **Costa:** niente.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -552,35 +386,24 @@ Remove-Item runs/mutazioni -Recurse -ErrorAction SilentlyContinue
 uv run cycle-validation eval muta --lista runs/prove-grande/cicli.txt --knowledge $v --quanti 100 --seme $seme --out runs/mutazioni
 ```
 
-**Deve uscire:** `Cicli veri letti: ... Copie con un errore cieco: N su 100 chieste, seme 1.` e
-quante copie ci sono per tipo (`numero_una_lingua`, `numero_manuale`, `negazione_una_lingua`,
-`task_inesistente`, `negazione_due_lingue`, `limite_invertito`). N può essere meno di 100: dipende da quante operazioni adatte ci sono nei
-cicli (il 24-11: 31).
-
-**Non aprire** `runs\mutazioni\errori.yaml`. **Manda a Claude:** la foto dello schermo (solo i
-conteggi).
+- **Deve uscire:** `Copie con un errore cieco: N su 100 chieste, seme ...` e quante copie per
+  tipo.
+- **Non aprire** `runs\mutazioni\errori.yaml`. **Mandami:** la foto (solo i conteggi).
 
 ### 3.4 Il gruppo nascosto (facoltativo)
 
-È la misura migliore, perché gli errori li pensa una persona. Rinviato il 24-11: si fa quando
-c'è tempo.
+La misura migliore: gli errori li pensa una persona.
 
-1. Apri la lista dei cicli scelti con `code runs/prove-grande/cicli.txt` (senza fotografarla):
-   dopo le prime 10 righe (i cicli noti) ci sono i percorsi dei cicli veri.
-2. Copia una decina di quelle stampe (PDF) in `data\nascosti\` (Copilot e Claude non leggono
-   quella cartella).
-3. In ogni copia cambia a mano uno o due punti della descrizione, come nei 7 cicli «con
-   errori». I più utili:
-   - **un numero cambiato in tutte e due le lingue** (italiano e inglese uguali tra loro,
-     diversi dal manuale): le copie cieche di quel tipo sono solo 3;
-   - parole o frasi cambiate in tutte e due le lingue.
-
-   Se puoi, fallo fare a un collega: penserà errori diversi da quelli che conosci.
-4. Lancia il blocco qui sotto: prepara il file `data\errori-nascosti.yaml` e lo apre.
-5. Per ogni stampa scrivi le operazioni cambiate, una riga per operazione, per esempio
-   `'030': quantità cambiata in tutte e due le lingue`. Poi salva.
-6. Scrivi a Claude solo «gruppo nascosto pronto, N stampe». Da qui la campagna e la prova a
-   mano lo aggiungono da sole al piccolo: si rifà la base.
+1. `code runs/prove-grande/cicli.txt` (non fotografarlo): dopo le prime 10 righe ci sono i
+   cicli veri.
+2. Copia una decina di quelle stampe in `data\nascosti\`.
+3. In ogni copia cambia a mano uno o due punti della descrizione. I più utili: **un numero
+   cambiato in tutte e due le lingue**; parole o frasi cambiate in tutte e due le lingue. Meglio
+   se lo fa un collega.
+4. Lancia il blocco: prepara e apre `data\errori-nascosti.yaml`.
+5. Per ogni stampa scrivi le operazioni cambiate (es. `'030': quantità cambiata in tutte e due
+   le lingue`) e salva.
+6. Scrivi a Claude solo «gruppo nascosto pronto, N stampe». Da lì il piccolo lo comprende.
 
 ```powershell
 New-Item -ItemType Directory -Force data/nascosti | Out-Null
@@ -588,26 +411,22 @@ $righe = Get-ChildItem data/nascosti -Filter *.pdf | ForEach-Object { "  '" + (G
 "cicli:`n" + ($righe -join "`n") | Set-Content data/errori-nascosti.yaml -Encoding utf8; code data/errori-nascosti.yaml
 ```
 
-**Non mandare a Claude foto di questo file né delle stampe.**
+**Mai foto di questo file né delle stampe.**
 
 ### 3.5 La campagna: tutte le prove in automatico
 
-- **A cosa serve:** lancia da sola tutte le prove di `eval/campagna.yaml`: per ogni modello
-  del file (dal 25-11 solo Haiku) la base e le varianti sul piccolo, poi sul grande la base e
-  le varianti che si tengono. Alla fine scrive `runs\campagna.md`, il report unico da leggere.
-  L'elenco (varianti, prove per variante, modelli, tetto) lo aggiorna Claude.
-- **Da sola:** trova l'ultima fotografia della conoscenza, i cicli scelti (3.2), le copie cieche
-  (3.3) e il gruppo nascosto (3.4), se ci sono; sceglie MOS o DR per ogni ciclo.
-- **Riprende da dove era:** le prove già fatte (anche quelle lanciate a mano) si contano e non
-  si rifanno.
-- **Si ferma da sola:** al tetto di spesa (`massimo_dollari`, oggi 15 $), se una prova non
-  riesce a eseguire nessun ciclo o se il modello non ha risposto (in tutti e due i casi di
-  solito è l'accesso AWS scaduto: `aws sso login`, poi rilancia) o se premi Ctrl+C. In ogni
-  caso scrive il report con quello che c'è.
-- **Le prove in cui il modello non ha risposto non contano:** al lancio dopo si tolgono
-  (`Tolta la prova non valida ...`) e si rifanno.
+**Cosa fa:** lancia da sola le prove di `eval/campagna.yaml` (lo scrive Claude): la base e le
+varianti sul piccolo, poi sul grande la base e le varianti che si tengono. Alla fine scrive
+`runs\campagna.md`.
 
-**Primo blocco: il piano** (gratis, non lancia niente):
+- **Da sola** trova la conoscenza, i cicli scelti, le copie cieche e il gruppo nascosto, e
+  sceglie MOS o DR per ogni ciclo.
+- **Riprende da dove era:** le prove già fatte non si rifanno. Una prova interrotta con Ctrl+C
+  non conta.
+- **Si ferma da sola:** al tetto di spesa (oggi 15 $) o se il modello non risponde (accesso
+  scaduto: `aws sso login` e rilancia). Le prove senza risposte si tolgono e si rifanno.
+
+**Il piano** (gratis, non lancia niente):
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -615,15 +434,10 @@ $env:UV_PYTHON = "3.14"
 uv run cycle-validation eval campagna --piano
 ```
 
-**Deve uscire:** `Piano (gratis, niente viene lanciato). Piccolo: N cicli e copie; grande: 23
-cicli.` e per ogni modello e insieme una riga per variante, per esempio `base: 1 da fare →
-runs/prove-piccolo` oppure `seconda_ricerca: 3 da fare → ...` (`già fatte` se non manca
-niente).
+- **Deve uscire:** `Piccolo: N cicli e copie; grande: M cicli.` e per ogni insieme una riga per
+  variante: `N da fare` oppure `già fatte`.
 
-**Secondo blocco: la campagna** (costa al massimo `massimo_dollari`; dura ore). Con un modello
-solo nel file basta un terminale. Con due modelli si possono usare due terminali, uno per
-modello (vedi «Due terminali insieme» qui sotto); in un terminale solo fa prima uno e poi
-l'altro:
+**La campagna** (dura ore; costa al massimo il tetto):
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -632,86 +446,50 @@ uv run cycle-validation eval campagna
 code runs/campagna.md
 ```
 
-**Deve uscire:** per ogni prova una riga `=== haiku · piccolo · effort_medio · prova 1 di 2 ·
-spesa finora ... $`, le righe dei cicli e la riga finale della prova; alla fine
-`Campagna finita. Prove fatte ora: N · spesa ... $.` (oppure `Campagna fermata: ...` con il
-motivo) e `Report finale: runs\campagna.md`, che si apre da solo.
+- **Deve uscire:** per ogni prova `=== haiku · <insieme> · <variante> · prova N di 3 · spesa
+  finora ... $`, una riga per ciclo e `Prova «...»: visti ... · mai visti ... · costo ... $`;
+  alla fine `Campagna finita. Prove fatte ora: N · spesa ... $.`
+- **Mandami:** la riga finale e le foto del report che Claude chiede.
 
-**I report.** Lanciata per tutti i modelli, la campagna scrive `runs\campagna.md`. Lanciata con
-`--modelli` o `--insiemi`, scrive un report suo, per esempio `runs\campagna-haiku.md` o
-`runs\campagna-sonnet-piccolo.md`: così due terminali non si sovrascrivono il report. Ogni report mostra comunque tutti i modelli, con le prove che c'erano
-quando è stato scritto. `--solo-report` riscrive `runs\campagna.md` con tutte le prove che ci
-sono, senza lanciare niente.
-
-**Due terminali insieme:** le cartelle dei due modelli sono diverse, quindi non si danno
-fastidio. Ogni terminale ha il suo tetto di spesa (`--massimo-dollari`): la spesa totale è la
-somma dei due. Il tempo per ciclo esce un po' più alto mentre girano tutti e due: si confronta
-solo tra prove dello stesso modello, quindi la classifica non cambia.
-
-**Manda a Claude:** la foto della riga `Campagna finita` (o `fermata`) e del report (sezione 1,
-tappa 2, passi 5 e 6).
-
-**Solo una parte.** Stesso secondo blocco, con in fondo alla riga `uv run cycle-validation eval
-campagna` una o più di queste aggiunte:
+**Solo una parte:** aggiungi in fondo alla riga `uv run cycle-validation eval campagna`:
 
 | Aggiunta | Cosa fa |
 |---|---|
-| `--modelli haiku` | solo Haiku (oppure `--modelli sonnet`) |
-| `--insiemi piccolo` | solo il piccolo (oppure `--insiemi grande`) |
-| `--varianti effort_medio,conferme_1` | solo queste varianti (la base si fa sempre per prima) |
-| `--ripetizioni 3` | tre prove per variante invece di due |
-| `--grande sempre` | sul grande tutte le varianti, non solo quelle che si tengono (`mai` = niente grande) |
+| `--insiemi piccolo` / `--insiemi grande` | solo un insieme (il report diventa `runs\campagna-<insieme>.md`) |
+| `--varianti a,b` | solo queste varianti (la base sempre per prima) |
+| `--ripetizioni 3` | prove per variante |
+| `--grande sempre` / `--grande mai` | sul grande tutte le varianti / nessuna |
 | `--massimo-dollari 10` | tetto di spesa diverso per questa volta |
-| `--piano` | mostra solo cosa farebbe |
-| `--solo-report` | scrive solo il report `runs\campagna.md` con le prove che ci sono, senza lanciare niente |
-
-Esempio: `uv run cycle-validation eval campagna --modelli sonnet --insiemi piccolo`.
+| `--modelli haiku` | solo un modello (se nel file ce ne sono due) |
+| `--piano` | mostra cosa farebbe |
+| `--solo-report` | riscrive `runs\campagna.md` con le prove che ci sono, senza lanciare niente |
 
 ### 3.6 Leggere i risultati
 
-Tutti gratis. I file si aprono in VS Code: per vederli impaginati premi **Ctrl+Shift+V** nella
-finestra del file.
+Gratis. Nei file premi **Ctrl+Shift+V** per la vista impaginata.
 
-**Il report della campagna** (il più importante): `code runs/campagna.md`.
-
-**Il riepilogo di una cartella** (classifica e scelta migliore per un modello e un insieme):
-
-```powershell
-code runs/prove-piccolo/riepilogo.md
-```
-
-Per le altre cartelle cambia il nome: `runs/prove-grande/riepilogo.md`,
-`runs/prove-piccolo-sonnet/riepilogo.md`, `runs/prove-grande-sonnet/riepilogo.md`.
-
-**Manda a Claude:** la foto di «Scelta migliore», «Classifica delle varianti» e «Le proposte e
-la decisione».
-
-**Il report dell'ultima prova** di una cartella (cambia `$insieme` se serve; per Sonnet scrivi
-`"piccolo-sonnet"` o `"grande-sonnet"`):
-
-```powershell
-$insieme = "piccolo"; $ultima = Get-ChildItem "runs/prove-$insieme" -Directory | Where-Object Name -match "^\d{8}-" | Sort-Object Name | Select-Object -Last 1; code "$($ultima.FullName)/prestazioni.md"
-```
-
-Manda a Claude solo le tabelle che chiede (per esempio «Errori mai visti, per tipo»), non il
-file intero: contiene testo dei manuali.
-
-**L'elenco delle prove fatte:**
+| Cosa | Comando |
+|---|---|
+| Report della campagna | `code runs/campagna.md` |
+| Riepilogo del piccolo / del grande | `code runs/prove-piccolo/riepilogo.md` · `code runs/prove-grande/riepilogo.md` |
+| Elenco delle prove fatte | blocco qui sotto |
 
 ```powershell
 Get-ChildItem runs/prove-piccolo, runs/prove-grande -Directory -ErrorAction SilentlyContinue | Select-Object Name
 ```
 
+Il report di una prova (`prestazioni.md`) contiene testo dei manuali: si fotografano solo le
+tabelle che Claude chiede.
+
+```powershell
+$insieme = "piccolo"; $ultima = Get-ChildItem "runs/prove-$insieme" -Directory | Where-Object Name -match "^\d{8}-" | Sort-Object Name | Select-Object -Last 1; code "$($ultima.FullName)/prestazioni.md"
+```
+
 ### 3.7 Una prova a mano
 
-- **A cosa serve:** lancia **una** prova, con Haiku, su un insieme. Di solito non serve: lo fa
-  la campagna. Serve per ripetere una prova sola o provare qualcosa che Claude chiede.
-- **Cosa cambiare:** solo le due cose nella terza riga del blocco:
-  - `$nome`: `"base"` oppure il nome di una variante (per esempio `"effort_medio"`);
-  - `$insieme`: `"piccolo"` oppure `"grande"`.
-- **Costa:** il piccolo come una quindicina di cicli (circa 0,17 $ con Haiku); il grande come
-  tutti i cicli scelti.
-- La prova finisce nella cartella di Haiku dell'insieme e conta anche per la campagna.
+**Quando:** solo se Claude lo chiede (di solito basta la campagna). **Cosa cambiare:** nella terza
+riga `$nome` (`"base"` o il nome di una variante) e `$insieme` (`"piccolo"` o `"grande"`).
+**Costa:** circa 0,17 $ il piccolo con Haiku. La prova conta anche per la campagna.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -727,96 +505,72 @@ if ($insieme -eq "grande") { $cicli += @("--lista", "runs/prove-grande/cicli.txt
 uv run cycle-validation eval prova @cicli --nome $nome --knowledge $v --config data/settings.yaml @variante --cartella "runs/prove-$insieme"
 ```
 
-**Deve uscire:**
-
-- prima `prova «<nome>» sull'insieme <insieme>` (con `con la variante`, se c'è il file);
-- una riga per ciclo: `<impronta> errori|giusto|vero (MOS|DR): trovati ... · mancati ... ·
-  ERRATO in più ...` (e `· in attesa ...` se un ERRATO aspetta una risposta delle persone);
-  per le copie cieche solo `<impronta> mai visto: trovato` oppure `mancato`;
-- alla fine `Prova «...»: errori noti trovati N su M (visti ..., mai visti per il modello ...,
-  per il codice ...) · falsi errori ... · costo ...` e i percorsi dei due report.
-
-**Manda a Claude:** la foto della riga finale.
+- **Deve uscire:** una riga per ciclo (`<impronta> errori|giusto|vero (MOS|DR): trovati ... ·
+  mancati ... · ERRATO in più ...`; per le copie cieche solo `mai visto: trovato|mancato`), poi
+  `Prova «...»: visti ... · costo ... $`. Se esce `ATTENZIONE: prova non valida`: sezione 0.4.
+- **Mandami:** la foto della riga finale.
 
 ### 3.8 Mettere ordine: togliere, azzerare, archiviare le prove
 
-**Togliere una prova** (per esempio una lanciata per sbaglio): cancella la sua cartella dentro
-`runs\prove-...`, poi rifai il riepilogo di quella cartella (gratis; cambia il nome della
-cartella se serve):
+**Togliere una prova:** cancella la sua cartella in `runs\prove-...`, poi rifai il riepilogo
+(gratis):
 
 ```powershell
 $env:UV_PYTHON = "3.14"; uv run cycle-validation eval riepilogo --cartella runs/prove-piccolo
 ```
 
-**Azzerare tutte le prove** (gratis): cancella **per sempre** le cartelle delle prove
-(`runs\prove-piccolo`, `runs\prove-grande`, `runs\prove-piccolo-sonnet`,
-`runs\prove-grande-sonnet`, con tutto quello che c'è dentro) e il report della campagna, per
-ripartire da zero. Tiene da parte la lista dei cicli scelti (`runs\prove-grande\cicli.txt`) e
-la rimette al suo posto, così non serve rifare 3.2. **Non** tocca le copie cieche
-(`runs\mutazioni`), il gruppo nascosto (`data\`), gli archivi e le altre cartelle di `runs`.
-Se vuoi tenere le prove da rileggere, usa invece «Archiviare» qui sotto.
+**Archiviare** (quando cambiano copie cieche o conoscenza: le prove vecchie non si confrontano
+più con le nuove). Sposta `runs\prove-piccolo` e `runs\prove-grande` in `runs\archivio-<data>-...`
+(restano da leggere). Dopo: copie cieche (3.3) e campagna.
+
+```powershell
+$d = Get-Date -Format "yyyyMMdd-HHmm"; "piccolo", "grande" | ForEach-Object { if (Test-Path "runs/prove-$_") { Move-Item "runs/prove-$_" "runs/archivio-$d-$_" } }
+```
+
+Le cartelle `runs\prove-piccolo-sonnet` e `runs\prove-grande-sonnet` si spostano a mano nella
+stessa cartella di archivio.
+
+**Azzerare** (cancella **per sempre** tutte le cartelle `runs\prove-*` e i report della
+campagna; tiene la lista dei cicli scelti; non tocca copie cieche, gruppo nascosto, archivi).
+Di solito meglio archiviare.
 
 ```powershell
 $ok = (Split-Path -Leaf (Get-Location).ProviderPath) -eq "app_cycle_validation_v2"; if (-not $ok) { "FERMO: terminale non nella cartella app_cycle_validation_v2. Niente cancellato." }
 if ($ok) { $lista = "runs/prove-grande/cicli.txt"; $copia = Join-Path $env:TEMP "cv2-cicli.txt"; $tieni = Test-Path $lista; if ($tieni) { Copy-Item $lista $copia -Force }; $via = @(Get-ChildItem runs -Directory -Filter "prove-*" -ErrorAction SilentlyContinue); $via | ForEach-Object { "tolta: runs\" + $_.Name }; $via | Remove-Item -Recurse -Force; Remove-Item runs/campagna*.md -ErrorAction SilentlyContinue; if ($tieni) { New-Item -ItemType Directory -Force runs/prove-grande | Out-Null; Move-Item $copia $lista -Force; "resta: runs\prove-grande\cicli.txt (la lista dei cicli scelti)" } else { "lista dei cicli scelti assente: rifai 3.2" } }
 ```
 
-**Deve uscire:** una riga `tolta: runs\prove-...` per ogni cartella (fino a quattro), poi
-`resta: runs\prove-grande\cicli.txt (la lista dei cicli scelti)`. Dopo, la campagna (3.5) rifà
-tutto da capo: lancia prima il piano, che deve dire `base: 2 da fare` dappertutto.
-
-**Archiviare tutte le prove** (gratis): quando cambiano le copie cieche o la conoscenza, le
-prove di prima non si possono più confrontare con le nuove. Questo blocco le sposta in
-`runs\archivio-<data>-...` (restano da leggere). Dopo: rifai 3.2, 3.3 e la campagna.
-
-```powershell
-$d = Get-Date -Format "yyyyMMdd-HHmm"; "piccolo", "grande" | ForEach-Object { if (Test-Path "runs/prove-$_") { Move-Item "runs/prove-$_" "runs/archivio-$d-$_" } }
-```
-
-Il blocco sposta `runs\prove-piccolo` e `runs\prove-grande`. Per le cartelle di Sonnet, sposta a
-mano `runs\prove-piccolo-sonnet` e `runs\prove-grande-sonnet` nella stessa cartella di archivio.
+- **Deve uscire:** `tolta: runs\prove-...` per ogni cartella e `resta: runs\prove-grande\cicli.txt`.
 
 ---
 
 ## 4. Prove dal frontend
 
-- **A cosa serve:** provare la v2 come la userà un utente, dalla pagina web.
-- **Come si avvia:** in VS Code, **Run and Debug** → scegli **«CV v2»** → avvia. Poi apri nel
-  browser `http://localhost:3000`.
-- **Costa:** qualche centesimo per ciclo.
-- Le targhe escono sempre WARNING: dal PC Redshift (il database delle macchine) non si
-  raggiunge. È normale.
+**Come si avvia:** VS Code → **Run and Debug** → **«CV v2»** → avvia; poi nel browser
+`http://localhost:3000`. **Costa:** qualche centesimo per ciclo. Le targhe escono sempre
+WARNING (dal PC il database delle macchine non si raggiunge): è normale.
 
 Le prove, in ordine:
 
-1. **I tre cicli «con errori»** (MOS): gli ERRATO devono essere quelli del report della prova
-   (3.6).
-2. **Il ciclo MOS più lungo:** misura il tempo fino al risultato. Deve stare sotto i 10 minuti
-   (il frontend aspetta al massimo 11).
-3. **Un DR con serial number e condition**, poi lo stesso **senza** (se il pulsante Confirm non
-   si accende, salta).
-4. **File sbagliato:** carica un DR scegliendo MOS. Deve uscire «Modulo sbagliato».
-5. **Storico:** riapri una chat di prima, rinominala, cancellala.
+1. **I tre cicli «con errori»** (MOS): gli ERRATO devono essere quelli delle prove.
+2. **Il ciclo MOS più lungo:** tempo fino al risultato sotto i **10 minuti**.
+3. **Un DR con serial number e condition**, poi lo stesso **senza** (se Confirm non si accende,
+   salta).
+4. **File sbagliato:** un DR scegliendo MOS → deve uscire «Modulo sbagliato».
+5. **Storico:** riapri una chat, rinominala, cancellala.
 6. **Download** del CSV dei risultati.
 
-**Manda a Claude:** la foto dell'intestazione dei risultati di ogni prova e il tempo della prova
-2 scritto a parole. Se qualcosa non va: la foto del frontend e quella del log di CV v2.
+**Mandami:** la foto dell'intestazione dei risultati di ogni prova e il tempo della prova 2 a
+parole. Se qualcosa non va: foto del frontend e del log di CV v2.
 
 ---
 
 ## 5. Dopo una nuova ingestion
 
-- **Quando:** dopo aver caricato manuali nuovi nella conoscenza (per esempio i file che
-  mancano).
-- **In ordine:**
-  1. blocco A qui sotto: **fotografia** della conoscenza (va su AWS);
-  2. blocco B qui sotto: **lista dei manuali** (gratis);
-  3. archivia le prove fatte (3.8);
-  4. rifai la scelta dei cicli veri (3.2) e le copie cieche (3.3);
-  5. rilancia la campagna (3.5): le prove di prima erano con un'altra conoscenza.
+**Quando:** dopo aver caricato manuali nuovi nella conoscenza. **In ordine:** blocco A
+(fotografia), blocco B (lista dei manuali), archiviare le prove (3.8), cicli veri (3.2), copie
+cieche (3.3), campagna (3.5).
 
-**A. Fotografia della conoscenza.** Scarica dal bucket la conoscenza civile di prova pubblicata e
-la controlla (`kb-check`). Le prove e la lista dei manuali usano da sole l'ultima fotografia.
+**A. Fotografia della conoscenza** (scarica e controlla la conoscenza civile di prova)
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -825,13 +579,11 @@ uv run cycle-validation eval fotografia --bucket (Get-Content data/bucket.txt) -
 $kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; "versione pubblicata: " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path; uv run cycle-validation kb-check ($kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path)
 ```
 
-**Deve uscire:** `Fotografia in ...`, una `versione pubblicata` **diversa** da
-`v/20261123T142517Z/` e i conteggi di `kb-check` senza righe `Errore:`.
+- **Deve uscire:** `Fotografia in ...`, una `versione pubblicata` **diversa** da
+  `v/20261123T142517Z/` e i conteggi di `kb-check` senza righe `Errore:`.
 
-**B. La lista dei manuali.** Gratis: non usa il modello e non va su AWS. Legge tutte le stampe
-dei cicli e cerca ogni task citato come lo cerca la v2. Per ogni manuale dice `c'è`, `manca`
-oppure `c'è, ma mancano N task`, e per i task che mancano dice perché. Sullo schermo i manuali
-si chiamano M1, M2, ...; i codici veri restano nel file `runs\manuali-da-ingestionare.txt`.
+**B. La lista dei manuali** (gratis; a schermo i manuali si chiamano M1, M2...; i codici veri
+restano in `runs\manuali-da-ingestionare.txt`)
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -841,10 +593,9 @@ $kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v 
 uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --errori 298bc28e=005,035 --errori c5ff3cd6=040 --errori f355dc3c=010,030,040,050
 ```
 
-**Deve uscire:** una riga per manuale (`M1: ...`). Il 23-11 alle 17:20 M1 aveva 3 task mancanti
-e M2 (SPM) 1. Con i file nuovi devono scendere.
-
-**Manda a Claude:** la foto dello schermo (non quella del file).
+- **Deve uscire:** una riga per manuale (`M1: ...`). Il 23-11 M1 aveva 3 task mancanti e M2
+  (SPM) 1: con i file nuovi devono scendere.
+- **Mandami:** la foto dello schermo (non del file).
 
 ---
 
@@ -852,22 +603,22 @@ e M2 (SPM) 1. Con i file nuovi devono scendere.
 
 ### 6.1 Domande
 
-Sono domande per chi conosce i cicli e i manuali. Copilot non può rispondere. Chiedile quando
-capita e scrivi a Claude la risposta **a parole**, senza codici veri.
+Per chi conosce cicli e manuali (Copilot non può rispondere). Scrivi a Claude la risposta **a
+parole**, senza codici veri.
 
 | Id | Domanda | Perché serve |
 |---|---|---|
-| **P1** | Task che iniziano con «70-»: stanno sempre nel manuale SPM? C'è un altro gruppo di task con la stessa regola? | la v2 cerca questi task nell'SPM |
-| **P2** | Operazione 060 del ciclo DR (condition 3): la v2 l'ha segnata sbagliata. Lo era davvero? Il dettaglio è in `runs\dr-condition-3\report.md`, da far guardare a chi conosce il ciclo (non mandarlo a Claude) | capire se l'ERRATO è giusto |
-| **P4** | Targa «90» (per chi cura l'indice): funzione sbagliata e lettere accentate rovinate. I passi sono in `MEMORIA.md`, sezione «Da correggere nell'indice» | l'indice ha un dato rotto |
-| **P6** | Scheda mancante: quando un'operazione deve avere per forza una scheda? | senza una regola la v2 (come la v1) non può sapere che manca |
-| **P7** | Ispezione FPI, indicazione lineare (ciclo f355dc3c e la sua stampa giusta, op. 050): il ciclo dice «lunga almeno **4** volte la larghezza», l'SPM «**3** volte o più». Il ciclo segue un'altra regola (manuale del motore) o è da correggere? | oggi la v2 lo segna ERRATO anche sulla stampa giusta: finché non c'è risposta, quell'operazione è «in attesa» e non conta nelle prove |
-| **P9** | Ciclo «con errori» 5ff17062, op. 050: in tutte le prove la v2 la segna ERRATO, ma nella lista degli errori messi apposta c'è solo l'op. 030. Chi ha preparato la stampa ha cambiato anche la 050? | se sì, è un errore vero che manca nella lista (la v2 lo trova sempre); se no, è un falso errore da capire |
-| **P8** | Riparazione senza task in testata (c5ff3cd6, nota «applicazione lubrificante secco»; 298bc28e): quale task del manuale vale per le operazioni che non ne citano uno? | la v2 non sa con cosa confrontarle |
+| **P1** | I task che iniziano con «70-» stanno sempre nell'SPM? C'è un altro gruppo con la stessa regola? | la v2 li cerca nell'SPM |
+| **P2** | Op. 060 del ciclo DR (condition 3): la v2 l'ha segnata ERRATO. Lo era? Il dettaglio è in `runs\dr-condition-3\report.md`, da far guardare a chi conosce il ciclo (non mandarlo a Claude) | capire se l'ERRATO è giusto |
+| **P4** | Targa «90» (per chi cura l'indice): funzione sbagliata e lettere accentate rovinate (`MEMORIA.md`, «Da correggere nell'indice») | l'indice ha un dato rotto |
+| **P6** | Scheda mancante: quando un'operazione deve avere per forza una scheda? | senza regola la v2 non sa che manca |
+| **P7** | Ispezione FPI (f355dc3c e la sua stampa giusta, op. 050): il ciclo dice «almeno **4** volte la larghezza», l'SPM «**3** volte o più». Regola diversa o da correggere? | oggi è ERRATO anche sulla stampa giusta: finché non c'è risposta non conta |
+| **P8** | Riparazione senza task in testata (c5ff3cd6, «applicazione lubrificante secco»; 298bc28e): quale task vale per le operazioni che non ne citano uno? | la v2 non sa con cosa confrontarle |
+| **P9** | Ciclo 5ff17062, op. 050: la v2 la segna sempre ERRATO, ma nella lista c'è solo la 030. Chi ha preparato la stampa ha cambiato anche la 050? | se sì è un errore vero da aggiungere; se no un falso errore da capire |
 
 ### 6.2 Messaggio per il collega del frontend
 
-Da mandare se non l'hai già fatto. Copialo così com'è:
+Da mandare se non l'hai già fatto, così com'è:
 
 ```text
 Ciao! Per la v2 di Cycle Validation il serial number e le DR condition diventano facoltativi
@@ -889,35 +640,26 @@ stessa risposta.
 
 ## 7. QA (più avanti)
 
-**Cos'è:** QA è l'ambiente di prova dell'azienda, uguale alla produzione ma usato solo per
-provare. Corrisponde al ramo `develop`.
+QA è l'ambiente di prova dell'azienda (ramo `develop`). Dockerfile e buildspec della v2 sono già
+sul ramo feature. Finché il ramo non arriva su `develop`, QA resta sulla v1. **Quando arriva su
+`main`, anche la produzione passa alla v2:** prima serve una prova QA riuscita.
 
-- Il Dockerfile e il buildspec (i file che costruiscono il servizio) per la v2 sono già sul ramo
-  feature.
-- Finché il ramo non arriva su `develop`, QA resta sulla v1.
-- **Attenzione:** quando il ramo arriverà su `main`, anche la **produzione** passerà alla v2:
-  prima serve una prova QA riuscita.
-
-**Passi:**
-
-1. **Pull request** da `feature/cycle-validation-v2` verso `develop` (su GitHub). Quando è unita,
-   dal frontend QA prova un ciclo MOS e un DR (in QA le targhe si controllano davvero). Manda a
-   Claude la foto dell'intestazione dei risultati.
-2. **Se la v2 in QA non parte:** torna alla v1 con il blocco qui sotto, poi Salvare (2.2) e pull
-   request.
+1. **Pull request** da `feature/cycle-validation-v2` verso `develop`. Quando è unita: dal
+   frontend QA un ciclo MOS e un DR (in QA le targhe si controllano davvero). Mandami la foto
+   dell'intestazione dei risultati.
+2. **Se la v2 in QA non parte:** torna alla v1, poi Salvare (2.2) e pull request.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 uv run cycle-validation qa --torna-alla-v1
 ```
 
-3. **Cicli militari** (solo dopo una prova QA riuscita): lancia il blocco qui sotto, poi Salvare
-   (2.2) e pull request.
+3. **Cicli militari** (solo dopo una prova QA riuscita), poi Salvare (2.2) e pull request:
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 uv run cycle-validation qa --conoscenza-civile "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/current.json" --ej200 --conoscenza-ej200 "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/ej200/current.json"
 ```
 
-Se Claude dice che il comando `qa` è cambiato, rilancia lo stesso comando (senza `--ej200`
-finché i cicli militari sono spenti), poi Salvare.
+Se Claude dice che il comando `qa` è cambiato: rilancia lo stesso comando (senza `--ej200` finché
+i cicli militari sono spenti), poi Salvare.
