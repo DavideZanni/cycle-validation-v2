@@ -194,7 +194,7 @@ era). Prima del passo 1 non deve girare niente.
 
 ---
 
-**⬜ Passo 1 · Aggiornare il codice** · gratis · 2 minuti
+**✅ Passo 1 · Aggiornare il codice** · gratis · 2 minuti
 
 Porta sul PC l'ultima versione e lancia i test.
 
@@ -204,7 +204,7 @@ Porta sul PC l'ultima versione e lancia i test.
 
 ---
 
-**⬜ Passo 2 · Il piano** · gratis · 1 minuto
+**✅ Passo 2 · Il piano** · gratis · 1 minuto
 
 Dice cosa farà la campagna, senza lanciare niente.
 
@@ -226,7 +226,11 @@ uv run cycle-validation eval campagna --piano
 
 ---
 
-**⬜ Passo 3 · La campagna** · costa al massimo 15 $ (stima 3-5 $) · **circa 2 ore e mezza**
+**👉 Passo 3 · La campagna** · costa al massimo 15 $ (stima 3-5 $) · **circa 3 ore e mezza**
+
+Il piano del 25-11 dice: piccolo 12 prove; grande 9 prove (3 per `base`, `elementi_uno_per_uno`,
+`lingue_separate`: ieri il grande non era stato fatto). Sul grande si aggiungono le varianti
+nuove che sul piccolo «si tengono».
 
 Un solo terminale: c'è solo Haiku.
 
