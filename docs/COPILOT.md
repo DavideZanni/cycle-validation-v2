@@ -182,22 +182,41 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
    uno o due errori: con tre prove sono più sicure). Le prove di ieri contano: alla base e alle
    due migliorie di ieri manca solo la terza.
 
-### 👉 Tappa 3, passo per passo (25-11)
+### 👉 Tappa 3, passo per passo (25-11, si riparte alle 10)
 
 Fai un passo alla volta. Dopo ogni passo manda a Claude la foto che dice **Mandami**. Se esce
 qualcosa di strano, **fermati** e manda la foto
 ([cosa fare se va storto](#04-se-qualcosa-va-storto)). **Non** si azzera niente e **non** si
 rifanno le copie cieche.
 
-**Se ieri sera qualcosa gira ancora:** il terminale di Sonnet si ferma con **Ctrl+C**; quello
-di Haiku, se è ancora sul grande, lascialo finire (o fermalo con Ctrl+C: oggi riparte da dove
-era). Prima del passo 1 non deve girare niente.
+**Cosa è successo alle 9:30:** la campagna è partita con l'accesso AWS della sera prima
+scaduto. I cicli giravano, ma il modello non rispondeva: la prova «base» è uscita con
+`costo 0.00 $`, «mai visti 0 su 29» e WARNING `ERRORE_TECNICO`, e contava come fatta. Claude
+ha corretto il codice (25-11): una prova in cui il modello non ha risposto non conta, la
+campagna si ferma subito e, al lancio dopo, toglie da sola quelle rimaste e le rifà. Il
+riepilogo non sovrascrive niente: ogni prova è una colonna in più.
 
 ---
 
-**👉 Passo 1 · Aggiornare il codice (di nuovo, 25-11 ore 10)** · gratis · 2 minuti
+**👉 Passo 0 · Fermare e rifare l'accesso** · gratis · 2 minuti
 
-Porta sul PC l'ultima versione e lancia i test.
+- Se la campagna gira ancora: **Ctrl+C** nel suo terminale.
+- Poi l'accesso ad AWS:
+
+```powershell
+$env:UV_PYTHON = "3.14"
+aws sso login
+```
+
+- **Deve uscire:** si apre il browser, accedi; nel terminale `Successfully logged into Start
+  URL: ...`.
+- **Mandami:** niente (solo se esce un errore).
+
+---
+
+**⬜ Passo 1 · Aggiornare il codice** · gratis · 2 minuti
+
+Porta sul PC la correzione e lancia i test.
 
 - **Copia** il blocco della sezione [2.1 Aggiornare](#21-aggiornare-il-codice-sul-pc).
 - **Deve uscire:** in fondo `... passed` e **nessun** `failed`.
@@ -205,9 +224,10 @@ Porta sul PC l'ultima versione e lancia i test.
 
 ---
 
-**✅ Passo 2 · Il piano** · gratis · 1 minuto
+**⬜ Passo 2 · Il piano** · gratis · 1 minuto
 
-Dice cosa farà la campagna, senza lanciare niente.
+Dice cosa farà la campagna, senza lanciare niente. Le prove senza risposte di stamattina non
+contano più.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -215,24 +235,19 @@ $env:UV_PYTHON = "3.14"
 uv run cycle-validation eval campagna --piano
 ```
 
-- **Deve uscire:** `Piano (gratis, niente viene lanciato). Piccolo: 51 cicli e copie; grande:
-  23 cicli.` (51 righe di lista: due copie sono uguali e si contano una volta sola, come ieri),
-  solo `haiku`, e sul piccolo:
-  - `base`, `elementi_uno_per_uno`, `lingue_separate`: **1 da fare** (la terza prova);
-  - `elementi_e_lingue`, `seconda_ricerca`, `tutto_insieme`: **3 da fare**.
-
-  Sul grande: `base` e le varianti che oggi si tengono (`elementi_uno_per_uno`,
-  `lingue_separate`), con `1 da fare` se ieri sera Haiku ha finito il grande, altrimenti di più.
+- **Deve uscire:** `Piccolo: 51 cicli e copie; grande: 23 cicli.`, solo `haiku`, e:
+  - piccolo: `base`, `elementi_uno_per_uno`, `lingue_separate`: **1 da fare**;
+    `elementi_e_lingue`, `seconda_ricerca`, `tutto_insieme`: **3 da fare**;
+  - grande: `base`, `elementi_uno_per_uno`, `lingue_separate`: **3 da fare**.
+- **Se il piccolo dice `già fatte` per `base`:** fermati e mandami la foto (vuol dire che la
+  prova di stamattina conta ancora).
 - **Mandami:** la foto.
 
 ---
 
 **⬜ Passo 3 · La campagna** · costa al massimo 15 $ (stima 3-5 $) · **circa 3 ore e mezza**
 
-Il piano del 25-11 dice: piccolo 12 prove; grande 9 prove (3 per `base`, `elementi_uno_per_uno`,
-`lingue_separate`: ieri il grande non era stato fatto). Sul grande si aggiungono le varianti
-nuove che sul piccolo «si tengono».
-
+Piccolo 12 prove, poi grande 9 prove (più le varianti nuove che sul piccolo «si tengono»).
 Un solo terminale: c'è solo Haiku.
 
 ```powershell
@@ -242,20 +257,20 @@ uv run cycle-validation eval campagna
 code runs/campagna.md
 ```
 
-- **Prima di lanciarla:** PC acceso, collegato alla corrente, senza sospensione; VS Code aperto;
-  **`aws sso login`** (il 25-11 mattina l'accesso della sera prima era scaduto: la prova
-  «base» è uscita con `costo 0.00 $`). Fai prima Aggiornare (passo 1): con il codice nuovo la
-  campagna toglie da sola le prove senza risposte (`Tolta la prova non valida ...`) e le rifà.
-- **Se in una prova esce `costo 0.00 $`:** il modello non risponde. Con il codice nuovo la
-  campagna si ferma da sola («il modello non ha risposto»): `aws sso login` e rilancia.
-- **Mentre gira:** per ogni prova esce `=== haiku · piccolo · ... · prova 3 di 3 · spesa
+- **Prima di lanciarla:** PC acceso, collegato alla corrente, senza sospensione; VS Code aperto.
+- **Appena parte:** una o due righe `Tolta la prova non valida (il modello non aveva
+  risposto): ...` (le prove di stamattina). Vanno bene.
+- **Dopo la prima prova (circa 10 minuti):** la riga `Prova «base»: ... · costo ... $` deve
+  dire un costo **intorno a 0,15-0,20 $**, non `0.00 $`. **Mandami** la foto di questa riga.
+- **Mentre gira:** per ogni prova esce `=== haiku · piccolo · ... · prova ... di 3 · spesa
   finora ... $`, e alla fine di ogni prova `Prova «...»: visti ... · mai visti per il modello
-  ... · falsi errori ...`. Prima tutto il piccolo (12 prove), poi il grande. Puoi lasciarla da
-  sola.
+  ... · falsi errori ... · costo ... $`. Puoi lasciarla da sola.
 - **Deve uscire alla fine:** `Campagna finita. Prove fatte ora: N · spesa ... $.` e
   `Report finale: runs\campagna.md`, che si apre da solo.
-- **Se esce `Campagna fermata: ...`:** se dice accesso AWS scaduto, lancia `aws sso login`;
-  poi **rilancia lo stesso blocco**: riparte da dove era.
+- **Se esce `Campagna fermata: il modello non ha risposto ...`:** l'accesso è scaduto di
+  nuovo: passo 0 (`aws sso login`), poi **rilancia lo stesso blocco**: riparte da dove era e
+  rifà la prova persa.
+- **Se esce un'altra `Campagna fermata: ...`:** mandami la foto.
 - **Mandami:** la foto della riga `Campagna finita` (o `fermata`).
 
 ---
