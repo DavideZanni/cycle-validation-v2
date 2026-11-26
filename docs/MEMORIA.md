@@ -1146,6 +1146,13 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   l'utente: una grande ingestion di tutti i documenti civili (dentro anche le schede LEAP di
   M5). Su S3 entra solo l'utente, come oggi: nessun collegamento ai documenti per gli utenti
   (deciso il 26-11 sera); la v2 legge la conoscenza e non scrive niente su S3.
+- **26-11 sera, EJ200 (l'utente).** Anche i documenti militari andranno su S3 (AWS EU, l'ambiente
+  autorizzato): l'utente li carica, fa l'ingestion EJ200 e prova la pipeline EJ200; poi Claude
+  dice cosa sistemare, come per il civile. Regole che restano: ingestion e prove EJ200 **dentro
+  AWS** (QA), mai sul PC (niente download, niente `runs\`, niente fotografia); a Claude solo
+  esiti e conteggi (CORRETTO, ERRATO, WARNING per motivo), mai testi EJ200. Una conoscenza EJ200
+  rotta ferma tutto il servizio all'avvio (B7): EJ200 si accende in QA solo dopo che il civile
+  funziona; se il servizio non parte, si rilancia `qa` senza `--ej200`.
   Dopo l'ingestion: fotografia, `kb-check` e una prova della base sul grande (i manuali nuovi
   portano confronti nuovi, quindi possibili falsi errori nuovi). Prove dal frontend il 27-11,
   mai mentre gira una campagna (quota di Bedrock divisa). Tempo e costo dopo la produzione.
