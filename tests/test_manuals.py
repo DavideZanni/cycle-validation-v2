@@ -11,6 +11,9 @@ from cycle_validation import cli
 from cycle_validation.errors import CycleValidationError
 from cycle_validation.kb.local import load_local_knowledge
 from cycle_validation.report.manuals import (
+    ManualNeed,
+    ManualsFound,
+    count_text,
     explain_missing,
     file_lines,
     from_report,
@@ -157,7 +160,7 @@ def test_the_command_reads_the_prints_and_hides_the_codes(tmp_path: Path) -> Non
     assert "M1: manca · 1 cicli · 2 task in 2 capitoli · serve per 1 errori" in result.output
     assert "PDF sul PC: 2, dei capitoli citati: 1" in result.output  # i file del manuale
     assert "cicli EJ200 lasciati fuori (conoscenza solo su AWS): 1" in result.output
-    assert "da ingestionare: 3" in result.output
+    assert "da ingestionare (mancano): 3; già dentro ma con task che mancano: 0." in result.output
     text = out.read_text(encoding="utf-8")
     assert "M1  MAN-DEMO-99  (manca)" in text and "capitoli: 99-10, 99-20" in text
     assert "task: 72-00-00 REPAIR 001" in text  # il task della stampa, con gli spazi
@@ -332,3 +335,14 @@ def test_trials_pick_mos_or_dr_from_the_header(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     assert "Per tipo: MOS 1, DR 1." in result.output
     assert " vero (DR): " in result.output and " vero (MOS): " in result.output
+
+
+def test_the_count_keeps_apart_missing_manuals_and_missing_tasks() -> None:
+    """Un manuale che c'è ma senza tutti i task non si sistema ingestionando gli stessi file."""
+    whole = ManualNeed(code="A", in_knowledge=True)
+    partial = ManualNeed(code="B", in_knowledge=True, missing_tasks={"72-00 REPAIR 001"})
+    absent = ManualNeed(code="C", in_knowledge=False)
+    found = ManualsFound(manuals=[whole, partial, absent], cycles=[], loose_tasks={}, unmatched=[])
+    assert count_text(found) == (
+        "Manuali citati: 3; da ingestionare (mancano): 1; già dentro ma con task che mancano: 1"
+    )

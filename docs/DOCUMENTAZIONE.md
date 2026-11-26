@@ -848,7 +848,7 @@ opzioni.
 | `leggi <pdf>…` | legge le stampe con il parser e stampa riparazione, fonti, task. `--breve`, `--pagina N`, `--struttura N`, `--cerca`, `--lingue` (numeri diversi tra le lingue), `--fonti` (manuali come M1, M2…), `--senza-riordino` | no |
 | `confronta <giusta> <con errori>` | dice in quali operazioni e campi due stampe sono diverse; codici mascherati | no |
 | `kb-check <cartella>` | carica una conoscenza locale, stampa i conteggi e fallisce se un file non va | no |
-| `manuali <percorsi>…` | quali manuali servono nella conoscenza per i cicli di prova; con `--conoscenza` quali mancano e perché; codici veri solo nel file `--out` | no |
+| `manuali <percorsi>…` | quali manuali servono nella conoscenza per i cicli di prova; con `--conoscenza` quali mancano e perché (il conteggio tiene separati i manuali che mancano del tutto da quelli già dentro a cui mancano dei task: per questi servono altri file, non gli stessi di nuovo); codici veri solo nel file `--out` | no |
 | `golden <cartella>` | esegue il golden set (casi con esiti attesi riga per riga) e stampa la concordanza | sì |
 
 ### 14.2 Prove sui cicli veri (sezione 15.3)

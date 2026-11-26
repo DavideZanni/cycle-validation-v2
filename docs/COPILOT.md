@@ -108,7 +108,7 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 |---|---|---|---|
 | ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, copie cieche | 24-11 |
 | ✅ | **2. Prima campagna** | tutte le impostazioni, Haiku e Sonnet | 24-11 sera |
-| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` e `definizioni_generali` non entrano; corretto il controllo dei numeri tra le lingue. Adesso: ingestion, poi `lingue_tra_loro` e `procedura_dr`. Dopo: `fonte_ispezione`, regola della scheda | **adesso** |
+| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` e `definizioni_generali` non entrano; corretto il controllo dei numeri tra le lingue. Adesso: `lingue_tra_loro` e `procedura_dr` (l'ingestion quando arrivano i file). Dopo: `fonte_ispezione`, regola della scheda | **adesso** |
 | ⬜ | **4. Tempo e costo** | spendere meno e fare prima, con gli stessi errori trovati | dopo la 3 |
 | ⬜ | **5. Chiusura** | prova finale con copie cieche nuove, prove dal frontend, salvare | dopo la 4 |
 | ⬜ | **6. QA** | pubblicare nell'ambiente di prova | alla fine |
@@ -134,99 +134,85 @@ raccordatura, e la v2 non la dava al modello. Nuova variante `procedura_dr`.
 
 Dettagli: `MIGLIORIE.md`, «In breve» e sezione 13.
 
-**Cambiato il 26-11 sera:** l'ingestion si fa **subito**, prima della campagna. Così la campagna
-gira già con la conoscenza nuova, e non si paga due volte.
+**La lista del 26-11 (16:46) e Copilot:** sul PC e su S3 non c'è niente di nuovo da
+ingestionare. M1, M2 e l'SPM sono già dentro (giro del 23-11). I task che mancano a M1 e
+all'SPM non si recuperano ingestionando di nuovo gli stessi file: sono citati solo in una frase
+(«Refer to TASK ...») o sono in file che non ci sono (i due REPAIR, il capitolo 70-23). M4 e M5
+non ci sono da nessuna parte. M6 è EJ200: non va nella conoscenza civile. Quindi la campagna si
+fa **adesso, con la conoscenza di oggi**; l'ingestion quando arrivano i file da procurare.
 
 | | Passo | Chi | Costo · tempo |
 |---|---|---|---|
 | ✅ | **Campagna base contro `definizioni_generali`** (26-11, 14:31-15:39) | tu | 2,77 $ |
 | ✅ | **1 · Domanda a Copilot su 895167b9 005** (16:20): falso errore, la deroga della D.R. non arrivava al modello → variante `procedura_dr` | tu | — |
-| 👉 | **2 · Aggiornare** | tu | gratis · 5 minuti |
-| ⬜ | **3 · La lista di cosa ingestionare** | tu | gratis · 2 minuti |
-| ⬜ | **4 · Ingestion** | tu | — |
-| ⬜ | **5 · Dopo l'ingestion:** fotografia, lista di nuovo, archiviare, cicli veri, copie cieche (seme 3) | tu | gratis · 15 minuti |
-| ⬜ | **6 · Campagna**: base nuova contro `lingue_tra_loro` e `procedura_dr` | tu | circa 5 $ · 2-3 ore |
-| ⬜ | **7 · `fonte_ispezione` e regola della scheda** | Claude | — |
+| ✅ | **2 · Lista di cosa ingestionare** (16:46): niente di nuovo sul PC né su S3 | tu | — |
+| 👉 | **3 · Togliere i 7 doppioni** che Copilot ha copiato nella cartella `landing_area` di RM | tu | 5 minuti |
+| ⬜ | **4 · Aggiornare e archiviare** | tu | gratis · 10 minuti |
+| ⬜ | **5 · Campagna**: base nuova contro `lingue_tra_loro` e `procedura_dr` | tu | circa 5 $ · 2-3 ore |
+| ⬜ | **6 · Procurare i file che mancano**, poi ingestion | tu | — |
+| ⬜ | **7 · `fonte_ispezione` e regola della scheda** (dopo l'ingestion) | Claude | — |
 
 ---
 
-**👉 Passo 2 · Aggiornare**
+**👉 Passo 3 · Togliere i 7 doppioni**
 
-Sezione [2.1](#21-aggiornare-il-codice-sul-pc).
+Copilot (in Agent, con «Allow all») ha copiato 7 file nella cartella `landing_area` di RM, su
+S3. Sono doppioni di file già ingestionati: se restano, il prossimo giro dell'ingestion li
+prende di nuovo. Non deve farlo Copilot: lo fai tu.
 
-- **Mandami:** la foto dell'ultima riga dei test.
+1. Metti Copilot su **Ask** e chiedigli: «Elenca i 7 file che hai copiato in `RM/landing_area/`
+   (solo il nome del file) e scrivi il comando per cancellarli. Non eseguire niente.»
+2. Controlla che siano davvero copie dei file in `RM/manuali/`, poi lancia tu il comando.
 
----
-
-**⬜ Passo 3 · La lista di cosa ingestionare** (gratis, zero token)
-
-**Cosa ingestionare** (in ordine di importanza; i codici veri sono solo nel file sul PC):
-
-| | File | Perché serve | Dove trovarlo |
-|---|---|---|---|
-| 1 | **La sezione d'ispezione del manuale del motore** citato nella testata dei cicli «con errori» (lo stesso manuale del capitolo 72-56 già ingestionato il 23-11, M1) | `fonte_ispezione`: il «4 volte» giusto (P7) e le operazioni di controllo; f355dc3c 040 | è la parte da cui viene il «4 volte» della P7. Se non sai quale file è, chiedilo a Copilot in Ask («in quale PDF sul PC c'è la sezione d'ispezione con il 4 volte della P7, ed è nella conoscenza?»): la risposta ha il percorso, **non mandarmela** |
-| 2 | **Il capitolo 70-23 dell'SPM** | f355dc3c 040 e 5ff17062 040 (la classe dell'attacco chimico); oggi sono «in attesa» | il 23-11 non era sul PC: dalla fonte dei manuali |
-| 3 | **Due REPAIR della sezione 72-56-31** dello stesso manuale (i file con `-09-001` e `-09-003` nel nome) | citati in una frase dagli altri task; servono ai limiti delle raccordature (f355dc3c 010, 5ff17062 010) | il 23-11 non erano sul PC: dalla fonte dei manuali |
-| 4 | **Quello che il blocco qui sotto dà come «da ingestionare»** | i manuali citati dai cicli di prova che mancano ancora (il 23-11 anche M3, M4, M5) | il file `runs\manuali-da-ingestionare.txt` dice anche quali PDF sono già sul PC |
-
-Il blocco usa l'ultima fotografia della conoscenza e tutti gli errori noti di oggi. A schermo i
-manuali si chiamano M1, M2...; i codici veri, i capitoli, i task mancanti e i file sul PC
-restano in `runs\manuali-da-ingestionare.txt`: aprilo per fare l'ingestion, **non fotografarlo**.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
-$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --errori 298bc28e=005,035 --errori c5ff3cd6=030,040 --errori f355dc3c=010,030,040,050 --errori 5ff17062=010,030,040,050 --errori 895167b9=010,030,050,060 --errori 22f586bb=010,030,050,060 --errori 38960731=050 --errori 8d3c673c=140 --errori e9b74c84=025
-code runs/manuali-da-ingestionare.txt
-```
-
-- **Deve uscire:** `Manuali citati: N; da ingestionare: M.` e una riga per manuale (`M1: ...`).
-- **Mandami:** la foto dello **schermo** (non del file).
-- Il punto 1 (sezione d'ispezione) il blocco può non darlo: i cicli citano il manuale nella
-  testata, non quella sezione. Va preso a mano.
+- **Dimmi a parole:** quanti file hai tolto. Non mandarmi la risposta di Copilot (ha il nome del
+  bucket).
 
 ---
 
-**⬜ Passo 4 · Ingestion**
+**⬜ Passo 4 · Aggiornare e archiviare**
 
-Con il programma dell'ingestion, come il 23-11: i file della tabella del passo 3 che trovi, poi
-la versione si pubblica. Solo la conoscenza **civile**: niente EJ200 (M6 non va).
+1. **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Foto dell'ultima riga.
+2. **Archiviare** le prove (sezione [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove),
+   blocco «Archiviare»): la base è cambiata (controllo dei numeri tra le lingue). Foto.
 
-- **Dimmi a parole:** quali dei quattro punti c'erano e quali no, e se la versione è pubblicata.
-
----
-
-**⬜ Passo 5 · Dopo l'ingestion** (gratis, in quest'ordine)
-
-1. **Fotografia** della conoscenza: sezione [5](#5-dopo-una-nuova-ingestion), blocco A. Deve
-   dire una `versione pubblicata` diversa da `v/20261123T142517Z/`. Foto.
-2. **La lista di nuovo**: sezione 5, blocco B. I task mancanti di M1 e dell'SPM devono scendere.
-   Foto dello schermo.
-3. **Archiviare** le prove: sezione [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove),
-   blocco «Archiviare». Foto.
-4. **Cicli veri**: sezione [3.2](#32-scegliere-i-cicli-veri). Con i manuali nuovi i cicli
-   confrontabili possono essere di più. Foto.
-5. **Copie cieche** con `$seme = 3`: sezione [3.3](#33-fare-le-copie-cieche). Foto (solo i
-   conteggi).
+Copie cieche e cicli veri restano quelli di oggi (seme 2): non rifare 3.2 e 3.3. Così si vede
+subito se le copie «numero cambiato in una lingua» passano da 1 su 5 a 5 su 5.
 
 ---
 
-**⬜ Passo 6 · Campagna: base nuova contro `lingue_tra_loro` e `procedura_dr`**
+**⬜ Passo 5 · Campagna: base nuova contro `lingue_tra_loro` e `procedura_dr`**
 
 Prima il piano, poi la campagna (sezione [3.5](#35-la-campagna-tutte-le-prove-in-automatico)).
 Il grande si fa per tutte (`grande: sempre`): sui cicli veri si vede se `lingue_tra_loro` dà
 ERRATO dove una lingua traduce liberamente, e se `procedura_dr` toglie i falsi errori dei DR.
 
-- **Il piano deve dire:** `base`, `lingue_tra_loro` e `procedura_dr`, `3 da fare` per ognuna,
-  sul piccolo e sul grande. Se una dice `già fatte`, l'archivio non è andato: fermati e mandami
-  la foto. **Se il grande ha più di 30 cicli** (oggi 23), mandami la foto del piano prima di
-  partire: il costo sale.
-- **Costo e tempo:** circa 5 $ e 2-3 ore con 23 cicli nel grande (18 prove; `lingue_tra_loro`
-  fa una sessione corta in più per ogni operazione). Tetto: 10 $.
+- **Il piano deve dire:** piccolo 29 e grande 23, `base`, `lingue_tra_loro` e `procedura_dr`,
+  `3 da fare` per ognuna. Se una dice `già fatte`, l'archivio non è andato: fermati e mandami
+  la foto.
+- **Costo e tempo:** circa 5 $ e 2-3 ore (18 prove; `lingue_tra_loro` fa una sessione corta in
+  più per ogni operazione). Tetto: 10 $.
 - **Mandami:** la riga finale, le foto di `runs\campagna.md` e dei due `riepilogo.md`, come
   l'ultima volta.
+
+---
+
+**⬜ Passo 6 · Procurare i file che mancano, poi ingestion**
+
+Dalla fonte dei manuali (non sono sul PC né su S3), in ordine di importanza:
+
+| | Cosa | Perché serve |
+|---|---|---|
+| 1 | **La sezione d'ispezione del manuale del motore** (M1), da cui viene il «4 volte» della P7 | `fonte_ispezione`; f355dc3c 040 |
+| 2 | **Il capitolo 70-23 dell'SPM** | f355dc3c 040 e 5ff17062 040 (oggi «in attesa») |
+| 3 | **I due REPAIR della sezione 72-56-31** (`-09-001` e `-09-003` nel nome) | i limiti delle raccordature (f355dc3c 010, 5ff17062 010) |
+| 4 | **M4 e M5** (3 cicli, senza errori noti) | meno `FONTE_ASSENTE` sul grande |
+
+Quando li hai: ingestion (solo conoscenza civile), poi tutta la sezione
+[5](#5-dopo-una-nuova-ingestion): fotografia (A), lista (B), archiviare (3.8), cicli veri (3.2),
+copie cieche (3.3) con `$seme = 3`, campagna.
+
+La lista (sezione 5, blocco B) si guarda **a schermo**: il file `runs\manuali-da-ingestionare.txt`
+ha i codici veri e i percorsi, serve a te per l'ingestion e **non si fotografa**.
 
 ---
 

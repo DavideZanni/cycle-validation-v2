@@ -402,12 +402,23 @@ def screen_lines(result: ManualsFound) -> list[str]:
     return lines
 
 
+def count_text(result: ManualsFound) -> str:
+    """Quanti manuali citati, quanti mancano del tutto, quanti ci sono ma senza tutti i task.
+    I secondi non si sistemano ingestionando di nuovo gli stessi file: servono altri file (o il
+    task è solo citato in una frase)."""
+    missing = sum(need.state == "manca" for need in result.manuals)
+    partial = sum(need.needed and need.state != "manca" for need in result.manuals)
+    return (
+        f"Manuali citati: {len(result.manuals)}; da ingestionare (mancano): {missing}; "
+        f"già dentro ma con task che mancano: {partial}"
+    )
+
+
 def file_lines(result: ManualsFound, names: dict[str, list[str]] | None = None) -> list[str]:
     """Le stesse righe con i codici veri, i capitoli e i task: restano sul PC. `names`:
     impronta del ciclo → nomi dei file (per ritrovare le stampe)."""
-    needed = sum(need.needed for need in result.manuals)
     lines = [
-        f"Manuali citati dai cicli di prova: {len(result.manuals)}; da ingestionare: {needed}.",
+        count_text(result) + ".",
         "Ordine: prima quelli che servono per gli errori noti, poi quelli che mancano, poi gli",
         "altri. Per ognuno bastano i capitoli scritti sotto.",
         "",

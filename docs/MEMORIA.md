@@ -1120,9 +1120,15 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   solo quando nessun task si trova). Il serial è solo nella parte inglese. Scritta
   `procedura_dr` (I14), nella stessa campagna di `lingue_tra_loro`. Il riepilogo ora conta gli
   ERRATO in attesa per variante.
-- **26-11 sera, ingestion prima della campagna.** L'utente fa l'ingestion subito: la campagna
-  base contro `lingue_tra_loro` e `procedura_dr` gira dopo, con la conoscenza nuova, cicli veri
-  rifatti (3.2) e copie cieche con il seme 3. Ordine in COPILOT sezione 1, passi 2-6.
+- **26-11 sera, lista dell'ingestion (16:46) e Copilot.** Niente di nuovo da ingestionare sul PC
+  né su S3: M1, M2 e SPM già dentro (giro del 23-11). I task che mancano (2 REPAIR di M1 e un
+  task citati solo in «Refer to TASK ...», il capitolo 70-23 dell'SPM) non si recuperano
+  ingestionando di nuovo gli stessi file: vanno procurati dalla fonte dei manuali, come M4 e M5
+  (non ci sono da nessuna parte). M6 è EJ200. Il conteggio «da ingestionare» contava anche i
+  manuali già dentro con task mancanti (e M6): ora li tiene separati. Copilot, in Agent con
+  «Allow all», aveva copiato 7 doppioni nella cartella `landing_area` di RM su S3: li toglie
+  l'utente (COPILOT passo 3). La campagna si fa con la conoscenza di oggi e le copie del seme 2.
+  L'utente ha fotografato il file della lista: ha codici veri e percorsi, non si ripetono.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

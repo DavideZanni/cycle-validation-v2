@@ -79,6 +79,7 @@ from cycle_validation.module_kind import DR, EJ200, detect_module_kind
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
 from cycle_validation.report.manuals import (
     CycleSeen,
+    count_text,
     cycle_coverage,
     explain_missing,
     file_lines,
@@ -717,9 +718,8 @@ def list_manuals(
             f"Stampe: {len(pdfs)} file, {len(names)} diverse; cicli letti: "
             f"{len(cycles)}; non lette (non sono cicli PVRM320 o troppo grandi): {unread}."
         )
-    needed = sum(need.needed for need in result.manuals)
     typer.echo(
-        f"Manuali citati: {len(result.manuals)}; da ingestionare: {needed}"
+        count_text(result)
         + ("" if kb else " (senza --conoscenza: stato dai report, se ci sono)")
         + "."
     )
