@@ -535,7 +535,8 @@ la regola della sezione 6; il modello fa solo **la proposta**.
 
 ### 10.4 Idee tecniche nate dalle prove sul PC (22-11-2026)
 
-Da decidere: nessuna serve per la consegna. In ordine di valore.
+**Scelte dall'utente il 26-11 sera: piacciono tutte (H1-H14), si fanno dopo la produzione.**
+Nessuna serve per la consegna. In ordine di valore.
 
 | Id | Idea | Perché (cosa si è visto) | Costo del lavoro |
 |---|---|---|---|
