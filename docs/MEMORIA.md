@@ -1120,6 +1120,9 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   solo quando nessun task si trova). Il serial è solo nella parte inglese. Scritta
   `procedura_dr` (I14), nella stessa campagna di `lingue_tra_loro`. Il riepilogo ora conta gli
   ERRATO in attesa per variante.
+- **26-11 sera, ingestion prima della campagna.** L'utente fa l'ingestion subito: la campagna
+  base contro `lingue_tra_loro` e `procedura_dr` gira dopo, con la conoscenza nuova, cicli veri
+  rifatti (3.2) e copie cieche con il seme 3. Ordine in COPILOT sezione 1, passi 2-6.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

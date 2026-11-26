@@ -108,7 +108,7 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 |---|---|---|---|
 | ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, copie cieche | 24-11 |
 | ✅ | **2. Prima campagna** | tutte le impostazioni, Haiku e Sonnet | 24-11 sera |
-| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` e `definizioni_generali` non entrano; corretto il controllo dei numeri tra le lingue. Adesso: `lingue_tra_loro` e `procedura_dr`. Dopo: `fonte_ispezione`, regola della scheda | **adesso** |
+| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` e `definizioni_generali` non entrano; corretto il controllo dei numeri tra le lingue. Adesso: ingestion, poi `lingue_tra_loro` e `procedura_dr`. Dopo: `fonte_ispezione`, regola della scheda | **adesso** |
 | ⬜ | **4. Tempo e costo** | spendere meno e fare prima, con gli stessi errori trovati | dopo la 3 |
 | ⬜ | **5. Chiusura** | prova finale con copie cieche nuove, prove dal frontend, salvare | dopo la 4 |
 | ⬜ | **6. QA** | pubblicare nell'ambiente di prova | alla fine |
@@ -134,48 +134,31 @@ raccordatura, e la v2 non la dava al modello. Nuova variante `procedura_dr`.
 
 Dettagli: `MIGLIORIE.md`, «In breve» e sezione 13.
 
+**Cambiato il 26-11 sera:** l'ingestion si fa **subito**, prima della campagna. Così la campagna
+gira già con la conoscenza nuova, e non si paga due volte.
+
 | | Passo | Chi | Costo · tempo |
 |---|---|---|---|
 | ✅ | **Campagna base contro `definizioni_generali`** (26-11, 14:31-15:39) | tu | 2,77 $ |
 | ✅ | **1 · Domanda a Copilot su 895167b9 005** (16:20): falso errore, la deroga della D.R. non arrivava al modello → variante `procedura_dr` | tu | — |
-| 👉 | **2 · Aggiornare e archiviare** | tu | gratis · 10 minuti |
-| ⬜ | **3 · Campagna**: base nuova contro `lingue_tra_loro` e `procedura_dr` | tu | circa 5 $ · 2-3 ore |
-| ⬜ | **4 · Ingestion** (quando puoi) | tu | — |
-| ⬜ | **5 · `fonte_ispezione` e regola della scheda** (dopo l'ingestion) | Claude | — |
+| 👉 | **2 · Aggiornare** | tu | gratis · 5 minuti |
+| ⬜ | **3 · La lista di cosa ingestionare** | tu | gratis · 2 minuti |
+| ⬜ | **4 · Ingestion** | tu | — |
+| ⬜ | **5 · Dopo l'ingestion:** fotografia, lista di nuovo, archiviare, cicli veri, copie cieche (seme 3) | tu | gratis · 15 minuti |
+| ⬜ | **6 · Campagna**: base nuova contro `lingue_tra_loro` e `procedura_dr` | tu | circa 5 $ · 2-3 ore |
+| ⬜ | **7 · `fonte_ispezione` e regola della scheda** | Claude | — |
 
 ---
 
-**👉 Passo 2 · Aggiornare e archiviare**
+**👉 Passo 2 · Aggiornare**
 
-1. **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)).
-2. **Archiviare** le prove (sezione [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove),
-   blocco «Archiviare»): la base è cambiata (controllo dei numeri tra le lingue), le prove
-   vecchie non si confrontano più con le nuove.
+Sezione [2.1](#21-aggiornare-il-codice-sul-pc).
 
-Le copie cieche restano quelle del seme 2: così si vede subito se le copie «numero cambiato in
-una lingua» passano da 1 su 5 a 5 su 5. Non serve rifare 3.2 e 3.3.
-
-- **Mandami:** la foto della fine di Aggiornare (i test) e quella di Archiviare.
+- **Mandami:** la foto dell'ultima riga dei test.
 
 ---
 
-**⬜ Passo 3 · Campagna: base nuova contro `lingue_tra_loro` e `procedura_dr`**
-
-Prima il piano, poi la campagna (sezione [3.5](#35-la-campagna-tutte-le-prove-in-automatico)).
-Il grande si fa per tutte (`grande: sempre`): sui cicli veri si vede se `lingue_tra_loro` dà
-ERRATO dove una lingua traduce liberamente, e se `procedura_dr` toglie i falsi errori dei DR.
-
-- **Il piano deve dire:** piccolo 29 e grande 23, `base`, `lingue_tra_loro` e `procedura_dr`,
-  `3 da fare` per ognuna. Se la base dice `già fatte`, l'archivio non è andato: fermati e
-  mandami la foto.
-- **Costo e tempo:** circa 5 $ e 2-3 ore (18 prove; `lingue_tra_loro` fa una sessione corta in
-  più per ogni operazione).
-- **Mandami:** la riga finale, le foto di `runs\campagna.md` e dei due `riepilogo.md`, come
-  oggi. Sono andate bene: si leggono tutte.
-
----
-
-**⬜ Passo 4 · Ingestion** (quando puoi)
+**⬜ Passo 3 · La lista di cosa ingestionare** (gratis, zero token)
 
 **Cosa ingestionare** (in ordine di importanza; i codici veri sono solo nel file sul PC):
 
@@ -186,10 +169,9 @@ ERRATO dove una lingua traduce liberamente, e se `procedura_dr` toglie i falsi e
 | 3 | **Due REPAIR della sezione 72-56-31** dello stesso manuale (i file con `-09-001` e `-09-003` nel nome) | citati in una frase dagli altri task; servono ai limiti delle raccordature (f355dc3c 010, 5ff17062 010) | il 23-11 non erano sul PC: dalla fonte dei manuali |
 | 4 | **Quello che il blocco qui sotto dà come «da ingestionare»** | i manuali citati dai cicli di prova che mancano ancora (il 23-11 anche M3, M4, M5) | il file `runs\manuali-da-ingestionare.txt` dice anche quali PDF sono già sul PC |
 
-**La lista esatta, aggiornata a oggi** (gratis, zero token). Usa l'ultima fotografia della
-conoscenza e tutti gli errori noti di oggi. A schermo i manuali si chiamano M1, M2...; i codici
-veri, i capitoli, i task mancanti e i file sul PC restano in `runs\manuali-da-ingestionare.txt`:
-aprilo per fare l'ingestion, **non fotografarlo**.
+Il blocco usa l'ultima fotografia della conoscenza e tutti gli errori noti di oggi. A schermo i
+manuali si chiamano M1, M2...; i codici veri, i capitoli, i task mancanti e i file sul PC
+restano in `runs\manuali-da-ingestionare.txt`: aprilo per fare l'ingestion, **non fotografarlo**.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -205,15 +187,52 @@ code runs/manuali-da-ingestionare.txt
 - Il punto 1 (sezione d'ispezione) il blocco può non darlo: i cicli citano il manuale nella
   testata, non quella sezione. Va preso a mano.
 
-Quando l'ingestion è finita, **dimmi a parole** quali di questi file c'erano. Poi si fa tutta la sezione
-[5](#5-dopo-una-nuova-ingestion): fotografia (A), lista dei manuali (B), archiviare (3.8), cicli
-veri (3.2), copie cieche (3.3) con `$seme = 3`.
+---
+
+**⬜ Passo 4 · Ingestion**
+
+Con il programma dell'ingestion, come il 23-11: i file della tabella del passo 3 che trovi, poi
+la versione si pubblica. Solo la conoscenza **civile**: niente EJ200 (M6 non va).
+
+- **Dimmi a parole:** quali dei quattro punti c'erano e quali no, e se la versione è pubblicata.
 
 ---
 
-**⬜ Passo 5 · `fonte_ispezione` e regola della scheda** (lo fa Claude)
+**⬜ Passo 5 · Dopo l'ingestion** (gratis, in quest'ordine)
 
-Dopo l'ingestion del manuale del motore. Poi di nuovo Aggiornare, archiviare, campagna.
+1. **Fotografia** della conoscenza: sezione [5](#5-dopo-una-nuova-ingestion), blocco A. Deve
+   dire una `versione pubblicata` diversa da `v/20261123T142517Z/`. Foto.
+2. **La lista di nuovo**: sezione 5, blocco B. I task mancanti di M1 e dell'SPM devono scendere.
+   Foto dello schermo.
+3. **Archiviare** le prove: sezione [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove),
+   blocco «Archiviare». Foto.
+4. **Cicli veri**: sezione [3.2](#32-scegliere-i-cicli-veri). Con i manuali nuovi i cicli
+   confrontabili possono essere di più. Foto.
+5. **Copie cieche** con `$seme = 3`: sezione [3.3](#33-fare-le-copie-cieche). Foto (solo i
+   conteggi).
+
+---
+
+**⬜ Passo 6 · Campagna: base nuova contro `lingue_tra_loro` e `procedura_dr`**
+
+Prima il piano, poi la campagna (sezione [3.5](#35-la-campagna-tutte-le-prove-in-automatico)).
+Il grande si fa per tutte (`grande: sempre`): sui cicli veri si vede se `lingue_tra_loro` dà
+ERRATO dove una lingua traduce liberamente, e se `procedura_dr` toglie i falsi errori dei DR.
+
+- **Il piano deve dire:** `base`, `lingue_tra_loro` e `procedura_dr`, `3 da fare` per ognuna,
+  sul piccolo e sul grande. Se una dice `già fatte`, l'archivio non è andato: fermati e mandami
+  la foto. **Se il grande ha più di 30 cicli** (oggi 23), mandami la foto del piano prima di
+  partire: il costo sale.
+- **Costo e tempo:** circa 5 $ e 2-3 ore con 23 cicli nel grande (18 prove; `lingue_tra_loro`
+  fa una sessione corta in più per ogni operazione). Tetto: 10 $.
+- **Mandami:** la riga finale, le foto di `runs\campagna.md` e dei due `riepilogo.md`, come
+  l'ultima volta.
+
+---
+
+**⬜ Passo 7 · `fonte_ispezione` e regola della scheda** (lo fa Claude)
+
+Con la sezione d'ispezione nella conoscenza. Poi di nuovo Aggiornare, archiviare, campagna.
 
 ### ⬜ Anche da fare, quando hai tempo
 
