@@ -54,7 +54,7 @@ configurare).
 | **Base / variante** | base = la v2 di oggi. Variante = una miglioria da provare (`eval/varianti/<nome>.yaml`), sempre confrontata con la base |
 | **Campagna** | un solo comando che lancia tutte le prove in fila e scrive il report `runs\campagna.md` |
 | **Riepilogo** | `riepilogo.md` di ogni cartella di prove: classifica e decisione |
-| **Modalità Ask** | in basso nella chat di Copilot deve esserci scritto **Ask**, non *Agent* |
+| **Modalità Ask** | in basso nella chat di Copilot deve esserci scritto **Ask**, non *Agent* né *Autopilot* |
 
 ### 0.2 Come si lancia un blocco
 
@@ -71,7 +71,8 @@ La riga `$env:UV_PYTHON = "3.14"` all'inizio dei blocchi serve: non toglierla.
 
 ### 0.3 Le regole
 
-- **Copilot sempre in modalità Ask.** Il codice lo cambia solo Claude.
+- **Copilot sempre in modalità Ask**, mai Agent o Autopilot: controlla in basso nella chat
+  prima di ogni domanda. Il codice lo cambia solo Claude.
 - **Mai foto di:** `runs\mutazioni\errori.yaml`, `data\errori-nascosti.yaml`, le stampe in
   `data\nascosti\` (Claude non deve conoscere gli errori mai visti); i `report.md`, i
   `prestazioni.md` interi e i file in `transcripts` (contengono testo dei manuali).
@@ -107,35 +108,33 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 |---|---|---|---|
 | ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, copie cieche | 24-11 |
 | ✅ | **2. Prima campagna** | tutte le impostazioni, Haiku e Sonnet | 24-11 sera |
-| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` non entra; prossime: lingue, `fonte_ispezione`, scheda | **26-11** |
+| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` non entra, corretto il controllo delle lingue. Prossime: `fonte_ispezione`, regola della scheda | **adesso** |
 | ⬜ | **4. Tempo e costo** | spendere meno e fare prima, con gli stessi errori trovati | dopo la 3 |
 | ⬜ | **5. Chiusura** | prova finale con copie cieche nuove, prove dal frontend, salvare | dopo la 4 |
 | ⬜ | **6. QA** | pubblicare nell'ambiente di prova | alla fine |
 
 Risultati delle tappe e decisioni: `MIGLIORIE.md`, sezioni 7 e 13.
 
-### 👉 Tappa 3, terzo giro (dal 26-11 pomeriggio)
+### 👉 Adesso: tappa 3, terzo giro
 
-**Cosa ha detto la campagna del 26-11** (dettagli in `MIGLIORIE.md`, sezione 13):
-`seconda_ricerca` **non entra** nella base: sul piccolo trova gli stessi errori (14 su 25) con
-1,6 WARNING in meno per ciclo, sul grande costa 2,1 volte la base (scartata). 0 falsi errori
-dappertutto. La base resta quella del 26-11.
+**Dove siamo (26-11 sera).** La base resta quella del 26-11: `seconda_ricerca` non entra (stessi
+errori, costo doppio). Il limite oggi è la **conoscenza**: spesso il modello non riceve il passo
+giusto del manuale (`EVIDENZA_NON_TROVATA`, 7 per ciclo). Claude ha già corretto il controllo
+delle due lingue (I10) e la lista degli errori noti (P9). Le prossime migliorie aspettano le tue
+risposte ai passi 1 e 2. Dettagli: `MIGLIORIE.md`, «In breve» e sezione 13.
 
-Claude ha corretto il controllo delle due lingue (sul piccolo trovava solo 1 copia «numero in
-una lingua» su 5) e aggiornato gli errori noti con le risposte P1-P9. Prossime migliorie:
-`fonte_ispezione` (P7, P8: serve il manuale del motore nella conoscenza) e la regola della
-scheda (P6).
-
-| | Passo | Costo · tempo |
-|---|---|---|
-| ✅ | **Campagna del 26-11** (base contro `seconda_ricerca`) | 1,53 $ · 1 ora e 40 |
-| 👉 | **1 · ERRATO da verificare: domanda a Copilot** | gratis · 10 minuti |
-| ⬜ | **2 · Ingestion dei manuali che mancano**: dimmi se è finita | — |
-| ⬜ | **3 · Aggiornare, archiviare, campagna** (quando Claude ha scritto le migliorie) | circa 1,5 $ · 1 ora |
+| | Passo | Chi | Costo · tempo |
+|---|---|---|---|
+| 👉 | **1 · ERRATO da verificare: domanda a Copilot** | tu | gratis · 10 minuti |
+| ⬜ | **2 · Ingestion: dimmi se è finita** | tu | — |
+| ⬜ | **3 · Le migliorie nel codice** (`fonte_ispezione`, regola della scheda) | Claude | — |
+| ⬜ | **4 · Aggiornare e preparare le prove** | tu | gratis · 15 minuti |
+| ⬜ | **5 · Campagna** | tu | circa 1,5 $ · 1 ora e 40 |
 
 ---
 
-**👉 Passo 1 · ERRATO da verificare: domanda a Copilot** (modalità **Ask**)
+**👉 Passo 1 · ERRATO da verificare: domanda a Copilot** (modalità **Ask**, non Agent né
+Autopilot)
 
 Sul grande la v2 dà ERRATO su operazioni di cicli veri che nessuno ha controllato. Possono
 essere errori veri o falsi errori. Incolla in Copilot:
@@ -152,45 +151,65 @@ essere errori veri o falsi errori. Incolla in Copilot:
 
 ---
 
-**⬜ Passo 2 · Ingestion dei manuali che mancano**
+**⬜ Passo 2 · Ingestion: dimmi se è finita**
 
-Il 26-11 mattina Copilot (in modalità Agent) ha copiato dei PDF nell'area dell'ingestion. Se
-sono i manuali che mancano (manuale del motore, capitolo 70-23 dell'SPM, i REPAIR), servono
-proprio: `fonte_ispezione` ha bisogno della sezione d'ispezione del manuale del motore.
-**Dimmi** se l'ingestion è finita: poi si fa la nuova fotografia (sezione
-[5](#5-dopo-una-nuova-ingestion)).
+Il 26-11 mattina Copilot ha copiato dei PDF nell'area dell'ingestion. Servono i file che
+mancano nella conoscenza:
+
+- il **manuale d'ispezione del motore** (il più importante: senza, `fonte_ispezione` non si
+  può fare);
+- il capitolo 70-23 dell'SPM;
+- i due REPAIR della sezione 72-56-31.
+
+**Dimmi a parole:** l'ingestion è finita? Quali di questi file c'erano?
 
 ---
 
-**⬜ Passo 3 · Aggiornare, archiviare, campagna**
+**⬜ Passo 3 · Le migliorie nel codice** (lo fa Claude)
 
-Claude dettaglia i blocchi quando le migliorie sono pronte: Aggiornare (2.1), archiviare
-(3.8: cambia la lista degli errori noti), campagna (3.5). Le copie cieche restano quelle del
-seme 2.
+Claude scrive `fonte_ispezione` (P7, P8: solo se il manuale del motore è nella conoscenza) e la
+regola della scheda (P6), poi ti dice di passare al passo 4.
+
+---
+
+**⬜ Passo 4 · Aggiornare e preparare le prove**
+
+Prima **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Poi dipende dal passo 2:
+
+| Caso | Cosa fare, in ordine |
+|---|---|
+| **C'è una nuova ingestion** | tutta la sezione [5](#5-dopo-una-nuova-ingestion): fotografia (A), lista dei manuali (B), archiviare (3.8), cicli veri (3.2), copie cieche (3.3) con `$seme = 3` |
+| **Niente di nuovo nella conoscenza** | solo archiviare (3.8: è cambiata la lista degli errori noti). Le copie cieche restano quelle del seme 2 |
+
+- **Mandami:** la foto di ogni blocco, come dice ognuno.
+
+---
+
+**⬜ Passo 5 · Campagna**
+
+Il piano e poi la campagna (sezione [3.5](#35-la-campagna-tutte-le-prove-in-automatico)), quando
+Claude ti dice che `eval/campagna.yaml` è pronto.
+
+- **Mandami:** la riga finale e le foto di `runs\campagna.md` e dei due `riepilogo.md`.
+
+### ⬜ Anche da fare, quando hai tempo
+
+| | Cosa | Dove |
+|---|---|---|
+| ⬜ | **Unit test per il collega:** dimmi se la guida la vuoi in Markdown o in Word, e Claude la scrive | a parole |
+| ⬜ | **Messaggio al collega del frontend**, se non l'hai già mandato | sezione [6.2](#62-messaggio-per-il-collega-del-frontend) |
+| ⬜ | **Gruppo nascosto**: una decina di stampe con errori messi a mano. Consigliato: con il seme 2 il modello ha solo 5 copie cieche da trovare, troppo poche per decidere | sezione [3.4](#34-il-gruppo-nascosto-facoltativo) |
 
 ### ⬜ Le tappe dopo (Claude le dettaglia quando ci arriviamo)
 
-- **La miglioria entra nella base:** Claude la accende in `config/settings.yaml`. Tu:
-  Aggiornare (2.1), archiviare le prove (3.8), copie cieche con **seme nuovo** (3.3,
-  `$seme = 2`), campagna (3.5).
-- **Tappa 4 · Tempo e costo:** Claude scrive B1, H10, B4 (`MIGLIORIE.md` 7.4). Tu: Aggiornare,
-  campagna, report.
+- **Una miglioria entra nella base:** Claude la accende in `config/settings.yaml`. Tu:
+  Aggiornare (2.1), archiviare (3.8), copie cieche con un **seme nuovo** (3.3), campagna (3.5).
+- **Tappa 4 · Tempo e costo:** Claude scrive B1, H10, B4, B8 (`MIGLIORIE.md` 7.4). Tu:
+  Aggiornare, campagna, report.
 - **Tappa 5 · Chiusura:** campagna finale con copie cieche nuove, prove dal frontend
   (sezione 4), Salvare (2.2).
 - **Tappa 6 · QA** (sezione 7): pull request verso `develop`, prova con un MOS e un DR, poi i
   cicli militari. Quando il ramo arriva su `main` anche la produzione passa alla v2.
-
-### ⬜ Quando hai tempo
-
-- ✅ **Domande** P1-P9 (sezione [6.1](#61-domande)): chiuse il 26-11 con la regola prudente.
-  Se una persona che conosce i cicli dice altro, scrivilo a Claude.
-- ⬜ **Messaggio al collega del frontend** (sezione [6.2](#62-messaggio-per-il-collega-del-frontend)),
-  se non l'hai già mandato.
-- ⬜ **Gruppo nascosto** (sezione [3.4](#34-il-gruppo-nascosto-facoltativo)): una decina di
-  stampe con errori messi a mano. È la misura migliore.
-- ⬜ **File che mancano** nella conoscenza: capitolo 70-23 dell'SPM, manuale d'ispezione del
-  motore, due REPAIR della sezione 72-56-31. Se li trovi: ingestion, poi sezione
-  [5](#5-dopo-una-nuova-ingestion).
 
 ---
 
@@ -238,7 +257,7 @@ fuori (git li ignora). Due blocchi: commit, poi push.
 git add src tests docs examples eval/errori-noti.yaml eval/campagna.yaml eval/casi/sintetici eval/varianti eval/modelli config prompts pyproject.toml uv.lock README.md .gitignore Dockerfile ../buildspec.yml
 if (Test-Path vendor) { git add vendor }
 git status --short
-git commit -m "v2: fonti per riparazione, subtask, task SPM, controllo delle due lingue, prove con metriche, cicli veri, errori ciechi e gruppo nascosto"
+git commit -m "v2: aggiornamento dal repository personale"
 ```
 
 - **Deve uscire:** righe `M`/`A`/`D` solo sotto le cartelle del `git add`, **niente** sotto
@@ -341,14 +360,14 @@ uv run cycle-validation eval scegli (Resolve-Path "..\..").Path --knowledge $v -
 ### 3.3 Fare le copie cieche
 
 **Cosa fa:** dai cicli scelti fa copie con un errore ciascuna (al massimo 6 per ciclo, 5 per
-ognuno dei due tipi del codice; le copie uguali si saltano). **Quando:** fatto il 24-11 (seme 1);
-di nuovo solo quando una miglioria entra nella base, con un **seme nuovo** (`$seme = 2`, poi
-`3`...). **Costa:** niente.
+ognuno dei due tipi del codice; le copie uguali si saltano). **Quando:** solo quando un passo lo
+dice (nuova ingestion o miglioria nella base), ogni volta con un **seme nuovo**. Usati: 1 il 24-11,
+2 il 26-11; il prossimo è `3`. **Costa:** niente.
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$seme = 1
+$seme = 3
 $foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
 $kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
 Remove-Item runs/mutazioni -Recurse -ErrorAction SilentlyContinue
@@ -574,19 +593,10 @@ uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --er
 
 ### 6.1 Domande
 
-Tutte chiuse il 26-11. Le ha decise Copilot guardando i dati, senza un referente: dove i dati
-non bastano vale la **regola prudente** (WARNING, mai ERRATO). Se una persona che conosce cicli
-e manuali dice altro, scrivilo a Claude a parole, senza codici veri.
-
-| Id | Domanda | Risposta (26-11) | Cosa cambia nella v2 |
-|---|---|---|---|
-| **P1** | I task «70-» stanno sempre nell'SPM? | sì, nei documenti civili | niente: fa già così |
-| **P2** | Op. 060 del ciclo DR (condition 3): l'ERRATO era giusto? | no: era un giudizio instabile (note del 21-11: CORRETTO, CORRETTO, `GIUDIZIO_INSTABILE`) | niente: la conferma degli ERRATO (G1) lo evita già |
-| **P4** | Targa «90»: funzione sbagliata e lettere accentate rovinate | il problema c'è: le lettere accentate sono diventate «�» | niente nella v2 (WARNING); da correggere nell'indice (`MEMORIA.md`) |
-| **P6** | Quando un'operazione deve avere per forza una scheda? | per i processi speciali: lubrificante secco, rivestimenti, attacco chimico, liquidi penetranti. Non per presa in carico, mascheratura, raccordatura, lucidatura, controlli visivi, preservazione, collaudo | **da scrivere**: senza scheda in un processo speciale, WARNING «scheda forse mancante», mai ERRATO (MIGLIORIE 7.3) |
-| **P7** | «4 volte» nel ciclo, «3 volte» nell'SPM (04ecaabe e f355dc3c, op. 050) | vale il manuale del motore: il «4 volte» è giusto, l'ERRATO della v2 sulla stampa giusta è un **falso errore** | **da scrivere** `fonte_ispezione`: per le ispezioni anche la sezione d'ispezione del manuale del motore in testata; se dice altro dall'SPM, vale il manuale del motore |
-| **P8** | Operazioni senza task: con cosa si confrontano? | con i task della prima riga di note del ciclo; per controlli e ispezioni anche la sezione d'ispezione del manuale del motore. Se non c'è niente: WARNING | **da scrivere**, insieme a `fonte_ispezione` |
-| **P9** | 5ff17062: oltre alla 030 sono cambiate altre operazioni? | sì, verificato con `confronta`: è la stampa giusta 04ecaabe con 010, 030, 040 e 050 cambiate | fatto: `eval/errori-noti.yaml` aggiornato (vale dal prossimo giro) |
+Nessuna domanda aperta: P1-P9 chiuse il 26-11 (decise da Copilot sui dati, con la **regola
+prudente**: dove i dati non bastano, WARNING e mai ERRATO). Le risposte e cosa cambiano sono in
+`MEMORIA.md` (note del 26-11) e `MIGLIORIE.md` (7.3). Se una persona che conosce cicli e manuali
+dice altro, scrivilo a Claude a parole, senza codici veri.
 
 ### 6.2 Messaggio per il collega del frontend
 

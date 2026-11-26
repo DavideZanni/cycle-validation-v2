@@ -57,7 +57,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
 | 5 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | **pronto nel codice** (22-11 notte): `cycle-validation qa` sul PC scrive il Dockerfile della v2 da quello della v1 (base, certificati), copia la libreria in `vendor/`, mette i valori aziendali nelle righe `ENV`, copia le impostazioni in `config/settings.azienda.yaml` e sposta il buildspec sulla v2. Primo passaggio con EJ200 spento. Dockerfile e buildspec scritti sul PC e controllati (22-11). Manca la pull request verso develop: COPILOT 4 | U |
 | 6 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 6.2 | U |
 | 7 | Prova in QA: EJ200 e targhe | i dati EJ200 non escono da AWS; Redshift si raggiunge solo da AWS | dopo il punto 5, dal frontend QA | U |
-| 8 | Domande agli esperti | P1, P2, P6 (P4 per chi cura l'indice); P7 (Redshift dal PC, facoltativa) tolta da COPILOT il 23-11 | quando capita | U |
+| 8 | Domande agli esperti | P1-P9 chiuse il 26-11 (Copilot sui dati, regola prudente) | fatto | U |
 
 **Decisioni da prendere:**
 
