@@ -141,3 +141,20 @@ def test_two_prints_of_the_same_cycle_do_not_give_the_same_copy_twice() -> None:
     found = blind_mutations(twins, kb, count=10, seed=1, kinds=["negazione_due_lingue"])
     texts = [m.cycle.model_dump_json() for m in found]
     assert len(found) == 1 and len(set(texts)) == len(texts)
+
+
+def test_model_kinds_go_only_on_operations_the_v2_can_compare() -> None:
+    """25-11: 22 dei 26 mai visti mancati della base erano WARNING FONTE_ASSENTE (il task
+    citato non è nella conoscenza): nessuno poteva trovarli. I tipi del modello vanno solo su
+    operazioni confrontabili; quelli del codice dappertutto."""
+    from cycle_validation.evaluation.blind import MODEL_KINDS, comparable
+
+    kb = load_local_knowledge(KNOWLEDGE)
+    known = _cycle(BILINGUAL)
+    unknown = _cycle(BILINGUAL, tasks=["72-99-99-999-999"])
+    assert comparable(known, known.operations[0], kb)
+    assert not comparable(unknown, unknown.operations[0], kb)
+    assert blind_mutations([("c1", unknown)], kb, count=10, seed=1, kinds=MODEL_KINDS) == []
+    assert blind_mutations([("c1", known)], kb, count=10, seed=1, kinds=MODEL_KINDS)
+    code = blind_mutations([("c1", unknown)], kb, count=10, seed=1, kinds=["numero_una_lingua"])
+    assert len(code) == 1  # i tipi del codice non guardano il manuale

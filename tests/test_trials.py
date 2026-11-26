@@ -388,3 +388,35 @@ def test_a_trial_where_the_model_did_not_answer_does_not_count(tmp_path: Path) -
     write_trial(dead, tmp_path / "prove" / "1-base")
     write_trial(_answers(tmp_path, failed=0, total=20), tmp_path / "prove" / "2-base")
     assert len(load_trials(tmp_path / "prove")) == 1
+
+
+def test_an_old_trial_with_answers_is_kept_even_with_many_technical_warnings(
+    tmp_path: Path,
+) -> None:
+    """25-11: la regola per le prove di prima contava tutti i WARNING per errore tecnico; sul PC
+    le targhe ne danno circa 8 per ciclo, e le prove buone del 24-11 sono state tolte. Ora una
+    prova vecchia non vale solo se il modello non ha letto né scritto niente."""
+    import json
+
+    good = _answers(tmp_path, failed=0, total=20)
+    data = json.loads(good.model_dump_json())
+    for cycle in data["cycles"]:
+        cycle.pop("model_checks")
+        cycle["warnings"] = {"ERRORE_TECNICO": 50}
+        cycle["tokens"] = 1000
+    from cycle_validation.evaluation.trials import Trial
+
+    assert not Trial.model_validate(data).unusable
+    for cycle in data["cycles"]:
+        cycle["tokens"] = 0
+    assert Trial.model_validate(data).unusable
+
+
+def test_the_summary_lists_the_errato_to_check_operation_by_operation(tmp_path: Path) -> None:
+    """25-11: sul grande una variante dava 4 ERRATO da verificare contro 2 della base, e non si
+    sapeva quali. Ora il riepilogo li elenca per ciclo e operazione, senza testo."""
+    trials = [_trial(tmp_path, "base", 1, ["010"]), _trial(tmp_path, "base", 2, [])]
+    text = render_summary(trials)
+    assert "## ERRATO da verificare" in text
+    assert "| aaaa1111 | errori | 010 | 1 su 2 |" in text
+    assert "## ERRATO da verificare\n" in text and "Nessuno." in render_summary(trials[1:])

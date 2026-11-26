@@ -14,6 +14,10 @@ cambia **una** operazione con un errore di cui il codice è sicuro:
 - `task_inesistente`: l'ultimo gruppo di un codice di task cambiato in uno che nessun
   documento ha, mentre i suoi fratelli ci sono.
 
+I tipi del modello si mettono solo su operazioni che la v2 può confrontare con il manuale
+(`comparable`, dal 26-11): su un'operazione il cui task non è nella conoscenza la v2 risponde
+WARNING FONTE_ASSENTE senza guardare, e la copia non misurava niente.
+
 La copia ha solo l'operazione cambiata (le altre si provano già con i cicli veri): costa come
 una operazione. Le mutazioni dipendono da un **seme**: con un seme nuovo escono errori nuovi,
 che nessuno ha visto. Chi scrive le migliorie vede solo quante ne trova per tipo, mai quali.
@@ -33,6 +37,7 @@ from cycle_validation.kb.port import KnowledgeBase
 from cycle_validation.resolve.civil import (
     context_locations,
     manuals_for_operation,
+    resolve_operation,
     wrong_code_siblings,
 )
 from cycle_validation.text import normalize_code
@@ -265,6 +270,20 @@ def _inverted_limit(operation: Operation) -> Operation | None:
     return _with(operation, operation_description=_description(italian, english))
 
 
+def comparable(cycle: Cycle, operation: Operation, kb: KnowledgeBase) -> bool:
+    """La v2 può confrontare l'operazione (da sola, come nella copia) con il manuale: i task
+    citati sono nella conoscenza e c'è un testo di riferimento. I tipi del modello si mettono
+    solo qui: il 25-11, 22 dei 26 mai visti mancati della base uscivano WARNING FONTE_ASSENTE
+    (il task citato non è nella conoscenza), quindi nessuno poteva trovarli."""
+    alone = _alone(cycle, operation)
+    try:
+        if operation.task_codes and not resolve_operation(alone, operation, kb).found:
+            return False
+        return bool(context_locations(alone, operation, kb))
+    except CycleValidationError:
+        return False
+
+
 def _missing_task(cycle: Cycle, operation: Operation, kb: KnowledgeBase) -> Operation | None:
     manuals = manuals_for_operation(cycle, operation)
     for task in operation.task_codes:
@@ -327,6 +346,7 @@ def blind_mutations(
     # due stampe dello stesso ciclo (stesso contenuto, PDF diversi) danno la stessa copia: la
     # seconda avrebbe la stessa impronta e sparirebbe (24-11: 41 copie scritte, 39 diverse)
     copies: set[str] = set()
+    checked: dict[tuple[str, str], bool] = {}
     for round_ in range(len(pairs)):
         progress = False
         for kind in kinds:
@@ -338,6 +358,12 @@ def blind_mutations(
                 key = (name, operation.operation_number)
                 if key in taken or (*key, kind) in failed or used.get(name, 0) >= per_cycle:
                     continue
+                if kind not in CODE_KINDS:
+                    if key not in checked:
+                        checked[key] = comparable(cycle, operation, kb)
+                    if not checked[key]:
+                        failed.add((*key, kind))
+                        continue
                 changed = mutate(cycle, operation, kind, kb, rng)
                 if changed is None or changed == operation:
                     failed.add((*key, kind))

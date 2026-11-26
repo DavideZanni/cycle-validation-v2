@@ -107,40 +107,98 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 |---|---|---|---|
 | ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, copie cieche | 24-11 |
 | ✅ | **2. Prima campagna** | tutte le impostazioni, Haiku e Sonnet | 24-11 sera |
-| 👉 | **3. Migliorie** | campagna con le migliorie sul metodo, poi Claude sceglie la migliore | **25-11** |
+| 👉 | **3. Migliorie** | 25-11: prima campagna, `elementi_e_lingue` nella base. 26-11: copie cieche nuove e `seconda_ricerca` | **26-11** |
 | ⬜ | **4. Tempo e costo** | spendere meno e fare prima, con gli stessi errori trovati | dopo la 3 |
 | ⬜ | **5. Chiusura** | prova finale con copie cieche nuove, prove dal frontend, salvare | dopo la 4 |
 | ⬜ | **6. QA** | pubblicare nell'ambiente di prova | alla fine |
 
 Risultati delle tappe e decisioni: `MIGLIORIE.md`, sezioni 7 e 13.
 
-### 👉 Tappa 3, passo per passo (25-11)
+### 👉 Tappa 3, secondo giro (dal 26-11)
 
-La campagna di oggi: **solo Haiku**, 3 prove per variante. Prima il **piccolo** (12 prove),
-poi il **grande** (9 prove, più le varianti nuove che sul piccolo si tengono). Tetto 15 $.
-Le prove già fatte restano salvate: rilanciando, la campagna fa solo quello che manca.
+**Cosa ha detto la campagna del 25-11** (dettagli in `MIGLIORIE.md`, sezione 13):
+`elementi_e_lingue` è la scelta migliore e **da oggi è nella base** (19 errori stabili contro
+17, 0 falsi errori). `tutto_insieme` ha trovato di più (22) ma costa 2,2 volte: si riprova
+sulla base nuova come `seconda_ricerca`. Claude ha anche corretto le copie cieche (22 su 29
+erano su operazioni che la v2 non può confrontare) e una regola che il 25-11 ha cancellato per
+sbaglio le prove del 24-11.
 
-| | Passo | Quando |
+Per questo: le prove di adesso si **archiviano** e si fanno **copie cieche nuove** con il seme
+2. Poi la campagna: base nuova e `seconda_ricerca`, 3 prove ciascuna, piccolo e grande.
+
+| | Passo | Costo · tempo |
 |---|---|---|
-| ✅ | 0 · Accesso AWS · 1 · Aggiornare · 2 · Piano | mattina (alle 9:30 l'accesso era scaduto: prove rifatte con il codice corretto) |
-| 👉 | **3 · Finire il piccolo e fermarsi** | adesso, prima di pranzo |
-| ⬜ | **4 · Accesso e piano** | al ritorno |
-| ⬜ | **5 · Il grande** | subito dopo il 4 (1-2 ore e mezza) |
-| ⬜ | **6 · Il report** | alla fine |
+| 👉 | **1 · Aggiornare** | gratis · 2 minuti |
+| ⬜ | **2 · Controllare le impostazioni del PC** | gratis · 1 minuto |
+| ⬜ | **3 · Archiviare le prove** | gratis · 1 minuto |
+| ⬜ | **4 · Copie cieche nuove (seme 2)** | gratis · 5 minuti |
+| ⬜ | **5 · Accesso e piano** | gratis · 2 minuti |
+| ⬜ | **6 · La campagna** | circa 3 $ (tetto 10 $) · circa 2 ore |
+| ⬜ | **7 · Il report** | gratis · 5 minuti |
 
 ---
 
-**👉 Passo 3 · Finire il piccolo e fermarsi** · la campagna sta già girando
+**👉 Passo 1 · Aggiornare**
 
-- **Aspetta** che il piccolo finisca: l'ultima prova è `tutto_insieme · prova 3 di 3`.
-- **Appena compare** la riga `=== haiku · grande · base · prova 1 di 3 ...` premi **Ctrl+C**.
-  La prova appena partita non viene salvata e non conta: si perdono pochi secondi.
-- **Mandami:** la foto delle ultime righe (la riga `Prova «tutto_insieme»: ...` della prova 3).
-- Poi puoi staccare il PC.
+- **Copia** il blocco della sezione [2.1](#21-aggiornare-il-codice-sul-pc).
+- **Deve uscire:** `... passed`, **nessun** `failed`.
+- **Mandami:** la foto dell'ultima riga.
 
 ---
 
-**⬜ Passo 4 · Accesso e piano** · gratis · 3 minuti · al ritorno
+**⬜ Passo 2 · Controllare le impostazioni del PC**
+
+La base nuova si accende da sola, a meno che `data/settings.yaml` (il file del PC) la spenga.
+Questo blocco lo controlla.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+$righe = Select-String -Path data/settings.yaml -Pattern "separate_languages|itemized_check|search_when_unverifiable"
+if ($righe) { $righe | ForEach-Object { $_.Line.Trim() } } else { "OK: data/settings.yaml non le nomina, vale la base nuova" }
+```
+
+- **Deve uscire:** `OK: data/settings.yaml non le nomina, vale la base nuova`.
+- **Se esce una riga con `false`:** fermati e mandami la foto.
+
+---
+
+**⬜ Passo 3 · Archiviare le prove**
+
+Sposta le prove del 25-11 in `runs\archivio-...` (restano da leggere): con la base e le copie
+nuove non si confrontano più.
+
+```powershell
+$d = Get-Date -Format "yyyyMMdd-HHmm"; "piccolo", "grande" | ForEach-Object { if (Test-Path "runs/prove-$_") { Move-Item "runs/prove-$_" "runs/archivio-$d-$_" } }
+New-Item -ItemType Directory -Force runs/prove-grande | Out-Null; Copy-Item "runs/archivio-$d-grande/cicli.txt" runs/prove-grande/cicli.txt; Get-ChildItem runs -Directory | Select-Object Name
+```
+
+- **Deve uscire:** l'elenco delle cartelle di `runs`, con `archivio-<data>-piccolo` e
+  `archivio-<data>-grande`, e di nuovo `prove-grande` (con dentro solo la lista dei cicli
+  scelti).
+- **Mandami:** la foto.
+
+---
+
+**⬜ Passo 4 · Copie cieche nuove (seme 2)**
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+$seme = 2
+$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
+$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+Remove-Item runs/mutazioni -Recurse -ErrorAction SilentlyContinue
+uv run cycle-validation eval muta --lista runs/prove-grande/cicli.txt --knowledge $v --quanti 100 --seme $seme --out runs/mutazioni
+```
+
+- **Deve uscire:** `Copie con un errore cieco: N su 100 chieste, seme 2.` e quante copie per
+  tipo. I tipi del modello possono essere meno di prima: ora vanno solo su operazioni che la v2
+  può confrontare con il manuale.
+- **Non aprire** `runs\mutazioni\errori.yaml`. **Mandami:** la foto (solo i conteggi).
+
+---
+
+**⬜ Passo 5 · Accesso e piano**
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -149,20 +207,14 @@ aws sso login
 uv run cycle-validation eval campagna --piano
 ```
 
-- **Deve uscire:**
-  - si apre il browser per l'accesso;
-  - `haiku · piccolo`: **tutte** le varianti `già fatte`;
-  - `haiku · grande`: `base`, `elementi_uno_per_uno`, `lingue_separate` **3 da fare**, più le
-    varianti nuove che sul piccolo si tengono.
-- **Se sul piccolo una riga dice `1 da fare`:** va bene, la campagna la rifà prima del grande
-  (10-15 minuti in più).
-- **Mandami:** la foto del piano.
+- **Deve uscire:** `Piccolo: N cicli e copie; grande: 23 cicli.`, solo `haiku`, e:
+  - piccolo: `base` e `seconda_ricerca`: **3 da fare**;
+  - grande: `base`: **3 da fare**.
+- **Mandami:** la foto.
 
 ---
 
-**⬜ Passo 5 · Il grande** · fino a 15 $ in tutto · da 1 ora a 2 ore e mezza
-
-Lo stesso blocco della campagna, senza aggiunte: il piccolo lo salta da solo.
+**⬜ Passo 6 · La campagna** · circa 3 $ (tetto 10 $) · circa 2 ore
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -172,33 +224,22 @@ code runs/campagna.md
 ```
 
 - **Prima:** PC acceso, attaccato alla corrente, senza sospensione.
-- **Deve uscire subito:** `=== haiku · grande · base · prova 1 di 3 ...` (nessuna riga
-  `piccolo`).
-- **Dopo la prima prova:** nella riga `Prova «base»: ... · costo ... $` il costo **non** deve
-  essere `0.00 $` (se lo è: sezione 0.4, prima riga).
-- **Alla fine:** `Campagna finita. Prove fatte ora: N · spesa ... $.`; si apre `runs\campagna.md`.
-- **Mandami:** la foto della prima prova e quella della riga finale.
+- **Dopo la prima prova:** il costo **non** deve essere `0.00 $` (se lo è: sezione 0.4).
+- **Alla fine:** `Campagna finita. Prove fatte ora: N · spesa ... $.`
+- **Mandami:** la foto della prima prova e della riga finale.
 
 ---
 
-**⬜ Passo 6 · Il report** · gratis · 5 minuti
+**⬜ Passo 7 · Il report**
 
-Nel report aperto premi **Ctrl+Shift+V** (vista impaginata). **Mandami** una foto per ognuna:
+Ctrl+Shift+V in ogni file, poi una foto per sezione:
 
-1. la tabella **«haiku · piccolo»**;
-2. la tabella **«haiku · grande»**;
-3. **«Errori mai visti per tipo»**;
-4. **«WARNING per motivo»**.
-
-Poi:
-
-```powershell
-code runs/prove-piccolo/riepilogo.md
-```
-
-e **mandami** le foto di **«Le prove»** e **«Errore per errore»**.
-
-Dopo, Claude scrive le considerazioni in `MIGLIORIE.md` e dice quale miglioria entra nella base.
+1. `runs\campagna.md`: **«haiku · piccolo»**, **«haiku · grande»**, **«Errori mai visti per
+   tipo»**, **«WARNING per motivo»**;
+2. `code runs/prove-piccolo/riepilogo.md`: **«Le prove»** ed **«Errore per errore»**;
+3. `code runs/prove-grande/riepilogo.md`: **«Classifica delle varianti»** e la tabella nuova
+   **«ERRATO da verificare»** (ciclo e operazione degli ERRATO sui cicli veri: servono per farli
+   guardare a una persona).
 
 ### ⬜ Le tappe dopo (Claude le dettaglia quando ci arriviamo)
 
@@ -528,9 +569,11 @@ più con le nuove). Sposta `runs\prove-piccolo` e `runs\prove-grande` in `runs\a
 
 ```powershell
 $d = Get-Date -Format "yyyyMMdd-HHmm"; "piccolo", "grande" | ForEach-Object { if (Test-Path "runs/prove-$_") { Move-Item "runs/prove-$_" "runs/archivio-$d-$_" } }
+New-Item -ItemType Directory -Force runs/prove-grande | Out-Null; Copy-Item "runs/archivio-$d-grande/cicli.txt" runs/prove-grande/cicli.txt; Get-ChildItem runs -Directory | Select-Object Name
 ```
 
-Le cartelle `runs\prove-piccolo-sonnet` e `runs\prove-grande-sonnet` si spostano a mano nella
+La seconda riga rimette al suo posto la lista dei cicli scelti (serve alle copie cieche e al
+grande). Le cartelle `runs\prove-piccolo-sonnet` e `runs\prove-grande-sonnet` si spostano a mano nella
 stessa cartella di archivio.
 
 **Azzerare** (cancella **per sempre** tutte le cartelle `runs\prove-*` e i report della

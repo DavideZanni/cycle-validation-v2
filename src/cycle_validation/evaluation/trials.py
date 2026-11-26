@@ -271,12 +271,8 @@ class Trial(_Strict):
 
     @property
     def model_failures(self) -> int:
-        """Controlli del modello finiti in errore tecnico: il modello non ha risposto (nelle
-        prove di prima del 25-11: tutti i WARNING per errore tecnico)."""
-        return sum(
-            c.model_failures if c.model_checks is not None else c.warnings.get("ERRORE_TECNICO", 0)
-            for c in self.cycles
-        )
+        """Controlli del modello finiti in errore tecnico: il modello non ha risposto."""
+        return sum(c.model_failures for c in self.cycles)
 
     @property
     def unusable(self) -> bool:
@@ -286,13 +282,13 @@ class Trial(_Strict):
         `MAX_TECHNICAL_SHARE` dei controlli del modello è finita in errore tecnico (almeno
         `MIN_TECHNICAL`). Gli errori tecnici del codice (un servizio, una fonte) non contano."""
         if any(c.model_checks is None for c in self.cycles):
-            # prova scritta prima del 25-11: tutti i WARNING per errore tecnico su tutti i
-            # controlli (in una prova normale sono pochi)
-            failures = sum(c.warnings.get("ERRORE_TECNICO", 0) for c in self.cycles)
-            checks = sum(
-                c.counts.get("corretto", 0) + c.counts.get("warning", 0) + c.counts.get("errato", 0)
-                for c in self.cycles
-            )
+            # prova scritta prima del 25-11, senza il conto dei controlli del modello: non vale
+            # solo se il modello non ha letto né scritto niente (zero token). Contare tutti i
+            # WARNING per errore tecnico era sbagliato: sul PC le targhe (Redshift non
+            # raggiungibile) ne danno circa 8 per ciclo, e il 25-11 le prove buone del 24-11
+            # sono state tolte per questo
+            technical = sum(c.warnings.get("ERRORE_TECNICO", 0) for c in self.cycles)
+            return self.tokens == 0 and technical >= MIN_TECHNICAL
         else:
             failures = self.model_failures
             checks = sum(c.model_checks or 0 for c in self.cycles)
@@ -983,6 +979,45 @@ def _baseline(trials: Sequence[Trial], index: int) -> Trial | None:
     return trials[0] if index > 0 else None
 
 
+def _render_to_check(trials: Sequence[Trial]) -> list[str]:
+    """Gli ERRATO fuori dalla lista (cicli veri e cicli con errori), operazione per operazione:
+    in quante prove di ogni variante. Solo impronta, operazione e motivo, senza testo: la
+    tabella si fotografa e una persona guarda quelle operazioni sul ciclo (25-11: sul grande
+    `elementi_e_lingue` ne dava 4 contro 2 della base, e non si sapeva quali)."""
+    names = list(dict.fromkeys(t.name for t in trials))
+    totals = {name: sum(t.name == name for t in trials) for name in names}
+    found: dict[tuple[str, str, str], dict[str, int]] = {}
+    for trial in trials:
+        for cycle in trial.cycles:
+            if cycle.kind == "giusto":
+                continue  # sono i falsi errori, nella sezione sopra
+            for finding in cycle.extra:
+                key = (cycle.fingerprint, cycle.kind, finding.op)
+                counts = found.setdefault(key, {})
+                counts[trial.name] = counts.get(trial.name, 0) + 1
+    lines = [
+        "",
+        "## ERRATO da verificare",
+        "",
+        "ERRATO fuori dalla lista degli errori noti, nei cicli veri e nei cicli con errori: "
+        "possono essere errori veri che nessuno conosceva o falsi errori. Si guardano sul ciclo "
+        "(per variante: in quante delle sue prove).",
+        "",
+    ]
+    if not found:
+        return [*lines, "Nessuno."]
+    lines += [
+        "| Ciclo | Tipo | Op | " + " | ".join(_cell(n) for n in names) + " |",
+        "|---|---|---|" + "---|" * len(names),
+    ]
+    for (fingerprint, kind, op), counts in sorted(found.items()):
+        cells = " | ".join(
+            f"{counts.get(n, 0)} su {totals[n]}" if counts.get(n) else "-" for n in names
+        )
+        lines.append(f"| {fingerprint} | {kind} | {op} | {cells} |")
+    return lines
+
+
 def render_summary(trials: Sequence[Trial]) -> str:
     """Il riepilogo di tutte le prove: tabella delle prove ed errore per errore."""
     if not trials:
@@ -1138,6 +1173,7 @@ def render_summary(trials: Sequence[Trial]) -> str:
         ]
     else:
         lines.append("Nessuno.")
+    lines += _render_to_check(trials)
     pending = sorted(
         {(c.fingerprint, f.op, f.known or "") for t in trials for c in t.cycles for f in c.pending}
         | {

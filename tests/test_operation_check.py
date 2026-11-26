@@ -429,12 +429,13 @@ def test_numbers_that_differ_between_the_two_languages_are_errato_without_a_sess
     assert "38 → 58" in immediate[0].rationale
 
 
-def test_the_two_languages_are_judged_separately_only_when_asked() -> None:
-    """Variante `lingue_separate` (24-11): una lingua giusta non deve coprire l'altra."""
+def test_the_two_languages_are_judged_separately_and_it_can_be_switched_off() -> None:
+    """`lingue_separate` (24-11), nella base dal 26-11: una lingua giusta non deve coprire
+    l'altra."""
     bilingual = op("NON USARE SPAZZOLE / DO NOT USE BRUSHES")
-    plain = job_for(bilingual).request.prompt
-    assert "Parte in italiano" not in plain  # la base non cambia
-    separate = job_for(bilingual, AgentSettings(retry_backoff_s=0, separate_languages=True))
+    off = AgentSettings(retry_backoff_s=0, separate_languages=False)
+    assert "Parte in italiano" not in job_for(bilingual, off).request.prompt
+    separate = job_for(bilingual, AgentSettings(retry_backoff_s=0))  # acceso di default
     prompt = separate.request.prompt
     assert "Parte in italiano: NON USARE SPAZZOLE" in prompt
     assert "Parte in inglese: DO NOT USE BRUSHES" in prompt
@@ -444,11 +445,11 @@ def test_the_two_languages_are_judged_separately_only_when_asked() -> None:
     assert "Parte in italiano" not in single.request.prompt
 
 
-def test_the_elements_are_checked_one_by_one_only_when_asked() -> None:
-    """Variante `elementi_uno_per_uno` (24-11)."""
-    plain = job_for().request.prompt
-    assert "scomponi la descrizione" not in plain  # la base non cambia
-    itemized = job_for(op(), AgentSettings(retry_backoff_s=0, itemized_check=True)).request.prompt
+def test_the_elements_are_checked_one_by_one_and_it_can_be_switched_off() -> None:
+    """`elementi_uno_per_uno` (24-11), nella base dal 26-11."""
+    off = AgentSettings(retry_backoff_s=0, itemized_check=False)
+    assert "scomponi la descrizione" not in job_for(op(), off).request.prompt
+    itemized = job_for(op(), AgentSettings(retry_backoff_s=0)).request.prompt  # di default
     assert "scomponi la descrizione nei suoi elementi tecnici" in itemized
 
 

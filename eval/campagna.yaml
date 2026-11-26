@@ -3,20 +3,16 @@
 # già fatte si saltano. Il report finale è runs/campagna.md. Questo file lo aggiorna Claude.
 
 # Le varianti (eval/varianti/<nome>.yaml), in ordine. La base si fa sempre per prima.
-# Dal 25-11 (tappa 3) solo le migliorie sul metodo. Le impostazioni provate il 24-11
-# (effort_medio, effort_pieno, conferme_1, testo_lungo, prompt_task_mancante, concorrenza_12)
-# non cambiano gli errori trovati: sono tolte; le loro prove restano nelle cartelle.
+# Dal 26-11 (tappa 3, secondo giro) la base ha `elementi_e_lingue` (elementi uno per uno e
+# lingue separate): `elementi_uno_per_uno`, `lingue_separate`, `elementi_e_lingue` sono uguali
+# alla base e `tutto_insieme` è uguale a `seconda_ricerca`, quindi si prova solo questa.
+# 25-11: `tutto_insieme` 22 errori stabili e mai visti 5 su 29 contro 19 e 3 di
+# `elementi_e_lingue`, scartata solo per il costo (2,2 volte la base vecchia; sulla base nuova
+# è 1,9 volte).
 varianti:
-  - elementi_uno_per_uno
-  - lingue_separate
-  # nuove del 25-11
-  - elementi_e_lingue
   - seconda_ricerca
-  - tutto_insieme
 
-# Prove per variante. Dal 25-11 tre: le differenze tra le migliorie sono di uno o due errori,
-# con tre prove un errore «stabile» è più sicuro. Alla base e alle due varianti del 24-11 manca
-# solo la terza.
+# Prove per variante: tre (le differenze sono di uno o due errori).
 ripetizioni: 3
 
 # Nome → id del modello. Vuoto = quello di data/settings.yaml (Haiku). Il primo usa le
@@ -32,7 +28,7 @@ insiemi: [piccolo, grande]
 # Sul grande: se_si_tiene (base + varianti che si tengono sul piccolo), sempre, mai.
 grande: se_si_tiene
 
-# Tetto di spesa della campagna, in dollari. Stima del 25-11: Haiku circa 0,20 $ a prova sul
-# piccolo, circa 0,10 $ sul grande; in tutto 3-5 $. Arrivata al tetto la campagna si ferma;
-# rilanciata, riparte da dove era.
-massimo_dollari: 15
+# Tetto di spesa della campagna, in dollari. Stima del 26-11: base circa 0,20 $ a prova sul
+# piccolo e 0,25 $ sul grande, seconda ricerca circa il doppio; in tutto circa 3 $. Arrivata
+# al tetto la campagna si ferma; rilanciata, riparte da dove era.
+massimo_dollari: 10

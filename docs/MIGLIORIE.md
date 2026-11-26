@@ -9,16 +9,17 @@ in `DOCUMENTAZIONE.md`.
 
 ---
 
-## In breve (25-11-2026)
+## In breve (26-11-2026)
 
 | Domanda | Risposta |
 |---|---|
-| **Cosa trova oggi la base** (Haiku, piccolo) | 19 errori stabili su 49: visti 8 su 10, mai visti per il modello 2 su 29, controlli del codice 9 su 10. 0 falsi errori. 0,0034 $ e 8 secondi a ciclo |
-| **Cosa ha funzionato** | le migliorie sul **metodo**: `elementi_uno_per_uno` (21 stabili, mai visti 4 su 29) e `lingue_separate` (20, 4 su 29) |
-| **Cosa non serve** | le **impostazioni** (effort, conferme, testo lungo, concorrenza, task mancante) e **Sonnet** (non trova di più, costa 12 volte tanto) |
-| **Il limite di oggi** | i mai visti per il modello: 2-4 su 29. E due visti mai trovati (`298bc28e` 035, `f355dc3c` 010), sempre con «evidenza non trovata» |
-| **Cosa si prova il 25-11** | `seconda_ricerca`, `elementi_e_lingue`, `tutto_insieme`, e la terza prova di base ed elementi e lingue (sezione 7.3) |
-| **Prossima decisione** | quale miglioria entra nella base, dal report della campagna del 25-11 (sezione 8) |
+| **La base di oggi** | dal 26-11 con **elementi uno per uno e lingue separate** (I5, I6). Sul piccolo (25-11, 3 prove): 19 errori stabili su 49 contro 17 della base vecchia, mai visti per il modello 3 su 29 contro 1; 0 falsi errori; 0,0039 $ e 7 secondi a ciclo |
+| **La migliore trovata** | `tutto_insieme` (anche la seconda ricerca): **22** stabili e mai visti **5** su 29, uguali in tutte e 3 le prove. Scartata solo perché costa 2,2 volte la base vecchia (0,0074 $ a ciclo): sulla base nuova è la variante `seconda_ricerca`, da provare (1,9 volte) |
+| **Cosa non serve** | le **impostazioni** (effort, conferme, testo lungo, concorrenza, task mancante) e **Sonnet** (24-11) |
+| **Cosa si è scoperto il 25-11** | 22 dei 29 errori mai visti per il modello erano su operazioni il cui task **non è nella conoscenza** (WARNING `FONTE_ASSENTE`): nessuno poteva trovarli. Dal 26-11 le copie cieche dei tipi del modello vanno solo su operazioni confrontabili. Sulle 7 confrontabili `tutto_insieme` ne trovava 5 |
+| **Il limite di oggi** | due visti mai trovati (`298bc28e` 035, `f355dc3c` 010: WARNING «evidenza non trovata» anche con la seconda ricerca); sul grande gli ERRATO da verificare salgono con elementi e lingue (4 contro 2): vanno guardati da una persona |
+| **Pronta per la produzione?** | non ancora: 0 falsi errori, costo e tempo bassi, ma pochi errori nuovi trovati e un possibile falso errore sistematico (P7, sezione 7.5). Sul PC circa 8 WARNING per ciclo vengono dalle targhe (Redshift non raggiungibile): in produzione non ci sono |
+| **Prossimo passo** | copie cieche nuove (seme 2, solo operazioni confrontabili) e campagna: base nuova contro `seconda_ricerca` (sezione 8) |
 
 ---
 
@@ -141,6 +142,13 @@ tutti negazioni in una lingua, e una copia in più o in meno spostava il risulta
 I due tipi del codice sono elencati in `CODE_KINDS` (`evaluation/blind.py`). **La
 generalizzazione la misurano i tipi del modello e il gruppo nascosto.**
 
+**Dal 26-11 i tipi del modello vanno solo su operazioni confrontabili** (`blind.comparable`: i
+task citati sono nella conoscenza e c'è un testo di riferimento). Il 25-11, nella tabella
+«Errori mai visti per tipo» della base, 22 dei 26 mancati dei tipi del modello erano WARNING
+`FONTE_ASSENTE`: la v2 non guarda nemmeno un'operazione il cui task non c'è, quindi quelle
+copie non misuravano niente (limite invertito 7 su 8, negazione in due lingue 9 su 9). I mai
+visti «su 29» del 24-11 e del 25-11 vanno letti così: le copie confrontabili erano circa 7.
+
 I report danno solo **quanti** errori mai visti ci sono per tipo, mai quali sono.
 
 ---
@@ -221,7 +229,9 @@ batte).
 
 Prima di tutto questo, **una prova non vale** (non entra nel riepilogo e non conta come fatta)
 se il modello non ha risposto: almeno 5 controlli del modello in errore tecnico e più del 20%
-dei suoi controlli (25-11). La campagna la toglie e la rifà.
+dei suoi controlli (25-11). La campagna la toglie e la rifà. Per le prove scritte prima del
+25-11 vale solo «zero token» (26-11: la prima versione contava tutti i WARNING per errore
+tecnico, comprese le targhe, e ha tolto per sbaglio le prove buone di Haiku del 24-11).
 
 I numeri della regola sono nel codice, in `evaluation/trials.py`: `MIN_REPETITIONS` (2; la
 campagna dal 25-11 ne fa 3), `MAX_CYCLE_MS` (10 minuti), `MAX_COST_RATIO` (2), `MIN_COST_SAVING`
@@ -291,11 +301,11 @@ la variante `sonnet` resta per le prove a mano.
 
 | `$nome` | Cosa fa | Cosa può migliorare | Costo del lavoro |
 |---|---|---|---|
-| `lingue_separate` (24-11; **Haiku: 20 stabili, mai visti 4 su 29, si tiene**) | nella domanda al modello la parte italiana e quella inglese separate, con l'istruzione di confrontare **ognuna** con il manuale: se una sola dice altro, `contraddetto` (`agent.separate_languages`) | gli errori in una lingua sola che oggi una lingua giusta «copre»: le negazioni tolte (la base ne trova 1-2 su 18), ma anche parole o frasi cambiate. È una richiesta generale: le copie cieche con la negazione restano una misura onesta | piccolo |
-| `elementi_uno_per_uno` (24-11; **Haiku: 21 stabili, mai visti 4 su 29, la migliore**) | prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione, valori, limiti, divieti, materiali) e li confronta con il manuale uno per uno (`agent.itemized_check`) | il prompt di oggi dice che «conta il contenuto tecnico» e il modello giudica a colpo d'occhio: limiti invertiti, divieti tolti in tutte e due le lingue, parole cambiate (il visto `298bc28e` op. 035, mancato sempre) | piccolo |
-| `seconda_ricerca` (25-11, in prova) | se il primo giudizio è «non verificabile», una seconda sessione cerca con Grep e Read in **tutti i documenti citati dal ciclo** (più quelli del task e, per DR, quelli del profilo), non solo nel task dell'operazione. Un CORRETTO o ERRATO con citazione verificata prende il posto del WARNING; un ERRATO si conferma (G1) sugli stessi documenti; il costo delle due sessioni si somma (`agent.search_when_unverifiable`) | i due visti mai trovati (`298bc28e` 035, `f355dc3c` 010) escono in tutte le 36 prove con `EVIDENZA_NON_TROVATA`: il passo giusto non è nel testo del task, che spesso arriva nel messaggio **senza tool** (sotto 150 righe). Meno WARNING per ciclo | piccolo |
-| `elementi_e_lingue` (25-11, in prova) | `elementi_uno_per_uno` e `lingue_separate` insieme | se le due trovano errori diversi, insieme ne trovano di più | nessuno |
-| `tutto_insieme` (25-11, in prova; **prima prova: mai visti 5 su 29, costo 0,37 $ a prova, ×2,2 la base**) | le tre insieme: elementi, lingue, seconda ricerca | come si guarda la descrizione e dove si cerca nel manuale sono due cose diverse: possono sommarsi | nessuno |
+| `lingue_separate` (24-11; **nella base dal 26-11**) | nella domanda al modello la parte italiana e quella inglese separate, con l'istruzione di confrontare **ognuna** con il manuale: se una sola dice altro, `contraddetto` (`agent.separate_languages`) | gli errori in una lingua sola che oggi una lingua giusta «copre»: le negazioni tolte (la base ne trova 1-2 su 18), ma anche parole o frasi cambiate. È una richiesta generale: le copie cieche con la negazione restano una misura onesta | piccolo |
+| `elementi_uno_per_uno` (24-11; **nella base dal 26-11**) | prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione, valori, limiti, divieti, materiali) e li confronta con il manuale uno per uno (`agent.itemized_check`) | il prompt di oggi dice che «conta il contenuto tecnico» e il modello giudica a colpo d'occhio: limiti invertiti, divieti tolti in tutte e due le lingue, parole cambiate (il visto `298bc28e` op. 035, mancato sempre) | piccolo |
+| `seconda_ricerca` (25-11; **da provare sulla base nuova**: da sola 18 stabili, con elementi e lingue 22) | se il primo giudizio è «non verificabile», una seconda sessione cerca con Grep e Read in **tutti i documenti citati dal ciclo** (più quelli del task e, per DR, quelli del profilo), non solo nel task dell'operazione. Un CORRETTO o ERRATO con citazione verificata prende il posto del WARNING; un ERRATO si conferma (G1) sugli stessi documenti; il costo delle due sessioni si somma (`agent.search_when_unverifiable`) | i due visti mai trovati (`298bc28e` 035, `f355dc3c` 010) escono in tutte le 36 prove con `EVIDENZA_NON_TROVATA`: il passo giusto non è nel testo del task, che spesso arriva nel messaggio **senza tool** (sotto 150 righe). Meno WARNING per ciclo | piccolo |
+| `elementi_e_lingue` (25-11; **scelta migliore, nella base dal 26-11**) | `elementi_uno_per_uno` e `lingue_separate` insieme | se le due trovano errori diversi, insieme ne trovano di più | nessuno |
+| `tutto_insieme` (25-11; **22 stabili, mai visti 5 su 29; scartata per il costo, ×2,2 la base vecchia**; dal 26-11 è uguale a `seconda_ricerca`) | le tre insieme: elementi, lingue, seconda ricerca | come si guarda la descrizione e dove si cerca nel manuale sono due cose diverse: possono sommarsi | nessuno |
 | `fonte_ispezione` (I8, **da scrivere**, dalle risposte P7 e P8 del 25-11) | per le operazioni di controllo e ispezione, tra le fonti anche la **sezione d'ispezione del manuale del motore citato in testata**; per le operazioni che non citano un task, i task della **prima riga di note** del ciclo | P7: la stampa giusta 04ecaabe op. 050 dice «4 volte» come il manuale del motore, la v2 confronta con il task SPM («3 volte») e dà ERRATO (14 prove su 18 con Haiku): è un **falso errore**, che succederebbe anche sui cicli veri. P8: operazioni senza task che oggi escono WARNING | medio. Prima: conferma di P7 e P8 da una persona |
 | `numeri_manuale` (I4, è H12; **rimandata**) | confronta i numeri e le classi della descrizione con quelli del passo del manuale. Alla sessione passa le differenze da guardare; se tutto coincide, CORRETTO senza modello | numeri cambiati in tutte e due le lingue; 7 errori noti su 10 sono numeri, classi o codici; meno sessioni | medio |
 
@@ -368,14 +378,17 @@ Questi errori noti mancano per motivi che non dipendono dalla v2:
 1. ✅ la base, sul piccolo e sul grande (24-11);
 2. ✅ le varianti senza codice e Sonnet (24-11): non cambiano gli errori trovati;
 3. ✅ `lingue_separate`, `elementi_uno_per_uno` (24-11): si tengono;
-4. 👉 **25-11:** `elementi_e_lingue`, `seconda_ricerca`, `tutto_insieme`, e la terza prova
-   di base, `lingue_separate`, `elementi_uno_per_uno` (piccolo fatto a mezzogiorno; il grande
-   nel pomeriggio);
-5. la migliore entra nella base (Claude la accende in `config/settings.yaml`); prove
-   archiviate; copie cieche con seme nuovo (2); campagna;
-6. le migliorie scelte sui tipi «modello» trovati peggio (dalla tabella per tipo);
-7. `numeri_manuale`, solo dopo aver tolto dal confronto le copie che troverebbe per costruzione;
-8. tempo e costo (7.4).
+4. ✅ **25-11:** `elementi_e_lingue`, `seconda_ricerca`, `tutto_insieme` e le altre, 3 prove,
+   piccolo e grande;
+5. ✅ **26-11:** `elementi_e_lingue` nella base (valori predefiniti nel codice, così vale anche
+   per `data/settings.yaml` sul PC); copie cieche solo su operazioni confrontabili;
+6. 👉 prove archiviate; copie cieche con seme nuovo (2); campagna base nuova contro
+   `seconda_ricerca`; una persona guarda gli «ERRATO da verificare» del grande (tabella nuova del
+   riepilogo) e la P9 (`confronta`);
+7. `fonte_ispezione` (I8), quando una persona conferma P7 e P8;
+8. le migliorie scelte sui tipi «modello» trovati peggio (dalla tabella per tipo);
+9. `numeri_manuale`, solo dopo aver tolto dal confronto le copie che troverebbe per costruzione;
+10. tempo e costo (7.4).
 
 **Il resto**, dopo i punti per la consegna (`MEMORIA.md`, sezione 1):
 
@@ -424,7 +437,9 @@ Ogni miglioria ha un codice (Id) che si usa nei documenti e nel codice.
 | G10 | (22-11-2026) il titolo «OPERAZIONE EVENTUALE» diventa un blocco a sé, attaccato all'operazione dopo. `confronta --primo-senza-riordino`. `macchine` prende `SECRET_NAME` dal secret «di ambiente» della v1 e il database dalla connessione della v1 (o da `--database`). Nelle descrizioni rimesse in ordine si tolgono gli asterischi di cornice e le righe fatte solo di segni. Il riordino recupera nelle stampe DR testo che prima si perdeva |
 | I5 | (24-11-2026) `lingue_separate`: italiano e inglese confrontati con il manuale uno alla volta (`agent.separate_languages`). Spenta nella base; con Haiku si tiene (20 stabili contro 19) |
 | I6 | (24-11-2026) `elementi_uno_per_uno`: la descrizione scomposta in elementi tecnici controllati uno a uno (`agent.itemized_check`). Spenta nella base; con Haiku la migliore (21 stabili, mai visti 4 su 29) |
-| I7 | (25-11-2026) `seconda_ricerca`: dopo un «non verificabile», una seconda sessione con Grep e Read in tutti i documenti del ciclo (`agent.search_when_unverifiable`). Spenta nella base; in prova il 25-11 |
+| I5 + I6 | (26-11-2026) **nella base**: `separate_languages` e `itemized_check` accesi di default (campagna del 25-11, variante `elementi_e_lingue`) |
+| I7 | (25-11-2026) `seconda_ricerca`: dopo un «non verificabile», una seconda sessione con Grep e Read in tutti i documenti del ciclo (`agent.search_when_unverifiable`). Spenta nella base; da provare sulla base nuova |
+| — | (26-11-2026) copie cieche dei tipi del modello solo su operazioni confrontabili (`blind.comparable`); nel riepilogo la tabella «ERRATO da verificare» (ciclo, operazione, in quante prove per variante, senza testo); regola delle prove vecchie non valide corretta (solo zero token) |
 | — | (25-11-2026) prova in cui il modello non ha risposto (accesso AWS scaduto): non conta, la campagna si ferma con «il modello non ha risposto» e al lancio dopo la toglie e la rifà (`Trial.unusable`). Il primo guasto si stampa senza ARN né numeri di account |
 | — | (24-11 e 25-11-2026) misura: punteggio diviso (visti, mai visti per il modello, controlli del codice, falsi errori), errori noti `in_attesa`, sei tipi di copie cieche senza copie doppie, WARNING per motivo, «Ultimo esito»; campagna (`eval campagna`) con report unico, in più terminali; regola «si tiene» severa (più errori stabili o risparmio vero) |
 | G11 | (22-11-2026 sera) accesso come la v1: `API_AUTH=sdk` con `chatbot_ai_sdk` (token dal cookie, permessi da `permissions.json`, utente da `current_user`), scelto da solo quando c'è il secret della v1. `CV_ENV_SECRET` per leggere all'avvio il secret «di ambiente» della v1. `macchine` segue il database fino alla funzione delle credenziali della v1 |
@@ -620,16 +635,45 @@ da trovare 49: visti 10, mai visti per il modello 29, controlli del codice 10. R
   come fatta. Corretto nel codice (sezione 9): una prova così non conta e si rifà. **Lezione:**
   prima di ogni campagna `aws sso login`, e dopo la prima prova si guarda che il costo non sia
   0.
-- **Piccolo, rifatto dalle 10.** Le prove sono arrivate tutte (12). Primi numeri visti nel
-  terminale: `tutto_insieme` prova 1 visti 8 su 10, **mai visti per il modello 5 su 29** (il
-  massimo finora), codice 9 su 10, 0 falsi errori, 1 da verificare, **0,37 $** a prova; prova 2:
-  `f355dc3c` 030 e 050 trovati, 010 ancora mancato. Spesa del piccolo circa 4 $.
-- **Grande:** nel pomeriggio.
-- **Da scrivere quando arriva il report:** le righe del registro per ogni variante, la scelta
-  della miglioria da mettere nella base, e cosa dice la tabella «Errori mai visti per tipo» per
-  il passo dopo.
+- **Le prove del 24-11 di Haiku sono state cancellate per sbaglio.** Al rilancio delle 10 la
+  regola nuova «la prova non vale» le ha prese per prove senza risposte: per le prove vecchie
+  contava tutti i WARNING per errore tecnico, e sul PC le targhe ne danno circa 8 per ciclo.
+  Le prove di Sonnet non sono state toccate. I loro numeri restano nel registro qui sopra; i
+  confronti del 25-11 sono tutti tra prove dello stesso giorno, quindi valgono. Regola corretta
+  il 26-11 (sezione 6).
+- **Piccolo** (49 cicli e copie, 3 prove per variante, dalle 10:19 alle 12:22; 4,13 $ in tutto
+  con il grande). Errore per errore: i visti trovati sempre sono gli stessi 7 in tutte le 18
+  prove; `298bc28e` 035 e `f355dc3c` 010 mai (WARNING `EVIDENZA_NON_TROVATA`, **anche con la
+  seconda ricerca**: l'ipotesi della variante non si è avverata su questi due); `f355dc3c` 050
+  (frase al contrario) 12 su 18, instabile, ma 3 su 3 con `tutto_insieme`.
+- **Errori mai visti per tipo** (ultima base): limite invertito 0 su 8 (FONTE_ASSENTE 7),
+  negazione in due lingue 0 su 9 (FONTE_ASSENTE 9), negazione in una lingua 0 su 9
+  (FONTE_ASSENTE 6, EVIDENZA_NON_TROVATA 2), numero del manuale 1 su 3; codice: numero in una
+  lingua 4 su 5, task inesistente 5 su 5. **22 dei 26 mancati del modello erano su operazioni
+  senza task nella conoscenza**: corretto il 26-11 (sezione 3).
+- **WARNING per ciclo senza errori noti** (ultima base): 7,7 `ERRORE_TECNICO` (sul PC: le targhe,
+  Redshift non raggiungibile), 6,7 `EVIDENZA_NON_TROVATA`, 0,3 `FONTE_ASSENTE`. In produzione i
+  primi non ci sono: restano circa 7 WARNING per ciclo, quasi tutti «evidenza non trovata».
+- **Grande** (23 cicli: i 10 noti e 13 veri; 3 prove per variante, dalle 15:17 alle 16:49): tutte
+  le varianti trovano gli stessi 8 visti su 10 (stessi mancati del piccolo); `lingue_separate`
+  perde `f355dc3c` 050 in 2 prove su 3. Gli ERRATO da verificare (sui cicli veri) salgono con
+  i metodi nuovi: base 2, `seconda_ricerca` 2, `elementi_uno_per_uno` 3, `lingue_separate` 3,
+  `elementi_e_lingue` 4. Possono essere errori veri o falsi errori: dal 26-11 il riepilogo li
+  elenca (ciclo e operazione) per farli guardare a una persona.
+- **Decisione:** `elementi_e_lingue` nella base (la scelta migliore della regola: +2 stabili,
+  +2 mai visti, 0 falsi errori, +15% di costo). Prossimo giro: `seconda_ricerca` sopra la base
+  nuova (cioè `tutto_insieme`), con copie cieche nuove solo su operazioni confrontabili.
 
 | Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
 |---|---|---|---|---|---|---|---|
 | 2026-11-25 mattina | campagna, Haiku, piccolo, accesso AWS scaduto | `base` (prova 3) | visti 7 su 10, mai visti 0 su 29: il modello non ha risposto | 0,00 $ | — | **non valida** (tolta) | da qui la regola «la prova non vale» (sezione 6) |
-| 2026-11-25 | campagna, Haiku, piccolo, prova 1 di 3 | `tutto_insieme` | visti 8 su 10; mai visti 5 su 29; codice 9 su 10; 0 falsi errori | 0,37 $ a prova (×2,2 la base) | — | da decidere (report) | trova di più, ma il costo supera il limite del doppio: se resta così è scartata; vedere quanto costa `seconda_ricerca` da sola |
+| 2026-11-25 | campagna, Haiku, piccolo (49 cicli e copie), 3 prove | `base` | stabili 17 su 49 (19, 19, 17); mai visti 1 su 29 (2, 2, 1); 0 falsi errori; precisione 94% | 0,0034 $ a ciclo, 0,16-0,17 $ a prova | 7 s a ciclo (massimo 37 s) | riferimento | la terza prova perde 2 errori: con 3 prove la base è più bassa che con 2 (19 il 24-11) |
+| 2026-11-25 | come sopra | `elementi_e_lingue` | stabili **19** (21, 20, 20); mai visti 3 (4, 3, 4); 0 falsi; 14 WARNING per ciclo | 0,0039 $ (+15%) | 7 s (46 s) | **si tiene, scelta migliore → nella base dal 26-11** | le due migliorie del 24-11 insieme non si sommano molto: come `lingue_separate` da sola, un po' più stabile. Sul grande: 8 su 10 come la base ma 4 da verificare contro 2 |
+| 2026-11-25 | come sopra | `lingue_separate` | stabili 19 (19, 20, 20); mai visti 3 | 0,0037 $ | 7 s (35 s) | si tiene | sul grande perde `f355dc3c` 050 in 2 prove su 3 (7 stabili contro 8): non si tiene lì |
+| 2026-11-25 | come sopra | `elementi_uno_per_uno` | stabili 18 (21, 20, 19); mai visti 2 | 0,0039 $ | 8 s (55 s) | si tiene | il 24-11 era la migliore (21 su 2 prove): con la terza prova scende |
+| 2026-11-25 | come sopra | `seconda_ricerca` | stabili 18 (19, 18, 19); mai visti 1 | 0,0065 $ (×1,9) | 12 s (1 min 19 s) | si tiene (di poco) | da sola non trova i due visti che doveva trovare; sul grande costa ×2,3 (scartata lì) |
+| 2026-11-25 | come sopra | `tutto_insieme` | stabili **22** (22, 22, 22); mai visti **5** (5, 5, 5); 0 falsi; 13,6 WARNING | 0,0074 $ (×2,2) | 13 s (1 min 18 s) | scartata: costo oltre 2 volte la base | la migliore in errori e la più stabile: la seconda ricerca aiuta solo insieme a elementi e lingue. Sulla base nuova costa 1,9 volte: si riprova come `seconda_ricerca` |
+| 2026-11-25 | campagna, Haiku, grande (23 cicli), 3 prove | `base` | 8 su 10 in tutte le prove; 1-2 da verificare; precisione 80%; 19,9 WARNING per ciclo | 0,0086 $ a ciclo, 0,18-0,22 $ a prova | 13 s (39 s) | riferimento | sui cicli veri una prova dura meno di 5 minuti per 23 cicli |
+| 2026-11-25 | come sopra | `elementi_e_lingue` | 8 su 10; 3-4 da verificare; precisione 67% | 0,0111 $ (+29%) | 17 s (1 min) | pari alla base | gli ERRATO in più sui cicli veri sono da far guardare a una persona |
+| 2026-11-25 | come sopra | `elementi_uno_per_uno`, `lingue_separate` | 8 e 7 su 10; 2-3 da verificare | 0,0101-0,0103 $ | 14 s | pari alla base; non si tiene | come sopra |
+| 2026-11-25 | come sopra | `seconda_ricerca` | 8 su 10; 2 da verificare; 19,0 WARNING | 0,0198 $ (×2,3) | 32 s (1 min 05 s) | scartata: costo | sui cicli veri la seconda ricerca parte spesso (molte operazioni «non verificabili»): costa molto più che sul piccolo |

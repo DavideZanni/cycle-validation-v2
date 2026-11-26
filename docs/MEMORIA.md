@@ -1057,6 +1057,18 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   5ff17062 sarebbe una copia di 04ecaabe con 010, 030, 040, 050 cambiate (come f355dc3c):
   da verificare con `confronta`. La lista degli errori noti **non** si cambia durante la
   campagna: si cambia quando la base cambia (prove archiviate, seme nuovo).
+- **26-11, report della campagna del 25-11** (piccolo e grande, 33 prove, 4,13 $). Scelta:
+  `elementi_e_lingue` nella base (valori predefiniti nel codice: `data/settings.yaml` sul PC
+  non li nomina, quindi la base nuova vale anche lì; il passo 2 di COPILOT lo controlla).
+  `tutto_insieme` 22 stabili e 5 mai visti ma ×2,2 il costo: si riprova come `seconda_ricerca`
+  sopra la base nuova. Scoperto: 22 dei 26 mai visti mancati erano su operazioni senza task
+  nella conoscenza (FONTE_ASSENTE) → copie cieche del modello solo su operazioni confrontabili;
+  ERRORE_TECNICO 7,7 per ciclo sul PC = targhe. **Errore di Claude:** la regola «prova non
+  valida» per le prove vecchie contava tutti i WARNING tecnici e al rilancio del 25-11 ha
+  cancellato le prove buone di Haiku del 24-11 (Sonnet intatto; i numeri restano nel registro
+  di MIGLIORIE). Corretta: per le prove vecchie solo zero token. Nuovo nel riepilogo: «ERRATO da
+  verificare» per ciclo e operazione. Prossimo giro: archiviare, seme 2, campagna base nuova
+  contro `seconda_ricerca`. Il blocco Archiviare ora rimette la lista dei cicli scelti.
 - **`.gitignore` di `docs/` (24-11-2026):** in git entra solo `DOCUMENTAZIONE.md`; gli altri
   quattro file erano già seguiti e restano (servono al blocco Aggiornare e alla memoria).
 

@@ -676,8 +676,8 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.citation_window` | 3 | tolleranza in righe per le citazioni |
 | `agent.skip_missing_task` | `true` | task citato che manca: WARNING subito, senza modello |
 | `agent.missing_task_note` | `false` | (con lo skip spento) dire al modello che il task manca |
-| `agent.separate_languages` | `false` | descrizione in due lingue: nella domanda al modello la parte italiana e quella inglese separate, con l'istruzione di confrontarle **ognuna** con il testo di riferimento (se una sola dice altro, `contraddetto`). Variante `lingue_separate` |
-| `agent.itemized_check` | `false` | prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione, valori, limiti, divieti, materiali) e li confronta uno per uno; se uno solo è incompatibile, `contraddetto`. Variante `elementi_uno_per_uno` |
+| `agent.separate_languages` | `true` (dal 26-11) | descrizione in due lingue: nella domanda al modello la parte italiana e quella inglese separate, con l'istruzione di confrontarle **ognuna** con il testo di riferimento (se una sola dice altro, `contraddetto`). Variante `lingue_separate` |
+| `agent.itemized_check` | `true` (dal 26-11) | prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione, valori, limiti, divieti, materiali) e li confronta uno per uno; se uno solo è incompatibile, `contraddetto`. Variante `elementi_uno_per_uno`. Le due sono nella base dal 26-11 (campagna del 25-11, variante `elementi_e_lingue`): il valore predefinito nel codice vale anche per `data/settings.yaml` sul PC, che non le nomina |
 | `agent.search_when_unverifiable` | `false` | dopo un `non_verificabile`, una seconda sessione cerca in tutti i documenti citati dal ciclo, con i tool. Variante `seconda_ricerca` |
 | `agent.confirm_contradiction` | 2 | sessioni di conferma per ogni ERRATO del modello |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
@@ -953,6 +953,11 @@ repository abbia tutti e tre i campi. `eval prova --variante` copia la proposta 
 - nel `riepilogo.md`, tabella «Le proposte e la decisione»: per ogni variante cosa cambia,
   ipotesi, atteso e la decisione della regola.
 
+Il `riepilogo.md` ha anche (dal 26-11) la tabella **«ERRATO da verificare»**: gli ERRATO fuori
+dalla lista nei cicli veri e nei cicli con errori, per ciclo e operazione, con in quante prove
+di ogni variante sono usciti. Solo impronta, operazione e numeri, senza testo: si fotografa, e
+una persona guarda quelle operazioni sul ciclo (errore vero o falso errore).
+
 Le **considerazioni** (cosa si è capito, cosa fare dopo) le scrive Claude nel registro di
 `MIGLIORIE.md`, colonna «Considerazioni», quando la variante è decisa. Così proposta, risultati
 e decisione stanno sul PC in `runs/` (che git ignora), e nel repository restano solo la
@@ -994,8 +999,11 @@ massimo_dollari: 15
   la campagna la cancella appena finita e si ferma con «il modello non ha risposto (N
   controlli …) · Primo errore: …» (il primo guasto, senza ARN né numeri di account); al lancio
   dopo cancella quelle rimaste e le rifà. Per le prove scritte prima del 25-11, che non hanno
-  il conto dei controlli del modello, vale il conto di tutti i WARNING `ERRORE_TECNICO` su
-  tutti i controlli. `eval prova` scrive `ATTENZIONE: prova non valida` in fondo.
+  il conto dei controlli del modello, non vale solo una prova a zero token con almeno 5 WARNING
+  `ERRORE_TECNICO` (dal 26-11: il 25-11 la regola contava tutti i WARNING per errore tecnico,
+  e sul PC le targhe ne danno circa 8 per ciclo perché Redshift non si raggiunge; così le prove
+  buone del 24-11 di Haiku sono state cancellate). `eval prova` scrive `ATTENZIONE: prova non
+  valida` in fondo.
 - Il report `runs/campagna.md`: per ogni modello e insieme la scelta migliore e la classifica
   (prove, stabili, mai visti per il modello stabili, falsi errori, da verificare, costo e
   tempo per ciclo, decisione); i modelli a confronto, variante per variante; gli errori mai
@@ -1049,6 +1057,14 @@ massimo_dollari: 15
 Le copie cieche (`eval muta`) sono tutte diverse: se due stampe dello stesso ciclo danno la
 stessa copia, la seconda si salta (24-11: 41 copie scritte ma 39 diverse, perché due avevano
 la stessa impronta).
+
+I tipi del modello (`numero_manuale`, le negazioni, `limite_invertito`) si mettono solo su
+operazioni che la v2 può confrontare con il manuale (`blind.comparable`, dal 26-11): i task
+citati sono nella conoscenza e c'è un testo di riferimento, guardando l'operazione da sola come
+nella copia. Il 25-11, 22 dei 26 mai visti mancati della base uscivano WARNING `FONTE_ASSENTE`:
+erano su operazioni il cui task non è nella conoscenza, e nessuno poteva trovarli. I tipi del
+codice si mettono dappertutto. Con lo stesso seme le copie cambiano rispetto a prima del 26-11:
+si rifanno con un seme nuovo.
 
 **Come si scelgono le migliorie (dal 23-11):** non dagli errori noti che mancano. Si fa la
 base, si guarda nel report la tabella «Errori mai visti, per tipo» (trovati per tipo e, sui

@@ -39,6 +39,13 @@ agent:
   # Task citato che il manuale non ha: WARNING FONTE_ASSENTE subito, senza chiamare il modello
   # (MIGLIORIE B6, deciso il 20-11-2026).
   skip_missing_task: true
+  # Metodo del controllo delle descrizioni (MIGLIORIE I5, I6, I7). Accese nella base il
+  # 26-11-2026 dopo la campagna del 25-11: italiano e inglese confrontati separatamente,
+  # descrizione scomposta in elementi tecnici. La seconda ricerca resta da provare sulla base
+  # nuova (variante `seconda_ricerca`).
+  separate_languages: true
+  itemized_check: true
+  search_when_unverifiable: false
   # Testo delle sessioni su disco (runs/): contiene cicli e manuali. Acceso negli esperimenti.
   save_transcripts: false
 

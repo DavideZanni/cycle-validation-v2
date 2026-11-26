@@ -1,7 +1,7 @@
 nome: seconda_ricerca
 descrizione: se il primo giudizio è «non verificabile», una seconda sessione cerca con Grep e Read in tutti i documenti citati dal ciclo, non solo nel task dell'operazione
-ipotesi: "i due errori visti sempre mancati (298bc28e 035, f355dc3c 010) escono in tutte le 36 prove del 24-11 con EVIDENZA_NON_TROVATA: il passo del manuale che li decide non è nel testo del task citato, che spesso il modello riceve già nel messaggio e senza tool"
-atteso: "uno o due visti in più, meno WARNING EVIDENZA_NON_TROVATA per ciclo, forse qualche mai visto in più; falsi errori sempre 0; costo e tempo più alti solo sulle operazioni non verificabili"
+ipotesi: "25-11, sopra la base vecchia: da sola 18 errori stabili (base 17), ma insieme a elementi e lingue (tutto_insieme) 22 contro 19 e mai visti 5 contro 3, uguale in tutte e 3 le prove. Dal 26-11 elementi e lingue sono nella base: questa variante è tutto_insieme"
+atteso: "più errori stabili e mai visti della base nuova (come tutto_insieme: 22 e 5); falsi errori sempre 0; costo sotto il doppio della base nuova (25-11: 0,0074 $ contro 0,0039 $ a ciclo sul piccolo); da verificare sul grande non più della base"
 base: baseline
 agent:
   search_when_unverifiable: true

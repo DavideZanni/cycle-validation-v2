@@ -59,11 +59,14 @@ class AgentSettings(_Strict):
     # Descrizione in due lingue: il modello confronta con il testo di riferimento l'italiano e
     # l'inglese separatamente; se una sola delle due dice altro, è una contraddizione. Variante
     # `lingue_separate` (24-11-2026): la base, spenta, mancava 18 negazioni tolte su 21.
-    separate_languages: bool = False
+    # Accesa nella base il 26-11-2026 insieme a `itemized_check` (variante `elementi_e_lingue`:
+    # 19 errori stabili contro 17 e mai visti 3 contro 1 sul piccolo, 3 prove, 0 falsi errori,
+    # +15% di costo). Il valore predefinito vale anche per `data/settings.yaml` sul PC.
+    separate_languages: bool = True
     # Prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione,
     # valori, limiti, divieti, materiali) e li controlla uno per uno. Variante
-    # `elementi_uno_per_uno` (24-11-2026).
-    itemized_check: bool = False
+    # `elementi_uno_per_uno` (24-11-2026); accesa nella base il 26-11-2026 (vedi sopra).
+    itemized_check: bool = True
     # Se il primo giudizio è «non verificabile» (WARNING EVIDENZA_NON_TROVATA), una seconda
     # sessione cerca con Grep e Read in tutti i documenti citati dal ciclo, non solo nel task
     # dell'operazione. Variante `seconda_ricerca` (25-11-2026): i due errori noti sempre
