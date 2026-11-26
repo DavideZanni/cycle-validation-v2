@@ -1127,7 +1127,7 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   (non ci sono da nessuna parte). M6 è EJ200. Il conteggio «da ingestionare» contava anche i
   manuali già dentro con task mancanti (e M6): ora li tiene separati. Copilot, in Agent con
   «Allow all», aveva copiato 7 doppioni nella cartella `landing_area` di RM su S3: li toglie
-  l'utente (COPILOT passo 3). La campagna si fa con la conoscenza di oggi e le copie del seme 2.
+  l'utente con il comando scritto da Copilot in Ask, prima con `--dryrun` (COPILOT passo 1). La campagna si fa con la conoscenza di oggi e le copie del seme 2.
   L'utente ha fotografato il file della lista: ha codici veri e percorsi, non si ripetono.
 
 ## 13. Da correggere nell'indice (knowledge-index)

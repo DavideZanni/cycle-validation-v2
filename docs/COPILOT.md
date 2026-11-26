@@ -26,7 +26,7 @@ configurare).
 | **2. Aggiornare e salvare** | 2.1 Aggiornare il codice · 2.2 Salvare nel repository aziendale |
 | **3. Le prove** | 3.1 Come funzionano · 3.2 Cicli veri · 3.3 Copie cieche · 3.4 Gruppo nascosto · 3.5 Campagna · 3.6 Leggere i risultati · 3.7 Prova a mano · 3.8 Mettere ordine |
 | **4. Prove dal frontend** | la v2 dalla pagina web |
-| **5. Dopo una nuova ingestion** | fotografia della conoscenza e lista dei manuali |
+| **5. Dopo una nuova ingestion** | fotografia della conoscenza, lista dei manuali, cosa rifare |
 | **6. Le persone** | domande aperte, messaggio per il collega del frontend |
 | **7. QA** | la pubblicazione nell'ambiente di prova |
 
@@ -117,88 +117,90 @@ Risultati delle tappe e decisioni: `MIGLIORIE.md`, sezioni 7 e 13.
 
 ### 👉 Adesso: tappa 3, quarto giro
 
-**Dove siamo (26-11 sera).** La campagna base contro `definizioni_generali` è finita (2,77 $):
-la variante **non si tiene** (14 errori stabili contro 15 sul piccolo, 8 contro 10 sul grande),
-0 falsi errori per tutte e due. Dalla campagna Claude ha capito due cose e ha cambiato il
-codice:
+**Dove siamo (26-11 sera).**
 
-- il controllo dei numeri tra italiano e inglese perdeva i **codici** (part number) e i numeri
-  vicini a una **conversione** scritta prima («248 °F (120 °C)»): corretto. È nella base, quindi
-  le prove vecchie si archiviano;
-- le negazioni, i limiti e i materiali cambiati in una lingua sola si possono trovare
-  confrontando le due lingue **tra loro**, senza manuale: nuova variante `lingue_tra_loro`.
-
-Poi Copilot ha detto che l'unico ERRATO da verificare (895167b9 005) è un falso errore: il
-manuale manda a sostituire il pezzo, ma la deroga della D.R. citata nella 005 autorizza la
-raccordatura, e la v2 non la dava al modello. Nuova variante `procedura_dr`.
+- `definizioni_generali` **non si tiene** (campagna delle 14:31, 2,77 $).
+- Il controllo dei numeri tra italiano e inglese è corretto (codici e conversioni): è nella
+  base, quindi le prove vecchie si archiviano.
+- Due varianti nuove da provare: `lingue_tra_loro` (le due lingue confrontate tra loro, senza
+  manuale) e `procedura_dr` (nei DR la deroga arriva al modello: toglie il falso errore di
+  895167b9 005).
+- **Ingestion:** sul PC e su S3 non c'è niente di nuovo da ingestionare (lista delle 16:46). I
+  task che mancano sono in file da procurare (passo 4). La campagna si fa con la conoscenza di
+  oggi e le stesse copie cieche (seme 2).
 
 Dettagli: `MIGLIORIE.md`, «In breve» e sezione 13.
 
-**La lista del 26-11 (16:46) e Copilot:** sul PC e su S3 non c'è niente di nuovo da
-ingestionare. M1, M2 e l'SPM sono già dentro (giro del 23-11). I task che mancano a M1 e
-all'SPM non si recuperano ingestionando di nuovo gli stessi file: sono citati solo in una frase
-(«Refer to TASK ...») o sono in file che non ci sono (i due REPAIR, il capitolo 70-23). M4 e M5
-non ci sono da nessuna parte. M6 è EJ200: non va nella conoscenza civile. Quindi la campagna si
-fa **adesso, con la conoscenza di oggi**; l'ingestion quando arrivano i file da procurare.
-
 | | Passo | Chi | Costo · tempo |
 |---|---|---|---|
-| ✅ | **Campagna base contro `definizioni_generali`** (26-11, 14:31-15:39) | tu | 2,77 $ |
-| ✅ | **1 · Domanda a Copilot su 895167b9 005** (16:20): falso errore, la deroga della D.R. non arrivava al modello → variante `procedura_dr` | tu | — |
-| ✅ | **2 · Lista di cosa ingestionare** (16:46): niente di nuovo sul PC né su S3 | tu | — |
-| 👉 | **3 · Togliere i 7 doppioni** che Copilot ha copiato nella cartella `landing_area` di RM | tu | 5 minuti |
-| ⬜ | **4 · Aggiornare e archiviare** | tu | gratis · 10 minuti |
-| ⬜ | **5 · Campagna**: base nuova contro `lingue_tra_loro` e `procedura_dr` | tu | circa 5 $ · 2-3 ore |
-| ⬜ | **6 · Procurare i file che mancano**, poi ingestion | tu | — |
-| ⬜ | **7 · `fonte_ispezione` e regola della scheda** (dopo l'ingestion) | Claude | — |
+| 👉 | **1 · Togliere i 7 doppioni** che Copilot ha copiato nella cartella `landing_area` di RM | tu, con Copilot in Ask | 10 minuti |
+| ⬜ | **2 · Aggiornare e archiviare** | tu | gratis · 10 minuti |
+| ⬜ | **3 · Campagna**: base nuova contro `lingue_tra_loro` e `procedura_dr` | tu | circa 5 $ · 2-3 ore |
+| ⬜ | **4 · Procurare i file che mancano**, poi ingestion | tu | — |
+| ⬜ | **5 · `fonte_ispezione` e regola della scheda** (dopo l'ingestion) | Claude | — |
 
 ---
 
-**👉 Passo 3 · Togliere i 7 doppioni**
+**👉 Passo 1 · Togliere i 7 doppioni**
 
 Copilot (in Agent, con «Allow all») ha copiato 7 file nella cartella `landing_area` di RM, su
 S3. Sono doppioni di file già ingestionati: se restano, il prossimo giro dell'ingestion li
-prende di nuovo. Non deve farlo Copilot: lo fai tu.
+prende di nuovo. Copilot non li cancella: li cancelli tu, con il comando che ti scrive lui.
 
-1. Metti Copilot su **Ask** e chiedigli: «Elenca i 7 file che hai copiato in `RM/landing_area/`
-   (solo il nome del file) e scrivi il comando per cancellarli. Non eseguire niente.»
-2. Controlla che siano davvero copie dei file in `RM/manuali/`, poi lancia tu il comando.
+1. In basso nella chat di Copilot scegli **Ask** (non Agent).
+2. Incolla questo messaggio:
 
-- **Dimmi a parole:** quanti file hai tolto. Non mandarmi la risposta di Copilot (ha il nome del
-  bucket).
+```text
+Sei in modalità Ask: non eseguire comandi e non cambiare niente, né sul PC né su S3.
+
+Prima hai copiato 7 file doppioni nella cartella RM/landing_area/ della conoscenza di prova
+su S3. Voglio cancellarli io a mano. Dimmi:
+
+1. l'elenco dei 7 file (solo il nome del file);
+2. per ognuno, se lo stesso file c'è già in RM/manuali/ (stesso nome e stessa dimensione);
+3. se un giro di ingestion li ha già presi (cerca nei report e nei manifest dell'ultimo giro);
+4. il comando PowerShell per cancellare solo quei 7 file: prima con --dryrun (non cancella,
+   mostra cosa cancellerebbe), poi lo stesso senza --dryrun. Un comando per file, con il
+   profilo e la regione che usi di solito. Niente --recursive, niente cartelle intere.
+```
+
+3. Controlla la risposta: i 7 file devono avere un doppione in `RM/manuali/` (punto 2). Se uno
+   non ce l'ha, **non cancellarlo** e dimmelo.
+4. Lancia nel terminale i comandi con `--dryrun`: devono uscire 7 righe `(dryrun) delete: ...`.
+   Poi gli stessi senza `--dryrun`.
+
+- **Dimmi a parole:** quanti file hai tolto e la risposta al punto 3 (sì o no). **Non mandarmi
+  foto** della risposta di Copilot né del terminale: hanno il nome del bucket.
+- Se al punto 3 dice **sì** (un giro li ha già presi): fermati e dimmelo prima di cancellare.
 
 ---
 
-**⬜ Passo 4 · Aggiornare e archiviare**
+**⬜ Passo 2 · Aggiornare e archiviare**
 
 1. **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Foto dell'ultima riga.
 2. **Archiviare** le prove (sezione [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove),
-   blocco «Archiviare»): la base è cambiata (controllo dei numeri tra le lingue). Foto.
+   blocco «Archiviare»). Foto.
 
-Copie cieche e cicli veri restano quelli di oggi (seme 2): non rifare 3.2 e 3.3. Così si vede
-subito se le copie «numero cambiato in una lingua» passano da 1 su 5 a 5 su 5.
+Copie cieche e cicli veri restano quelli di oggi: **non** rifare 3.2 e 3.3. Così si vede subito
+se le copie «numero cambiato in una lingua» passano da 1 su 5 a 5 su 5.
 
 ---
 
-**⬜ Passo 5 · Campagna: base nuova contro `lingue_tra_loro` e `procedura_dr`**
+**⬜ Passo 3 · Campagna: base nuova contro `lingue_tra_loro` e `procedura_dr`**
 
 Prima il piano, poi la campagna (sezione [3.5](#35-la-campagna-tutte-le-prove-in-automatico)).
-Il grande si fa per tutte (`grande: sempre`): sui cicli veri si vede se `lingue_tra_loro` dà
-ERRATO dove una lingua traduce liberamente, e se `procedura_dr` toglie i falsi errori dei DR.
 
 - **Il piano deve dire:** piccolo 29 e grande 23, `base`, `lingue_tra_loro` e `procedura_dr`,
   `3 da fare` per ognuna. Se una dice `già fatte`, l'archivio non è andato: fermati e mandami
   la foto.
-- **Costo e tempo:** circa 5 $ e 2-3 ore (18 prove; `lingue_tra_loro` fa una sessione corta in
-  più per ogni operazione). Tetto: 10 $.
-- **Mandami:** la riga finale, le foto di `runs\campagna.md` e dei due `riepilogo.md`, come
-  l'ultima volta.
+- **Costo e tempo:** circa 5 $ e 2-3 ore (18 prove). Tetto: 10 $.
+- **Mandami:** la riga finale, le foto di `runs\campagna.md` e dei due `riepilogo.md`.
 
 ---
 
-**⬜ Passo 6 · Procurare i file che mancano, poi ingestion**
+**⬜ Passo 4 · Procurare i file che mancano, poi ingestion**
 
-Dalla fonte dei manuali (non sono sul PC né su S3), in ordine di importanza:
+Non sono sul PC né su S3: vanno chiesti alla fonte dei manuali. In ordine di importanza:
 
 | | Cosa | Perché serve |
 |---|---|---|
@@ -207,16 +209,12 @@ Dalla fonte dei manuali (non sono sul PC né su S3), in ordine di importanza:
 | 3 | **I due REPAIR della sezione 72-56-31** (`-09-001` e `-09-003` nel nome) | i limiti delle raccordature (f355dc3c 010, 5ff17062 010) |
 | 4 | **M4 e M5** (3 cicli, senza errori noti) | meno `FONTE_ASSENTE` sul grande |
 
-Quando li hai: ingestion (solo conoscenza civile), poi tutta la sezione
-[5](#5-dopo-una-nuova-ingestion): fotografia (A), lista (B), archiviare (3.8), cicli veri (3.2),
-copie cieche (3.3) con `$seme = 3`, campagna.
-
-La lista (sezione 5, blocco B) si guarda **a schermo**: il file `runs\manuali-da-ingestionare.txt`
-ha i codici veri e i percorsi, serve a te per l'ingestion e **non si fotografa**.
+Quando li hai: ingestion (solo conoscenza civile, niente EJ200), poi tutta la sezione
+[5](#5-dopo-una-nuova-ingestion).
 
 ---
 
-**⬜ Passo 7 · `fonte_ispezione` e regola della scheda** (lo fa Claude)
+**⬜ Passo 5 · `fonte_ispezione` e regola della scheda** (lo fa Claude)
 
 Con la sezione d'ispezione nella conoscenza. Poi di nuovo Aggiornare, archiviare, campagna.
 
@@ -326,7 +324,7 @@ perché il modello non risponde sempre uguale. Di solito le lancia la **campagna
 
 | Specie | Cosa sono | Cosa dicono |
 |---|---|---|
-| **Visti** | gli errori noti di `eval/errori-noti.yaml` (16 dal 26-11 sera) | se la v2 trova gli errori che conosciamo |
+| **Visti** | gli errori noti di `eval/errori-noti.yaml` (20 dal 26-11 sera) | se la v2 trova gli errori che conosciamo |
 | **Mai visti: copie cieche** (3.3) | copie di cicli veri con **una** operazione cambiata dal programma | se la v2 trova anche errori nuovi (**generalizza**) |
 | **Mai visti: gruppo nascosto** (3.4) | stampe con errori messi a mano | come sopra, con errori pensati da una persona: la misura migliore |
 
@@ -347,8 +345,8 @@ I report dicono solo **quanti** errori mai visti ci sono per tipo, mai quali.
 
 | Insieme | Cicli | Quando |
 |---|---|---|
-| **piccolo** | i cicli noti (dal 26-11 sera 12: 8 con errori, 4 giusti), le copie cieche, il gruppo nascosto | ogni variante |
-| **grande** | i cicli noti e tutti i cicli veri civili confrontabili (3.2) | solo le varianti che si tengono sul piccolo: controlla che sui cicli veri non escano più ERRATO o WARNING |
+| **piccolo** | i cicli noti (dal 26-11 sera 14: 9 con errori, 5 giusti), le copie cieche, il gruppo nascosto | ogni variante |
+| **grande** | i cicli noti e tutti i cicli veri civili confrontabili (3.2) | le varianti che si tengono sul piccolo (tutte con `grande: sempre`, come oggi): controlla che sui cicli veri non escano più ERRATO o WARNING |
 
 Le prove si confrontano solo dentro lo stesso insieme e con le stesse copie cieche.
 
@@ -538,7 +536,7 @@ $env:UV_PYTHON = "3.14"; uv run cycle-validation eval riepilogo --cartella runs/
 
 **Archiviare** (quando cambiano copie cieche o conoscenza: le prove vecchie non si confrontano
 più con le nuove). Sposta `runs\prove-piccolo` e `runs\prove-grande` in `runs\archivio-<data>-...`
-(restano da leggere). Dopo: copie cieche (3.3) e campagna.
+(restano da leggere). Dopo: la campagna (le copie cieche 3.3 si rifanno solo se il passo lo dice).
 
 ```powershell
 $d = Get-Date -Format "yyyyMMdd-HHmm"; "piccolo", "grande" | ForEach-Object { if (Test-Path "runs/prove-$_") { Move-Item "runs/prove-$_" "runs/archivio-$d-$_" } }
@@ -612,9 +610,11 @@ $kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v 
 uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --errori 298bc28e=005,035 --errori c5ff3cd6=030,040 --errori f355dc3c=010,030,040,050 --errori 5ff17062=010,030,040,050 --errori 895167b9=010,030,050,060 --errori 22f586bb=010,030,050,060 --errori 38960731=050 --errori 8d3c673c=140 --errori e9b74c84=025
 ```
 
-- **Deve uscire:** una riga per manuale (`M1: ...`). Il 23-11 M1 aveva 3 task mancanti e M2
-  (SPM) 1: con i file nuovi devono scendere.
-- **Mandami:** la foto dello schermo (non del file).
+- **Deve uscire:** `Manuali citati: N; da ingestionare (mancano): M; già dentro ma con task che
+  mancano: K.` e una riga per manuale (`M1: ...`). Il 26-11: M1 con 3 task mancanti, l'SPM con
+  1, M4 e M5 mancano: con i file nuovi devono scendere.
+- **Mandami:** la foto dello **schermo**. Il file `runs\manuali-da-ingestionare.txt` ha i codici
+  veri e i percorsi: serve a te per l'ingestion, **non fotografarlo**.
 
 ---
 
