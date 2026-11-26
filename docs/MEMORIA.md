@@ -1153,6 +1153,9 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   esiti e conteggi (CORRETTO, ERRATO, WARNING per motivo), mai testi EJ200. Una conoscenza EJ200
   rotta ferma tutto il servizio all'avvio (B7): EJ200 si accende in QA solo dopo che il civile
   funziona; se il servizio non parte, si rilancia `qa` senza `--ej200`.
+  I documenti EJ200 sono arrivati all'utente per email (quindi sono già sul PC): li carica lui su
+  S3. Consiglio: fuori da `ProgettoDocumenti` e dalle cartelle git, copie locali cancellate dopo
+  il caricamento. Prove EJ200 sul PC solo con la conferma scritta di chi decide sulla sicurezza.
   Dopo l'ingestion: fotografia, `kb-check` e una prova della base sul grande (i manuali nuovi
   portano confronti nuovi, quindi possibili falsi errori nuovi). Prove dal frontend il 27-11,
   mai mentre gira una campagna (quota di Bedrock divisa). Tempo e costo dopo la produzione.
