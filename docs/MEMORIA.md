@@ -1144,7 +1144,8 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   con il seme 3). Il capitolo 70-23 dell'SPM, i due REPAIR e M4 **non si chiedono**: si va in
   produzione senza, l'azienda li aggiunge poi a mano. La conoscenza del servizio la sceglie
   l'utente: una grande ingestion di tutti i documenti civili (dentro anche le schede LEAP di
-  M5), con i documenti su S3 collegati per gli utenti, che li possono guardare direttamente.
+  M5). Su S3 entra solo l'utente, come oggi: nessun collegamento ai documenti per gli utenti
+  (deciso il 26-11 sera); la v2 legge la conoscenza e non scrive niente su S3.
   Dopo l'ingestion: fotografia, `kb-check` e una prova della base sul grande (i manuali nuovi
   portano confronti nuovi, quindi possibili falsi errori nuovi). Prove dal frontend il 27-11,
   mai mentre gira una campagna (quota di Bedrock divisa). Tempo e costo dopo la produzione.
