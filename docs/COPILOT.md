@@ -133,49 +133,15 @@ Dettagli: `MIGLIORIE.md`, «In breve» e sezione 13.
 
 | | Passo | Chi | Costo · tempo |
 |---|---|---|---|
-| 👉 | **1 · Togliere i 7 doppioni** che Copilot ha copiato nella cartella `landing_area` di RM | tu, con Copilot in Ask | 10 minuti |
-| ⬜ | **2 · Aggiornare e archiviare** | tu | gratis · 10 minuti |
+| ✅ | **1 · Togliere i 7 doppioni** (26-11, 17:00): tolti tutti e 7; gli originali restano in `RM/manuali/`, già ingestionati | tu | — |
+| 👉 | **2 · Aggiornare e archiviare** | tu | gratis · 10 minuti |
 | ⬜ | **3 · Campagna**: base nuova contro `lingue_tra_loro` e `procedura_dr` | tu | circa 5 $ · 2-3 ore |
 | ⬜ | **4 · Procurare i file che mancano**, poi ingestion | tu | — |
 | ⬜ | **5 · `fonte_ispezione` e regola della scheda** (dopo l'ingestion) | Claude | — |
 
 ---
 
-**👉 Passo 1 · Togliere i 7 doppioni**
-
-Copilot (in Agent, con «Allow all») ha copiato 7 file nella cartella `landing_area` di RM, su
-S3. Sono doppioni di file già ingestionati: se restano, il prossimo giro dell'ingestion li
-prende di nuovo. Copilot non li cancella: li cancelli tu, con il comando che ti scrive lui.
-
-1. In basso nella chat di Copilot scegli **Ask** (non Agent).
-2. Incolla questo messaggio:
-
-```text
-Sei in modalità Ask: non eseguire comandi e non cambiare niente, né sul PC né su S3.
-
-Prima hai copiato 7 file doppioni nella cartella RM/landing_area/ della conoscenza di prova
-su S3. Voglio cancellarli io a mano. Dimmi:
-
-1. l'elenco dei 7 file (solo il nome del file);
-2. per ognuno, se lo stesso file c'è già in RM/manuali/ (stesso nome e stessa dimensione);
-3. se un giro di ingestion li ha già presi (cerca nei report e nei manifest dell'ultimo giro);
-4. il comando PowerShell per cancellare solo quei 7 file: prima con --dryrun (non cancella,
-   mostra cosa cancellerebbe), poi lo stesso senza --dryrun. Un comando per file, con il
-   profilo e la regione che usi di solito. Niente --recursive, niente cartelle intere.
-```
-
-3. Controlla la risposta: i 7 file devono avere un doppione in `RM/manuali/` (punto 2). Se uno
-   non ce l'ha, **non cancellarlo** e dimmelo.
-4. Lancia nel terminale i comandi con `--dryrun`: devono uscire 7 righe `(dryrun) delete: ...`.
-   Poi gli stessi senza `--dryrun`.
-
-- **Dimmi a parole:** quanti file hai tolto e la risposta al punto 3 (sì o no). **Non mandarmi
-  foto** della risposta di Copilot né del terminale: hanno il nome del bucket.
-- Se al punto 3 dice **sì** (un giro li ha già presi): fermati e dimmelo prima di cancellare.
-
----
-
-**⬜ Passo 2 · Aggiornare e archiviare**
+**👉 Passo 2 · Aggiornare e archiviare**
 
 1. **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Foto dell'ultima riga.
 2. **Archiviare** le prove (sezione [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove),
