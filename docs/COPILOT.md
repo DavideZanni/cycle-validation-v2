@@ -166,7 +166,35 @@ Prima il piano, poi la campagna (sezione [3.5](#35-la-campagna-tutte-le-prove-in
 
 **⬜ Passo 4 · Procurare i file che mancano, poi ingestion**
 
-Non sono sul PC né su S3: vanno chiesti alla fonte dei manuali. In ordine di importanza:
+Non sono nella cartella di prova né nel corpus dell'ingestion sul PC. **Dove cercarli, in
+ordine:** (1) su S3, in tutta la cartella `Manufacturing AI/landing_area/` (lì ci sono gli
+originali di tutto il corpus, circa 2000 file: la ricerca del 26-11 guardava solo la cartella
+di prova); (2) sul resto del PC; (3) se non ci sono: chi ha preparato il corpus dell'ingestion,
+o l'ufficio delle pubblicazioni tecniche. Per (1) e (2) chiedi a Copilot, in **Ask**:
+
+```text
+Sei in modalità Ask: solo letture (aws s3 ls, Get-ChildItem), niente copie, niente
+cancellazioni, niente modifiche, né sul PC né su S3.
+
+Cerca dove sono questi file, che mancano nella conoscenza di prova. I codici veri sono in
+runs/manuali-da-ingestionare.txt (M1, M3, M4, M5 come in quel file).
+
+1. M1: la sezione d'ispezione del manuale (quella da cui viene il limite «4 volte» della P7).
+2. M3 (SPM): il capitolo 70-23 (task 70-23-23).
+3. M1: i due file della sezione 72-56-31 con 09-001 e 09-003 nel nome.
+4. M4 e M5: i manuali interi o almeno i capitoli citati dai cicli.
+
+Dove cercare: su S3 tutta la cartella Manufacturing AI/landing_area/ (non solo la cartella di
+prova) e le altre cartelle sotto Manufacturing AI/; sul PC tutto il profilo utente (Desktop,
+Download, Documenti, OneDrive) e i dischi di rete collegati. Salta Extra\storico\old.
+
+Per ognuno dei quattro dimmi: trovato sì o no, in quale cartella, quanti file.
+```
+
+- **Dimmi a parole:** per ognuno dei quattro, trovato sì o no (e se è su S3 o sul PC). Niente
+  foto: la risposta ha il nome del bucket e i codici veri.
+
+In ordine di importanza:
 
 | | Cosa | Perché serve |
 |---|---|---|
