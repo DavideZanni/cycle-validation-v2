@@ -9,11 +9,18 @@ Si confrontano le due sequenze di numeri e si segnala solo una **sostituzione**:
 posto di un altro, nello stesso punto. Un numero che c'è in una sola lingua non conta (una
 frase in più), né una conversione tra millimetri e pollici o tra gradi C e F. Dal 26-11 una
 conversione scritta in una lingua sola («0.38 MM (0.015 IN)») non sposta l'allineamento: prima
-un numero cambiato lì vicino non si vedeva.
+un numero cambiato lì vicino non si vedeva. Dal 26-11 sera vale anche quando la conversione
+viene prima del numero («248 °F (120 °C)»).
+
+I codici fatti di cifre (part number, numeri di 5 cifre o più) le due lingue li scrivono spesso
+in punti diversi: si confrontano a parte, come elenco. Un codice che c'è solo in una lingua al
+posto di un altro che c'è solo nell'altra è un codice cambiato (26-11 sera: prima i codici non
+si confrontavano).
 """
 
 import difflib
 import re
+from collections import Counter
 from decimal import Decimal, InvalidOperation
 
 # separatore tra le parti della descrizione (riga di asterischi), come la scrive il parser
@@ -44,6 +51,10 @@ def _numbers(text: str) -> list[tuple[str, Decimal]]:
     return found
 
 
+def _codes(text: str) -> list[str]:
+    return [match["code"] for match in _NUMBER.finditer(text) if match["code"]]
+
+
 def _converted(a: Decimal, b: Decimal) -> bool:
     """Lo stesso valore in un'altra unità: mm ↔ pollici (tolleranza 2%), °C ↔ °F (±1)."""
     if a == 0 or b == 0:
@@ -57,11 +68,23 @@ def _converted(a: Decimal, b: Decimal) -> bool:
 
 
 def number_mismatches(description: str) -> list[tuple[str, str]]:
-    """Coppie (numero italiano, numero inglese) diverse nello stesso punto delle due lingue."""
+    """Coppie (numero italiano, numero inglese) diverse nello stesso punto delle due lingue,
+    poi i codici cambiati."""
     parts = language_parts(description)
     if parts is None:
         return []
     italian, english = (_numbers(part) for part in parts)
+    # una lingua scrive anche la conversione («0.38 MM (0.015 IN)», «248 °F (120 °C)») e l'altra
+    # no: senza le conversioni le due lingue si allineano di nuovo (26-11)
+    italian, english = _without_pairs(italian, english), _without_pairs(english, italian)
+    found = _aligned_mismatches(italian, english) or _single_swap(italian, english)
+    return found + _code_mismatches(*parts)
+
+
+def _aligned_mismatches(
+    italian: list[tuple[str, Decimal]], english: list[tuple[str, Decimal]]
+) -> list[tuple[str, str]]:
+    """Le sostituzioni trovate allineando le due sequenze di numeri."""
     matcher = difflib.SequenceMatcher(
         a=[value for _, value in italian], b=[value for _, value in english], autojunk=False
     )
@@ -71,12 +94,9 @@ def number_mismatches(description: str) -> list[tuple[str, str]]:
             continue
         left, right = italian[i1:i2], english[j1:j2]
         if len(left) != len(right):
-            # una lingua scrive anche la conversione («0.38 MM (0.015 IN)») e l'altra no: senza
-            # le conversioni i due pezzi si allineano di nuovo (26-11)
-            left, right = (
-                _without_conversions(italian, i1, i2),
-                _without_conversions(english, j1, j2),
-            )
+            # la conversione può essere del numero cambiato: «248 °F (240 °C)» contro «120 °C».
+            # Si tolgono dal pezzo più lungo le conversioni dei numeri dell'altro (26-11 sera)
+            left, right = _without_conversions_of(left, right), _without_conversions_of(right, left)
             if len(left) != len(right):
                 continue
         for (raw_a, a), (raw_b, b) in zip(left, right, strict=True):
@@ -85,13 +105,56 @@ def number_mismatches(description: str) -> list[tuple[str, str]]:
     return found
 
 
-def _without_conversions(
-    numbers: list[tuple[str, Decimal]], start: int, end: int
+def _single_swap(
+    italian: list[tuple[str, Decimal]], english: list[tuple[str, Decimal]]
+) -> list[tuple[str, str]]:
+    """Tanti numeri quanti nelle due lingue, uguali tranne uno: «VEDI OP. 50, OP. 25» contro
+    «SEE OP. 25, OP. 25». L'allineamento qui vede un numero tolto e uno aggiunto, non una
+    sostituzione (26-11 sera). Lo stesso ordine non serve: le lingue lo cambiano spesso."""
+    if len(italian) != len(english):
+        return []
+    a, b = Counter(value for _, value in italian), Counter(value for _, value in english)
+    only_italian, only_english = list((a - b).elements()), list((b - a).elements())
+    if len(only_italian) != 1 or len(only_english) != 1:
+        return []
+    old, new = only_italian[0], only_english[0]
+    if _converted(old, new):
+        return []
+    raw_a = next(raw for raw, value in italian if value == old)
+    raw_b = next(raw for raw, value in english if value == new)
+    return [(raw_a, raw_b)]
+
+
+def _code_mismatches(italian: str, english: str) -> list[tuple[str, str]]:
+    """Codici cambiati: quelli che ci sono solo in una lingua, se sono tanti quanti quelli che
+    ci sono solo nell'altra (un codice in più in una lingua sola è una frase in più)."""
+    a, b = Counter(_codes(italian)), Counter(_codes(english))
+    only_italian, only_english = list((a - b).elements()), list((b - a).elements())
+    if not only_italian or len(only_italian) != len(only_english):
+        return []
+    return list(zip(only_italian, only_english, strict=True))
+
+
+def _without_pairs(
+    numbers: list[tuple[str, Decimal]], other: list[tuple[str, Decimal]]
 ) -> list[tuple[str, Decimal]]:
-    """I numeri del pezzo [start, end) senza quelli che sono la conversione del numero subito
-    prima (mm ↔ pollici, °C ↔ °F)."""
-    return [
-        numbers[k]
-        for k in range(start, end)
-        if k == 0 or not _converted(numbers[k - 1][1], numbers[k][1])
-    ]
+    """I numeri senza uno dei due di ogni coppia vicina in cui uno è la conversione dell'altro
+    (mm ↔ pollici, °C ↔ °F). Resta quello che c'è anche nell'altra lingua; se nessuno dei due
+    c'è, quello scritto prima."""
+    values = {value for _, value in other}
+    dropped: set[int] = set()
+    for k in range(len(numbers) - 1):
+        if k in dropped or not _converted(numbers[k][1], numbers[k + 1][1]):
+            continue
+        first_only = numbers[k + 1][1] in values and numbers[k][1] not in values
+        dropped.add(k if first_only else k + 1)
+    return [number for k, number in enumerate(numbers) if k not in dropped]
+
+
+def _without_conversions_of(
+    numbers: list[tuple[str, Decimal]], other: list[tuple[str, Decimal]]
+) -> list[tuple[str, Decimal]]:
+    """`numbers` senza le conversioni di un numero di `other`, se `numbers` è il più lungo."""
+    if len(numbers) <= len(other):
+        return numbers
+    return [n for n in numbers if not any(_converted(n[1], o[1]) for o in other)]

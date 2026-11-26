@@ -42,7 +42,10 @@ cicli:
       "040": "documento non nella conoscenza (come f355dc3c 040)"
   22f586bb:
     # 26-11 sera (Copilot): era tra i cicli veri, ma è la stampa giusta 737dec71 con quattro
-    # operazioni cambiate. Gli stessi errori di 895167b9 (che è questa con il serial nella 005)
+    # operazioni cambiate. Gli stessi errori di 895167b9 (che è questa con il serial nella 005).
+    # È un DR senza serial: la v2 non sa quali documenti usare e dà FONTE_ASSENTE su tutte e
+    # quattro (campagna del 26-11 sera). Si possono trovare solo confrontando le due lingue tra
+    # loro (`lingue_tra_loro`)
     errori:
       "010": un limite cambiato in una lingua (minimo invece di massimo)
       "030": un numero di documento cambiato; in una lingua una frase aggiunta

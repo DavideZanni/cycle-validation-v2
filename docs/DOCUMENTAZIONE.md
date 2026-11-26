@@ -4,7 +4,7 @@ Questo file spiega **tutto il progetto**: a cosa serve, come è fatto, come funz
 dove sta il codice, come si prova e come si pubblica. È scritto per chi lo legge la prima
 volta e per chi deve ritrovare un dettaglio.
 
-Ultimo aggiornamento: 24-11-2026. Claude lo aggiorna quando cambia il funzionamento del
+Ultimo aggiornamento: 26-11-2026. Claude lo aggiorna quando cambia il funzionamento del
 programma: regole, controlli, comandi, impostazioni.
 
 Gli altri documenti in `docs/`:
@@ -386,10 +386,19 @@ si controlla.
 3. **le due lingue** (`checks/languages.py`, senza modello): se nello stesso punto l'italiano e
    l'inglese hanno **numeri diversi**: ERRATO `INCOERENZA_LINGUE`. Si conta solo una
    sostituzione (un numero al posto di un altro). Non contano: un numero in una sola lingua,
-   le conversioni mm ↔ pollici (2%) e °C ↔ °F (±1), i codici fatti di cifre (con `/`, o di 5
-   cifre o più, come i part number). Una conversione scritta in una sola lingua («0.38 MM
-   (0.015 IN)») non sposta l'allineamento: si toglie il numero che converte quello subito prima
-   e si confronta di nuovo (26-11);
+   le conversioni mm ↔ pollici (2%) e °C ↔ °F (±1). Una conversione scritta in una sola lingua
+   («0.38 MM (0.015 IN)», «248 °F (120 °C)») non sposta l'allineamento: di due numeri vicini
+   che sono uno la conversione dell'altro resta quello che c'è anche nell'altra lingua (26-11;
+   dal 26-11 sera anche con la conversione scritta prima). Dal 26-11 sera vale anche:
+   - due lingue con tanti numeri quanti, uguali tranne uno («50, 25» contro «25, 25»), anche se
+     l'allineamento vede un numero tolto e uno aggiunto;
+   - i **codici** fatti di cifre (con `/`, o di 5 cifre o più, come i part number) si
+     confrontano a parte, come elenco, perché le lingue li scrivono in punti diversi: un codice
+     solo in una lingua al posto di uno solo nell'altra è un codice cambiato. Un codice in più
+     in una lingua sola non conta.
+
+   Il 26-11 le copie cieche «numero in una lingua» si trovavano 1 su 5: erano su codici e su
+   conversioni scritte prima del numero. Un test prova che ogni copia di questo tipo si trova;
 4. si cercano i **testi di riferimento** (`context_locations`, sotto); se la sorgente non
    risponde: WARNING `ERRORE_TECNICO`;
 5. task citati che il manuale non ha: WARNING `FONTE_ASSENTE` subito, senza modello
@@ -439,6 +448,21 @@ dal manuale d'ispezione del motore o da una D.R. Se l'unica differenza è con un
 definizioni, il modello risponde `non_verificabile` (WARNING `EVIDENZA_NON_TROVATA`). Nasce dal
 «4 volte» del ciclo contro il «3 volte» generico dell'SPM (P7, e il ciclo vero 2d724fba).
 
+**Le due lingue tra loro (`agent.compare_languages`, spenta nella base; variante
+`lingue_tra_loro`, 26-11 sera).** Per ogni operazione scritta in due lingue (tranne quelle già
+ERRATO `INCOERENZA_LINGUE` per i numeri, senza descrizione o non confermate) una sessione corta
+chiede al modello se le due lingue danno le stesse istruzioni, **senza manuale**
+(`plan_language_checks`; prompt in `agent/prompt.py`, `build_languages_prompt`). Risponde
+`diverse` solo per una negazione o un divieto in una lingua sola, un limite al contrario, un
+materiale, pezzo, attrezzo o lavorazione diversi, un valore o un codice diversi; non per
+traduzioni libere, sinonimi, unità convertite o note in una lingua sola. Con `diverse` deve
+copiare le parole che non coincidono: il codice le cerca, ognuna nella sua lingua
+(`decide_languages`). Ritrovate, si conferma come gli ERRATO (G1, sotto): se tutte le conferme
+dicono `diverse`, l'operazione è ERRATO `INCOERENZA_LINGUE` al posto dell'esito del confronto con
+il manuale, con le due citazioni dal ciclo come prova. Vale anche dove il manuale manca
+(`FONTE_ASSENTE`). Le sessioni delle lingue girano insieme alle altre; il loro costo va
+sull'operazione.
+
 **Conferma degli ERRATO (regola G1).** Ogni `CONTRADDIZIONE` si rifà con
 `confirm_contradiction` sessioni uguali (2). Resta ERRATO solo se **tutte** ritrovano la
 contraddizione. Se una la smentisce: WARNING `GIUDIZIO_INSTABILE` («contraddizione ritrovata in
@@ -484,7 +508,7 @@ Ogni motivo ha un solo esito (`domain/check.py`).
 | | `DR_NON_APPLICABILE` | la DR dice `Reject` o `Accept as is` |
 | | `DR_NESSUNA_CORRISPONDENZA` | nessuna recommendation per serial number e condition |
 | | `TASK_INESISTENTE` | codice completo che non c'è, mentre ci sono i suoi fratelli |
-| | `INCOERENZA_LINGUE` | italiano e inglese con numeri diversi |
+| | `INCOERENZA_LINGUE` | italiano e inglese con numeri o codici diversi; con `agent.compare_languages` anche istruzioni diverse (controllo del modello) |
 | **WARNING** | `FONTE_ASSENTE` | documento, task, targa o scheda non nella conoscenza |
 | | `TARGA_SCONOSCIUTA` | targa né nei dati TM né tra le attive |
 | | `EVIDENZA_NON_TROVATA` | il testo non basta per decidere |
@@ -690,6 +714,7 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.itemized_check` | `true` (dal 26-11) | prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione, valori, limiti, divieti, materiali) e li confronta uno per uno; se uno solo è incompatibile, `contraddetto`. Variante `elementi_uno_per_uno`. Le due sono nella base dal 26-11 (campagna del 25-11, variante `elementi_e_lingue`): il valore predefinito nel codice vale anche per `data/settings.yaml` sul PC, che non le nomina |
 | `agent.search_when_unverifiable` | `false` | dopo un `non_verificabile`, una seconda sessione cerca in tutti i documenti citati dal ciclo, con i tool. Variante `seconda_ricerca` |
 | `agent.general_definitions_note` | `false` | nella domanda al modello: una differenza solo con una **definizione generale** del manuale di pratiche standard (per esempio «indicazione lineare = 3 volte la larghezza») dà `non_verificabile`, non `contraddetto`; resta `contraddetto` con un limite specifico o con una lingua diversa dall'altra. Variante `definizioni_generali` (26-11) |
+| `agent.compare_languages` | `false` | una sessione corta per ogni operazione scritta in due lingue: il modello confronta l'italiano e l'inglese **tra loro**, senza manuale. Una differenza (negazione, limite, materiale, valore) con le citazioni ritrovate e confermata è ERRATO `INCOERENZA_LINGUE`. Variante `lingue_tra_loro` (26-11 sera) |
 | `agent.confirm_contradiction` | 2 | sessioni di conferma per ogni ERRATO del modello |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
 | `paths.*` | `config/profiles`, `prompts`, `data/knowledge`, `runs` | cartelle |

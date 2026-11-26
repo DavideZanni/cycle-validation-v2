@@ -515,3 +515,103 @@ def test_a_contradiction_from_the_second_search_is_confirmed_on_the_same_documen
         "op-000-0010-ricerca-conferma-1",
         "op-000-0010-ricerca-conferma-2",
     ]
+
+
+# --- confronto tra le due lingue (`agent.compare_languages`, variante `lingue_tra_loro`) ---
+
+LANG_ON = SETTINGS.model_copy(update={"compare_languages": True})
+BILINGUAL = "NON RACCORDARE IL BORDO / BLEND THE EDGE"
+
+
+def _languages(verdict: str, italian: str = "NON RACCORDARE", english: str = "BLEND") -> dict:
+    return {
+        "languages": verdict,
+        "rationale": "la negazione c'è solo in italiano",
+        "italian_quote": italian,
+        "english_quote": english,
+    }
+
+
+def _script(languages: Any, manual: str = "coerente") -> ScriptedSession:
+    def reply(request: SessionRequest, attempt: int) -> dict[str, Any]:
+        if "-lingue" in request.session_id:
+            return languages(request) if callable(languages) else languages
+        return answer(manual, [QUOTE_OK])
+
+    return ScriptedSession(reply)
+
+
+def test_the_languages_are_not_compared_by_default() -> None:
+    session = _script(_languages("diverse"))
+    results, _ = asyncio.run(check_operations(ctx([op(BILINGUAL)]), session, SETTINGS, "s"))
+    assert results[0].reason is Reason.VERIFICATO
+    assert not any("-lingue" in r.session_id for r in session.requests)
+
+
+def test_two_languages_that_say_different_things_are_errato_after_confirmation() -> None:
+    session = _script(_languages("diverse"))
+    stats: dict[str, int] = {}
+    results, errors = asyncio.run(
+        check_operations(ctx([op(BILINGUAL)]), session, LANG_ON, "s", stats)
+    )
+    result = results[0]
+    assert (result.verdict, result.reason) == (Verdict.ERRATO, Reason.INCOERENZA_LINGUE)
+    assert "NON RACCORDARE" in result.rationale and result.decided_by == "agent"
+    assert errors == []
+    assert sorted(r.session_id for r in session.requests) == [
+        "op-000-0010",
+        "op-000-0010-lingue",
+        "op-000-0010-lingue-conferma-1",
+        "op-000-0010-lingue-conferma-2",
+    ]
+    assert result.usage.sessions == 4 * ONE_CALL.sessions
+    assert stats["lingue"] == 1 and stats["conferma"] == 2
+
+
+def test_the_languages_check_needs_quotes_found_in_their_own_language() -> None:
+    for wrong in (_languages("diverse", "BLEND", "NON RACCORDARE"), _languages("diverse", "", "")):
+        session = _script(wrong)
+        results, _ = asyncio.run(check_operations(ctx([op(BILINGUAL)]), session, LANG_ON, "s"))
+        assert results[0].reason is Reason.VERIFICATO
+        # la sessione delle lingue si paga anche quando non cambia l'esito
+        assert results[0].usage.sessions == 2 * ONE_CALL.sessions
+
+
+def test_a_languages_difference_not_confirmed_leaves_the_manual_verdict() -> None:
+    def flip(request: SessionRequest) -> dict[str, Any]:
+        same = "-conferma-2" in request.session_id
+        return _languages("uguali", "", "") if same else _languages("diverse")
+
+    results, _ = asyncio.run(check_operations(ctx([op(BILINGUAL)]), _script(flip), LANG_ON, "s"))
+    assert results[0].reason is Reason.VERIFICATO
+    assert results[0].usage.sessions == 4 * ONE_CALL.sessions
+
+
+def test_the_languages_are_compared_also_where_the_manual_is_missing() -> None:
+    # il task citato non è nel manuale: senza il confronto tra le lingue resta FONTE_ASSENTE
+    operation = op(BILINGUAL, codes=["72-00-01-110-999"])
+    session = _script(_languages("diverse"))
+    results, _ = asyncio.run(check_operations(ctx([operation]), session, LANG_ON, "s"))
+    assert results[0].reason is Reason.INCOERENZA_LINGUE
+    off, _ = asyncio.run(check_operations(ctx([operation]), _script({}), SETTINGS, "s"))
+    assert off[0].reason is Reason.FONTE_ASSENTE
+
+
+def test_no_languages_session_for_one_language_or_numbers_already_different() -> None:
+    operations = [op("PULIRE IL PEZZO"), op("SPESSORE 13 MICRON / THICKNESS 18 MICRON")]
+    session = _script(_languages("diverse"))
+    results, _ = asyncio.run(check_operations(ctx(operations), session, LANG_ON, "s"))
+    assert not any("-lingue" in r.session_id for r in session.requests)
+    assert results[1].reason is Reason.INCOERENZA_LINGUE
+
+
+def test_the_languages_prompt_has_both_texts_and_a_closed_schema() -> None:
+    from cycle_validation.agent.prompt import build_languages_prompt, languages_schema
+
+    prompt = build_languages_prompt(" NON RACCORDARE ", "BLEND")
+    assert "## Descrizione in italiano\n\nNON RACCORDARE" in prompt
+    assert "## Descrizione in inglese\n\nBLEND" in prompt
+    assert "Nel dubbio rispondi `uguali`" in prompt
+    schema = languages_schema()
+    assert schema["additionalProperties"] is False
+    assert set(schema["required"]) == set(schema["properties"])

@@ -108,48 +108,88 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 |---|---|---|---|
 | ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, copie cieche | 24-11 |
 | ✅ | **2. Prima campagna** | tutte le impostazioni, Haiku e Sonnet | 24-11 sera |
-| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` non entra, corretto il controllo delle lingue. Adesso: `definizioni_generali`. Dopo: `fonte_ispezione`, regola della scheda | **adesso** |
+| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` e `definizioni_generali` non entrano; corretto il controllo dei numeri tra le lingue. Adesso: `lingue_tra_loro`. Dopo: `fonte_ispezione`, regola della scheda | **adesso** |
 | ⬜ | **4. Tempo e costo** | spendere meno e fare prima, con gli stessi errori trovati | dopo la 3 |
 | ⬜ | **5. Chiusura** | prova finale con copie cieche nuove, prove dal frontend, salvare | dopo la 4 |
 | ⬜ | **6. QA** | pubblicare nell'ambiente di prova | alla fine |
 
 Risultati delle tappe e decisioni: `MIGLIORIE.md`, sezioni 7 e 13.
 
-### 👉 Adesso: tappa 3, terzo giro
+### 👉 Adesso: tappa 3, quarto giro
 
-**Dove siamo (26-11 sera).** La base resta quella del 26-11: `seconda_ricerca` non entra (stessi
-errori, costo doppio). Copilot ha guardato gli ERRATO del grande: 4 sono errori veri, 1 è un
-falso errore con la stessa causa della P7 («4 volte» del manuale del motore contro la
-definizione generica di «3 volte» dell'SPM). Claude ha scritto la variante
-`definizioni_generali`, che si prova adesso. Poi Copilot ha trovato tutte le copie modificate
-della lista: oltre a quelle già note, **22f586bb** (dalla stampa giusta **737dec71**) e
-**895167b9** (la stessa con il serial nella 005). Ora sono tutte in `eval/errori-noti.yaml`.
-L'ingestion la fai dopo la campagna. Dettagli: `MIGLIORIE.md`, «In breve» e sezione 13.
+**Dove siamo (26-11 sera).** La campagna base contro `definizioni_generali` è finita (2,77 $):
+la variante **non si tiene** (14 errori stabili contro 15 sul piccolo, 8 contro 10 sul grande),
+0 falsi errori per tutte e due. Dalla campagna Claude ha capito due cose e ha cambiato il
+codice:
+
+- il controllo dei numeri tra italiano e inglese perdeva i **codici** (part number) e i numeri
+  vicini a una **conversione** scritta prima («248 °F (120 °C)»): corretto. È nella base, quindi
+  le prove vecchie si archiviano;
+- le negazioni, i limiti e i materiali cambiati in una lingua sola si possono trovare
+  confrontando le due lingue **tra loro**, senza manuale: nuova variante `lingue_tra_loro`.
+
+Dettagli: `MIGLIORIE.md`, «In breve» e sezione 13.
 
 | | Passo | Chi | Costo · tempo |
 |---|---|---|---|
-| ✅ | **ERRATO da verificare e copie modificate: domande a Copilot** (26-11 sera) | tu | — |
-| ✅ | **1 · Aggiornare e archiviare** (26-11, 14:29; piano: piccolo 29, grande 23, `3 da fare` per tutte) | tu | — |
-| 👉 | **2 · Campagna**: base contro `definizioni_generali` | tu | circa 3 $ · 1-2 ore |
-| ⬜ | **3 · Ingestion** (quando puoi) | tu | — |
-| ⬜ | **4 · `fonte_ispezione` e regola della scheda** (dopo l'ingestion) | Claude | — |
+| ✅ | **Campagna base contro `definizioni_generali`** (26-11, 14:31-15:39) | tu | 2,77 $ |
+| 👉 | **1 · Una domanda breve a Copilot** (prima di archiviare) | tu | gratis · 5 minuti |
+| ⬜ | **2 · Aggiornare e archiviare** | tu | gratis · 10 minuti |
+| ⬜ | **3 · Campagna**: base nuova contro `lingue_tra_loro` | tu | circa 3,5 $ · 1-2 ore |
+| ⬜ | **4 · Ingestion** (quando puoi) | tu | — |
+| ⬜ | **5 · `fonte_ispezione` e regola della scheda** (dopo l'ingestion) | Claude | — |
 
 ---
 
-**👉 Passo 2 · Campagna: base contro `definizioni_generali`**
+**👉 Passo 1 · Una domanda breve a Copilot** (modalità **Ask**: nelle ultime foto era su
+*Agent*, cambialo in basso nella chat prima di incollare)
+
+Sul grande l'unico ERRATO fuori dalla lista è sull'operazione 005 di 895167b9, quella dove
+nella copia è stato aggiunto il serial. Serve sapere se è giusto. Va chiesto **prima di
+archiviare** (le prove sono ancora in `runs\prove-grande`). Incolla in Copilot:
+
+> Modalità Ask, non modificare niente. Rispondi solo con impronte (le prime 8 cifre dello
+> SHA-256 del PDF, in minuscolo), numeri di operazione e parole: niente nomi di file, codici di
+> manuali, serial o part number, niente testo del ciclo o del manuale. Nelle prove di oggi in
+> `runs/prove-grande` (file `prestazioni.md`) la v2 dà ERRATO sull'operazione 005 del ciclo
+> 895167b9. 1) Con quale motivo (per esempio CONTRADDIZIONE o INCOERENZA_LINGUE) e che cosa
+> dice la spiegazione, con parole tue? 2) Confrontando la 005 di 895167b9 con la 005 di
+> 22f586bb e con il documento citato: l'ERRATO è giusto (nella 005 c'è davvero qualcosa che non
+> va) oppure è un falso errore? 3) Il serial è scritto in tutte e due le lingue o in una sola?
+
+- **Mandami:** la risposta (foto della chat).
+
+---
+
+**⬜ Passo 2 · Aggiornare e archiviare**
+
+1. **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)).
+2. **Archiviare** le prove (sezione [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove),
+   blocco «Archiviare»): la base è cambiata (controllo dei numeri tra le lingue), le prove
+   vecchie non si confrontano più con le nuove.
+
+Le copie cieche restano quelle del seme 2: così si vede subito se le copie «numero cambiato in
+una lingua» passano da 1 su 5 a 5 su 5. Non serve rifare 3.2 e 3.3.
+
+- **Mandami:** la foto della fine di Aggiornare (i test) e quella di Archiviare.
+
+---
+
+**⬜ Passo 3 · Campagna: base nuova contro `lingue_tra_loro`**
 
 Prima il piano, poi la campagna (sezione [3.5](#35-la-campagna-tutte-le-prove-in-automatico)).
-Questa volta il grande si fa per tutte e due (`grande: sempre`): la variante serve soprattutto
-lì.
+Il grande si fa per tutte e due (`grande: sempre`): sui cicli veri si vede se la variante dà
+ERRATO dove una lingua traduce liberamente.
 
-- **Il piano deve dire:** piccolo e grande, `base` e `definizioni_generali`, `3 da fare` per
-  ognuna. Il piccolo ha **14 cicli noti** (prima 10): in più 895167b9, 22f586bb, 737dec71 e
-  2d724fba.
-- **Mandami:** la riga finale e le foto di `runs\campagna.md` e dei due `riepilogo.md`.
+- **Il piano deve dire:** piccolo 29 e grande 23, `base` e `lingue_tra_loro`, `3 da fare` per
+  ognuna. Se la base dice `già fatte`, l'archivio non è andato: fermati e mandami la foto.
+- **Costo:** circa 3,5 $ (la variante fa una sessione corta in più per ogni operazione).
+- **Mandami:** la riga finale, le foto di `runs\campagna.md` e dei due `riepilogo.md`, come
+  oggi. Sono andate bene: si leggono tutte.
 
 ---
 
-**⬜ Passo 3 · Ingestion** (quando puoi, anche dopo la campagna)
+**⬜ Passo 4 · Ingestion** (quando puoi)
 
 Servono i file che mancano nella conoscenza:
 
@@ -164,7 +204,7 @@ veri (3.2), copie cieche (3.3) con `$seme = 3`.
 
 ---
 
-**⬜ Passo 4 · `fonte_ispezione` e regola della scheda** (lo fa Claude)
+**⬜ Passo 5 · `fonte_ispezione` e regola della scheda** (lo fa Claude)
 
 Dopo l'ingestion del manuale del motore. Poi di nuovo Aggiornare, archiviare, campagna.
 

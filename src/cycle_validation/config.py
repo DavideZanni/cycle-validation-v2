@@ -80,6 +80,13 @@ class AgentSettings(_Strict):
     # motore contro «3 volte» dell'SPM dava un falso errore sulla stampa giusta (P7) e su un
     # ciclo vero, e ERRATO giusti ma per il motivo sbagliato.
     general_definitions_note: bool = False
+    # Il modello confronta la parte italiana e quella inglese della descrizione **tra loro**,
+    # senza manuale: una negazione, un limite, un materiale o un valore diversi tra le due lingue
+    # sono un ERRATO INCOERENZA_LINGUE (citazioni ritrovate nel testo, conferma come gli altri
+    # ERRATO). Vale anche dove il manuale manca. Variante `lingue_tra_loro` (26-11-2026 sera):
+    # negazioni tolte in una lingua mancate con EVIDENZA_NON_TROVATA o FONTE_ASSENTE. Costa una
+    # sessione corta per ogni operazione scritta in due lingue.
+    compare_languages: bool = False
     # Una contraddizione (ERRATO) si conferma con altrettante sessioni uguali: resta ERRATO
     # solo se la ritrovano tutte, altrimenti WARNING GIUDIZIO_INSTABILE. Su un ciclo DR vero
     # lo stesso confronto dava ERRATO 3 volte su 6 (21-11-2026). Costa solo sugli ERRATO.

@@ -58,6 +58,69 @@ def judgement_schema() -> dict[str, Any]:
     }
 
 
+class LanguagesVerdict(StrEnum):
+    UGUALI = "uguali"
+    DIVERSE = "diverse"
+
+
+class LanguagesJudgement(BaseModel):
+    """Le due lingue della descrizione dicono la stessa cosa? (`agent.compare_languages`)"""
+
+    model_config = ConfigDict(extra="ignore")
+
+    languages: LanguagesVerdict
+    rationale: str = Field(min_length=1)
+    italian_quote: str = ""
+    english_quote: str = ""
+
+
+def languages_schema() -> dict[str, Any]:
+    """Schema JSON del confronto tra le due lingue: chiuso, come `judgement_schema`."""
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["languages", "rationale", "italian_quote", "english_quote"],
+        "properties": {
+            "languages": {"type": "string", "enum": [item.value for item in LanguagesVerdict]},
+            "rationale": {"type": "string"},
+            "italian_quote": {"type": "string"},
+            "english_quote": {"type": "string"},
+        },
+    }
+
+
+LANGUAGES_SYSTEM_PROMPT = (
+    "Controlli i cicli di lavorazione per la riparazione di motori aeronautici. La descrizione "
+    "di un'operazione è scritta in italiano e in inglese, e le due lingue devono dare "
+    "all'operatore le stesse istruzioni. Confronti solo le due lingue tra loro: non hai il "
+    "manuale e non ti serve. Rispondi solo con l'output strutturato richiesto."
+)
+
+
+def build_languages_prompt(italian: str, english: str) -> str:
+    """La domanda del confronto tra le due lingue (variante `lingue_tra_loro`, 26-11 sera)."""
+    return (
+        f"## Descrizione in italiano\n\n{italian.strip()}\n\n"
+        f"## Descrizione in inglese\n\n{english.strip()}\n\n"
+        "## Domanda\n\n"
+        "Le due lingue danno all'operatore le stesse istruzioni tecniche? Rispondi `diverse` "
+        "solo se una lingua chiede qualcosa di diverso dall'altra, per esempio:\n"
+        "- una negazione o un divieto che c'è in una lingua sola («non», «not», «do not», "
+        "«never»);\n"
+        "- un limite al contrario (minimo e massimo, almeno e al massimo, sopra e sotto);\n"
+        "- un materiale, un prodotto, un pezzo, una zona, un attrezzo o una lavorazione "
+        "diversi;\n"
+        "- un valore, una classe, una quantità o un codice diversi.\n\n"
+        "Non sono differenze: una traduzione libera, un ordine diverso delle parole, "
+        "abbreviazioni e sinonimi, unità di misura convertite, un riferimento (per esempio "
+        "«vedi op. 25») o una nota scritti in una lingua sola, refusi che non cambiano il "
+        "senso. Nel dubbio rispondi `uguali`.\n\n"
+        "Se rispondi `diverse`, copia in `italian_quote` e in `english_quote` le poche parole "
+        "delle due lingue che non coincidono, identiche al testo qui sopra, e scrivi in "
+        "`rationale` che cosa cambia. Se rispondi `uguali`, lascia vuote le due citazioni."
+    )
+
+
 def load_prompt(prompts_dir: Path, name: str) -> str:
     path = prompts_dir / name
     try:

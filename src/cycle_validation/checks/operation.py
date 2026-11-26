@@ -5,6 +5,11 @@ Il codice trova il dove (documenti e righe), l'agente confronta, il codice verif
 citazioni e assegna l'esito. Un giudizio senza citazione verificata non diventa mai
 né CORRETTO né ERRATO. Una contraddizione si rifà `confirm_contradiction` volte: resta
 ERRATO solo se la ritrovano tutte (il modello, sullo stesso testo, può oscillare).
+
+Con `agent.compare_languages` (variante `lingue_tra_loro`, 26-11 sera) il modello confronta
+anche la parte italiana e quella inglese tra loro, senza manuale: se una dice altro, con le due
+citazioni ritrovate nel testo e confermato come gli altri ERRATO, l'operazione è ERRATO
+INCOERENZA_LINGUE al posto dell'esito del confronto con il manuale.
 """
 
 import asyncio
@@ -14,10 +19,15 @@ from dataclasses import dataclass
 from pydantic import ValidationError
 
 from cycle_validation.agent.prompt import (
+    LANGUAGES_SYSTEM_PROMPT,
     Judgement,
+    LanguagesJudgement,
+    LanguagesVerdict,
     OperationJudgement,
+    build_languages_prompt,
     build_operation_prompt,
     judgement_schema,
+    languages_schema,
 )
 from cycle_validation.agent.runner import run_sessions
 from cycle_validation.agent.session import (
@@ -38,6 +48,7 @@ from cycle_validation.domain.check import (
     Reason,
     Target,
     TargetKind,
+    Usage,
 )
 from cycle_validation.domain.cycle import Operation
 from cycle_validation.domain.report import PipelineError
@@ -69,6 +80,25 @@ class OperationJob:
     @property
     def documents(self) -> list[DocumentInfo]:
         return list({item.document.key: item.document for item in self.locations}.values())
+
+
+@dataclass(frozen=True)
+class LanguageJob:
+    """Il confronto tra le due lingue di un'operazione (`agent.compare_languages`)."""
+
+    index: int
+    italian: str
+    english: str
+    request: SessionRequest
+
+
+# esiti dopo i quali il confronto tra le due lingue non serve: le lingue sono già diverse nei
+# numeri, oppure la descrizione non c'è o non è sicura
+_NO_LANGUAGE_CHECK = (
+    Reason.INCOERENZA_LINGUE,
+    Reason.CAMPO_ASSENTE,
+    Reason.ESTRAZIONE_NON_CONFERMATA,
+)
 
 
 def _facts(ctx: CheckContext, operation: Operation) -> list[str]:
@@ -213,6 +243,57 @@ def plan_operation_checks(
         )
         jobs.append(OperationJob(index, operation, locations, request))
     return jobs, immediate
+
+
+def plan_language_checks(
+    ctx: CheckContext, settings: AgentSettings, skip: set[int]
+) -> list[LanguageJob]:
+    """Una sessione corta per ogni operazione scritta in due lingue, tranne quelle in `skip`."""
+    jobs: list[LanguageJob] = []
+    schema = languages_schema()
+    for index, operation in enumerate(ctx.cycle.operations):
+        if index in skip or not operation.operation_description:
+            continue
+        parts = language_parts(operation.operation_description)
+        if parts is None:
+            continue
+        italian, english = parts
+        request = SessionRequest(
+            session_id=f"op-{index:03d}-{operation.operation_number}-lingue",
+            system_prompt=LANGUAGES_SYSTEM_PROMPT,
+            prompt=build_languages_prompt(italian, english),
+            output_schema=schema,
+            use_tools=False,
+            max_turns=settings.inline_max_turns,
+        )
+        jobs.append(LanguageJob(index, italian, english, request))
+    return jobs
+
+
+def _plain(text: str) -> str:
+    """Testo per ritrovare una citazione: minuscolo, spazi singoli, senza virgolette."""
+    for mark in '«»"“”':
+        text = text.replace(mark, "")
+    return " ".join(text.split()).casefold()
+
+
+def decide_languages(job: LanguageJob, outcome: SessionOutcome) -> LanguagesJudgement | None:
+    """Il giudizio, solo se dice `diverse` e le due citazioni si ritrovano ognuna nella sua
+    lingua. Altrimenti None: il confronto non cambia l'esito dell'operazione."""
+    if outcome.status is not SessionStatus.OK or outcome.output is None:
+        return None
+    try:
+        judgement = LanguagesJudgement.model_validate(outcome.output)
+    except ValidationError:
+        return None
+    if judgement.languages is not LanguagesVerdict.DIVERSE:
+        return None
+    italian, english = _plain(judgement.italian_quote), _plain(judgement.english_quote)
+    if not italian or not english:
+        return None
+    if italian not in _plain(job.italian) or english not in _plain(job.english):
+        return None
+    return judgement
 
 
 def wider_job(
@@ -373,6 +454,14 @@ def confirm_contradiction(first: CheckResult, confirmations: Sequence[CheckResul
     )
 
 
+def _validate(output: dict[str, object]) -> object:
+    """Le sessioni del confronto con il manuale e quelle del confronto tra le lingue girano
+    insieme: ognuna con il suo schema."""
+    if "languages" in output:
+        return LanguagesJudgement.model_validate(output)
+    return OperationJudgement.model_validate(output)
+
+
 async def _run(
     session: AgentSession, requests: Sequence[SessionRequest], settings: AgentSettings
 ) -> Sequence[SessionOutcome]:
@@ -383,7 +472,7 @@ async def _run(
         retries=settings.retries,
         backoff_s=settings.retry_backoff_s,
         invalid_output_retries=settings.invalid_output_retries,
-        validate=OperationJudgement.model_validate,
+        validate=_validate,
         timeout_s=settings.session_timeout_s,
     )
 
@@ -442,10 +531,20 @@ async def check_operations(
     # La pianificazione interroga la knowledge base (rete, file): fuori dal loop degli eventi,
     # che nel servizio è lo stesso di tutte le altre richieste.
     jobs, results = await asyncio.to_thread(plan_operation_checks, ctx, settings, system_prompt)
+    language_jobs: list[LanguageJob] = []
+    if settings.compare_languages:
+        skip = {r.target.index for r in results if r.reason in _NO_LANGUAGE_CHECK}
+        language_jobs = plan_language_checks(ctx, settings, {i for i in skip if i is not None})
     if stats is not None:
         stats["inline"] = sum(1 for job in jobs if not job.request.use_tools)
         stats["search"] = sum(1 for job in jobs if job.request.use_tools)
-    outcomes = await _run(session, [job.request for job in jobs], settings)
+        if language_jobs:
+            stats["lingue"] = len(language_jobs)
+    # le sessioni delle lingue girano insieme a quelle del manuale: il ciclo non dura di più
+    every = await _run(
+        session, [job.request for job in jobs] + [job.request for job in language_jobs], settings
+    )
+    outcomes, language_outcomes = every[: len(jobs)], every[len(jobs) :]
     decided = [
         decide_operation(job, outcome, settings)
         for job, outcome in zip(jobs, outcomes, strict=True)
@@ -459,7 +558,15 @@ async def check_operations(
     doubtful = [
         i for i, (result, _) in enumerate(decided) if result.reason is Reason.CONTRADDIZIONE
     ]
-    if repeats and doubtful:
+    different = [
+        (job, judgement)
+        for job, outcome in zip(language_jobs, language_outcomes, strict=True)
+        if (judgement := decide_languages(job, outcome)) is not None
+    ]
+    language_usage: dict[int, Usage] = {}
+    for job, outcome in zip(language_jobs, language_outcomes, strict=True):
+        language_usage[job.index] = language_usage.get(job.index, Usage()) + outcome.usage
+    if repeats and (doubtful or different):
         requests = [
             jobs[i].request.model_copy(
                 update={"session_id": f"{jobs[i].request.session_id}-conferma-{k}"}
@@ -467,9 +574,23 @@ async def check_operations(
             for i in doubtful
             for k in range(1, repeats + 1)
         ]
+        language_requests = [
+            job.request.model_copy(update={"session_id": f"{job.request.session_id}-conferma-{k}"})
+            for job, _ in different
+            for k in range(1, repeats + 1)
+        ]
         if stats is not None:
-            stats["conferma"] = len(requests)
-        confirmations = await _run(session, requests, settings)
+            stats["conferma"] = len(requests) + len(language_requests)
+        every = await _run(session, requests + language_requests, settings)
+        confirmations, language_confirmations = every[: len(requests)], every[len(requests) :]
+        confirmed = []
+        for n, (job, judgement) in enumerate(different):
+            again = language_confirmations[n * repeats : (n + 1) * repeats]
+            for outcome in again:
+                language_usage[job.index] = language_usage[job.index] + outcome.usage
+            if all(decide_languages(job, outcome) is not None for outcome in again):
+                confirmed.append((job, judgement))
+        different = confirmed
         for n, i in enumerate(doubtful):
             checked = [
                 decide_operation(jobs[i], outcome, settings)
@@ -479,5 +600,46 @@ async def check_operations(
             decided[i] = (confirm_contradiction(decided[i][0], [r for r, _ in checked]), None)
 
     results += [result for result, _ in decided]
+    if language_jobs:
+        results = _with_languages(results, different, language_usage)
     results.sort(key=lambda item: item.target.index or 0)
     return results, errors
+
+
+def _with_languages(
+    results: list[CheckResult],
+    different: list[tuple[LanguageJob, LanguagesJudgement]],
+    usage: dict[int, Usage],
+) -> list[CheckResult]:
+    """Il costo delle sessioni delle lingue va sull'operazione; dove le lingue dicono cose
+    diverse (confermato) l'esito diventa ERRATO INCOERENZA_LINGUE."""
+    found = {job.index: judgement for job, judgement in different}
+    merged: list[CheckResult] = []
+    for result in results:
+        index = result.target.index
+        if index is None or index not in usage:
+            merged.append(result)
+            continue
+        total = result.usage + usage[index]
+        judgement = found.get(index)
+        if judgement is None:
+            merged.append(result.model_copy(update={"usage": total}))
+            continue
+        merged.append(
+            make_result(
+                CHECK,
+                result.target,
+                Reason.INCOERENZA_LINGUE,
+                "La descrizione italiana e quella inglese non dicono la stessa cosa (confronto "
+                f"tra le due lingue): italiano «{judgement.italian_quote}», inglese "
+                f"«{judgement.english_quote}». {judgement.rationale}",
+                # le citazioni vengono dal ciclo, ritrovate dal codice nelle due lingue
+                evidence=[
+                    Evidence(document_key="CICLO (italiano)", quote=judgement.italian_quote),
+                    Evidence(document_key="CICLO (inglese)", quote=judgement.english_quote),
+                ],
+                decided_by="agent",
+                usage=total,
+            )
+        )
+    return merged

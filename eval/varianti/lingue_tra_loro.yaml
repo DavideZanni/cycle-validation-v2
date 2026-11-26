@@ -1,0 +1,7 @@
+nome: lingue_tra_loro
+descrizione: il modello confronta la parte italiana e quella inglese della descrizione tra loro, senza manuale; se una dice altro (negazione, limite, materiale, valore), con le due citazioni ritrovate nel testo e confermato, è ERRATO INCOERENZA_LINGUE
+ipotesi: "26-11 sera, campagna base contro definizioni_generali: le negazioni tolte in una lingua sono mancate con EVIDENZA_NON_TROVATA (copie cieche negazione_una_lingua 1 su 2) o con FONTE_ASSENTE quando il manuale non c'è. Le due lingue devono dire la stessa cosa sempre: si vede senza manuale, come i numeri diversi che trova già il codice"
+atteso: "più errori stabili della base (negazioni e limiti cambiati in una lingua sola); mai visti non meno della base; falsi errori 0 e ERRATO da verificare sul grande al massimo +1 (rischio: traduzioni libere prese per differenze); costo per ciclo al massimo +40%; tempo per ciclo quasi uguale (le sessioni delle lingue girano insieme alle altre)"
+base: baseline
+agent:
+  compare_languages: true

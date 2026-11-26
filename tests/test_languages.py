@@ -38,6 +38,56 @@ def test_a_number_changed_next_to_a_conversion_written_in_one_language_is_found(
     assert number_mismatches(description) == [("0,45", "0.38")]
 
 
+def test_a_number_changed_after_a_conversion_written_first_is_found() -> None:
+    # 26-11 sera: l'inglese scrive prima i °F e poi i °C tra parentesi
+    description = "TEMPERATURA 120 °C PER 2 ORE / TEMPERATURE 248 °F (240 °C) FOR 2 HOURS"
+    assert number_mismatches(description) == [("120", "240")]
+    description = "VEDI OP. 50, 120 °C / SEE OP. 25, 248 °F (120 °C)"
+    assert number_mismatches(description) == [("50", "25")]
+
+
+def test_a_number_changed_where_the_alignment_sees_a_deletion_is_found() -> None:
+    # 26-11 sera: «50, 25» contro «25, 25» si allinea come un numero tolto e uno aggiunto
+    description = "VEDI OP. 50 E OP. 25 / SEE OP. 25 AND OP. 25"
+    assert number_mismatches(description) == [("50", "25")]
+
+
+def test_a_code_changed_in_one_language_is_found() -> None:
+    # 26-11 sera: i codici (part number, numeri di 5 cifre o più) prima non si confrontavano
+    description = "SU PROVINI P/N 2469134, SPESSORE 13 MICRON / THICKNESS 13 MICRON ON P/N 1234567"
+    assert number_mismatches(description) == [("2469134", "1234567")]
+
+
+def test_codes_in_a_different_order_or_in_one_language_only_are_not_a_mismatch() -> None:
+    assert number_mismatches("P/N 1234567 E 7654321 / P/N 7654321 AND 1234567") == []
+    assert number_mismatches("PULIRE (RIF. 70012) / CLEAN") == []
+
+
+@pytest.mark.parametrize("seed", range(40))
+def test_every_blind_copy_with_a_number_changed_in_one_language_is_found(seed: int) -> None:
+    """Le copie cieche `numero_una_lingua` le deve trovare questo controllo: il 26-11 ne trovava
+    1 su 5 (codici e conversioni scritte prima del numero)."""
+    import random
+
+    from cycle_validation.domain.cycle import Operation
+    from cycle_validation.evaluation.blind import _one_language_number
+
+    descriptions = [
+        "SPESSORE 13-38 MICRON SU PROVINI P/N 1234567 / ON TEST PIECES P/N 1234567, "
+        "THICKNESS 13-38 MICRON",
+        "RIF. SPEC. 70012 CLASSE 2, RACCORDARE 3 VOLTE / REF. SPEC. 70012 CLASS 2, BLEND 3 TIMES",
+        "TEMPERATURA 120 °C PER 2 ORE / TEMPERATURE 248 °F (120 °C) FOR 2 HOURS",
+        "PROFONDITA' MASSIMA 0,38 MM, RACCORDARE 7 VOLTE / "
+        "MAXIMUM DEPTH 0.38 MM (0.015 IN), BLEND 7 TIMES",
+        "VEDI OP. 25 E OP. 30, INGRANDIMENTO 4X / SEE OP. 25 AND OP. 30, MAGNIFICATION 4X",
+    ]
+    for description in descriptions:
+        operation = Operation.model_construct(operation_description=description)
+        copy = _one_language_number(operation, random.Random(seed))
+        assert copy is not None
+        assert number_mismatches(copy.operation_description), copy.operation_description
+
+
 def test_a_conversion_written_in_one_language_alone_is_not_a_mismatch() -> None:
     description = (
         "PROFONDITA' MASSIMA 0,38 MM, RACCORDARE 10 VOLTE / "

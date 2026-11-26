@@ -10,9 +10,12 @@
 # `elementi_e_lingue`, scartata solo per il costo (2,2 volte la base vecchia; sulla base nuova
 # è 1,9 volte).
 # 26-11 sera: `seconda_ricerca` scartata (stessi errori, costo 2,1 volte la base sul grande).
-# Ora `definizioni_generali` (risposta di Copilot sugli ERRATO del grande).
+# 26-11 sera: `definizioni_generali` scartata (14 contro 15 sul piccolo, 8 contro 10 sul
+# grande: perde gli errori trovati per il motivo sbagliato e non trova quelli giusti).
+# Ora `lingue_tra_loro`. La base è nuova (controllo dei numeri tra le lingue corretto: codici
+# e conversioni scritte prima del numero), quindi si rifà anche lei.
 varianti:
-  - definizioni_generali
+  - lingue_tra_loro
 
 # Prove per variante: tre (le differenze sono di uno o due errori).
 ripetizioni: 3
@@ -28,12 +31,11 @@ modelli:
 insiemi: [piccolo, grande]
 
 # Sul grande: se_si_tiene (base + varianti che si tengono sul piccolo), sempre, mai.
-# 26-11 sera: sempre, perché `definizioni_generali` serve soprattutto sul grande (il falso
-# errore del ciclo vero 2d724fba) e sul piccolo può perdere gli errori trovati per il motivo
-# sbagliato.
+# 26-11 sera: sempre. `lingue_tra_loro` sui cicli veri può dare ERRATO dove una lingua
+# traduce liberamente: si vede solo sul grande.
 grande: sempre
 
-# Tetto di spesa della campagna, in dollari. Stima del 26-11 sera: circa 0,20 $ a prova sul
-# piccolo e 0,25 $ sul grande, per base e variante; in tutto circa 3 $. Arrivata
+# Tetto di spesa della campagna, in dollari. Il 26-11 sera 12 prove sono costate 2,77 $.
+# Con `lingue_tra_loro` (una sessione corta in più per operazione) circa 3,5 $. Arrivata
 # al tetto la campagna si ferma; rilanciata, riparte da dove era.
 massimo_dollari: 10

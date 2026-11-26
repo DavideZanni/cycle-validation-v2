@@ -9,7 +9,7 @@ in `DOCUMENTAZIONE.md`.
 
 ---
 
-## In breve (26-11-2026, sera)
+## In breve (26-11-2026, sera tardi)
 
 | Domanda | Risposta |
 |---|---|
@@ -19,8 +19,10 @@ in `DOCUMENTAZIONE.md`.
 | **Cosa si è scoperto il 25-11** | 22 dei 29 errori mai visti per il modello erano su operazioni il cui task **non è nella conoscenza** (WARNING `FONTE_ASSENTE`): nessuno poteva trovarli. Dal 26-11 le copie cieche dei tipi del modello vanno solo su operazioni confrontabili. Sulle 7 confrontabili `tutto_insieme` ne trovava 5 |
 | **Il limite di oggi** | **il modello aggiunge poco**: dei 14 errori stabili del piccolo, 13 li trova il codice (lingue, task inesistente); il modello ne trova stabilmente 1, più 5ff17062 050 (errore vero, P9) e f355dc3c 050 (4 prove su 6). Quasi tutti i mancati sono `EVIDENZA_NON_TROVATA` (7 per ciclo): il passo giusto del manuale non è nel testo che il modello riceve. Serve la conoscenza che manca (manuale del motore, REPAIR) e `fonte_ispezione` |
 | **Cosa si è scoperto il 26-11 sera** | Copilot ha guardato gli ERRATO del grande: 4 sono errori veri, 1 è un falso errore. **895167b9** non è un ciclo vero ma una copia modificata (come 5ff17062): 4 errori, ora in lista. **2d724fba 050** è un falso errore su un ciclo vero, con la stessa causa della P7: il ciclo dice «4 volte» (manuale del motore), la v2 confronta con la definizione **generica** di «3 volte» dell'SPM. La stessa causa fa trovare 3 errori veri **per il motivo sbagliato** (895167b9 010 e 030, 5ff17062 050): il conteggio degli errori trovati è un po' ottimista. Poi Copilot ha trovato tutte le copie modificate della lista: in più **22f586bb** (dalla stampa giusta **737dec71**, con gli stessi 4 errori di 895167b9, che è la stessa con il serial nella 005). Le altre copie erano già in lista |
+| **La campagna del 26-11 sera** | base contro `definizioni_generali`, 3 prove, piccolo (29 cicli e copie, 35 errori) e grande (23 cicli, 20 errori): base 15 su 35 e 10 su 20 stabili, `definizioni_generali` 14 e 8: **non si tiene**. Perde proprio gli errori trovati per il motivo sbagliato (5ff17062 050, 895167b9 030) e non trova quelli giusti (negazioni e materiale cambiati in una lingua: `EVIDENZA_NON_TROVATA`). 0 falsi errori per tutte e due; 2,77 $ in tutto |
+| **Cosa si è scoperto dalla campagna** | (1) il controllo dei numeri tra le lingue trovava ancora 1 su 5 copie «numero in una lingua»: non confrontava i codici (part number) e perdeva il numero vicino a una conversione scritta prima («248 °F (120 °C)»). **Corretto** nel codice, con un test che prova le copie una per una. (2) Le negazioni, i limiti e i materiali cambiati in una lingua il modello li cerca solo nel manuale: se il passo giusto non c'è li perde (22f586bb, DR senza serial: tutte e 4 `FONTE_ASSENTE`). Le due lingue però si possono confrontare **tra loro**, senza manuale: variante `lingue_tra_loro` (I12) |
 | **Pronta per la produzione?** | non ancora: 0 falsi errori sulle stampe giuste, costo e tempo bassi, ma pochi errori nuovi trovati e un falso errore sistematico, anche su un ciclo vero (P7 e 2d724fba: si prova a toglierlo con `definizioni_generali`, poi `fonte_ispezione`, sezione 7.3). Sul PC circa 8 WARNING per ciclo vengono dalle targhe (Redshift non raggiungibile): in produzione non ci sono |
-| **Prossimo passo** | campagna: la base (con I10 e la lista nuova degli errori noti) contro `definizioni_generali` (I11), piccolo e grande. L'ingestion dopo. Poi `fonte_ispezione` (I8) dopo l'ingestion del manuale del motore e la regola della scheda (I9) (sezione 8) |
+| **Prossimo passo** | campagna: la base nuova (controllo dei numeri corretto, I13) contro `lingue_tra_loro` (I12), piccolo e grande, stesse copie cieche (seme 2) per vedere se le copie «numero in una lingua» passano da 1 a 5 su 5. Poi l'ingestion, `fonte_ispezione` (I8) e la regola della scheda (I9) (sezione 8) |
 
 ---
 
@@ -316,7 +318,8 @@ la variante `sonnet` resta per le prove a mano.
 | `elementi_e_lingue` (25-11; **scelta migliore, nella base dal 26-11**) | `elementi_uno_per_uno` e `lingue_separate` insieme | se le due trovano errori diversi, insieme ne trovano di più | nessuno |
 | `tutto_insieme` (25-11; **22 stabili, mai visti 5 su 29; scartata per il costo, ×2,2 la base vecchia**; dal 26-11 è uguale a `seconda_ricerca`) | le tre insieme: elementi, lingue, seconda ricerca | come si guarda la descrizione e dove si cerca nel manuale sono due cose diverse: possono sommarsi | nessuno |
 | `fonte_ispezione` (I8, **da scrivere**: P7 e P8 chiuse il 26-11) | per le operazioni di controllo e ispezione, tra le fonti anche la **sezione d'ispezione del manuale del motore citato in testata**; per le operazioni che non citano un task, i task della **prima riga di note** del ciclo | P7: la stampa giusta 04ecaabe op. 050 dice «4 volte» come il manuale del motore, la v2 confronta con il task SPM («3 volte») e dà ERRATO (14 prove su 18 con Haiku): è un **falso errore**, che succederebbe anche sui cicli veri. P8: operazioni senza task che oggi escono WARNING. Quando c'è, 04ecaabe 050 esce dall'attesa: un ERRATO lì conta come falso errore | medio |
-| `definizioni_generali` (I11, **scritta il 26-11 sera, da provare**) | nella domanda al modello: le **definizioni generali** di un manuale di pratiche standard (per esempio «indicazione lineare = lunghezza almeno 3 volte la larghezza») valgono solo dove non ci sono limiti specifici. Se l'unica differenza è con una di queste: `non_verificabile` (WARNING), non `contraddetto`. Resta `contraddetto` con un limite specifico o con una lingua diversa dall'altra (`agent.general_definitions_note`) | i falsi errori «4 volte contro 3 volte»: 04ecaabe 050 (P7) e il ciclo vero 2d724fba 050. Obbliga il modello a cercare il motivo vero (5ff17062 050: la negazione tolta in inglese, vista solo in 2 prove su 6). Non serve l'ingestion. Rischio: perdere gli errori trovati per il motivo sbagliato (è la misura onesta) o dire `non_verificabile` su un numero cambiato davvero (copie «numero del manuale», limite invertito) | piccolo |
+| `definizioni_generali` (I11, 26-11 sera; **non si tiene**: 14 contro 15 sul piccolo, 8 contro 10 sul grande) | nella domanda al modello: le **definizioni generali** di un manuale di pratiche standard (per esempio «indicazione lineare = lunghezza almeno 3 volte la larghezza») valgono solo dove non ci sono limiti specifici. Se l'unica differenza è con una di queste: `non_verificabile` (WARNING), non `contraddetto`. Resta `contraddetto` con un limite specifico o con una lingua diversa dall'altra (`agent.general_definitions_note`) | i falsi errori «4 volte contro 3 volte»: 04ecaabe 050 (P7) e il ciclo vero 2d724fba 050. Obbliga il modello a cercare il motivo vero (5ff17062 050: la negazione tolta in inglese, vista solo in 2 prove su 6). Non serve l'ingestion. Rischio: perdere gli errori trovati per il motivo sbagliato (è la misura onesta) o dire `non_verificabile` su un numero cambiato davvero (copie «numero del manuale», limite invertito) | piccolo |
+| `lingue_tra_loro` (I12, **scritta il 26-11 sera, da provare**) | per ogni operazione scritta in due lingue una sessione corta chiede al modello se l'italiano e l'inglese danno le stesse istruzioni, **senza manuale**. `diverse` (negazione o divieto in una lingua sola, limite al contrario, materiale, pezzo, lavorazione, valore o codice diversi) con le parole copiate e ritrovate dal codice nelle due lingue, confermato come gli altri ERRATO (G1): ERRATO `INCOERENZA_LINGUE` (`agent.compare_languages`) | le copie cieche `negazione_una_lingua` (1 su 2, il mancato `EVIDENZA_NON_TROVATA`) e tutti gli errori «in una lingua sola» quando il passo del manuale non arriva al modello o non c'è (22f586bb, DR senza serial: 4 errori `FONTE_ASSENTE`; 895167b9 050 e 060; 5ff17062 050). È una regola generale: le due lingue devono dire la stessa cosa, sempre. Rischio: ERRATO sui cicli veri dove una lingua traduce liberamente (si guarda sul grande); costo +1 sessione corta per operazione | medio |
 | `scheda_processi_speciali` (I9, **da scrivere**: P6 chiusa il 26-11) | un'operazione di processo speciale (lubrificante secco, rivestimenti, attacco chimico, liquidi penetranti) senza scheda: WARNING «scheda forse mancante», mai ERRATO. Le altre operazioni senza scheda restano come oggi | non cambia gli errori trovati (c5ff3cd6 030 resta in attesa: è un WARNING, non un ERRATO); è una regola per la produzione. Rischio: WARNING in più sui cicli veri, da guardare sul grande | piccolo |
 | `numeri_manuale` (I4, è H12; **rimandata**) | confronta i numeri e le classi della descrizione con quelli del passo del manuale. Alla sessione passa le differenze da guardare; se tutto coincide, CORRETTO senza modello | numeri cambiati in tutte e due le lingue; 7 errori noti su 10 sono numeri, classi o codici; meno sessioni | medio |
 
@@ -412,14 +415,17 @@ Questi errori noti mancano per motivi che non dipendono dalla v2:
    veri (895167b9 in lista), 1 falso errore (2d724fba 050, come la P7); scritta
    `definizioni_generali` (I11); tutte le copie modificate della lista (22f586bb e 737dec71 in
    lista);
-8. 👉 campagna base (con I10 e la lista nuova) contro `definizioni_generali`, piccolo e grande;
-   poi l'ingestion dei manuali che mancano (nuova fotografia, COPILOT sezione 5);
-9. `fonte_ispezione` (I8, P7 e P8, dopo l'ingestion) e `scheda_processi_speciali` (I9, P6),
+8. ✅ **26-11 sera:** campagna base contro `definizioni_generali`: non si tiene. Corretto il
+   controllo dei numeri tra le lingue (I13); scritta `lingue_tra_loro` (I12);
+9. 👉 prove archiviate; campagna base nuova (I13) contro `lingue_tra_loro`, piccolo e grande,
+   stesse copie cieche (seme 2); poi l'ingestion dei manuali che mancano (nuova fotografia,
+   COPILOT sezione 5);
+10. `fonte_ispezione` (I8, P7 e P8, dopo l'ingestion) e `scheda_processi_speciali` (I9, P6),
    poi campagna;
-10. le migliorie scelte sui tipi «modello» trovati peggio (dalla tabella per tipo) e il
+11. le migliorie scelte sui tipi «modello» trovati peggio (dalla tabella per tipo) e il
    gruppo nascosto (con il seme 2 le copie del modello sono solo 5);
-11. `numeri_manuale`, solo dopo aver tolto dal confronto le copie che troverebbe per costruzione;
-12. tempo e costo (7.4). Da riguardare qui `seconda_ricerca`: con la lista nuova sul grande
+12. `numeri_manuale`, solo dopo aver tolto dal confronto le copie che troverebbe per costruzione;
+13. tempo e costo (7.4). Da riguardare qui `seconda_ricerca`: con la lista nuova sul grande
     trovava un errore vero in più della base (895167b9 060, 3 prove su 3 contro 0), ma costa
     2,1 volte.
 
@@ -473,6 +479,8 @@ Ogni miglioria ha un codice (Id) che si usa nei documenti e nel codice.
 | I5 + I6 | (26-11-2026) **nella base**: `separate_languages` e `itemized_check` accesi di default (campagna del 25-11, variante `elementi_e_lingue`) |
 | I7 | (25-11-2026) `seconda_ricerca`: dopo un «non verificabile», una seconda sessione con Grep e Read in tutti i documenti del ciclo (`agent.search_when_unverifiable`). Spenta nella base; da provare sulla base nuova |
 | I11 | (26-11-2026 sera) `definizioni_generali`: una differenza solo con una definizione generale del manuale di pratiche standard dà `non_verificabile`, non `contraddetto` (`agent.general_definitions_note`, `agent/prompt.py`). Spenta nella base; da provare |
+| I12 | (26-11-2026 sera) `lingue_tra_loro`: il modello confronta le due lingue tra loro, senza manuale; una differenza confermata con le citazioni ritrovate è ERRATO `INCOERENZA_LINGUE` (`agent.compare_languages`, `checks/operation.py`). Spenta nella base; da provare |
+| I13 | (26-11-2026 sera) controllo dei numeri tra le lingue (`checks/languages.py`): i codici (part number) si confrontano come elenco; di due numeri vicini che sono uno la conversione dell'altro resta quello che c'è anche nell'altra lingua (anche con la conversione scritta prima, «248 °F (120 °C)»); due lingue con gli stessi numeri tranne uno. Un test prova che ogni copia cieca «numero in una lingua» si trova. **Nella base** (è un controllo del codice) |
 | I10 | (26-11-2026) controllo delle due lingue: una conversione scritta in una lingua sola («0.38 MM (0.015 IN)») non sposta più l'allineamento dei numeri (`checks/languages.py`). Sul piccolo del 26-11 le copie «numero in una lingua» trovate erano 1 su 5 (il 25-11 4 su 5): la causa è un'ipotesi, si verifica alla prossima campagna |
 | — | (26-11-2026) copie cieche dei tipi del modello solo su operazioni confrontabili (`blind.comparable`); nel riepilogo la tabella «ERRATO da verificare» (ciclo, operazione, in quante prove per variante, senza testo); regola delle prove vecchie non valide corretta (solo zero token) |
 | — | (25-11-2026) prova in cui il modello non ha risposto (accesso AWS scaduto): non conta, la campagna si ferma con «il modello non ha risposto» e al lancio dopo la toglie e la rifà (`Trial.unusable`). Il primo guasto si stampa senza ARN né numeri di account |
@@ -765,3 +773,47 @@ sola dalle prove mancanti. Spesa 1,53 $ per le ultime 3 prove; in tutto circa 3 
 | 2026-11-26 | come sopra | `seconda_ricerca` | stabili 14 (15, 14, 15); mai visti 1 su 5; 0 falsi; 13,1 WARNING | 0,0140 $ (×1,9) | 21 s (1 min 02 s) | si tiene sul piccolo (solo WARNING -1,6) | stessi errori della base: l'ipotesi «come `tutto_insieme`, 22 e 5» non si è avverata |
 | 2026-11-26 | campagna, Haiku, grande (23 cicli), 3 prove | `base` | 7 su 10 stabili (7, 7, 8); 3-4 da verificare; precisione 64%; 19,7 WARNING | 0,0106 $, 0,23-0,25 $ a prova | 14 s (55 s) | riferimento | gli ERRATO da verificare vanno guardati (Copilot, COPILOT sezione 1) |
 | 2026-11-26 | come sopra | `seconda_ricerca` | 7 su 10 (7, 8, 8); 4-5 da verificare (895167b9 060 in più); 18,9 WARNING | 0,0221 $ (×2,1) | 26 s (1 min 14 s) | **scartata: costo** | sui cicli veri la seconda sessione parte spesso; non trova errori in più. Chiusa: si riprende solo se la conoscenza cambia molto |
+
+**26-11 sera (campagna Haiku, 3 prove per variante; base del 26-11 con I10; copie cieche del
+seme 2; lista nuova degli errori noti: 14 cicli noti, 20 errori che contano).** Dalle 14:31
+alle 15:39, 12 prove, 2,77 $.
+
+- **Piccolo** (29 cicli e copie; errori da trovare 35: visti 20, mai visti per il modello 5,
+  codice 10). Base 15 stabili (19, 16, 17 trovati), `definizioni_generali` 14 (14, 14, 15). Visti
+  trovati sempre da tutte e due: 298bc28e 005, 38960731 050, 5ff17062 030, 8d3c673c 140,
+  c5ff3cd6 040, e9b74c84 025, f355dc3c 030, **tutti con `INCOERENZA_LINGUE`** (il codice).
+  5ff17062 050: base 3 su 3, `definizioni_generali` 0 su 3 (era trovato per il motivo
+  sbagliato). 895167b9 010 e 030: 2 prove su 6, instabili. Mai: 22f586bb 010, 030, 050, 060
+  (`FONTE_ASSENTE`: DR senza serial, la v2 non sa quali documenti usare), 298bc28e 035,
+  5ff17062 010, 895167b9 050 e 060, f355dc3c 010 (`EVIDENZA_NON_TROVATA`). f355dc3c 050 2 su 6
+  (solo base).
+- **Mai visti per tipo** (ultima base): limite invertito 0 su 1, negazione in due lingue 0 su 1,
+  numero del manuale 0 su 1, negazione in una lingua 1 su 2 (mancati `EVIDENZA_NON_TROVATA`);
+  codice: task inesistente 5 su 5, **numero in una lingua ancora 1 su 5** (`FONTE_ASSENTE` 3,
+  `GIUDIZIO_INSTABILE` 1): I10 non bastava. Provando le copie del codice su descrizioni di
+  esempio: il controllo non confrontava i codici (part number di 5 cifre o più, che le copie
+  cambiano) e perdeva il numero vicino a una conversione scritta prima («248 °F (120 °C)»).
+  Corretto (I13).
+- **WARNING per ciclo senza errori noti** (ultima base, piccolo): 7,8 `ERRORE_TECNICO` (targhe),
+  5,2 `EVIDENZA_NON_TROVATA`, 2,0 `FONTE_ASSENTE`, 0,2 `DR_NON_VERIFICATA`.
+- **Grande** (23 cicli, 20 errori). Base 10 stabili (10, 10, 11), `definizioni_generali` 8 (8,
+  8, 8): perde 5ff17062 050 e 895167b9 030, tutti e due trovati per il motivo sbagliato.
+  895167b9 010 qui 6 su 6 (sul piccolo 2 su 6: lo stesso PDF, giudizio instabile). 0 falsi
+  errori. ERRATO da verificare: solo 895167b9 005 (il serial aggiunto; base 1 su 3 sul grande,
+  `definizioni_generali` 1 su 3 sul piccolo e 2 su 3 sul grande): da chiedere a Copilot.
+- **In attesa**: 04ecaabe 050 ERRATO in 2 prove su 6 sul piccolo e 1 su 6 sul grande; 2d724fba
+  050 in 2 su 6 e 2 su 6. Il riepilogo non dice di quale variante: la nota non toglie del tutto
+  il falso errore, o lo toglie solo a volte.
+- **Decisione:** `definizioni_generali` non si tiene; la base resta. **Lezione:** dire al modello
+  che cosa non è un errore toglie anche gli errori veri trovati per il motivo sbagliato, e non
+  gli fa trovare il motivo giusto. Il motivo giusto (una negazione, un limite, un materiale
+  cambiati in una lingua) non dipende dal manuale: si vede confrontando le due lingue tra loro.
+  Da qui `lingue_tra_loro` (I12). Il controllo dei numeri del codice ora prende anche codici e
+  conversioni (I13): la base cambia, le prove si archiviano.
+
+| Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
+|---|---|---|---|---|---|---|---|
+| 2026-11-26 sera | campagna, Haiku, piccolo (29 cicli e copie, seme 2, 14 cicli noti), 3 prove | `base` | stabili 15 su 35 (19, 16, 17); mai visti 1 su 5; 0 falsi; 0 da verificare; precisione 100%; 15,2 WARNING | 0,0078 $ a ciclo, 0,22-0,23 $ a prova | 16 s (1 min 24 s) | riferimento | il primo giro con la lista verificata da Copilot |
+| 2026-11-26 sera | come sopra | `definizioni_generali` | stabili 14 (14, 14, 15); mai visti 1 su 5; 0 falsi; 1 da verificare; 15,5 WARNING | 0,0074 $ | 12 s (34 s) | **non si tiene** | perde 5ff17062 050 (trovato per il motivo sbagliato); più veloce perché meno ERRATO da confermare |
+| 2026-11-26 sera | campagna, Haiku, grande (23 cicli), 3 prove | `base` | stabili 10 su 20 (10, 10, 11); 0 falsi; 1 da verificare (895167b9 005); precisione 91%; 19,9 WARNING | 0,0107 $, 0,23-0,26 $ a prova | 15 s (1 min 19 s) | riferimento | |
+| 2026-11-26 sera | come sopra | `definizioni_generali` | stabili 8 (8, 8, 8); 0 falsi; 1 da verificare; precisione 89%; 20,2 WARNING | 0,0102 $ | 13 s (44 s) | **non si tiene** | perde 5ff17062 050 e 895167b9 030 |

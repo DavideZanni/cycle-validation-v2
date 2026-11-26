@@ -1107,6 +1107,13 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   14 cicli noti, 20 errori che contano. Le altre copie erano già in lista. Copilot leggeva un
   elenco vecchio (diceva che 5ff17062 ha solo la 030): il PC non era aggiornato. L'utente fa
   l'ingestion dopo la campagna.
+- **26-11 sera, campagna base contro `definizioni_generali`** (14:31-15:39, 2,77 $; foto del
+  report e dei due riepiloghi leggibili): la variante non si tiene (14 contro 15 sul piccolo, 8
+  contro 10 sul grande). Copie «numero in una lingua» ancora 1 su 5: il controllo non
+  confrontava i codici e perdeva i numeri vicino a una conversione scritta prima: corretto
+  (I13, nella base). 22f586bb è un DR senza serial: FONTE_ASSENTE su tutte le operazioni.
+  Scritta `lingue_tra_loro` (I12). Prossimo: domanda a Copilot su 895167b9 005 (unico ERRATO da
+  verificare), Aggiornare, archiviare, campagna base contro `lingue_tra_loro`.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 
