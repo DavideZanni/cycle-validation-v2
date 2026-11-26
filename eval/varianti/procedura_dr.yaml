@@ -1,0 +1,7 @@
+nome: procedura_dr
+descrizione: nei cicli DR la procedura della D.R. (la deroga) va al modello insieme ai task trovati, con una nota che per quel pezzo vale più del manuale (oggi arriva solo se nessun task si trova)
+ipotesi: "26-11 sera, Copilot: l'unico ERRATO da verificare del grande (895167b9 005) è un falso errore. Il manuale dice di sostituire il pezzo, la deroga citata nella stessa 005 autorizza la raccordatura, ma la v2 non la dà al modello. Anche il «4 volte» di 2d724fba 050 viene dalla D.R.; e 895167b9 010 e 030 erano trovati per il motivo «il manuale vieta la raccordatura»"
+atteso: "nessun ERRATO su 895167b9 005 e su 2d724fba 050 (in attesa); falsi errori 0; errori stabili uguali o al massimo uno in meno (quelli trovati per il motivo sbagliato nei DR); mai visti non meno della base; costo per ciclo al massimo +30% (più testo solo nei DR)"
+base: baseline
+agent:
+  dr_procedure_always: true

@@ -108,7 +108,7 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 |---|---|---|---|
 | ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, copie cieche | 24-11 |
 | ✅ | **2. Prima campagna** | tutte le impostazioni, Haiku e Sonnet | 24-11 sera |
-| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` e `definizioni_generali` non entrano; corretto il controllo dei numeri tra le lingue. Adesso: `lingue_tra_loro`. Dopo: `fonte_ispezione`, regola della scheda | **adesso** |
+| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` e `definizioni_generali` non entrano; corretto il controllo dei numeri tra le lingue. Adesso: `lingue_tra_loro` e `procedura_dr`. Dopo: `fonte_ispezione`, regola della scheda | **adesso** |
 | ⬜ | **4. Tempo e costo** | spendere meno e fare prima, con gli stessi errori trovati | dopo la 3 |
 | ⬜ | **5. Chiusura** | prova finale con copie cieche nuove, prove dal frontend, salvare | dopo la 4 |
 | ⬜ | **6. QA** | pubblicare nell'ambiente di prova | alla fine |
@@ -128,40 +128,24 @@ codice:
 - le negazioni, i limiti e i materiali cambiati in una lingua sola si possono trovare
   confrontando le due lingue **tra loro**, senza manuale: nuova variante `lingue_tra_loro`.
 
+Poi Copilot ha detto che l'unico ERRATO da verificare (895167b9 005) è un falso errore: il
+manuale manda a sostituire il pezzo, ma la deroga della D.R. citata nella 005 autorizza la
+raccordatura, e la v2 non la dava al modello. Nuova variante `procedura_dr`.
+
 Dettagli: `MIGLIORIE.md`, «In breve» e sezione 13.
 
 | | Passo | Chi | Costo · tempo |
 |---|---|---|---|
 | ✅ | **Campagna base contro `definizioni_generali`** (26-11, 14:31-15:39) | tu | 2,77 $ |
-| 👉 | **1 · Una domanda breve a Copilot** (prima di archiviare) | tu | gratis · 5 minuti |
-| ⬜ | **2 · Aggiornare e archiviare** | tu | gratis · 10 minuti |
-| ⬜ | **3 · Campagna**: base nuova contro `lingue_tra_loro` | tu | circa 3,5 $ · 1-2 ore |
+| ✅ | **1 · Domanda a Copilot su 895167b9 005** (16:20): falso errore, la deroga della D.R. non arrivava al modello → variante `procedura_dr` | tu | — |
+| 👉 | **2 · Aggiornare e archiviare** | tu | gratis · 10 minuti |
+| ⬜ | **3 · Campagna**: base nuova contro `lingue_tra_loro` e `procedura_dr` | tu | circa 5 $ · 2-3 ore |
 | ⬜ | **4 · Ingestion** (quando puoi) | tu | — |
 | ⬜ | **5 · `fonte_ispezione` e regola della scheda** (dopo l'ingestion) | Claude | — |
 
 ---
 
-**👉 Passo 1 · Una domanda breve a Copilot** (modalità **Ask**: nelle ultime foto era su
-*Agent*, cambialo in basso nella chat prima di incollare)
-
-Sul grande l'unico ERRATO fuori dalla lista è sull'operazione 005 di 895167b9, quella dove
-nella copia è stato aggiunto il serial. Serve sapere se è giusto. Va chiesto **prima di
-archiviare** (le prove sono ancora in `runs\prove-grande`). Incolla in Copilot:
-
-> Modalità Ask, non modificare niente. Rispondi solo con impronte (le prime 8 cifre dello
-> SHA-256 del PDF, in minuscolo), numeri di operazione e parole: niente nomi di file, codici di
-> manuali, serial o part number, niente testo del ciclo o del manuale. Nelle prove di oggi in
-> `runs/prove-grande` (file `prestazioni.md`) la v2 dà ERRATO sull'operazione 005 del ciclo
-> 895167b9. 1) Con quale motivo (per esempio CONTRADDIZIONE o INCOERENZA_LINGUE) e che cosa
-> dice la spiegazione, con parole tue? 2) Confrontando la 005 di 895167b9 con la 005 di
-> 22f586bb e con il documento citato: l'ERRATO è giusto (nella 005 c'è davvero qualcosa che non
-> va) oppure è un falso errore? 3) Il serial è scritto in tutte e due le lingue o in una sola?
-
-- **Mandami:** la risposta (foto della chat).
-
----
-
-**⬜ Passo 2 · Aggiornare e archiviare**
+**👉 Passo 2 · Aggiornare e archiviare**
 
 1. **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)).
 2. **Archiviare** le prove (sezione [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove),
@@ -175,15 +159,17 @@ una lingua» passano da 1 su 5 a 5 su 5. Non serve rifare 3.2 e 3.3.
 
 ---
 
-**⬜ Passo 3 · Campagna: base nuova contro `lingue_tra_loro`**
+**⬜ Passo 3 · Campagna: base nuova contro `lingue_tra_loro` e `procedura_dr`**
 
 Prima il piano, poi la campagna (sezione [3.5](#35-la-campagna-tutte-le-prove-in-automatico)).
-Il grande si fa per tutte e due (`grande: sempre`): sui cicli veri si vede se la variante dà
-ERRATO dove una lingua traduce liberamente.
+Il grande si fa per tutte (`grande: sempre`): sui cicli veri si vede se `lingue_tra_loro` dà
+ERRATO dove una lingua traduce liberamente, e se `procedura_dr` toglie i falsi errori dei DR.
 
-- **Il piano deve dire:** piccolo 29 e grande 23, `base` e `lingue_tra_loro`, `3 da fare` per
-  ognuna. Se la base dice `già fatte`, l'archivio non è andato: fermati e mandami la foto.
-- **Costo:** circa 3,5 $ (la variante fa una sessione corta in più per ogni operazione).
+- **Il piano deve dire:** piccolo 29 e grande 23, `base`, `lingue_tra_loro` e `procedura_dr`,
+  `3 da fare` per ognuna. Se la base dice `già fatte`, l'archivio non è andato: fermati e
+  mandami la foto.
+- **Costo e tempo:** circa 5 $ e 2-3 ore (18 prove; `lingue_tra_loro` fa una sessione corta in
+  più per ogni operazione).
 - **Mandami:** la riga finale, le foto di `runs\campagna.md` e dei due `riepilogo.md`, come
   oggi. Sono andate bene: si leggono tutte.
 

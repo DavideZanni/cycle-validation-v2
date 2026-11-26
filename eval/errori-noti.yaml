@@ -54,7 +54,10 @@ cicli:
   895167b9:
     # 26-11 (Copilot sulle prove del grande): era tra i cicli veri, ma è una copia modificata:
     # 22f586bb con il serial aggiunto nella 005 (la 005 non è un errore). 010 e 030 la v2 le
-    # trovava per il motivo sbagliato, 050 la dava per corretta
+    # trovava per il motivo sbagliato, 050 la dava per corretta. 26-11 sera (Copilot): l'ERRATO
+    # sulla 005 è un falso errore (il manuale manda a sostituire, la deroga citata nella 005
+    # autorizza la raccordatura e la v2 non la dà al modello: variante `procedura_dr`). Resta
+    # fuori dalla lista: esce tra gli ERRATO da verificare, per variante
     errori:
       "010": un limite cambiato in una lingua (minimo invece di massimo)
       "030": un numero di documento cambiato; in una lingua una frase aggiunta

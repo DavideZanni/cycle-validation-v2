@@ -1114,6 +1114,12 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   (I13, nella base). 22f586bb è un DR senza serial: FONTE_ASSENTE su tutte le operazioni.
   Scritta `lingue_tra_loro` (I12). Prossimo: domanda a Copilot su 895167b9 005 (unico ERRATO da
   verificare), Aggiornare, archiviare, campagna base contro `lingue_tra_loro`.
+- **26-11 sera (16:20), Copilot su 895167b9 005** (di nuovo in Agent con «Allow all»): falso
+  errore. CONTRADDIZIONE perché il manuale manda a sostituire il pezzo, ma la deroga citata
+  nella stessa 005 autorizza la raccordatura; la v2 non aveva la procedura della D.R. (arriva
+  solo quando nessun task si trova). Il serial è solo nella parte inglese. Scritta
+  `procedura_dr` (I14), nella stessa campagna di `lingue_tra_loro`. Il riepilogo ora conta gli
+  ERRATO in attesa per variante.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

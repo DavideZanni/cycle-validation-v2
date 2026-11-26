@@ -171,6 +171,15 @@ GENERAL_DEFINITIONS_NOTE = (
 )
 
 
+DR_PROCEDURE_NOTE = (
+    "Il ciclo è una **D.R.** (deroga): tra i testi di riferimento c'è la procedura della D.R. "
+    "per questo pezzo, che vale più del manuale. Se il manuale vieta, limita o manda a "
+    "sostituire qualcosa che la procedura della D.R. autorizza o descrive in altro modo, vale "
+    "la procedura della D.R.: non è una contraddizione. Resta `contraddetto` se la descrizione "
+    "contraddice la procedura della D.R., o il manuale dove la D.R. non dice niente."
+)
+
+
 def _header(
     cycle: Cycle,
     operation: Operation,
@@ -179,6 +188,7 @@ def _header(
     languages: tuple[str, str] | None = None,
     itemized: bool = False,
     general_definitions: bool = False,
+    dr_procedure: bool = False,
 ) -> list[str]:
     lines = [
         f"Operazione {operation.operation_number}",
@@ -191,6 +201,8 @@ def _header(
         lines.append(ITEMS_NOTE)
     if general_definitions:
         lines.append(GENERAL_DEFINITIONS_NOTE)
+    if dr_procedure:
+        lines.append(DR_PROCEDURE_NOTE)
     if operation.task_codes:
         lines.append(f"Task code citati: {', '.join(operation.task_codes)}")
     if missing_tasks:
@@ -232,10 +244,13 @@ def build_operation_prompt(
     missing_tasks: Sequence[str] = (),
     languages: tuple[str, str] | None = None,
     second_search: bool = False,
+    dr_procedure: bool = False,
 ) -> str:
     """`languages`: le due parti della descrizione, se vanno giudicate separatamente
     (`AgentSettings.separate_languages`). `second_search`: è la seconda ricerca, nei documenti
-    interi, dopo un primo giudizio «non verificabile» (`AgentSettings.search_when_unverifiable`)."""
+    interi, dopo un primo giudizio «non verificabile» (`AgentSettings.search_when_unverifiable`).
+    `dr_procedure`: tra i testi c'è la procedura della D.R. insieme ai task
+    (`AgentSettings.dr_procedure_always`)."""
     lines = _header(
         cycle,
         operation,
@@ -244,6 +259,7 @@ def build_operation_prompt(
         languages,
         itemized=settings.itemized_check,
         general_definitions=settings.general_definitions_note,
+        dr_procedure=dr_procedure,
     )
     if second_search:
         lines.append(SECOND_SEARCH_NOTE)

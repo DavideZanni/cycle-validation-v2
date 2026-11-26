@@ -12,10 +12,12 @@
 # 26-11 sera: `seconda_ricerca` scartata (stessi errori, costo 2,1 volte la base sul grande).
 # 26-11 sera: `definizioni_generali` scartata (14 contro 15 sul piccolo, 8 contro 10 sul
 # grande: perde gli errori trovati per il motivo sbagliato e non trova quelli giusti).
-# Ora `lingue_tra_loro`. La base è nuova (controllo dei numeri tra le lingue corretto: codici
-# e conversioni scritte prima del numero), quindi si rifà anche lei.
+# Ora `lingue_tra_loro` e `procedura_dr` (Copilot: 895167b9 005 è un falso errore, la deroga
+# della D.R. non arriva al modello). La base è nuova (controllo dei numeri tra le lingue
+# corretto: codici e conversioni scritte prima del numero), quindi si rifà anche lei.
 varianti:
   - lingue_tra_loro
+  - procedura_dr
 
 # Prove per variante: tre (le differenze sono di uno o due errori).
 ripetizioni: 3
@@ -32,10 +34,11 @@ insiemi: [piccolo, grande]
 
 # Sul grande: se_si_tiene (base + varianti che si tengono sul piccolo), sempre, mai.
 # 26-11 sera: sempre. `lingue_tra_loro` sui cicli veri può dare ERRATO dove una lingua
-# traduce liberamente: si vede solo sul grande.
+# traduce liberamente, e i falsi errori che `procedura_dr` deve togliere sono sul grande.
 grande: sempre
 
 # Tetto di spesa della campagna, in dollari. Il 26-11 sera 12 prove sono costate 2,77 $.
-# Con `lingue_tra_loro` (una sessione corta in più per operazione) circa 3,5 $. Arrivata
+# Con `lingue_tra_loro` (una sessione corta in più per operazione) e `procedura_dr` circa
+# 5 $. Arrivata
 # al tetto la campagna si ferma; rilanciata, riparte da dove era.
 massimo_dollari: 10

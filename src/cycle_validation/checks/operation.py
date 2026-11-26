@@ -37,7 +37,11 @@ from cycle_validation.agent.session import (
     SessionStatus,
 )
 from cycle_validation.checks.base import CheckContext, make_result
-from cycle_validation.checks.dr_recommendation import dr_documents, dr_tasks
+from cycle_validation.checks.dr_recommendation import (
+    DR_PROCEDURE_KIND,
+    dr_documents,
+    dr_tasks,
+)
 from cycle_validation.checks.languages import language_parts, number_mismatches
 from cycle_validation.checks.process_sheet import engine_family, treatment_for_family
 from cycle_validation.config import AgentSettings
@@ -124,17 +128,31 @@ def _facts(ctx: CheckContext, operation: Operation) -> list[str]:
     return facts
 
 
-def _locations(ctx: CheckContext, operation: Operation) -> tuple[TaskLocation, ...]:
+def _locations(
+    ctx: CheckContext, operation: Operation, settings: AgentSettings
+) -> tuple[TaskLocation, ...]:
     if ctx.profile.reference_mode == "document":
         documents = cited_documents(ctx.cycle, ctx.kb, ctx.profile.document_order)
         return tuple(whole_document(document) for document in documents)
-    return context_locations(
+    procedures = dr_documents(ctx.kb, ctx.selectors)
+    locations = context_locations(
         ctx.cycle,
         operation,
         ctx.kb,
         extra_tasks=dr_tasks(ctx.kb, ctx.selectors),
-        extra_documents=dr_documents(ctx.kb, ctx.selectors),
+        extra_documents=procedures,
     )
+    if settings.dr_procedure_always and locations:
+        # la procedura della D.R. anche quando i task si trovano: per quel pezzo vale di più
+        present = {item.document.key for item in locations}
+        locations += tuple(
+            whole_document(document) for document in procedures if document.key not in present
+        )
+    return locations
+
+
+def _has_dr_procedure(locations: Sequence[TaskLocation]) -> bool:
+    return any((item.document.kind or "").upper() == DR_PROCEDURE_KIND for item in locations)
 
 
 def _missing_tasks(ctx: CheckContext, operation: Operation, settings: AgentSettings) -> list[str]:
@@ -188,7 +206,7 @@ def plan_operation_checks(
             )
             continue
         try:
-            locations = _locations(ctx, operation)
+            locations = _locations(ctx, operation, settings)
             missing_tasks = _missing_tasks(ctx, operation, settings)
         except SourceUnavailableError as exc:
             immediate.append(
@@ -231,6 +249,7 @@ def plan_operation_checks(
                 if settings.separate_languages
                 else None
             ),
+            dr_procedure=settings.dr_procedure_always and _has_dr_procedure(locations),
         )
         request = SessionRequest(
             session_id=f"op-{index:03d}-{operation.operation_number}",

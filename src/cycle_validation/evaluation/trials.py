@@ -1194,13 +1194,25 @@ def render_summary(trials: Sequence[Trial]) -> str:
         "",
     ]
     if pending:
-        lines += ["| Ciclo | Op | Che cosa aspetta | Prove con ERRATO |", "|---|---|---|---|"]
+        # per variante, come gli ERRATO da verificare (26-11 sera: con il totale non si sapeva
+        # se `definizioni_generali` toglieva il falso errore della P7)
+        names = list(dict.fromkeys(t.name for t in trials))
+        lines += [
+            "| Ciclo | Op | Che cosa aspetta | "
+            + " | ".join(f"ERRATO {_cell(n)}" for n in names)
+            + " |",
+            "|---|---|---|" + "---|" * len(names),
+        ]
         for name, op, question in pending:
-            hits = sum(
-                any(f.op == op for c in t.cycles if c.fingerprint == name for f in c.pending)
-                for t in trials
-            )
-            lines.append(f"| {name} | {op} | {_cell(question)} | {hits} su {len(trials)} |")
+            cells = []
+            for variant in names:
+                runs = [t for t in trials if t.name == variant]
+                hits = sum(
+                    any(f.op == op for c in t.cycles if c.fingerprint == name for f in c.pending)
+                    for t in runs
+                )
+                cells.append(f"{hits} su {len(runs)}")
+            lines.append(f"| {name} | {op} | {_cell(question)} | {' | '.join(cells)} |")
     else:
         lines.append("Nessuna.")
     return "\n".join(lines) + "\n"

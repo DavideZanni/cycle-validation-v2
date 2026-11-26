@@ -448,6 +448,15 @@ dal manuale d'ispezione del motore o da una D.R. Se l'unica differenza è con un
 definizioni, il modello risponde `non_verificabile` (WARNING `EVIDENZA_NON_TROVATA`). Nasce dal
 «4 volte» del ciclo contro il «3 volte» generico dell'SPM (P7, e il ciclo vero 2d724fba).
 
+**Procedura della D.R. insieme ai task (`agent.dr_procedure_always`, spenta nella base;
+variante `procedura_dr`, 26-11 sera).** Nei cicli DR la procedura della D.R. (documenti
+`DR_PROC` delle recommendation applicabili, interi) si aggiunge ai testi trovati, non solo quando
+non se ne trova nessuno (`_locations` in `checks/operation.py`). Alla domanda si aggiunge una nota
+(`DR_PROCEDURE_NOTE`): la D.R. è una deroga e per quel pezzo vale più del manuale; se il manuale
+vieta o manda a sostituire qualcosa che la D.R. autorizza, non è una contraddizione. Nasce da
+895167b9 005 (Copilot, 26-11 sera): il manuale manda a sostituire il pezzo, la deroga citata
+nella stessa operazione autorizza la raccordatura, ma il modello non l'aveva.
+
 **Le due lingue tra loro (`agent.compare_languages`, spenta nella base; variante
 `lingue_tra_loro`, 26-11 sera).** Per ogni operazione scritta in due lingue (tranne quelle già
 ERRATO `INCOERENZA_LINGUE` per i numeri, senza descrizione o non confermate) una sessione corta
@@ -715,6 +724,7 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.search_when_unverifiable` | `false` | dopo un `non_verificabile`, una seconda sessione cerca in tutti i documenti citati dal ciclo, con i tool. Variante `seconda_ricerca` |
 | `agent.general_definitions_note` | `false` | nella domanda al modello: una differenza solo con una **definizione generale** del manuale di pratiche standard (per esempio «indicazione lineare = 3 volte la larghezza») dà `non_verificabile`, non `contraddetto`; resta `contraddetto` con un limite specifico o con una lingua diversa dall'altra. Variante `definizioni_generali` (26-11) |
 | `agent.compare_languages` | `false` | una sessione corta per ogni operazione scritta in due lingue: il modello confronta l'italiano e l'inglese **tra loro**, senza manuale. Una differenza (negazione, limite, materiale, valore) con le citazioni ritrovate e confermata è ERRATO `INCOERENZA_LINGUE`. Variante `lingue_tra_loro` (26-11 sera) |
+| `agent.dr_procedure_always` | `false` | nei cicli DR la procedura della D.R. va al modello insieme ai task trovati, con una nota: per quel pezzo vale più del manuale. Variante `procedura_dr` (26-11 sera) |
 | `agent.confirm_contradiction` | 2 | sessioni di conferma per ogni ERRATO del modello |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
 | `paths.*` | `config/profiles`, `prompts`, `data/knowledge`, `runs` | cartelle |
@@ -904,7 +914,8 @@ Un ciclo di `errori-noti.yaml` può avere `in_attesa` (operazione → che cosa a
 quell'operazione non si può giudicare. Un ERRATO lì non conta né come trovato né come falso
 errore; un errore noto lì non conta come mancato (è fuori dal totale dei visti). Si vede a parte
 (riga «ERRATO in attesa» nel report, sezione «In attesa di una risposta» nel riepilogo, con
-tutte le operazioni in attesa). Dal 24-11: op. 050 della stampa giusta `04ecaabe` (domanda P7),
+tutte le operazioni in attesa e, dal 26-11 sera, in quante prove di ogni variante c'è un
+ERRATO). Dal 24-11: op. 050 della stampa giusta `04ecaabe` (domanda P7),
 op. 030 di `c5ff3cd6` (scheda tolta, domanda P6), op. 040 di `f355dc3c` (serve un documento che
 non è nella conoscenza). I visti contati sono quindi 10.
 

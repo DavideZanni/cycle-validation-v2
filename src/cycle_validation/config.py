@@ -87,6 +87,13 @@ class AgentSettings(_Strict):
     # negazioni tolte in una lingua mancate con EVIDENZA_NON_TROVATA o FONTE_ASSENTE. Costa una
     # sessione corta per ogni operazione scritta in due lingue.
     compare_languages: bool = False
+    # Nei cicli DR la procedura della D.R. (la deroga, documenti DR_PROC delle recommendation
+    # applicabili) va al modello **insieme** ai task trovati, con una nota: per quel pezzo vale
+    # più del manuale. Oggi arriva solo se nessun task si trova. Variante `procedura_dr`
+    # (26-11-2026 sera): ERRATO su 895167b9 005 falso (il manuale manda a sostituire, la deroga
+    # citata nella 005 autorizza la raccordatura) e il «4 volte» di 2d724fba 050 che viene dalla
+    # D.R. (Copilot).
+    dr_procedure_always: bool = False
     # Una contraddizione (ERRATO) si conferma con altrettante sessioni uguali: resta ERRATO
     # solo se la ritrovano tutte, altrimenti WARNING GIUDIZIO_INSTABILE. Su un ciclo DR vero
     # lo stesso confronto dava ERRATO 3 volte su 6 (21-11-2026). Costa solo sugli ERRATO.

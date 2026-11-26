@@ -420,3 +420,27 @@ def test_the_summary_lists_the_errato_to_check_operation_by_operation(tmp_path: 
     assert "## ERRATO da verificare" in text
     assert "| aaaa1111 | errori | 010 | 1 su 2 |" in text
     assert "## ERRATO da verificare\n" in text and "Nessuno." in render_summary(trials[1:])
+
+
+def test_the_waiting_table_counts_the_errato_per_variant(tmp_path: Path) -> None:
+    """26-11 sera: con il solo totale non si sapeva quale variante dava l'ERRATO in attesa."""
+    path = tmp_path / "errori.yaml"
+    path.write_text(
+        KNOWN.replace(
+            '      "030": frase cambiata\n',
+            '      "030": frase cambiata\n    in_attesa:\n      "030": "domanda P7"\n',
+        ),
+        "utf-8",
+    )
+    known = load_known_errors(path)
+    with_errato = [_report("aaaa1111", ["030"]), _report("bbbb2222", [])]
+    without = [_report("aaaa1111", []), _report("bbbb2222", [])]
+    trials = [
+        build_trial(
+            name, datetime(2030, 1, 1, 9 + n), reports, [score_cycle(r, known) for r in reports]
+        )
+        for n, (name, reports) in enumerate((("base", with_errato), ("variante", without)))
+    ]
+    summary = render_summary(trials)
+    assert "| Ciclo | Op | Che cosa aspetta | ERRATO base | ERRATO variante |" in summary
+    assert "| aaaa1111 | 030 | domanda P7 | 1 su 1 | 0 su 1 |" in summary

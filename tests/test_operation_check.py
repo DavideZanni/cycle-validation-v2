@@ -615,3 +615,59 @@ def test_the_languages_prompt_has_both_texts_and_a_closed_schema() -> None:
     schema = languages_schema()
     assert schema["additionalProperties"] is False
     assert set(schema["required"]) == set(schema["properties"])
+
+
+# --- procedura della D.R. insieme ai task (`agent.dr_procedure_always`, `procedura_dr`) ---
+
+
+def _dr_ctx(tmp_path: Path) -> CheckContext:
+    from cycle_validation.kb.memory import IndexedKnowledgeBase
+    from cycle_validation.kb.port import DocumentInfo, DrRecommendation
+    from cycle_validation.resolve.dr import DrSelectors
+
+    path = tmp_path / "proc.md"
+    path.write_text("<!-- page 1 -->\nDEROGA DI PROVA\n1. Raccordare la zona.\n", "utf-8")
+    procedure = DocumentInfo(key="DR_PROC_77", path=path, code="DR-77", kind="DR_PROC")
+    task = memory_knowledge().find_task("MAN-DEMO-72", "72-00-01-110-001")
+    assert task is not None
+    kb = IndexedKnowledgeBase(
+        "v",
+        documents=[procedure, DOC_72],
+        tasks=[task],
+        dr_recommendations=[
+            DrRecommendation(
+                serial_number="SN-1",
+                conditions=(1,),
+                procedure="Repair",
+                reference="DR-77",
+                manual="DR_PROC_77",
+            )
+        ],
+    )
+    cycle = Cycle(
+        engine_model="GENX-1B",
+        sources=[Source(manual="MAN-DEMO-72", task="72-00-01-110-001", repair_code="R-01")],
+        operations=[op()],
+    )
+    return CheckContext(
+        cycle, kb, StaticMachineRegistry([]), profile("dr"), selectors=DrSelectors("SN-1", (1,))
+    )
+
+
+def test_the_dr_procedure_goes_with_the_found_tasks_only_in_its_variant(tmp_path: Path) -> None:
+    context = _dr_ctx(tmp_path)
+    jobs, _ = plan_operation_checks(context, SETTINGS, "s")
+    assert [item.document.key for item in jobs[0].locations] == ["MAN-DEMO-72"]
+    assert "**D.R.**" not in jobs[0].request.prompt
+    on = SETTINGS.model_copy(update={"dr_procedure_always": True})
+    jobs, _ = plan_operation_checks(context, on, "s")
+    assert [item.document.key for item in jobs[0].locations] == ["MAN-DEMO-72", "DR_PROC_77"]
+    assert "DEROGA DI PROVA" in jobs[0].request.prompt
+    assert "vale più del manuale" in jobs[0].request.prompt
+
+
+def test_without_a_dr_procedure_the_variant_changes_nothing() -> None:
+    on = SETTINGS.model_copy(update={"dr_procedure_always": True})
+    off_jobs, _ = plan_operation_checks(ctx([op()]), SETTINGS, "s")
+    on_jobs, _ = plan_operation_checks(ctx([op()]), on, "s")
+    assert on_jobs[0].request.prompt == off_jobs[0].request.prompt
