@@ -128,17 +128,17 @@ Per questo: le prove di adesso si **archiviano** e si fanno **copie cieche nuove
 
 | | Passo | Costo · tempo |
 |---|---|---|
-| 👉 | **1 · Aggiornare** | gratis · 2 minuti |
-| ⬜ | **2 · Controllare le impostazioni del PC** | gratis · 1 minuto |
-| ⬜ | **3 · Archiviare le prove** | gratis · 1 minuto |
-| ⬜ | **4 · Copie cieche nuove (seme 2)** | gratis · 5 minuti |
-| ⬜ | **5 · Accesso e piano** | gratis · 2 minuti |
-| ⬜ | **6 · La campagna** | circa 3 $ (tetto 10 $) · circa 2 ore |
+| ✅ | **1 · Aggiornare** | gratis · 2 minuti |
+| ✅ | **2 · Controllare le impostazioni del PC** | gratis · 1 minuto |
+| ✅ | **3 · Archiviare le prove** | gratis · 1 minuto |
+| ✅ | **4 · Copie cieche nuove (seme 2)** (26-11: 15 copie, 5 dei tipi del modello) | gratis · 5 minuti |
+| ✅ | **5 · Accesso e piano** (piccolo 25 cicli e copie) | gratis · 2 minuti |
+| 👉 | **6 · La campagna** | circa 2,5 $ (tetto 10 $) · circa 1 ora e 15 |
 | ⬜ | **7 · Il report** | gratis · 5 minuti |
 
 ---
 
-**👉 Passo 1 · Aggiornare**
+**✅ Passo 1 · Aggiornare**
 
 - **Copia** il blocco della sezione [2.1](#21-aggiornare-il-codice-sul-pc).
 - **Deve uscire:** `... passed`, **nessun** `failed`.
@@ -214,7 +214,7 @@ uv run cycle-validation eval campagna --piano
 
 ---
 
-**⬜ Passo 6 · La campagna** · circa 3 $ (tetto 10 $) · circa 2 ore
+**👉 Passo 6 · La campagna** · circa 2,5 $ (tetto 10 $) · circa 1 ora e 15
 
 ```powershell
 $env:UV_PYTHON = "3.14"
