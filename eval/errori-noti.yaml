@@ -15,8 +15,10 @@ cicli:
     errori:
       "030": scheda tolta
       "040": un numero cambiato (spessore)
+    # P6 (26-11): in un processo speciale senza scheda la regola dà WARNING «scheda forse
+    # mancante», mai ERRATO: l'errore resta fuori dal conteggio degli ERRATO
     in_attesa:
-      "030": "domanda P6: quando un'operazione deve avere per forza una scheda"
+      "030": "P6: scheda mancante = WARNING, non ERRATO (regola da scrivere)"
   f355dc3c:
     errori:
       "010": tre numeri cambiati
@@ -29,8 +31,15 @@ cicli:
     errori:
       "050": un numero cambiato (solo in una lingua)
   5ff17062:
+    # P9 (26-11, verificato con `confronta`): è la stampa giusta 04ecaabe con quattro
+    # operazioni cambiate, come f355dc3c
     errori:
+      "010": tre numeri cambiati
       "030": numeri cambiati in una lingua, parole cambiate nell'altra
+      "040": la classe cambiata in due punti
+      "050": la frase dei limiti sostituita; in inglese due negazioni tolte
+    in_attesa:
+      "040": "documento non nella conoscenza (come f355dc3c 040)"
   8d3c673c:
     errori:
       "140": un numero cambiato (solo in una lingua)
@@ -46,7 +55,8 @@ cicli:
   04ecaabe:
     giusto: true
     di: f355dc3c
-    # la stampa giusta dice «almeno 4 volte la larghezza», l'SPM «3 volte o più»: un ERRATO
-    # qui può essere giusto. Non conta finché la domanda P7 non ha una risposta (24-11)
+    # P7 (26-11): il «4 volte» è giusto (manuale del motore), l'ERRATO della v2 qui è un falso
+    # errore. Resta in attesa finché non c'è `fonte_ispezione` (MIGLIORIE 7.3): poi si toglie
+    # da qui e un ERRATO conta come falso errore
     in_attesa:
-      "050": "domanda P7: la stampa giusta dice 4 volte, l'SPM 3 volte"
+      "050": "P7: falso errore noto, si toglie con fonte_ispezione"

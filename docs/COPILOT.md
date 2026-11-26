@@ -255,10 +255,8 @@ Ctrl+Shift+V in ogni file, poi una foto per sezione:
 
 ### ⬜ Quando hai tempo
 
-- ⬜ **Verifica della P9** (gratis, 2 minuti, anche in un secondo terminale mentre la
-  campagna gira): blocco in sezione [6.1](#61-domande). Mandami la foto.
-- ⬜ **Domande** P2, P6, P7, P8 (sezione [6.1](#61-domande)): le risposte di Copilot del 25-11
-  sono proposte, da confermare con chi conosce i cicli.
+- ✅ **Domande** P1-P9 (sezione [6.1](#61-domande)): chiuse il 26-11 con la regola prudente.
+  Se una persona che conosce i cicli dice altro, scrivilo a Claude.
 - ⬜ **Messaggio al collega del frontend** (sezione [6.2](#62-messaggio-per-il-collega-del-frontend)),
   se non l'hai già mandato.
 - ⬜ **Gruppo nascosto** (sezione [3.4](#34-il-gruppo-nascosto-facoltativo)): una decina di
@@ -649,36 +647,19 @@ uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --er
 
 ### 6.1 Domande
 
-Per chi conosce cicli e manuali. Scrivi a Claude la risposta **a parole**, senza codici veri.
-Il 25-11 Copilot ha dato delle risposte guardando i dati: sono **proposte**, finché non le
-conferma una persona (tranne P1, che viene dai dati, e P9, che si verifica con il blocco qui
-sotto).
+Tutte chiuse il 26-11. Le ha decise Copilot guardando i dati, senza un referente: dove i dati
+non bastano vale la **regola prudente** (WARNING, mai ERRATO). Se una persona che conosce cicli
+e manuali dice altro, scrivilo a Claude a parole, senza codici veri.
 
-| Id | Domanda | Stato (25-11) |
-|---|---|---|
-| **P1** | I task che iniziano con «70-» stanno sempre nell'SPM? | ✅ sì (dai dati: nei documenti civili tutti i task del capitolo 70 sono SPM). La v2 fa già così |
-| **P2** | Op. 060 del ciclo DR (condition 3): la v2 l'ha segnata ERRATO. Lo era? Il dettaglio è in `runs\dr-condition-3\report.md`, da far guardare a chi conosce il ciclo (non mandarlo a Claude) | ⬜ aperta |
-| **P4** | Targa «90» (per chi cura l'indice): funzione sbagliata e lettere accentate rovinate (`MEMORIA.md`, «Da correggere nell'indice») | ⬜ confermato il problema; da correggere nell'indice |
-| **P6** | Scheda mancante: quando un'operazione deve avere per forza una scheda? | ⬜ proposta: per i processi speciali (lubrificante secco, rivestimenti, attacco chimico, liquidi penetranti); non per presa in carico, mascheratura, raccordatura, lucidatura, controlli visivi, preservazione, collaudo. Da confermare |
-| **P7** | Ispezione FPI (f355dc3c e la sua stampa giusta, op. 050): il ciclo dice «almeno **4** volte la larghezza», l'SPM «**3** volte o più». Regola diversa o da correggere? | ⬜ proposta: il «4 volte» è copiato dalla sezione d'ispezione del manuale del motore citato in testata, quindi è giusto e l'ERRATO della v2 è un falso errore. Da confermare |
-| **P8** | Operazioni che non citano un task (c5ff3cd6, 298bc28e): con quale task si confrontano? | ⬜ proposta: con i task della prima riga di note del ciclo (valgono per tutta la riparazione); per controlli e ispezioni anche la sezione d'ispezione del manuale del motore. Da confermare |
-| **P9** | Ciclo 5ff17062: oltre alla 030 sono cambiate altre operazioni? | ⬜ secondo Copilot è una copia della stampa giusta 04ecaabe con 010, 030, 040 e 050 cambiate. **Da verificare con il blocco qui sotto** |
-
-**Verifica della P9** (gratis, senza modello: confronta le stampe con il parser e mostra solo
-le operazioni diverse, con i codici nascosti):
-
-```powershell
-$env:UV_PYTHON = "3.14"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$pdf = @{}; Get-ChildItem (Resolve-Path "..\..").Path -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | ForEach-Object { $h = (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower(); if ($h -in @("04ecaabe", "5ff17062", "f355dc3c") -and -not $pdf[$h]) { $pdf[$h] = $_.FullName } }
-"trovate: " + (($pdf.Keys | Sort-Object) -join ", ")
-"=== 04ecaabe contro 5ff17062"; uv run cycle-validation confronta $pdf["04ecaabe"] $pdf["5ff17062"]
-"=== 04ecaabe contro f355dc3c"; uv run cycle-validation confronta $pdf["04ecaabe"] $pdf["f355dc3c"]
-```
-
-- **Deve uscire:** `trovate: 04ecaabe, 5ff17062, f355dc3c` e, per ogni confronto, le
-  operazioni diverse.
-- **Mandami:** la foto dei due confronti.
+| Id | Domanda | Risposta (26-11) | Cosa cambia nella v2 |
+|---|---|---|---|
+| **P1** | I task «70-» stanno sempre nell'SPM? | sì, nei documenti civili | niente: fa già così |
+| **P2** | Op. 060 del ciclo DR (condition 3): l'ERRATO era giusto? | no: era un giudizio instabile (note del 21-11: CORRETTO, CORRETTO, `GIUDIZIO_INSTABILE`) | niente: la conferma degli ERRATO (G1) lo evita già |
+| **P4** | Targa «90»: funzione sbagliata e lettere accentate rovinate | il problema c'è: le lettere accentate sono diventate «�» | niente nella v2 (WARNING); da correggere nell'indice (`MEMORIA.md`) |
+| **P6** | Quando un'operazione deve avere per forza una scheda? | per i processi speciali: lubrificante secco, rivestimenti, attacco chimico, liquidi penetranti. Non per presa in carico, mascheratura, raccordatura, lucidatura, controlli visivi, preservazione, collaudo | **da scrivere**: senza scheda in un processo speciale, WARNING «scheda forse mancante», mai ERRATO (MIGLIORIE 7.3) |
+| **P7** | «4 volte» nel ciclo, «3 volte» nell'SPM (04ecaabe e f355dc3c, op. 050) | vale il manuale del motore: il «4 volte» è giusto, l'ERRATO della v2 sulla stampa giusta è un **falso errore** | **da scrivere** `fonte_ispezione`: per le ispezioni anche la sezione d'ispezione del manuale del motore in testata; se dice altro dall'SPM, vale il manuale del motore |
+| **P8** | Operazioni senza task: con cosa si confrontano? | con i task della prima riga di note del ciclo; per controlli e ispezioni anche la sezione d'ispezione del manuale del motore. Se non c'è niente: WARNING | **da scrivere**, insieme a `fonte_ispezione` |
+| **P9** | 5ff17062: oltre alla 030 sono cambiate altre operazioni? | sì, verificato con `confronta`: è la stampa giusta 04ecaabe con 010, 030, 040 e 050 cambiate | fatto: `eval/errori-noti.yaml` aggiornato (vale dal prossimo giro) |
 
 ### 6.2 Messaggio per il collega del frontend
 

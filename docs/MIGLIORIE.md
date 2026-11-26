@@ -18,7 +18,7 @@ in `DOCUMENTAZIONE.md`.
 | **Cosa non serve** | le **impostazioni** (effort, conferme, testo lungo, concorrenza, task mancante) e **Sonnet** (24-11) |
 | **Cosa si è scoperto il 25-11** | 22 dei 29 errori mai visti per il modello erano su operazioni il cui task **non è nella conoscenza** (WARNING `FONTE_ASSENTE`): nessuno poteva trovarli. Dal 26-11 le copie cieche dei tipi del modello vanno solo su operazioni confrontabili. Sulle 7 confrontabili `tutto_insieme` ne trovava 5 |
 | **Il limite di oggi** | due visti mai trovati (`298bc28e` 035, `f355dc3c` 010: WARNING «evidenza non trovata» anche con la seconda ricerca); sul grande gli ERRATO da verificare salgono con elementi e lingue (4 contro 2): vanno guardati da una persona |
-| **Pronta per la produzione?** | non ancora: 0 falsi errori, costo e tempo bassi, ma pochi errori nuovi trovati e un possibile falso errore sistematico (P7, sezione 7.5). Sul PC circa 8 WARNING per ciclo vengono dalle targhe (Redshift non raggiungibile): in produzione non ci sono |
+| **Pronta per la produzione?** | non ancora: 0 falsi errori, costo e tempo bassi, ma pochi errori nuovi trovati e un falso errore sistematico (P7, confermato il 26-11: si toglie con `fonte_ispezione`, sezione 7.3). Sul PC circa 8 WARNING per ciclo vengono dalle targhe (Redshift non raggiungibile): in produzione non ci sono |
 | **Prossimo passo** | copie cieche nuove (seme 2, solo operazioni confrontabili) e campagna: base nuova contro `seconda_ricerca` (sezione 8) |
 
 ---
@@ -108,9 +108,11 @@ Sul computer personale, con i casi inventati, le varianti si provano anche con `
 Ogni prova conta quanti errori messi apposta la v2 trova. Gli errori sono di due specie.
 
 **Visti.** Gli errori noti di `eval/errori-noti.yaml`, in 7 cicli «con errori»: 12 scritti, di
-cui 2 «in attesa» di una risposta delle persone (c5ff3cd6 030, domanda P6; f355dc3c 040,
-documenti mancanti), quindi **10 contano**. Le 3 stampe giuste hanno 1 operazione in attesa
-(04ecaabe 050, domanda P7). Chi scrive le migliorie (Claude) li conosce, quindi può adattarsi
+cui 2 «in attesa» (c5ff3cd6 030, scheda: P6; f355dc3c 040, documenti mancanti), quindi **10
+contano**. Le 3 stampe giuste hanno 1 operazione in attesa (04ecaabe 050, falso errore noto:
+P7). **Dal 26-11** (P9) 5ff17062 ha 4 errori invece di 1 (010, 030, 040 in attesa, 050): 15
+scritti, 3 in attesa, **12 contano**. La lista nuova vale dal giro dopo la campagna del 26-11
+(prove archiviate). Chi scrive le migliorie (Claude) li conosce, quindi può adattarsi
 a loro senza volerlo.
 
 **Mai visti.** Misurano se la v2 **generalizza**. Sono di due tipi:
@@ -306,7 +308,8 @@ la variante `sonnet` resta per le prove a mano.
 | `seconda_ricerca` (25-11; **da provare sulla base nuova**: da sola 18 stabili, con elementi e lingue 22) | se il primo giudizio è «non verificabile», una seconda sessione cerca con Grep e Read in **tutti i documenti citati dal ciclo** (più quelli del task e, per DR, quelli del profilo), non solo nel task dell'operazione. Un CORRETTO o ERRATO con citazione verificata prende il posto del WARNING; un ERRATO si conferma (G1) sugli stessi documenti; il costo delle due sessioni si somma (`agent.search_when_unverifiable`) | i due visti mai trovati (`298bc28e` 035, `f355dc3c` 010) escono in tutte le 36 prove con `EVIDENZA_NON_TROVATA`: il passo giusto non è nel testo del task, che spesso arriva nel messaggio **senza tool** (sotto 150 righe). Meno WARNING per ciclo | piccolo |
 | `elementi_e_lingue` (25-11; **scelta migliore, nella base dal 26-11**) | `elementi_uno_per_uno` e `lingue_separate` insieme | se le due trovano errori diversi, insieme ne trovano di più | nessuno |
 | `tutto_insieme` (25-11; **22 stabili, mai visti 5 su 29; scartata per il costo, ×2,2 la base vecchia**; dal 26-11 è uguale a `seconda_ricerca`) | le tre insieme: elementi, lingue, seconda ricerca | come si guarda la descrizione e dove si cerca nel manuale sono due cose diverse: possono sommarsi | nessuno |
-| `fonte_ispezione` (I8, **da scrivere**, dalle risposte P7 e P8 del 25-11) | per le operazioni di controllo e ispezione, tra le fonti anche la **sezione d'ispezione del manuale del motore citato in testata**; per le operazioni che non citano un task, i task della **prima riga di note** del ciclo | P7: la stampa giusta 04ecaabe op. 050 dice «4 volte» come il manuale del motore, la v2 confronta con il task SPM («3 volte») e dà ERRATO (14 prove su 18 con Haiku): è un **falso errore**, che succederebbe anche sui cicli veri. P8: operazioni senza task che oggi escono WARNING | medio. Prima: conferma di P7 e P8 da una persona |
+| `fonte_ispezione` (I8, **da scrivere**: P7 e P8 chiuse il 26-11) | per le operazioni di controllo e ispezione, tra le fonti anche la **sezione d'ispezione del manuale del motore citato in testata**; per le operazioni che non citano un task, i task della **prima riga di note** del ciclo | P7: la stampa giusta 04ecaabe op. 050 dice «4 volte» come il manuale del motore, la v2 confronta con il task SPM («3 volte») e dà ERRATO (14 prove su 18 con Haiku): è un **falso errore**, che succederebbe anche sui cicli veri. P8: operazioni senza task che oggi escono WARNING. Quando c'è, 04ecaabe 050 esce dall'attesa: un ERRATO lì conta come falso errore | medio |
+| `scheda_processi_speciali` (I9, **da scrivere**: P6 chiusa il 26-11) | un'operazione di processo speciale (lubrificante secco, rivestimenti, attacco chimico, liquidi penetranti) senza scheda: WARNING «scheda forse mancante», mai ERRATO. Le altre operazioni senza scheda restano come oggi | non cambia gli errori trovati (c5ff3cd6 030 resta in attesa: è un WARNING, non un ERRATO); è una regola per la produzione. Rischio: WARNING in più sui cicli veri, da guardare sul grande | piccolo |
 | `numeri_manuale` (I4, è H12; **rimandata**) | confronta i numeri e le classi della descrizione con quelli del passo del manuale. Alla sessione passa le differenze da guardare; se tutto coincide, CORRETTO senza modello | numeri cambiati in tutte e due le lingue; 7 errori noti su 10 sono numeri, classi o codici; meno sessioni | medio |
 
 **Attenzione a `numeri_manuale` (24-11).** Le copie cieche «numero del manuale» sono fatte
@@ -358,16 +361,16 @@ Questi errori noti mancano per motivi che non dipendono dalla v2:
 - **f355dc3c op. 040, e forse 010:** servono documenti che non sono nella conoscenza (capitolo
   70-23 dell'SPM, manuale d'ispezione del motore, due REPAIR della sezione 72-56-31). Si fa
   l'ingestion, poi COPILOT sezione 5 e la campagna `conoscenza-<data>`.
-- **c5ff3cd6 op. 030** (scheda tolta): aspetta la regola della domanda P6.
-- **04ecaabe op. 050** (stampa giusta di f355dc3c): «4 volte» contro «3 volte» dell'SPM. Per
-  Copilot (25-11, da confermare) il «4 volte» è giusto (manuale del motore): l'ERRATO della v2 è
-  un falso errore e si toglie con `fonte_ispezione` (7.3). Finché non è confermato resta «in
-  attesa».
-- **5ff17062** (P9): per Copilot ha cambiate anche 010, 040 e 050, come f355dc3c. Se
-  `confronta` lo conferma, nella lista entrano 010 (tre numeri), 040 (la classe, in attesa come
-  f355dc3c 040) e 050 (frase sui limiti sostituita, negazioni tolte in inglese): il suo «ERRATO
-  in più» sulla 050 diventa un errore trovato. La lista si cambia quando cambia la base (prove
-  archiviate e seme nuovo), non a metà campagna.
+- **c5ff3cd6 op. 030** (scheda tolta): per la P6 (26-11) la regola giusta è un WARNING «scheda
+  forse mancante», mai un ERRATO (`scheda_processi_speciali`, 7.3). Resta in attesa: non si
+  conta come ERRATO trovato.
+- **04ecaabe op. 050** (stampa giusta di f355dc3c): «4 volte» contro «3 volte» dell'SPM. P7
+  chiusa il 26-11: il «4 volte» è giusto (manuale del motore), l'ERRATO della v2 è un **falso
+  errore** e si toglie con `fonte_ispezione` (7.3). Resta in attesa finché non c'è.
+- **5ff17062** (P9, verificata con `confronta` il 26-11): è la stampa giusta 04ecaabe con 010,
+  030, 040 e 050 cambiate. In lista dal 26-11: 010 (tre numeri), 040 (la classe, in attesa come
+  f355dc3c 040), 050 (frase dei limiti sostituita, negazioni tolte in inglese): il suo «ERRATO
+  in più» sulla 050 diventa un errore trovato. Vale dal giro dopo la campagna del 26-11.
 
 ---
 
@@ -385,7 +388,8 @@ Questi errori noti mancano per motivi che non dipendono dalla v2:
 6. 👉 prove archiviate; copie cieche con seme nuovo (2); campagna base nuova contro
    `seconda_ricerca`; una persona guarda gli «ERRATO da verificare» del grande (tabella nuova del
    riepilogo) e la P9 (`confronta`);
-7. `fonte_ispezione` (I8), quando una persona conferma P7 e P8;
+7. `fonte_ispezione` (I8, P7 e P8) e `scheda_processi_speciali` (I9, P6): risposte del 26-11,
+   da scrivere;
 8. le migliorie scelte sui tipi «modello» trovati peggio (dalla tabella per tipo);
 9. `numeri_manuale`, solo dopo aver tolto dal confronto le copie che troverebbe per costruzione;
 10. tempo e costo (7.4).

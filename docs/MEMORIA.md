@@ -1069,6 +1069,21 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   di MIGLIORIE). Corretta: per le prove vecchie solo zero token. Nuovo nel riepilogo: «ERRATO da
   verificare» per ciclo e operazione. Prossimo giro: archiviare, seme 2, campagna base nuova
   contro `seconda_ricerca`. Il blocco Archiviare ora rimette la lista dei cicli scelti.
+- **26-11, secondo giro.** Due riavvii del PC (problema del computer): la campagna riparte da
+  sola dalle prove mancanti (una prova scrive il suo file solo alla fine; quella interrotta non
+  conta e si rifà). Piano dopo il secondo riavvio: piccolo finito, `seconda_ricerca` **si
+  tiene** sul piccolo, sul grande mancano le sue 3 prove.
+- **26-11, domande P1-P9 chiuse** (decise da Copilot sui dati, senza referente; dove i dati non
+  bastano: regola prudente, WARNING e mai ERRATO). P2: l'ERRATO del ciclo DR era un giudizio
+  instabile, G1 lo evita già. P6: scheda obbligatoria solo nei processi speciali → WARNING
+  «scheda forse mancante» (I9 da scrivere). P7: vale il manuale del motore, l'ERRATO su
+  04ecaabe 050 è un falso errore (I8 `fonte_ispezione` da scrivere; fino ad allora resta in
+  attesa). P8: operazioni senza task → task della prima riga di note, per le ispezioni anche la
+  sezione d'ispezione del manuale del motore. P9 verificata con `confronta`: 5ff17062 ha 010,
+  030, 040, 050 cambiate; `eval/errori-noti.yaml` aggiornato, vale dal giro dopo questa
+  campagna (non aggiornare il PC mentre la campagna gira).
+- **26-11, richiesta nuova:** in azienda chiedono una guida agli unit test (Python, backend del
+  chatbot, forse il frontend) per gli sviluppatori dei vari use case, che sono data scientist.
 - **`.gitignore` di `docs/` (24-11-2026):** in git entra solo `DOCUMENTAZIONE.md`; gli altri
   quattro file erano già seguiti e restano (servono al blocco Aggiornare e alla memoria).
 
