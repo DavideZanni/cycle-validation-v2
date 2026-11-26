@@ -191,14 +191,35 @@ ERRATO dove una lingua traduce liberamente.
 
 **⬜ Passo 4 · Ingestion** (quando puoi)
 
-Servono i file che mancano nella conoscenza:
+**Cosa ingestionare** (in ordine di importanza; i codici veri sono solo nel file sul PC):
 
-- il **manuale d'ispezione del motore** (il più importante: senza, `fonte_ispezione` non si
-  può fare);
-- il capitolo 70-23 dell'SPM;
-- i due REPAIR della sezione 72-56-31.
+| | File | Perché serve | Dove trovarlo |
+|---|---|---|---|
+| 1 | **La sezione d'ispezione del manuale del motore** citato nella testata dei cicli «con errori» (lo stesso manuale del capitolo 72-56 già ingestionato il 23-11, M1) | `fonte_ispezione`: il «4 volte» giusto (P7) e le operazioni di controllo; f355dc3c 040 | è la parte da cui viene il «4 volte» della P7. Se non sai quale file è, chiedilo a Copilot in Ask («in quale PDF sul PC c'è la sezione d'ispezione con il 4 volte della P7, ed è nella conoscenza?»): la risposta ha il percorso, **non mandarmela** |
+| 2 | **Il capitolo 70-23 dell'SPM** | f355dc3c 040 e 5ff17062 040 (la classe dell'attacco chimico); oggi sono «in attesa» | il 23-11 non era sul PC: dalla fonte dei manuali |
+| 3 | **Due REPAIR della sezione 72-56-31** dello stesso manuale (i file con `-09-001` e `-09-003` nel nome) | citati in una frase dagli altri task; servono ai limiti delle raccordature (f355dc3c 010, 5ff17062 010) | il 23-11 non erano sul PC: dalla fonte dei manuali |
+| 4 | **Quello che il blocco qui sotto dà come «da ingestionare»** | i manuali citati dai cicli di prova che mancano ancora (il 23-11 anche M3, M4, M5) | il file `runs\manuali-da-ingestionare.txt` dice anche quali PDF sono già sul PC |
 
-Quando è finita, **dimmi a parole** quali di questi file c'erano. Poi si fa tutta la sezione
+**La lista esatta, aggiornata a oggi** (gratis, zero token). Usa l'ultima fotografia della
+conoscenza e tutti gli errori noti di oggi. A schermo i manuali si chiamano M1, M2...; i codici
+veri, i capitoli, i task mancanti e i file sul PC restano in `runs\manuali-da-ingestionare.txt`:
+aprilo per fare l'ingestion, **non fotografarlo**.
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
+$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
+uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --errori 298bc28e=005,035 --errori c5ff3cd6=030,040 --errori f355dc3c=010,030,040,050 --errori 5ff17062=010,030,040,050 --errori 895167b9=010,030,050,060 --errori 22f586bb=010,030,050,060 --errori 38960731=050 --errori 8d3c673c=140 --errori e9b74c84=025
+code runs/manuali-da-ingestionare.txt
+```
+
+- **Deve uscire:** `Manuali citati: N; da ingestionare: M.` e una riga per manuale (`M1: ...`).
+- **Mandami:** la foto dello **schermo** (non del file).
+- Il punto 1 (sezione d'ispezione) il blocco può non darlo: i cicli citano il manuale nella
+  testata, non quella sezione. Va preso a mano.
+
+Quando l'ingestion è finita, **dimmi a parole** quali di questi file c'erano. Poi si fa tutta la sezione
 [5](#5-dopo-una-nuova-ingestion): fotografia (A), lista dei manuali (B), archiviare (3.8), cicli
 veri (3.2), copie cieche (3.3) con `$seme = 3`.
 
@@ -597,7 +618,7 @@ $env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
 $foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
 $kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path; "conoscenza: " + (Split-Path -Leaf $foto) + " · " + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --errori 298bc28e=005,035 --errori c5ff3cd6=040 --errori f355dc3c=010,030,040,050
+uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --errori 298bc28e=005,035 --errori c5ff3cd6=030,040 --errori f355dc3c=010,030,040,050 --errori 5ff17062=010,030,040,050 --errori 895167b9=010,030,050,060 --errori 22f586bb=010,030,050,060 --errori 38960731=050 --errori 8d3c673c=140 --errori e9b74c84=025
 ```
 
 - **Deve uscire:** una riga per manuale (`M1: ...`). Il 23-11 M1 aveva 3 task mancanti e M2
