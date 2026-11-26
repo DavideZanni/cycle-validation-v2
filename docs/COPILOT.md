@@ -126,7 +126,7 @@ Risultati delle tappe e decisioni: `MIGLIORIE.md`, sezioni 7 e 13.
   manuale) e `procedura_dr` (nei DR la deroga arriva al modello: toglie il falso errore di
   895167b9 005).
 - **Ingestion:** sul PC e su S3 non c'è niente di nuovo da ingestionare (lista delle 16:46). I
-  task che mancano sono in file da procurare (passo 4). La campagna si fa con la conoscenza di
+  task che mancano sono in file da chiedere (passo 4). La campagna si fa con la conoscenza di
   oggi e le stesse copie cieche (seme 2).
 
 Dettagli: `MIGLIORIE.md`, «In breve» e sezione 13.
@@ -136,8 +136,8 @@ Dettagli: `MIGLIORIE.md`, «In breve» e sezione 13.
 | ✅ | **1 · Togliere i 7 doppioni** (26-11, 17:00): tolti tutti e 7; gli originali restano in `RM/manuali/`, già ingestionati | tu | — |
 | 👉 | **2 · Aggiornare e archiviare** | tu | gratis · 10 minuti |
 | ⬜ | **3 · Campagna**: base nuova contro `lingue_tra_loro` e `procedura_dr` | tu | circa 5 $ · 2-3 ore |
-| ⬜ | **4 · Procurare i file che mancano**, poi ingestion | tu | — |
-| ⬜ | **5 · `fonte_ispezione` e regola della scheda** (dopo l'ingestion) | Claude | — |
+| ⬜ | **4 · Chiedere i file che mancano** (70-23 dell'SPM, due REPAIR, M4), poi ingestion | tu | — |
+| ⬜ | **5 · `fonte_ispezione` e regola della scheda** (dopo la campagna) | Claude | — |
 
 ---
 
@@ -164,53 +164,36 @@ Prima il piano, poi la campagna (sezione [3.5](#35-la-campagna-tutte-le-prove-in
 
 ---
 
-**⬜ Passo 4 · Procurare i file che mancano, poi ingestion**
+**⬜ Passo 4 · Chiedere i file che mancano, poi ingestion**
 
-Non sono nella cartella di prova né nel corpus dell'ingestion sul PC. **Dove cercarli, in
-ordine:** (1) su S3, in tutta la cartella `Manufacturing AI/landing_area/` (lì ci sono gli
-originali dei file del corpus, forse anche quelli mai ingestionati: la ricerca del 26-11
-guardava solo la cartella di prova); (2) sul resto del PC; (3) se non ci sono: chi ha preparato il corpus dell'ingestion,
-o l'ufficio delle pubblicazioni tecniche. Per (1) e (2) chiedi a Copilot, in **Ask**:
+**La ricerca di Copilot (26-11, 17:10)**, su tutto S3 sotto `Manufacturing AI/` e tutto il PC:
 
-```text
-Sei in modalità Ask: solo letture (aws s3 ls, Get-ChildItem), niente copie, niente
-cancellazioni, niente modifiche, né sul PC né su S3.
+| | Cosa | Trovato? | Cosa fare |
+|---|---|---|---|
+| 1 | **La sezione d'ispezione di M1** (il «4 volte» della P7) | sì, ed è **già nella conoscenza** (giro del 23-11) | niente |
+| 2 | **Il capitolo 70-23 dell'SPM** | no, da nessuna parte | chiederlo |
+| 3 | **I due REPAIR della sezione 72-56-31** (`-09-001` e `-09-003`) | no, da nessuna parte | chiederli |
+| 4 | **M4** (2 cicli) | no, da nessuna parte | chiederlo |
+| 5 | **M5**: il manuale no; le 2 schede SPM LEAP citate dal suo ciclo sì, su S3, ma in una sottocartella `landing_area_test/LEAP/` che l'ingestion non legge | in parte | aspettare (sotto) |
 
-Cerca dove sono questi file, che mancano nella conoscenza di prova. I codici veri sono in
-runs/manuali-da-ingestionare.txt (M1, M3, M4, M5 come in quel file).
+**Chiedere 2, 3 e 4** a chi ha preparato il corpus dell'ingestion o all'ufficio delle
+pubblicazioni tecniche. I codici veri sono in `runs\manuali-da-ingestionare.txt`.
 
-1. M1: la sezione d'ispezione del manuale (quella da cui viene il limite «4 volte» della P7).
-2. M3 (SPM): il capitolo 70-23 (task 70-23-23).
-3. M1: i due file della sezione 72-56-31 con 09-001 e 09-003 nel nome.
-4. M4 e M5: i manuali interi o almeno i capitoli citati dai cicli.
+**Le 2 schede LEAP di M5 non si spostano adesso.** Servono a un solo ciclo, senza errori noti; e
+un'ingestion nuova vuol dire rifare cicli veri e copie cieche. Si fanno entrare insieme ai file
+dei punti 2-4, quando arrivano: si **copiano** (non si spostano: le cartelle di prova restano
+come sono) nella cartella che l'ingestion legge. Il comando lo scrive Copilot in Ask, prima con
+`--dryrun`, e lo lanci tu, come per i doppioni. Copilot non copia e non sposta niente da solo.
 
-Dove cercare: su S3 tutta la cartella Manufacturing AI/landing_area/ (non solo la cartella di
-prova) e le altre cartelle sotto Manufacturing AI/; sul PC tutto il profilo utente (Desktop,
-Download, Documenti, OneDrive) e i dischi di rete collegati. Salta Extra\storico\old.
-
-Per ognuno dei quattro dimmi: trovato sì o no, in quale cartella, quanti file.
-```
-
-- **Dimmi a parole:** per ognuno dei quattro, trovato sì o no (e se è su S3 o sul PC). Niente
-  foto: la risposta ha il nome del bucket e i codici veri.
-
-In ordine di importanza:
-
-| | Cosa | Perché serve |
-|---|---|---|
-| 1 | **La sezione d'ispezione del manuale del motore** (M1), da cui viene il «4 volte» della P7 | `fonte_ispezione`; f355dc3c 040 |
-| 2 | **Il capitolo 70-23 dell'SPM** | f355dc3c 040 e 5ff17062 040 (oggi «in attesa») |
-| 3 | **I due REPAIR della sezione 72-56-31** (`-09-001` e `-09-003` nel nome) | i limiti delle raccordature (f355dc3c 010, 5ff17062 010) |
-| 4 | **M4 e M5** (3 cicli, senza errori noti) | meno `FONTE_ASSENTE` sul grande |
-
-Quando li hai: ingestion (solo conoscenza civile, niente EJ200), poi tutta la sezione
+Quando hai i file: ingestion (solo conoscenza civile, niente EJ200), poi tutta la sezione
 [5](#5-dopo-una-nuova-ingestion).
 
 ---
 
 **⬜ Passo 5 · `fonte_ispezione` e regola della scheda** (lo fa Claude)
 
-Con la sezione d'ispezione nella conoscenza. Poi di nuovo Aggiornare, archiviare, campagna.
+La sezione d'ispezione è già nella conoscenza: `fonte_ispezione` non aspetta l'ingestion. Claude
+la scrive dopo la campagna del passo 3. Poi di nuovo Aggiornare, archiviare, campagna.
 
 ### ⬜ Anche da fare, quando hai tempo
 
