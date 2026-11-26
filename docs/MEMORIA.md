@@ -4,7 +4,7 @@ Qui c'è tutto quello che sappiamo già: com'è il PC aziendale, cosa si può fa
 v2, il frontend, i problemi già visti e le decisioni prese. Serve a non rifare le stesse analisi.
 
 **Claude la legge prima di ogni lavoro sulle prove e la aggiorna quando impara qualcosa di
-nuovo.** Ultimo aggiornamento: 22-11-2026 (notte).
+nuovo.** Ultimo aggiornamento: 26-11-2026 (sera).
 
 Il repository è pubblico: qui non ci sono mai valori veri (bucket, account, host, matricola,
 codici di manuali, numeri DR, serial number, part number, codici dei cicli, contenuti EJ200).
@@ -50,7 +50,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
 
 | # | Cosa | Perché serve | Come si chiude | Chi |
 |---|---|---|---|---|
-| 1 | Misura sugli errori veri | 23-11 sera: 3 degli 8 errori noti trovati in modo stabile, più uno per ciascuno degli altri 4 cicli; 0 falsi errori nei 3 cicli giusti | ingestion del manuale principale fatta il 23-11 (10 manuali); due correzioni nel 23-11 (titoli `CIR`, fonti con la sola sezione). Mancano i file di due REPAIR e il capitolo 70-23 dell'SPM (non sul PC); poi COPILOT 2.1 e 2.1b, Claude confronta con i 10 errori | U, poi C |
+| 1 | Misura sugli errori veri | 23-11 sera: 3 degli 8 errori noti trovati in modo stabile, più uno per ciascuno degli altri 4 cicli; 0 falsi errori nei 3 cicli giusti | ingestion del manuale principale fatta il 23-11 (10 manuali); due correzioni nel 23-11 (titoli `CIR`, fonti con la sola sezione). Mancano i file di due REPAIR e il capitolo 70-23 dell'SPM: **decisione del 26-11 sera, non si chiedono più** (si va in produzione senza). Si chiude con la campagna finale del 27-11 (seme 3) e la prova di controllo dopo la grande ingestion | U, poi C |
 | 2 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Provato in locale il 22-11 (punto 4); da provare in QA | U |
 | 3 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto nel codice**: `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets` (22-11 sera); macchine attive come la v1 con `MACHINES_SOURCE=diretta`: `redshift_connector` con il secret `SECRET_NAME` (22-11 notte). Da provare in QA | C, poi U |
 | 4 | Prova in locale | è il passo prima di develop | **fatto** (22-11 notte): login, frontend e v2 da Run and Debug; ciclo MOS di esempio `Validation Passed` in circa 20 s, con accesso e permessi della v1. Configurazione in `AZIENDA.md`, sezione 7 | — |
@@ -1139,6 +1139,15 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   sottocartella `landing_area_test/LEAP/`, che l'ingestion non legge (prende solo i file
   diretti di `SPM/landing_area/`). Decisione: si copiano (non si spostano) insieme ai file
   chiesti, alla prossima ingestion; comando scritto da Copilot in Ask, lanciato dall'utente.
+- **26-11 sera, decisione dell'utente: niente altri manuali.** Le campagne si finiscono tra il
+  26 e il 27-11 (quella in corso, poi `fonte_ispezione` e regola della scheda, campagna finale
+  con il seme 3). Il capitolo 70-23 dell'SPM, i due REPAIR e M4 **non si chiedono**: si va in
+  produzione senza, l'azienda li aggiunge poi a mano. La conoscenza del servizio la sceglie
+  l'utente: una grande ingestion di tutti i documenti civili (dentro anche le schede LEAP di
+  M5), con i documenti su S3 collegati per gli utenti, che li possono guardare direttamente.
+  Dopo l'ingestion: fotografia, `kb-check` e una prova della base sul grande (i manuali nuovi
+  portano confronti nuovi, quindi possibili falsi errori nuovi). Prove dal frontend il 27-11,
+  mai mentre gira una campagna (quota di Bedrock divisa). Tempo e costo dopo la produzione.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

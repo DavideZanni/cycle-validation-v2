@@ -108,92 +108,73 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 |---|---|---|---|
 | ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, copie cieche | 24-11 |
 | ✅ | **2. Prima campagna** | tutte le impostazioni, Haiku e Sonnet | 24-11 sera |
-| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` e `definizioni_generali` non entrano; corretto il controllo dei numeri tra le lingue. Adesso: `lingue_tra_loro` e `procedura_dr` (l'ingestion quando arrivano i file). Dopo: `fonte_ispezione`, regola della scheda | **adesso** |
-| ⬜ | **4. Tempo e costo** | spendere meno e fare prima, con gli stessi errori trovati | dopo la 3 |
-| ⬜ | **5. Chiusura** | prova finale con copie cieche nuove, prove dal frontend, salvare | dopo la 4 |
-| ⬜ | **6. QA** | pubblicare nell'ambiente di prova | alla fine |
+| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` e `definizioni_generali` non entrano; corretto il controllo dei numeri tra le lingue. Adesso: `lingue_tra_loro` e `procedura_dr`. Domani: `fonte_ispezione`, regola della scheda e campagna finale | 26-27-11 |
+| ⬜ | **4. Prove dal frontend** | la v2 dalla pagina web (sezione 4) | 27-11 |
+| ⬜ | **5. Conoscenza e QA** | la tua grande ingestion, una prova di controllo, Salvare, QA | dopo la 4 |
+| ⬜ | **6. Produzione** | `develop` → `main` | dopo QA |
 
-Risultati delle tappe e decisioni: `MIGLIORIE.md`, sezioni 7 e 13.
+Tempo e costo (B1, B4...) non servono per la produzione: oggi 15 s e 0,01 $ a ciclo. Si fanno
+dopo, se serve. Risultati e decisioni: `MIGLIORIE.md`, sezioni 7 e 13.
 
-### 👉 Adesso: tappa 3, quarto giro
+### 👉 Adesso: finire le migliorie (26-27-11)
 
-**Dove siamo (26-11 sera).**
+**Decisione del 26-11 sera.** Niente altri manuali da chiedere: si va in produzione anche senza
+il capitolo 70-23 dell'SPM, i due REPAIR e M4 (li aggiungeranno poi, a mano). La conoscenza del
+servizio la scegli tu: una grande ingestion di tutti i documenti civili.
 
-- `definizioni_generali` **non si tiene** (campagna delle 14:31, 2,77 $).
-- Il controllo dei numeri tra italiano e inglese è corretto (codici e conversioni): è nella
-  base, quindi le prove vecchie si archiviano.
-- Due varianti nuove da provare: `lingue_tra_loro` (le due lingue confrontate tra loro, senza
-  manuale) e `procedura_dr` (nei DR la deroga arriva al modello: toglie il falso errore di
-  895167b9 005).
-- **Ingestion:** sul PC e su S3 non c'è niente di nuovo da ingestionare (lista delle 16:46). I
-  task che mancano sono in file da chiedere (passo 4). La campagna si fa con la conoscenza di
-  oggi e le stesse copie cieche (seme 2).
-
-Dettagli: `MIGLIORIE.md`, «In breve» e sezione 13.
-
-| | Passo | Chi | Costo · tempo |
+| | Passo | Chi | Quando · costo |
 |---|---|---|---|
-| ✅ | **1 · Togliere i 7 doppioni** (26-11, 17:00): tolti tutti e 7; gli originali restano in `RM/manuali/`, già ingestionati | tu | — |
-| 👉 | **2 · Aggiornare e archiviare** | tu | gratis · 10 minuti |
-| ⬜ | **3 · Campagna**: base nuova contro `lingue_tra_loro` e `procedura_dr` | tu | circa 5 $ · 2-3 ore |
-| ⬜ | **4 · Chiedere i file che mancano** (70-23 dell'SPM, due REPAIR, M4), poi ingestion | tu | — |
-| ⬜ | **5 · `fonte_ispezione` e regola della scheda** (dopo la campagna) | Claude | — |
+| 👉 | **1 · Campagna** base contro `lingue_tra_loro` e `procedura_dr` (sta girando) | tu | oggi · circa 5 $ · 2-3 ore |
+| ⬜ | **2 · `fonte_ispezione` e regola della scheda** | Claude | dopo le foto del passo 1 |
+| ⬜ | **3 · Aggiornare e prove dal frontend** | tu | domani · qualche centesimo · 1 ora |
+| ⬜ | **4 · Campagna finale** | tu | domani · circa 5 $ · 2-3 ore |
+| ⬜ | **5 · Grande ingestion, prova di controllo, Salvare, QA** | tu | dopo |
 
 ---
 
-**👉 Passo 2 · Aggiornare e archiviare**
+**👉 Passo 1 · Campagna** (sezione [3.5](#35-la-campagna-tutte-le-prove-in-automatico))
 
-1. **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Foto dell'ultima riga.
-2. **Archiviare** le prove (sezione [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove),
-   blocco «Archiviare»). Foto.
-
-Copie cieche e cicli veri restano quelli di oggi: **non** rifare 3.2 e 3.3. Così si vede subito
-se le copie «numero cambiato in una lingua» passano da 1 su 5 a 5 su 5.
-
----
-
-**⬜ Passo 3 · Campagna: base nuova contro `lingue_tra_loro` e `procedura_dr`**
-
-Prima il piano, poi la campagna (sezione [3.5](#35-la-campagna-tutte-le-prove-in-automatico)).
-
-- **Il piano deve dire:** piccolo 29 e grande 23, `base`, `lingue_tra_loro` e `procedura_dr`,
-  `3 da fare` per ognuna. Se una dice `già fatte`, l'archivio non è andato: fermati e mandami
-  la foto.
-- **Costo e tempo:** circa 5 $ e 2-3 ore (18 prove). Tetto: 10 $.
+- **Mentre gira:** non aggiornare il PC e non fare prove dal frontend (si dividono la quota di
+  Bedrock e i numeri si falsano).
 - **Mandami:** la riga finale, le foto di `runs\campagna.md` e dei due `riepilogo.md`.
 
 ---
 
-**⬜ Passo 4 · Chiedere i file che mancano, poi ingestion**
+**⬜ Passo 2 · `fonte_ispezione` e regola della scheda** (lo fa Claude)
 
-**La ricerca di Copilot (26-11, 17:10)**, su tutto S3 sotto `Manufacturing AI/` e tutto il PC:
-
-| | Cosa | Trovato? | Cosa fare |
-|---|---|---|---|
-| 1 | **La sezione d'ispezione di M1** (il «4 volte» della P7) | sì, ed è **già nella conoscenza** (giro del 23-11) | niente |
-| 2 | **Il capitolo 70-23 dell'SPM** | no, da nessuna parte | chiederlo |
-| 3 | **I due REPAIR della sezione 72-56-31** (`-09-001` e `-09-003`) | no, da nessuna parte | chiederli |
-| 4 | **M4** (2 cicli) | no, da nessuna parte | chiederlo |
-| 5 | **M5**: il manuale no; le 2 schede SPM LEAP citate dal suo ciclo sì, su S3, ma in una sottocartella `landing_area_test/LEAP/` che l'ingestion non legge | in parte | aspettare (sotto) |
-
-**Chiedere 2, 3 e 4** a chi ha preparato il corpus dell'ingestion o all'ufficio delle
-pubblicazioni tecniche. I codici veri sono in `runs\manuali-da-ingestionare.txt`.
-
-**Le 2 schede LEAP di M5 non si spostano adesso.** Servono a un solo ciclo, senza errori noti; e
-un'ingestion nuova vuol dire rifare cicli veri e copie cieche. Si fanno entrare insieme ai file
-dei punti 2-4, quando arrivano: si **copiano** (non si spostano: le cartelle di prova restano
-come sono) nella cartella che l'ingestion legge. Il comando lo scrive Copilot in Ask, prima con
-`--dryrun`, e lo lanci tu, come per i doppioni. Copilot non copia e non sposta niente da solo.
-
-Quando hai i file: ingestion (solo conoscenza civile, niente EJ200), poi tutta la sezione
-[5](#5-dopo-una-nuova-ingestion).
+Claude decide quali varianti entrano nella base, poi scrive `fonte_ispezione` (I8: toglie il
+falso errore «4 volte contro 3 volte») e la regola della scheda (I9).
 
 ---
 
-**⬜ Passo 5 · `fonte_ispezione` e regola della scheda** (lo fa Claude)
+**⬜ Passo 3 · Aggiornare e prove dal frontend** (domani, prima della campagna)
 
-La sezione d'ispezione è già nella conoscenza: `fonte_ispezione` non aspetta l'ingestion. Claude
-la scrive dopo la campagna del passo 3. Poi di nuovo Aggiornare, archiviare, campagna.
+1. Aggiornare (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Foto dell'ultima riga.
+2. Prove dal frontend (sezione [4](#4-prove-dal-frontend)), con la v2 aggiornata.
+
+---
+
+**⬜ Passo 4 · Campagna finale**
+
+Archiviare (3.8), copie cieche con il **seme 3** (3.3), piano e campagna (3.5): la base contro
+la v2 con tutto acceso. Il seme nuovo è una misura onesta: la configurazione che vince è quella
+della produzione. Claude scrive prima cosa deve dire il piano.
+
+**Deve dire:** 0 falsi errori (anche le operazioni oggi «in attesa»), nessun ciclo oltre 10
+minuti, nessun ciclo non eseguito.
+
+---
+
+**⬜ Passo 5 · Grande ingestion, prova di controllo, Salvare, QA**
+
+1. **Ingestion** di tutti i documenti civili (EJ200 a parte: resta su AWS EU, mai sul PC).
+   Dentro anche le 2 schede LEAP di M5.
+2. Sezione [5](#5-dopo-una-nuova-ingestion) blocco A (fotografia e `kb-check`), poi cicli veri
+   (3.2) e **una prova della base sul grande** (3.7, circa 0,25 $): i manuali nuovi non devono
+   portare falsi errori. Foto della riga finale e del riepilogo.
+3. Dimmi a parole il puntatore della conoscenza scelta: Claude aggiorna il blocco `qa`
+   (sezione 7).
+4. Salvare (2.2), poi QA (sezione 7).
 
 ### ⬜ Anche da fare, quando hai tempo
 
@@ -201,18 +182,16 @@ la scrive dopo la campagna del passo 3. Poi di nuovo Aggiornare, archiviare, cam
 |---|---|---|
 | ⬜ | **Unit test per il collega:** dimmi se la guida la vuoi in Markdown o in Word, e Claude la scrive | a parole |
 | ⬜ | **Messaggio al collega del frontend**, se non l'hai già mandato | sezione [6.2](#62-messaggio-per-il-collega-del-frontend) |
-| ⬜ | **Gruppo nascosto**: una decina di stampe con errori messi a mano. Consigliato: con il seme 2 il modello ha solo 5 copie cieche da trovare, troppo poche per decidere | sezione [3.4](#34-il-gruppo-nascosto-facoltativo) |
+| ⬜ | **Gruppo nascosto**: una decina di stampe con errori messi a mano. Per contare nella campagna finale va fatto prima del passo 4 | sezione [3.4](#34-il-gruppo-nascosto-facoltativo) |
 
-### ⬜ Le tappe dopo (Claude le dettaglia quando ci arriviamo)
+### ⬜ Le tappe dopo
 
-- **Una miglioria entra nella base:** Claude la accende in `config/settings.yaml`. Tu:
-  Aggiornare (2.1), archiviare (3.8), copie cieche con un **seme nuovo** (3.3), campagna (3.5).
-- **Tappa 4 · Tempo e costo:** Claude scrive B1, H10, B4, B8 (`MIGLIORIE.md` 7.4). Tu:
-  Aggiornare, campagna, report.
-- **Tappa 5 · Chiusura:** campagna finale con copie cieche nuove, prove dal frontend
-  (sezione 4), Salvare (2.2).
-- **Tappa 6 · QA** (sezione 7): pull request verso `develop`, prova con un MOS e un DR, poi i
-  cicli militari. Quando il ramo arriva su `main` anche la produzione passa alla v2.
+- **Tappa 6 · QA e produzione** (sezione 7): pull request verso `develop`, prova con un MOS e
+  un DR (targhe vere da Redshift), poi i cicli militari. Prima di `main`: una persona che
+  conosce cicli e manuali guarda 5-10 risultati di QA. Quando il ramo arriva su `main` anche
+  la produzione passa alla v2.
+- **Dopo la produzione:** i manuali che mancano (li aggiunge l'azienda), tempo e costo
+  (`MIGLIORIE.md` 7.4).
 
 ---
 
@@ -649,5 +628,6 @@ $env:UV_PYTHON = "3.14"
 uv run cycle-validation qa --conoscenza-civile "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/current.json" --ej200 --conoscenza-ej200 "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/ej200/current.json"
 ```
 
-Se Claude dice che il comando `qa` è cambiato: rilancia lo stesso comando (senza `--ej200` finché
+La conoscenza: nei blocchi c'è quella di prova; quando scegli la tua (passo 5 della sezione 1)
+Claude cambia il puntatore qui. Se Claude dice che il comando `qa` è cambiato: rilancia lo stesso comando (senza `--ej200` finché
 i cicli militari sono spenti), poi Salvare.

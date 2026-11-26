@@ -22,7 +22,7 @@ in `DOCUMENTAZIONE.md`.
 | **La campagna del 26-11 sera** | base contro `definizioni_generali`, 3 prove, piccolo (29 cicli e copie, 35 errori) e grande (23 cicli, 20 errori): base 15 su 35 e 10 su 20 stabili, `definizioni_generali` 14 e 8: **non si tiene**. Perde proprio gli errori trovati per il motivo sbagliato (5ff17062 050, 895167b9 030) e non trova quelli giusti (negazioni e materiale cambiati in una lingua: `EVIDENZA_NON_TROVATA`). 0 falsi errori per tutte e due; 2,77 $ in tutto |
 | **Cosa si è scoperto dalla campagna** | (1) il controllo dei numeri tra le lingue trovava ancora 1 su 5 copie «numero in una lingua»: non confrontava i codici (part number) e perdeva il numero vicino a una conversione scritta prima («248 °F (120 °C)»). **Corretto** nel codice, con un test che prova le copie una per una. (2) Le negazioni, i limiti e i materiali cambiati in una lingua il modello li cerca solo nel manuale: se il passo giusto non c'è li perde (22f586bb, DR senza serial: tutte e 4 `FONTE_ASSENTE`). Le due lingue però si possono confrontare **tra loro**, senza manuale: variante `lingue_tra_loro` (I12) |
 | **Pronta per la produzione?** | non ancora: 0 falsi errori sulle stampe giuste, costo e tempo bassi, ma pochi errori nuovi trovati e un falso errore sistematico, anche su un ciclo vero (P7 e 2d724fba: si prova a toglierlo con `definizioni_generali`, poi `fonte_ispezione`, sezione 7.3). Sul PC circa 8 WARNING per ciclo vengono dalle targhe (Redshift non raggiungibile): in produzione non ci sono |
-| **Prossimo passo** | campagna: la base nuova (controllo dei numeri corretto, I13) contro `lingue_tra_loro` (I12) e `procedura_dr` (I14: Copilot dice che 895167b9 005 è un falso errore, la deroga della D.R. non arriva al modello), piccolo e grande, con la conoscenza di oggi e le stesse copie cieche (seme 2): la lista del 26-11 dice che sul PC e su S3 non c'è niente di nuovo da ingestionare. L'ingestion quando arrivano i file da procurare (COPILOT passo 6). Poi `fonte_ispezione` (I8) e la regola della scheda (I9) (sezione 8) |
+| **Prossimo passo** | (decisione del 26-11 sera: niente altri manuali da chiedere, si va in produzione senza; la conoscenza la sceglie l'utente con una grande ingestion) campagna in corso: la base nuova (I13) contro `lingue_tra_loro` (I12) e `procedura_dr` (I14). Poi `fonte_ispezione` (I8) e la regola della scheda (I9); il 27-11 prove dal frontend e campagna finale con il seme 3. Dopo l'ingestion dell'utente, una prova di controllo della base sul grande (sezione 8) |
 
 ---
 
@@ -418,17 +418,20 @@ Questi errori noti mancano per motivi che non dipendono dalla v2:
    lista);
 8. ✅ **26-11 sera:** campagna base contro `definizioni_generali`: non si tiene. Corretto il
    controllo dei numeri tra le lingue (I13); scritta `lingue_tra_loro` (I12);
-9. 👉 prove archiviate; campagna base nuova (I13) contro `lingue_tra_loro` (I12) e
-   `procedura_dr` (I14), piccolo e grande, stesse copie cieche (seme 2); poi l'ingestion dei manuali che mancano (nuova fotografia,
-   COPILOT sezione 5);
-10. `fonte_ispezione` (I8, P7 e P8, dopo l'ingestion) e `scheda_processi_speciali` (I9, P6),
-   poi campagna;
-11. le migliorie scelte sui tipi «modello» trovati peggio (dalla tabella per tipo) e il
-   gruppo nascosto (con il seme 2 le copie del modello sono solo 5);
-12. `numeri_manuale`, solo dopo aver tolto dal confronto le copie che troverebbe per costruzione;
-13. tempo e costo (7.4). Da riguardare qui `seconda_ricerca`: con la lista nuova sul grande
-    trovava un errore vero in più della base (895167b9 060, 3 prove su 3 contro 0), ma costa
-    2,1 volte.
+9. 👉 **26-11 sera:** prove archiviate; campagna base nuova (I13) contro `lingue_tra_loro`
+   (I12) e `procedura_dr` (I14), piccolo e grande, stesse copie cieche (seme 2). Decisione
+   dell'utente: niente altri manuali da chiedere (70-23 dell'SPM, due REPAIR, M4): si va in
+   produzione senza, li aggiunge poi l'azienda;
+10. `fonte_ispezione` (I8, P7 e P8) e `scheda_processi_speciali` (I9, P6);
+11. **27-11:** prove dal frontend, poi **campagna finale** con il seme 3: la base contro la v2
+    con tutto acceso. Deve dare 0 falsi errori, contando anche le operazioni oggi «in attesa»;
+12. grande ingestion di tutti i documenti civili (la fa l'utente, che sceglie la conoscenza del
+    servizio), poi una prova di controllo della base sul grande: i manuali nuovi non devono
+    portare falsi errori;
+13. dopo la produzione: le migliorie scelte sui tipi «modello» trovati peggio, il gruppo
+    nascosto, `numeri_manuale` (solo dopo aver tolto dal confronto le copie che troverebbe per
+    costruzione), tempo e costo (7.4, con `seconda_ricerca` da riguardare: sul grande trovava
+    895167b9 060 in più, ma costa 2,1 volte).
 
 **Il resto**, dopo i punti per la consegna (`MEMORIA.md`, sezione 1):
 
