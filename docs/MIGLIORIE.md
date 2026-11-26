@@ -18,9 +18,9 @@ in `DOCUMENTAZIONE.md`.
 | **Cosa non serve** | le **impostazioni** (effort, conferme, testo lungo, concorrenza, task mancante) e **Sonnet** (24-11) |
 | **Cosa si è scoperto il 25-11** | 22 dei 29 errori mai visti per il modello erano su operazioni il cui task **non è nella conoscenza** (WARNING `FONTE_ASSENTE`): nessuno poteva trovarli. Dal 26-11 le copie cieche dei tipi del modello vanno solo su operazioni confrontabili. Sulle 7 confrontabili `tutto_insieme` ne trovava 5 |
 | **Il limite di oggi** | **il modello aggiunge poco**: dei 14 errori stabili del piccolo, 13 li trova il codice (lingue, task inesistente); il modello ne trova stabilmente 1, più 5ff17062 050 (errore vero, P9) e f355dc3c 050 (4 prove su 6). Quasi tutti i mancati sono `EVIDENZA_NON_TROVATA` (7 per ciclo): il passo giusto del manuale non è nel testo che il modello riceve. Serve la conoscenza che manca (manuale del motore, REPAIR) e `fonte_ispezione` |
-| **Cosa si è scoperto il 26-11 sera** | Copilot ha guardato gli ERRATO del grande: 4 sono errori veri, 1 è un falso errore. **895167b9** non è un ciclo vero ma una copia modificata (come 5ff17062): 4 errori, ora in lista. **2d724fba 050** è un falso errore su un ciclo vero, con la stessa causa della P7: il ciclo dice «4 volte» (manuale del motore), la v2 confronta con la definizione **generica** di «3 volte» dell'SPM. La stessa causa fa trovare 3 errori veri **per il motivo sbagliato** (895167b9 010 e 030, 5ff17062 050): il conteggio degli errori trovati è un po' ottimista |
+| **Cosa si è scoperto il 26-11 sera** | Copilot ha guardato gli ERRATO del grande: 4 sono errori veri, 1 è un falso errore. **895167b9** non è un ciclo vero ma una copia modificata (come 5ff17062): 4 errori, ora in lista. **2d724fba 050** è un falso errore su un ciclo vero, con la stessa causa della P7: il ciclo dice «4 volte» (manuale del motore), la v2 confronta con la definizione **generica** di «3 volte» dell'SPM. La stessa causa fa trovare 3 errori veri **per il motivo sbagliato** (895167b9 010 e 030, 5ff17062 050): il conteggio degli errori trovati è un po' ottimista. Poi Copilot ha trovato tutte le copie modificate della lista: in più **22f586bb** (dalla stampa giusta **737dec71**, con gli stessi 4 errori di 895167b9, che è la stessa con il serial nella 005). Le altre copie erano già in lista |
 | **Pronta per la produzione?** | non ancora: 0 falsi errori sulle stampe giuste, costo e tempo bassi, ma pochi errori nuovi trovati e un falso errore sistematico, anche su un ciclo vero (P7 e 2d724fba: si prova a toglierlo con `definizioni_generali`, poi `fonte_ispezione`, sezione 7.3). Sul PC circa 8 WARNING per ciclo vengono dalle targhe (Redshift non raggiungibile): in produzione non ci sono |
-| **Prossimo passo** | campagna: la base (con I10 e la lista nuova degli errori noti) contro `definizioni_generali` (I11), piccolo e grande. Poi `fonte_ispezione` (I8) dopo l'ingestion del manuale del motore e la regola della scheda (I9) (sezione 8) |
+| **Prossimo passo** | campagna: la base (con I10 e la lista nuova degli errori noti) contro `definizioni_generali` (I11), piccolo e grande. L'ingestion dopo. Poi `fonte_ispezione` (I8) dopo l'ingestion del manuale del motore e la regola della scheda (I9) (sezione 8) |
 
 ---
 
@@ -115,8 +115,11 @@ P7). **Dal 26-11** (P9) 5ff17062 ha 4 errori invece di 1 (010, 030, 040 in attes
 scritti, 3 in attesa, **12 contano**. **Dal 26-11 sera** anche 895167b9 (era tra i cicli veri,
 è una copia modificata: 4 errori) e una quarta stampa giusta, il ciclo vero 2d724fba, con la 050
 in attesa (falso errore come la P7): **19 scritti, 3 in attesa, 16 contano**; 4 stampe giuste
-con 2 operazioni in attesa. La lista nuova vale dal giro dopo la campagna del 26-11 (prove
-archiviate). Chi scrive le migliorie (Claude) li conosce, quindi può adattarsi
+con 2 operazioni in attesa. Poi (Copilot, tutte le copie della lista) anche 22f586bb, con gli
+stessi 4 errori di 895167b9, e la sua stampa giusta 737dec71: **9 cicli con errori, 23 scritti,
+3 in attesa, 20 contano; 5 stampe giuste**, cioè 14 cicli noti nel piccolo. 22f586bb e 895167b9
+sono quasi la stessa stampa: i loro errori contano due volte. La lista nuova vale dal giro dopo
+la campagna del 26-11 (prove archiviate). Chi scrive le migliorie (Claude) li conosce, quindi può adattarsi
 a loro senza volerlo.
 
 **Mai visti.** Misurano se la v2 **generalizza**. Sono di due tipi:
@@ -380,6 +383,13 @@ Questi errori noti mancano per motivi che non dipendono dalla v2:
   veri. In lista: 010 (un limite cambiato in una lingua), 030 (un numero di documento cambiato,
   una frase aggiunta in una lingua), 050 (il materiale cambiato in una lingua: la v2 diceva
   CORRETTO), 060 (una negazione tolta in una lingua). Con la lista nuova entra nel piccolo.
+  Copilot (26-11 sera): è **22f586bb** (anche lei tra i cicli veri, ora in lista con gli stessi
+  errori) con il serial aggiunto nella 005; tutte e due vengono dalla stampa giusta
+  **737dec71** (ora in lista). Nella 050 e nella 060 è cambiato anche il codice della scheda.
+- **Le altre copie della lista** (Copilot, 26-11 sera): f355dc3c e 5ff17062 da 04ecaabe,
+  298bc28e da 4e64d49a, c5ff3cd6 da 8bdb25d5, con le stesse operazioni già in lista. 38960731,
+  e9b74c84 e 8d3c673c (da un kaizen) sono stampe con errori senza originale nel progetto. Gli
+  altri cicli della lista sono originali.
 - **2d724fba op. 050** (ciclo vero): falso errore con la causa della P7. Il ciclo vero diventa
   una stampa giusta con la 050 in attesa; entra nel piccolo.
 
@@ -400,9 +410,10 @@ Questi errori noti mancano per motivi che non dipendono dalla v2:
    `seconda_ricerca` (non entra); P1-P9 chiuse; controllo delle lingue corretto (I10);
 7. ✅ **26-11 sera:** gli «ERRATO da verificare» del grande guardati con Copilot: 4 errori
    veri (895167b9 in lista), 1 falso errore (2d724fba 050, come la P7); scritta
-   `definizioni_generali` (I11);
-8. 👉 l'ingestion dei manuali che mancano (se è finita: nuova fotografia, COPILOT sezione 5);
-   campagna base (con I10 e la lista nuova) contro `definizioni_generali`, piccolo e grande;
+   `definizioni_generali` (I11); tutte le copie modificate della lista (22f586bb e 737dec71 in
+   lista);
+8. 👉 campagna base (con I10 e la lista nuova) contro `definizioni_generali`, piccolo e grande;
+   poi l'ingestion dei manuali che mancano (nuova fotografia, COPILOT sezione 5);
 9. `fonte_ispezione` (I8, P7 e P8, dopo l'ingestion) e `scheda_processi_speciali` (I9, P6),
    poi campagna;
 10. le migliorie scelte sui tipi «modello» trovati peggio (dalla tabella per tipo) e il
@@ -740,6 +751,13 @@ sola dalle prove mancanti. Spesa 1,53 $ per le ultime 3 prove; in tutto circa 3 
   base era 64%: con queste risposte 4 dei 5 ERRATO da verificare sono errori veri. Ma un
   errore «trovato» può esserlo per il motivo sbagliato: oggi la misura non lo vede (lo vede solo
   chi legge il report).
+- **26-11 sera, tutte le copie modificate della lista (Copilot):** 895167b9 è 22f586bb con il
+  serial nella 005, e 22f586bb è la stampa giusta 737dec71 con 010, 030, 050 e 060 cambiate
+  (nella 050 e 060 anche il codice della scheda). Tutte e tre erano nella lista del grande come
+  cicli veri: ora 22f586bb è un ciclo con errori e 737dec71 una stampa giusta. Le altre copie
+  (f355dc3c, 5ff17062, 298bc28e, c5ff3cd6) erano già in lista con le stesse operazioni. Sul
+  grande del 26-11 nessun ERRATO da verificare su 22f586bb, mentre su 895167b9 sì: da guardare
+  nella campagna (instabilità o effetto della 005).
 
 | Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
 |---|---|---|---|---|---|---|---|

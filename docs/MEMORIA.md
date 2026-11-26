@@ -1101,6 +1101,12 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   `definizioni_generali` (I11); campagna base contro questa, `grande: sempre`. Da chiedere a
   Copilot: l'impronta della stampa originale di 895167b9 e se nella lista del grande ci sono
   altre copie modificate.
+- **26-11 sera, le copie modificate della lista (Copilot, di nuovo in Agent).** 895167b9 è
+  22f586bb con il serial nella 005; 22f586bb è la stampa giusta 737dec71 con 4 operazioni
+  cambiate. 22f586bb (4 errori) e 737dec71 (stampa giusta) ora in `eval/errori-noti.yaml`:
+  14 cicli noti, 20 errori che contano. Le altre copie erano già in lista. Copilot leggeva un
+  elenco vecchio (diceva che 5ff17062 ha solo la 030): il PC non era aggiornato. L'utente fa
+  l'ingestion dopo la campagna.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

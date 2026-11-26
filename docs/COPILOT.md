@@ -46,7 +46,7 @@ configurare).
 | **Conoscenza / fotografia** | i manuali preparati (ingestion) con cui la v2 confronta il ciclo. Sta su AWS; sul PC ce n'è una copia, la fotografia |
 | **Esiti** | **CORRETTO**, **ERRATO** (c'è un errore), **WARNING** (serve un controllo a mano) |
 | **Modello** | l'IA che confronta i testi: Claude **Haiku** su Amazon Bedrock (dal 25-11 solo Haiku) |
-| **Errori visti** | gli errori noti messi apposta in 8 stampe (`eval/errori-noti.yaml`: dal 26-11 sera 16 che contano). Claude li conosce |
+| **Errori visti** | gli errori noti messi apposta in 9 stampe (`eval/errori-noti.yaml`: dal 26-11 sera 20 che contano). Claude li conosce |
 | **Errori mai visti** | errori che Claude non conosce: **copie cieche** (il programma cambia da solo un'operazione di un ciclo vero) e **gruppo nascosto** (stampe con errori messi a mano da te). Dicono se la v2 funziona anche su errori nuovi |
 | **Stampa giusta / falso errore** | stampa originale senza errori / un ERRATO dove non c'è errore. I falsi errori devono essere **0** |
 | **Prova** | un giro della v2 su un insieme di cicli: conta errori trovati, falsi errori, costo e tempo |
@@ -119,81 +119,66 @@ Risultati delle tappe e decisioni: `MIGLIORIE.md`, sezioni 7 e 13.
 
 **Dove siamo (26-11 sera).** La base resta quella del 26-11: `seconda_ricerca` non entra (stessi
 errori, costo doppio). Copilot ha guardato gli ERRATO del grande: 4 sono errori veri, 1 è un
-falso errore. Il falso errore ha la stessa causa della P7: il ciclo dice «4 volte» (manuale del
-motore), la v2 confronta con la definizione generica di «3 volte» dell'SPM. Claude ha scritto la
-variante `definizioni_generali`, che si prova adesso, e ha aggiornato la lista degli errori
-noti. Dettagli: `MIGLIORIE.md`, «In breve» e sezione 13.
+falso errore con la stessa causa della P7 («4 volte» del manuale del motore contro la
+definizione generica di «3 volte» dell'SPM). Claude ha scritto la variante
+`definizioni_generali`, che si prova adesso. Poi Copilot ha trovato tutte le copie modificate
+della lista: oltre a quelle già note, **22f586bb** (dalla stampa giusta **737dec71**) e
+**895167b9** (la stessa con il serial nella 005). Ora sono tutte in `eval/errori-noti.yaml`.
+L'ingestion la fai dopo la campagna. Dettagli: `MIGLIORIE.md`, «In breve» e sezione 13.
 
 | | Passo | Chi | Costo · tempo |
 |---|---|---|---|
-| ✅ | **ERRATO da verificare: domanda a Copilot** (26-11 sera) | tu | — |
-| 👉 | **1 · Due domande brevi a Copilot** | tu | gratis · 5 minuti |
-| ⬜ | **2 · Ingestion: dimmi se è finita** | tu | — |
-| ⬜ | **3 · Aggiornare e preparare le prove** | tu | gratis · 15 minuti |
-| ⬜ | **4 · Campagna**: base contro `definizioni_generali` | tu | circa 3 $ · 2-3 ore |
-| ⬜ | **5 · `fonte_ispezione` e regola della scheda** (dopo l'ingestion) | Claude | — |
+| ✅ | **ERRATO da verificare e copie modificate: domande a Copilot** (26-11 sera) | tu | — |
+| 👉 | **1 · Aggiornare e archiviare** | tu | gratis · 10 minuti |
+| ⬜ | **2 · Campagna**: base contro `definizioni_generali` | tu | circa 3 $ · 2-3 ore |
+| ⬜ | **3 · Ingestion** (quando puoi) | tu | — |
+| ⬜ | **4 · `fonte_ispezione` e regola della scheda** (dopo l'ingestion) | Claude | — |
 
 ---
 
-**👉 Passo 1 · Due domande brevi a Copilot** (modalità **Ask**: nell'ultima foto era su
-*Agent*, cambialo in basso nella chat prima di incollare)
+**👉 Passo 1 · Aggiornare e archiviare**
 
-895167b9 era tra i cicli veri ma è una copia modificata. Serve sapere da quale stampa viene e se
-ce ne sono altre così nella lista del grande. Incolla in Copilot:
+1. **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)).
+2. **Archiviare** le prove (sezione [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove),
+   blocco «Archiviare»): è cambiata la lista degli errori noti, le prove vecchie non si
+   confrontano più con le nuove.
 
-> Modalità Ask, non modificare niente. Rispondi solo con impronte (le prime 8 cifre dello
-> SHA-256 del PDF, in minuscolo), numeri di operazione e parole: niente nomi di file, codici di
-> manuali, serial o part number, niente testo del ciclo o del manuale. 1) Il ciclo 895167b9 è
-> una copia modificata di un'altra stampa: qual è l'impronta della stampa originale, ed è nella
-> lista `runs/prove-grande/cicli.txt`? 2) Tra i cicli di `runs/prove-grande/cicli.txt` ce ne
-> sono altri che sono copie modificate di un'altra stampa? Per ognuno: impronta della copia,
-> impronta dell'originale, numeri delle operazioni cambiate.
+La conoscenza non cambia: le copie cieche restano quelle del seme 2 e la lista dei cicli scelti
+resta quella (non serve rifare 3.2 e 3.3).
 
-- **Mandami:** la risposta (foto della chat).
+- **Mandami:** la foto della fine di Aggiornare (i test) e quella di Archiviare.
 
 ---
 
-**⬜ Passo 2 · Ingestion: dimmi se è finita**
-
-Il 26-11 mattina Copilot ha copiato dei PDF nell'area dell'ingestion. Servono i file che
-mancano nella conoscenza:
-
-- il **manuale d'ispezione del motore** (il più importante: senza, `fonte_ispezione` non si
-  può fare);
-- il capitolo 70-23 dell'SPM;
-- i due REPAIR della sezione 72-56-31.
-
-**Dimmi a parole:** l'ingestion è finita? Quali di questi file c'erano? Se non lo sai, va bene
-lo stesso: si fa la campagna con la conoscenza di oggi.
-
----
-
-**⬜ Passo 3 · Aggiornare e preparare le prove**
-
-Prima **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Poi dipende dal passo 2:
-
-| Caso | Cosa fare, in ordine |
-|---|---|
-| **C'è una nuova ingestion** | tutta la sezione [5](#5-dopo-una-nuova-ingestion): fotografia (A), lista dei manuali (B), archiviare (3.8), cicli veri (3.2), copie cieche (3.3) con `$seme = 3` |
-| **Niente di nuovo nella conoscenza** | solo archiviare (3.8: è cambiata la lista degli errori noti). Le copie cieche restano quelle del seme 2 |
-
-- **Mandami:** la foto di ogni blocco, come dice ognuno.
-
----
-
-**⬜ Passo 4 · Campagna: base contro `definizioni_generali`**
+**⬜ Passo 2 · Campagna: base contro `definizioni_generali`**
 
 Prima il piano, poi la campagna (sezione [3.5](#35-la-campagna-tutte-le-prove-in-automatico)).
 Questa volta il grande si fa per tutte e due (`grande: sempre`): la variante serve soprattutto
 lì.
 
 - **Il piano deve dire:** piccolo e grande, `base` e `definizioni_generali`, `3 da fare` per
-  ognuna. Il piccolo ha 2 cicli in più di prima (895167b9 e 2d724fba).
+  ognuna. Il piccolo ha **14 cicli noti** (prima 10): in più 895167b9, 22f586bb, 737dec71 e
+  2d724fba.
 - **Mandami:** la riga finale e le foto di `runs\campagna.md` e dei due `riepilogo.md`.
 
 ---
 
-**⬜ Passo 5 · `fonte_ispezione` e regola della scheda** (lo fa Claude)
+**⬜ Passo 3 · Ingestion** (quando puoi, anche dopo la campagna)
+
+Servono i file che mancano nella conoscenza:
+
+- il **manuale d'ispezione del motore** (il più importante: senza, `fonte_ispezione` non si
+  può fare);
+- il capitolo 70-23 dell'SPM;
+- i due REPAIR della sezione 72-56-31.
+
+Quando è finita, **dimmi a parole** quali di questi file c'erano. Poi si fa tutta la sezione
+[5](#5-dopo-una-nuova-ingestion): fotografia (A), lista dei manuali (B), archiviare (3.8), cicli
+veri (3.2), copie cieche (3.3) con `$seme = 3`.
+
+---
+
+**⬜ Passo 4 · `fonte_ispezione` e regola della scheda** (lo fa Claude)
 
 Dopo l'ingestion del manuale del motore. Poi di nuovo Aggiornare, archiviare, campagna.
 
@@ -358,7 +343,7 @@ $kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v 
 uv run cycle-validation eval scegli (Resolve-Path "..\..").Path --knowledge $v --quanti 0 --out runs/prove-grande/cicli.txt
 ```
 
-- **Deve uscire:** `Stampe: ... Scelti N: noti 12, veri M. Per tipo: MOS ..., DR ....` e una riga
+- **Deve uscire:** `Stampe: ... Scelti N: noti 14, veri M. Per tipo: MOS ..., DR ....` e una riga
   per ciclo. Se N è più di 100: foto a Claude (si mette `--quanti 100`).
 - **Mandami:** la foto.
 
@@ -388,8 +373,8 @@ uv run cycle-validation eval muta --lista runs/prove-grande/cicli.txt --knowledg
 La misura migliore: gli errori li pensa una persona.
 
 1. `code runs/prove-grande/cicli.txt` (non fotografarlo): le prime righe sono i cicli noti
-   (10, o 12 se la lista è stata rifatta dopo il 26-11), dopo ci sono i cicli veri. Non usare
-   895167b9 e 2d724fba: ora sono cicli noti.
+   (10, o 14 se la lista è stata rifatta dopo il 26-11), dopo ci sono i cicli veri. Non usare
+   895167b9, 22f586bb, 737dec71 e 2d724fba: ora sono cicli noti.
 2. Copia una decina di quelle stampe in `data\nascosti\`.
 3. In ogni copia cambia a mano uno o due punti della descrizione. I più utili: **un numero
    cambiato in tutte e due le lingue**; parole o frasi cambiate in tutte e due le lingue. Meglio
@@ -492,7 +477,7 @@ $nome = "base"; $insieme = "piccolo"
 $foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
 $kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
 $variante = if (Test-Path "eval/varianti/$nome.yaml") { @("--variante", "eval/varianti/$nome.yaml") } else { @() }
-$dieci = Get-ChildItem (Resolve-Path "..\..").Path -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*errori*" -or (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in @("4e64d49a", "8bdb25d5", "04ecaabe", "5ff17062", "895167b9", "2d724fba") } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
+$dieci = Get-ChildItem (Resolve-Path "..\..").Path -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*errori*" -or (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower() -in @("4e64d49a", "8bdb25d5", "04ecaabe", "5ff17062", "895167b9", "22f586bb", "737dec71", "2d724fba") } | Group-Object { (Get-FileHash $_.FullName).Hash } | ForEach-Object { $_.Group[0] }
 $cicli = @("--attesi", "eval/errori-noti.yaml")
 if ($insieme -eq "grande") { $cicli += @("--lista", "runs/prove-grande/cicli.txt") } else { $cicli += @($dieci.FullName); if (Test-Path runs/mutazioni/lista.txt) { $cicli += @("--lista", "runs/mutazioni/lista.txt", "--attesi", "runs/mutazioni/errori.yaml") }; if (Test-Path data/errori-nascosti.yaml) { $cicli += @("data/nascosti", "--attesi", "data/errori-nascosti.yaml") } }
 "prova «$nome» sull'insieme $insieme" + $(if ($variante) { " con la variante" } else { "" })

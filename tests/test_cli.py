@@ -549,8 +549,9 @@ def test_the_known_errors_file_is_valid() -> None:
     known = load_known_errors(Path("eval/errori-noti.yaml"))
     total = sum(len(cycle.errori) for cycle in known.cicli.values())
     giuste = [key for key, cycle in known.cicli.items() if cycle.giusto]
-    # 26-11: 15 con la P9 (5ff17062 con 4 errori), 19 con 895167b9; 2d724fba giusto (vero)
-    assert total == 19 and len(giuste) == 4
+    # 26-11: 15 con la P9 (5ff17062 con 4 errori), 19 con 895167b9; 2d724fba giusto (vero).
+    # 26-11 sera: 23 con 22f586bb, giusta anche 737dec71
+    assert total == 23 and len(giuste) == 5
 
 
 def test_eval_prova_scores_blind_copies_without_showing_them(tmp_path: Path, pdf: Path) -> None:
