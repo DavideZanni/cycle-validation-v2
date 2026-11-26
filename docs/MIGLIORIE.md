@@ -9,7 +9,7 @@ in `DOCUMENTAZIONE.md`.
 
 ---
 
-## In breve (26-11-2026, pomeriggio)
+## In breve (26-11-2026, sera)
 
 | Domanda | Risposta |
 |---|---|
@@ -18,8 +18,9 @@ in `DOCUMENTAZIONE.md`.
 | **Cosa non serve** | le **impostazioni** (effort, conferme, testo lungo, concorrenza, task mancante) e **Sonnet** (24-11) |
 | **Cosa si è scoperto il 25-11** | 22 dei 29 errori mai visti per il modello erano su operazioni il cui task **non è nella conoscenza** (WARNING `FONTE_ASSENTE`): nessuno poteva trovarli. Dal 26-11 le copie cieche dei tipi del modello vanno solo su operazioni confrontabili. Sulle 7 confrontabili `tutto_insieme` ne trovava 5 |
 | **Il limite di oggi** | **il modello aggiunge poco**: dei 14 errori stabili del piccolo, 13 li trova il codice (lingue, task inesistente); il modello ne trova stabilmente 1, più 5ff17062 050 (errore vero, P9) e f355dc3c 050 (4 prove su 6). Quasi tutti i mancati sono `EVIDENZA_NON_TROVATA` (7 per ciclo): il passo giusto del manuale non è nel testo che il modello riceve. Serve la conoscenza che manca (manuale del motore, REPAIR) e `fonte_ispezione` |
-| **Pronta per la produzione?** | non ancora: 0 falsi errori, costo e tempo bassi, ma pochi errori nuovi trovati e un falso errore sistematico (P7, confermato il 26-11: si toglie con `fonte_ispezione`, sezione 7.3). Sul PC circa 8 WARNING per ciclo vengono dalle targhe (Redshift non raggiungibile): in produzione non ci sono |
-| **Prossimo passo** | controllo delle lingue corretto (I10, fatto il 26-11); `fonte_ispezione` (I8) dopo l'ingestion del manuale del motore; regola della scheda (I9); poi campagna con la base (sezione 8) |
+| **Cosa si è scoperto il 26-11 sera** | Copilot ha guardato gli ERRATO del grande: 4 sono errori veri, 1 è un falso errore. **895167b9** non è un ciclo vero ma una copia modificata (come 5ff17062): 4 errori, ora in lista. **2d724fba 050** è un falso errore su un ciclo vero, con la stessa causa della P7: il ciclo dice «4 volte» (manuale del motore), la v2 confronta con la definizione **generica** di «3 volte» dell'SPM. La stessa causa fa trovare 3 errori veri **per il motivo sbagliato** (895167b9 010 e 030, 5ff17062 050): il conteggio degli errori trovati è un po' ottimista |
+| **Pronta per la produzione?** | non ancora: 0 falsi errori sulle stampe giuste, costo e tempo bassi, ma pochi errori nuovi trovati e un falso errore sistematico, anche su un ciclo vero (P7 e 2d724fba: si prova a toglierlo con `definizioni_generali`, poi `fonte_ispezione`, sezione 7.3). Sul PC circa 8 WARNING per ciclo vengono dalle targhe (Redshift non raggiungibile): in produzione non ci sono |
+| **Prossimo passo** | campagna: la base (con I10 e la lista nuova degli errori noti) contro `definizioni_generali` (I11), piccolo e grande. Poi `fonte_ispezione` (I8) dopo l'ingestion del manuale del motore e la regola della scheda (I9) (sezione 8) |
 
 ---
 
@@ -111,8 +112,11 @@ Ogni prova conta quanti errori messi apposta la v2 trova. Gli errori sono di due
 cui 2 «in attesa» (c5ff3cd6 030, scheda: P6; f355dc3c 040, documenti mancanti), quindi **10
 contano**. Le 3 stampe giuste hanno 1 operazione in attesa (04ecaabe 050, falso errore noto:
 P7). **Dal 26-11** (P9) 5ff17062 ha 4 errori invece di 1 (010, 030, 040 in attesa, 050): 15
-scritti, 3 in attesa, **12 contano**. La lista nuova vale dal giro dopo la campagna del 26-11
-(prove archiviate). Chi scrive le migliorie (Claude) li conosce, quindi può adattarsi
+scritti, 3 in attesa, **12 contano**. **Dal 26-11 sera** anche 895167b9 (era tra i cicli veri,
+è una copia modificata: 4 errori) e una quarta stampa giusta, il ciclo vero 2d724fba, con la 050
+in attesa (falso errore come la P7): **19 scritti, 3 in attesa, 16 contano**; 4 stampe giuste
+con 2 operazioni in attesa. La lista nuova vale dal giro dopo la campagna del 26-11 (prove
+archiviate). Chi scrive le migliorie (Claude) li conosce, quindi può adattarsi
 a loro senza volerlo.
 
 **Mai visti.** Misurano se la v2 **generalizza**. Sono di due tipi:
@@ -309,6 +313,7 @@ la variante `sonnet` resta per le prove a mano.
 | `elementi_e_lingue` (25-11; **scelta migliore, nella base dal 26-11**) | `elementi_uno_per_uno` e `lingue_separate` insieme | se le due trovano errori diversi, insieme ne trovano di più | nessuno |
 | `tutto_insieme` (25-11; **22 stabili, mai visti 5 su 29; scartata per il costo, ×2,2 la base vecchia**; dal 26-11 è uguale a `seconda_ricerca`) | le tre insieme: elementi, lingue, seconda ricerca | come si guarda la descrizione e dove si cerca nel manuale sono due cose diverse: possono sommarsi | nessuno |
 | `fonte_ispezione` (I8, **da scrivere**: P7 e P8 chiuse il 26-11) | per le operazioni di controllo e ispezione, tra le fonti anche la **sezione d'ispezione del manuale del motore citato in testata**; per le operazioni che non citano un task, i task della **prima riga di note** del ciclo | P7: la stampa giusta 04ecaabe op. 050 dice «4 volte» come il manuale del motore, la v2 confronta con il task SPM («3 volte») e dà ERRATO (14 prove su 18 con Haiku): è un **falso errore**, che succederebbe anche sui cicli veri. P8: operazioni senza task che oggi escono WARNING. Quando c'è, 04ecaabe 050 esce dall'attesa: un ERRATO lì conta come falso errore | medio |
+| `definizioni_generali` (I11, **scritta il 26-11 sera, da provare**) | nella domanda al modello: le **definizioni generali** di un manuale di pratiche standard (per esempio «indicazione lineare = lunghezza almeno 3 volte la larghezza») valgono solo dove non ci sono limiti specifici. Se l'unica differenza è con una di queste: `non_verificabile` (WARNING), non `contraddetto`. Resta `contraddetto` con un limite specifico o con una lingua diversa dall'altra (`agent.general_definitions_note`) | i falsi errori «4 volte contro 3 volte»: 04ecaabe 050 (P7) e il ciclo vero 2d724fba 050. Obbliga il modello a cercare il motivo vero (5ff17062 050: la negazione tolta in inglese, vista solo in 2 prove su 6). Non serve l'ingestion. Rischio: perdere gli errori trovati per il motivo sbagliato (è la misura onesta) o dire `non_verificabile` su un numero cambiato davvero (copie «numero del manuale», limite invertito) | piccolo |
 | `scheda_processi_speciali` (I9, **da scrivere**: P6 chiusa il 26-11) | un'operazione di processo speciale (lubrificante secco, rivestimenti, attacco chimico, liquidi penetranti) senza scheda: WARNING «scheda forse mancante», mai ERRATO. Le altre operazioni senza scheda restano come oggi | non cambia gli errori trovati (c5ff3cd6 030 resta in attesa: è un WARNING, non un ERRATO); è una regola per la produzione. Rischio: WARNING in più sui cicli veri, da guardare sul grande | piccolo |
 | `numeri_manuale` (I4, è H12; **rimandata**) | confronta i numeri e le classi della descrizione con quelli del passo del manuale. Alla sessione passa le differenze da guardare; se tutto coincide, CORRETTO senza modello | numeri cambiati in tutte e due le lingue; 7 errori noti su 10 sono numeri, classi o codici; meno sessioni | medio |
 
@@ -371,6 +376,12 @@ Questi errori noti mancano per motivi che non dipendono dalla v2:
   030, 040 e 050 cambiate. In lista dal 26-11: 010 (tre numeri), 040 (la classe, in attesa come
   f355dc3c 040), 050 (frase dei limiti sostituita, negazioni tolte in inglese): il suo «ERRATO
   in più» sulla 050 diventa un errore trovato. Vale dal giro dopo la campagna del 26-11.
+- **895167b9** (26-11 sera, Copilot): copia modificata della stessa riparazione, era tra i cicli
+  veri. In lista: 010 (un limite cambiato in una lingua), 030 (un numero di documento cambiato,
+  una frase aggiunta in una lingua), 050 (il materiale cambiato in una lingua: la v2 diceva
+  CORRETTO), 060 (una negazione tolta in una lingua). Con la lista nuova entra nel piccolo.
+- **2d724fba op. 050** (ciclo vero): falso errore con la causa della P7. Il ciclo vero diventa
+  una stampa giusta con la 050 in attesa; entra nel piccolo.
 
 ---
 
@@ -387,14 +398,19 @@ Questi errori noti mancano per motivi che non dipendono dalla v2:
    per `data/settings.yaml` sul PC); copie cieche solo su operazioni confrontabili;
 6. ✅ **26-11:** prove archiviate; copie cieche con il seme 2; campagna base nuova contro
    `seconda_ricerca` (non entra); P1-P9 chiuse; controllo delle lingue corretto (I10);
-7. 👉 gli «ERRATO da verificare» del grande (895167b9 010, 030, 060; 2d724fba 050) guardati con
-   Copilot; l'ingestion dei manuali che mancano e la nuova fotografia;
-8. `fonte_ispezione` (I8, P7 e P8, dopo l'ingestion) e `scheda_processi_speciali` (I9, P6),
-   poi campagna (la base con I8, I9, I10: se non perde errori ed esce 0 falsi errori, restano);
-9. le migliorie scelte sui tipi «modello» trovati peggio (dalla tabella per tipo) e il
+7. ✅ **26-11 sera:** gli «ERRATO da verificare» del grande guardati con Copilot: 4 errori
+   veri (895167b9 in lista), 1 falso errore (2d724fba 050, come la P7); scritta
+   `definizioni_generali` (I11);
+8. 👉 l'ingestion dei manuali che mancano (se è finita: nuova fotografia, COPILOT sezione 5);
+   campagna base (con I10 e la lista nuova) contro `definizioni_generali`, piccolo e grande;
+9. `fonte_ispezione` (I8, P7 e P8, dopo l'ingestion) e `scheda_processi_speciali` (I9, P6),
+   poi campagna;
+10. le migliorie scelte sui tipi «modello» trovati peggio (dalla tabella per tipo) e il
    gruppo nascosto (con il seme 2 le copie del modello sono solo 5);
-10. `numeri_manuale`, solo dopo aver tolto dal confronto le copie che troverebbe per costruzione;
-11. tempo e costo (7.4).
+11. `numeri_manuale`, solo dopo aver tolto dal confronto le copie che troverebbe per costruzione;
+12. tempo e costo (7.4). Da riguardare qui `seconda_ricerca`: con la lista nuova sul grande
+    trovava un errore vero in più della base (895167b9 060, 3 prove su 3 contro 0), ma costa
+    2,1 volte.
 
 **Il resto**, dopo i punti per la consegna (`MEMORIA.md`, sezione 1):
 
@@ -445,6 +461,7 @@ Ogni miglioria ha un codice (Id) che si usa nei documenti e nel codice.
 | I6 | (24-11-2026) `elementi_uno_per_uno`: la descrizione scomposta in elementi tecnici controllati uno a uno (`agent.itemized_check`). Spenta nella base; con Haiku la migliore (21 stabili, mai visti 4 su 29) |
 | I5 + I6 | (26-11-2026) **nella base**: `separate_languages` e `itemized_check` accesi di default (campagna del 25-11, variante `elementi_e_lingue`) |
 | I7 | (25-11-2026) `seconda_ricerca`: dopo un «non verificabile», una seconda sessione con Grep e Read in tutti i documenti del ciclo (`agent.search_when_unverifiable`). Spenta nella base; da provare sulla base nuova |
+| I11 | (26-11-2026 sera) `definizioni_generali`: una differenza solo con una definizione generale del manuale di pratiche standard dà `non_verificabile`, non `contraddetto` (`agent.general_definitions_note`, `agent/prompt.py`). Spenta nella base; da provare |
 | I10 | (26-11-2026) controllo delle due lingue: una conversione scritta in una lingua sola («0.38 MM (0.015 IN)») non sposta più l'allineamento dei numeri (`checks/languages.py`). Sul piccolo del 26-11 le copie «numero in una lingua» trovate erano 1 su 5 (il 25-11 4 su 5): la causa è un'ipotesi, si verifica alla prossima campagna |
 | — | (26-11-2026) copie cieche dei tipi del modello solo su operazioni confrontabili (`blind.comparable`); nel riepilogo la tabella «ERRATO da verificare» (ciclo, operazione, in quante prove per variante, senza testo); regola delle prove vecchie non valide corretta (solo zero token) |
 | — | (25-11-2026) prova in cui il modello non ha risposto (accesso AWS scaduto): non conta, la campagna si ferma con «il modello non ha risposto» e al lancio dopo la toglie e la rifà (`Trial.unusable`). Il primo guasto si stampa senza ARN né numeri di account |
@@ -709,6 +726,20 @@ sola dalle prove mancanti. Spesa 1,53 $ per le ultime 3 prove; in tutto circa 3 
   sulle copie non confrontabili e su f355dc3c 050, che è instabile. Il modello oggi aggiunge
   poco agli errori trovati: il limite è il testo del manuale che riceve (conoscenza che manca,
   passo giusto in un altro task), non come giudica.
+- **26-11 sera, gli ERRATO da verificare del grande (Copilot in Ask, confrontando con la stampa
+  originale e i documenti):** 895167b9 non è un ciclo vero, è una copia modificata: 010 errore
+  vero trovato per il motivo sbagliato (la v2 dice che il manuale vieta la raccordatura; il
+  difetto vero è un limite cambiato in inglese), 030 errore vero per lo stesso motivo
+  sbagliato, 060 errore vero per il motivo giusto (negazione tolta in inglese), e la 050
+  (materiale cambiato in inglese) la v2 la dava per corretta. 2d724fba 050 **falso errore**: il
+  ciclo dice «4 volte la larghezza» come la D.R. e la stampa giusta, la v2 confronta con la
+  definizione generica dell'SPM («3 volte»), che vale solo senza limiti specifici e rimanda al
+  manuale d'ispezione. 5ff17062 050 errore vero, ma quasi sempre per il motivo «3 o 4 volte»:
+  solo 2 prove su 6 vedono la negazione tolta. **Conseguenze:** 895167b9 e 2d724fba in
+  `eval/errori-noti.yaml`; variante `definizioni_generali` (I11). La precisione del grande della
+  base era 64%: con queste risposte 4 dei 5 ERRATO da verificare sono errori veri. Ma un
+  errore «trovato» può esserlo per il motivo sbagliato: oggi la misura non lo vede (lo vede solo
+  chi legge il report).
 
 | Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
 |---|---|---|---|---|---|---|---|

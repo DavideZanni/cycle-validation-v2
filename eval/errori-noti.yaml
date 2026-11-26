@@ -40,6 +40,15 @@ cicli:
       "050": la frase dei limiti sostituita; in inglese due negazioni tolte
     in_attesa:
       "040": "documento non nella conoscenza (come f355dc3c 040)"
+  895167b9:
+    # 26-11 (Copilot sulle prove del grande): era tra i cicli veri, ma è una copia modificata
+    # della stessa riparazione, come 5ff17062. 010 e 030 la v2 le trovava per il motivo
+    # sbagliato, 050 la dava per corretta
+    errori:
+      "010": un limite cambiato in una lingua (minimo invece di massimo)
+      "030": un numero di documento cambiato; in una lingua una frase aggiunta
+      "050": il materiale cambiato in una lingua
+      "060": una negazione tolta in una lingua
   8d3c673c:
     errori:
       "140": un numero cambiato (solo in una lingua)
@@ -60,3 +69,10 @@ cicli:
     # da qui e un ERRATO conta come falso errore
     in_attesa:
       "050": "P7: falso errore noto, si toglie con fonte_ispezione"
+  2d724fba:
+    # ciclo vero: per la v2 una stampa giusta. 26-11 (Copilot): l'ERRATO della 050 è un falso
+    # errore come quello della P7 («4 volte» contro la definizione generica di «3 volte»).
+    # In attesa finché `definizioni_generali` o `fonte_ispezione` non lo tolgono
+    giusto: true
+    in_attesa:
+      "050": "P7 su un ciclo vero: falso errore noto (definizione generica dell'SPM)"

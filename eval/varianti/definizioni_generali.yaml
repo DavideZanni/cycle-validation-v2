@@ -1,0 +1,7 @@
+nome: definizioni_generali
+descrizione: una differenza solo con una definizione generale del manuale di pratiche standard (per esempio «indicazione lineare = 3 volte la larghezza») dà non_verificabile (WARNING), non contraddetto
+ipotesi: "26-11, risposta di Copilot sugli ERRATO del grande: il «4 volte» del manuale del motore contro il «3 volte» generico dell'SPM dà un falso errore sulla stampa giusta 04ecaabe 050 (P7) e sul ciclo vero 2d724fba 050, e fa trovare 5ff17062 050 per il motivo sbagliato (la negazione tolta in inglese si vede solo in 2 prove su 6)"
+atteso: "nessun ERRATO sulle due operazioni in attesa per la P7 (04ecaabe 050, 2d724fba 050); falsi errori 0; errori stabili uguali o al massimo uno in meno (quelli trovati per il motivo sbagliato); mai visti non meno della base; WARNING per ciclo al massimo +1"
+base: baseline
+agent:
+  general_definitions_note: true

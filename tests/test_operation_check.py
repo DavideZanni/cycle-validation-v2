@@ -453,6 +453,16 @@ def test_the_elements_are_checked_one_by_one_and_it_can_be_switched_off() -> Non
     assert "scomponi la descrizione nei suoi elementi tecnici" in itemized
 
 
+def test_the_general_definitions_note_is_only_in_its_variant() -> None:
+    """`definizioni_generali` (26-11): «4 volte» del ciclo contro «3 volte» dell'SPM."""
+    base = job_for(op(), AgentSettings(retry_backoff_s=0)).request.prompt
+    assert "definizioni generali" not in base
+    on = AgentSettings(retry_backoff_s=0, general_definitions_note=True)
+    prompt = job_for(op(), on).request.prompt
+    assert "**definizioni generali**" in prompt
+    assert "rispondi `non_verificabile`" in prompt
+
+
 def _second_search(second: str) -> ScriptedSession:
     """Prima verifica: non verificabile; seconda ricerca (sessione `-ricerca`): `second`."""
     return ScriptedSession(

@@ -431,6 +431,14 @@ CORRETTO o ERRATO con citazione verificata, prende il posto del WARNING e la sua
 diventa quella dell'operazione (la conferma G1 si rifà su questa); se no resta il WARNING. Il
 costo delle due sessioni si somma.
 
+**Definizioni generali (`agent.general_definitions_note`, spenta nella base; variante
+`definizioni_generali`, 26-11).** Alla domanda si aggiunge una nota (`agent/prompt.py`,
+`GENERAL_DEFINITIONS_NOTE`): le regole scritte per tutti i casi da un manuale di pratiche
+standard valgono solo dove non ci sono limiti specifici, perché il ciclo può prendere i criteri
+dal manuale d'ispezione del motore o da una D.R. Se l'unica differenza è con una di queste
+definizioni, il modello risponde `non_verificabile` (WARNING `EVIDENZA_NON_TROVATA`). Nasce dal
+«4 volte» del ciclo contro il «3 volte» generico dell'SPM (P7, e il ciclo vero 2d724fba).
+
 **Conferma degli ERRATO (regola G1).** Ogni `CONTRADDIZIONE` si rifà con
 `confirm_contradiction` sessioni uguali (2). Resta ERRATO solo se **tutte** ritrovano la
 contraddizione. Se una la smentisce: WARNING `GIUDIZIO_INSTABILE` («contraddizione ritrovata in
@@ -681,6 +689,7 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.separate_languages` | `true` (dal 26-11) | descrizione in due lingue: nella domanda al modello la parte italiana e quella inglese separate, con l'istruzione di confrontarle **ognuna** con il testo di riferimento (se una sola dice altro, `contraddetto`). Variante `lingue_separate` |
 | `agent.itemized_check` | `true` (dal 26-11) | prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione, valori, limiti, divieti, materiali) e li confronta uno per uno; se uno solo è incompatibile, `contraddetto`. Variante `elementi_uno_per_uno`. Le due sono nella base dal 26-11 (campagna del 25-11, variante `elementi_e_lingue`): il valore predefinito nel codice vale anche per `data/settings.yaml` sul PC, che non le nomina |
 | `agent.search_when_unverifiable` | `false` | dopo un `non_verificabile`, una seconda sessione cerca in tutti i documenti citati dal ciclo, con i tool. Variante `seconda_ricerca` |
+| `agent.general_definitions_note` | `false` | nella domanda al modello: una differenza solo con una **definizione generale** del manuale di pratiche standard (per esempio «indicazione lineare = 3 volte la larghezza») dà `non_verificabile`, non `contraddetto`; resta `contraddetto` con un limite specifico o con una lingua diversa dall'altra. Variante `definizioni_generali` (26-11) |
 | `agent.confirm_contradiction` | 2 | sessioni di conferma per ogni ERRATO del modello |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
 | `paths.*` | `config/profiles`, `prompts`, `data/knowledge`, `runs` | cartelle |

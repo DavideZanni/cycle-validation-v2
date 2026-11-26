@@ -73,6 +73,13 @@ class AgentSettings(_Strict):
     # mancati uscivano in tutte le 36 prove del 24-11 con EVIDENZA_NON_TROVATA. Costa solo
     # sulle operazioni non verificabili.
     search_when_unverifiable: bool = False
+    # Le definizioni generali di un manuale di pratiche standard (per esempio «indicazione
+    # lineare = lunghezza almeno 3 volte la larghezza») valgono solo dove non ci sono limiti
+    # specifici: se l'unica differenza è con una di queste, `non_verificabile` (WARNING) e non
+    # `contraddetto`. Variante `definizioni_generali` (26-11-2026): «4 volte» del manuale del
+    # motore contro «3 volte» dell'SPM dava un falso errore sulla stampa giusta (P7) e su un
+    # ciclo vero, e ERRATO giusti ma per il motivo sbagliato.
+    general_definitions_note: bool = False
     # Una contraddizione (ERRATO) si conferma con altrettante sessioni uguali: resta ERRATO
     # solo se la ritrovano tutte, altrimenti WARNING GIUDIZIO_INSTABILE. Su un ciclo DR vero
     # lo stesso confronto dava ERRATO 3 volte su 6 (21-11-2026). Costa solo sugli ERRATO.

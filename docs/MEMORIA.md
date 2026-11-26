@@ -1093,6 +1093,14 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   chatbot, forse il frontend) per gli sviluppatori dei vari use case, che sono data scientist.
 - **`.gitignore` di `docs/` (24-11-2026):** in git entra solo `DOCUMENTAZIONE.md`; gli altri
   quattro file erano già seguiti e restano (servono al blocco Aggiornare e alla memoria).
+- **26-11 sera, ERRATO da verificare del grande (Copilot, che era di nuovo in Agent: ricordare
+  Ask).** 895167b9 è una copia modificata, non un ciclo vero (come 5ff17062): 4 errori, ora in
+  `eval/errori-noti.yaml`. 2d724fba 050 è un falso errore su un ciclo vero, causa P7 («4 volte»
+  contro la definizione generica di «3 volte» dell'SPM): 2d724fba è ora una stampa giusta con
+  la 050 in attesa. Tre errori veri la v2 li trova per il motivo sbagliato. Scritta la variante
+  `definizioni_generali` (I11); campagna base contro questa, `grande: sempre`. Da chiedere a
+  Copilot: l'impronta della stampa originale di 895167b9 e se nella lista del grande ci sono
+  altre copie modificate.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

@@ -9,8 +9,10 @@
 # 25-11: `tutto_insieme` 22 errori stabili e mai visti 5 su 29 contro 19 e 3 di
 # `elementi_e_lingue`, scartata solo per il costo (2,2 volte la base vecchia; sulla base nuova
 # è 1,9 volte).
+# 26-11 sera: `seconda_ricerca` scartata (stessi errori, costo 2,1 volte la base sul grande).
+# Ora `definizioni_generali` (risposta di Copilot sugli ERRATO del grande).
 varianti:
-  - seconda_ricerca
+  - definizioni_generali
 
 # Prove per variante: tre (le differenze sono di uno o due errori).
 ripetizioni: 3
@@ -26,9 +28,12 @@ modelli:
 insiemi: [piccolo, grande]
 
 # Sul grande: se_si_tiene (base + varianti che si tengono sul piccolo), sempre, mai.
-grande: se_si_tiene
+# 26-11 sera: sempre, perché `definizioni_generali` serve soprattutto sul grande (il falso
+# errore del ciclo vero 2d724fba) e sul piccolo può perdere gli errori trovati per il motivo
+# sbagliato.
+grande: sempre
 
-# Tetto di spesa della campagna, in dollari. Stima del 26-11: base circa 0,20 $ a prova sul
-# piccolo e 0,25 $ sul grande, seconda ricerca circa il doppio; in tutto circa 3 $. Arrivata
+# Tetto di spesa della campagna, in dollari. Stima del 26-11 sera: circa 0,20 $ a prova sul
+# piccolo e 0,25 $ sul grande, per base e variante; in tutto circa 3 $. Arrivata
 # al tetto la campagna si ferma; rilanciata, riparte da dove era.
 massimo_dollari: 10

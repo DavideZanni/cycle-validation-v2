@@ -95,6 +95,19 @@ ITEMS_NOTE = (
 )
 
 
+GENERAL_DEFINITIONS_NOTE = (
+    "Attenzione alle **definizioni generali** del testo di riferimento, cioè le regole scritte "
+    "per tutti i casi (per esempio che cosa si intende per indicazione lineare, o un rapporto "
+    "tra lunghezza e larghezza). Un manuale di pratiche standard vale solo dove non ci sono "
+    "limiti specifici: il ciclo può prendere i suoi criteri dal manuale d'ispezione del motore o "
+    "da una D.R., che valgono di più. Se l'unica differenza tra la descrizione e il testo è un "
+    "criterio diverso da una definizione generale, rispondi `non_verificabile` e scrivi nella "
+    "spiegazione quale definizione è diversa. Resta `contraddetto` se il testo dà un limite "
+    "specifico per questa operazione o per questo pezzo, e se una delle due lingue dice "
+    "qualcosa di diverso dall'altra (una negazione, un valore, un materiale)."
+)
+
+
 def _header(
     cycle: Cycle,
     operation: Operation,
@@ -102,6 +115,7 @@ def _header(
     missing_tasks: Sequence[str],
     languages: tuple[str, str] | None = None,
     itemized: bool = False,
+    general_definitions: bool = False,
 ) -> list[str]:
     lines = [
         f"Operazione {operation.operation_number}",
@@ -112,6 +126,8 @@ def _header(
         lines += [f"Parte in italiano: {italian}", f"Parte in inglese: {english}", LANGUAGES_NOTE]
     if itemized:
         lines.append(ITEMS_NOTE)
+    if general_definitions:
+        lines.append(GENERAL_DEFINITIONS_NOTE)
     if operation.task_codes:
         lines.append(f"Task code citati: {', '.join(operation.task_codes)}")
     if missing_tasks:
@@ -158,7 +174,13 @@ def build_operation_prompt(
     (`AgentSettings.separate_languages`). `second_search`: è la seconda ricerca, nei documenti
     interi, dopo un primo giudizio «non verificabile» (`AgentSettings.search_when_unverifiable`)."""
     lines = _header(
-        cycle, operation, facts, missing_tasks, languages, itemized=settings.itemized_check
+        cycle,
+        operation,
+        facts,
+        missing_tasks,
+        languages,
+        itemized=settings.itemized_check,
+        general_definitions=settings.general_definitions_note,
     )
     if second_search:
         lines.append(SECOND_SEARCH_NOTE)
