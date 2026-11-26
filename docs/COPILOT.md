@@ -129,28 +129,14 @@ L'ingestion la fai dopo la campagna. Dettagli: `MIGLIORIE.md`, «In breve» e se
 | | Passo | Chi | Costo · tempo |
 |---|---|---|---|
 | ✅ | **ERRATO da verificare e copie modificate: domande a Copilot** (26-11 sera) | tu | — |
-| 👉 | **1 · Aggiornare e archiviare** | tu | gratis · 10 minuti |
-| ⬜ | **2 · Campagna**: base contro `definizioni_generali` | tu | circa 3 $ · 2-3 ore |
+| ✅ | **1 · Aggiornare e archiviare** (26-11, 14:29; piano: piccolo 29, grande 23, `3 da fare` per tutte) | tu | — |
+| 👉 | **2 · Campagna**: base contro `definizioni_generali` | tu | circa 3 $ · 2-3 ore |
 | ⬜ | **3 · Ingestion** (quando puoi) | tu | — |
 | ⬜ | **4 · `fonte_ispezione` e regola della scheda** (dopo l'ingestion) | Claude | — |
 
 ---
 
-**👉 Passo 1 · Aggiornare e archiviare**
-
-1. **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)).
-2. **Archiviare** le prove (sezione [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove),
-   blocco «Archiviare»): è cambiata la lista degli errori noti, le prove vecchie non si
-   confrontano più con le nuove.
-
-La conoscenza non cambia: le copie cieche restano quelle del seme 2 e la lista dei cicli scelti
-resta quella (non serve rifare 3.2 e 3.3).
-
-- **Mandami:** la foto della fine di Aggiornare (i test) e quella di Archiviare.
-
----
-
-**⬜ Passo 2 · Campagna: base contro `definizioni_generali`**
+**👉 Passo 2 · Campagna: base contro `definizioni_generali`**
 
 Prima il piano, poi la campagna (sezione [3.5](#35-la-campagna-tutte-le-prove-in-automatico)).
 Questa volta il grande si fa per tutte e due (`grande: sempre`): la variante serve soprattutto
@@ -402,7 +388,7 @@ varianti sul piccolo, poi sul grande la base e le varianti che si tengono. Alla 
   sceglie MOS o DR per ogni ciclo.
 - **Riprende da dove era:** le prove già fatte non si rifanno. Una prova interrotta con Ctrl+C
   non conta.
-- **Si ferma da sola:** al tetto di spesa (oggi 15 $) o se il modello non risponde (accesso
+- **Si ferma da sola:** al tetto di spesa (oggi 10 $) o se il modello non risponde (accesso
   scaduto: `aws sso login` e rilancia). Le prove senza risposte si tolgono e si rifanno.
 
 **Il piano** (gratis, non lancia niente):
