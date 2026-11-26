@@ -130,7 +130,7 @@ L'ingestion la fai dopo la campagna. Dettagli: `MIGLIORIE.md`, «In breve» e se
 |---|---|---|---|
 | ✅ | **ERRATO da verificare e copie modificate: domande a Copilot** (26-11 sera) | tu | — |
 | ✅ | **1 · Aggiornare e archiviare** (26-11, 14:29; piano: piccolo 29, grande 23, `3 da fare` per tutte) | tu | — |
-| 👉 | **2 · Campagna**: base contro `definizioni_generali` | tu | circa 3 $ · 2-3 ore |
+| 👉 | **2 · Campagna**: base contro `definizioni_generali` | tu | circa 3 $ · 1-2 ore |
 | ⬜ | **3 · Ingestion** (quando puoi) | tu | — |
 | ⬜ | **4 · `fonte_ispezione` e regola della scheda** (dopo l'ingestion) | Claude | — |
 
