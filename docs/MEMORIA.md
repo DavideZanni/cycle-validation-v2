@@ -1130,6 +1130,15 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   l'utente con il comando scritto da Copilot, prima con `--dryrun`: tolti tutti e 7 alle 17:00
   (stesso contenuto dei file in `RM/manuali/`, nessun giro di ingestion li aveva presi). La campagna si fa con la conoscenza di oggi e le copie del seme 2.
   L'utente ha fotografato il file della lista: ha codici veri e percorsi, non si ripetono.
+- **26-11 sera, dove sono i file che mancano (Copilot, 17:10, tutto S3 e tutto il PC).** La
+  sezione d'ispezione di M1 (il «4 volte», «length of more than 4 times its width») c'è ed è
+  già nella conoscenza dal 23-11 (le sezioni `08-001`): il falso errore della P7 viene dalla
+  definizione generica dell'SPM, e `fonte_ispezione` (I8) non aspetta l'ingestion. Il capitolo
+  70-23 dell'SPM, i due REPAIR (`09-001`, `09-003`) e M4 non ci sono da nessuna parte: vanno
+  chiesti. M5: il manuale no, ma le 2 schede SPM LEAP citate dal suo ciclo sono su S3 in una
+  sottocartella `landing_area_test/LEAP/`, che l'ingestion non legge (prende solo i file
+  diretti di `SPM/landing_area/`). Decisione: si copiano (non si spostano) insieme ai file
+  chiesti, alla prossima ingestion; comando scritto da Copilot in Ask, lanciato dall'utente.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 
