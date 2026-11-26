@@ -107,139 +107,66 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 |---|---|---|---|
 | ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, copie cieche | 24-11 |
 | ✅ | **2. Prima campagna** | tutte le impostazioni, Haiku e Sonnet | 24-11 sera |
-| 👉 | **3. Migliorie** | 25-11: prima campagna, `elementi_e_lingue` nella base. 26-11: copie cieche nuove e `seconda_ricerca` | **26-11** |
+| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` non entra; prossime: lingue, `fonte_ispezione`, scheda | **26-11** |
 | ⬜ | **4. Tempo e costo** | spendere meno e fare prima, con gli stessi errori trovati | dopo la 3 |
 | ⬜ | **5. Chiusura** | prova finale con copie cieche nuove, prove dal frontend, salvare | dopo la 4 |
 | ⬜ | **6. QA** | pubblicare nell'ambiente di prova | alla fine |
 
 Risultati delle tappe e decisioni: `MIGLIORIE.md`, sezioni 7 e 13.
 
-### 👉 Tappa 3, secondo giro (dal 26-11)
+### 👉 Tappa 3, terzo giro (dal 26-11 pomeriggio)
 
-**Cosa ha detto la campagna del 25-11** (dettagli in `MIGLIORIE.md`, sezione 13):
-`elementi_e_lingue` è la scelta migliore e **da oggi è nella base** (19 errori stabili contro
-17, 0 falsi errori). `tutto_insieme` ha trovato di più (22) ma costa 2,2 volte: si riprova
-sulla base nuova come `seconda_ricerca`. Claude ha anche corretto le copie cieche (22 su 29
-erano su operazioni che la v2 non può confrontare) e una regola che il 25-11 ha cancellato per
-sbaglio le prove del 24-11.
+**Cosa ha detto la campagna del 26-11** (dettagli in `MIGLIORIE.md`, sezione 13):
+`seconda_ricerca` **non entra** nella base: sul piccolo trova gli stessi errori (14 su 25) con
+1,6 WARNING in meno per ciclo, sul grande costa 2,1 volte la base (scartata). 0 falsi errori
+dappertutto. La base resta quella del 26-11.
 
-Per questo: le prove di adesso si **archiviano** e si fanno **copie cieche nuove** con il seme
-2. Poi la campagna: base nuova e `seconda_ricerca`, 3 prove ciascuna, piccolo e grande.
+Claude ha corretto il controllo delle due lingue (sul piccolo trovava solo 1 copia «numero in
+una lingua» su 5) e aggiornato gli errori noti con le risposte P1-P9. Prossime migliorie:
+`fonte_ispezione` (P7, P8: serve il manuale del motore nella conoscenza) e la regola della
+scheda (P6).
 
 | | Passo | Costo · tempo |
 |---|---|---|
-| ✅ | **1 · Aggiornare** | gratis · 2 minuti |
-| ✅ | **2 · Controllare le impostazioni del PC** | gratis · 1 minuto |
-| ✅ | **3 · Archiviare le prove** | gratis · 1 minuto |
-| ✅ | **4 · Copie cieche nuove (seme 2)** (26-11: 15 copie, 5 dei tipi del modello) | gratis · 5 minuti |
-| ✅ | **5 · Accesso e piano** (piccolo 25 cicli e copie) | gratis · 2 minuti |
-| 👉 | **6 · La campagna** | circa 2,5 $ (tetto 10 $) · circa 1 ora e 15 |
-| ⬜ | **7 · Il report** | gratis · 5 minuti |
+| ✅ | **Campagna del 26-11** (base contro `seconda_ricerca`) | 1,53 $ · 1 ora e 40 |
+| 👉 | **1 · ERRATO da verificare: domanda a Copilot** | gratis · 10 minuti |
+| ⬜ | **2 · Ingestion dei manuali che mancano**: dimmi se è finita | — |
+| ⬜ | **3 · Aggiornare, archiviare, campagna** (quando Claude ha scritto le migliorie) | circa 1,5 $ · 1 ora |
 
 ---
 
-**✅ Passo 1 · Aggiornare**
+**👉 Passo 1 · ERRATO da verificare: domanda a Copilot** (modalità **Ask**)
 
-- **Copia** il blocco della sezione [2.1](#21-aggiornare-il-codice-sul-pc).
-- **Deve uscire:** `... passed`, **nessun** `failed`.
-- **Mandami:** la foto dell'ultima riga.
+Sul grande la v2 dà ERRATO su operazioni di cicli veri che nessuno ha controllato. Possono
+essere errori veri o falsi errori. Incolla in Copilot:
 
----
+> Modalità Ask, non modificare niente. In `runs/prove-grande` ci sono le prove del 26-11; in
+> ognuna c'è una sottocartella per ciclo con il report. Per queste operazioni la v2 dice
+> ERRATO: ciclo 895167b9 operazioni 010, 030 e 060; ciclo 2d724fba operazione 050; ciclo
+> 5ff17062 operazione 050. Per ognuna, guardando la stampa del ciclo e il manuale: il ciclo è
+> davvero sbagliato (errore vero) o la v2 sbaglia (falso errore)? Rispondi con una frase per
+> operazione, senza codici di manuali, serial o part number e senza copiare il testo del
+> manuale.
 
-**⬜ Passo 2 · Controllare le impostazioni del PC**
-
-La base nuova si accende da sola, a meno che `data/settings.yaml` (il file del PC) la spenga.
-Questo blocco lo controlla.
-
-```powershell
-$env:UV_PYTHON = "3.14"
-$righe = Select-String -Path data/settings.yaml -Pattern "separate_languages|itemized_check|search_when_unverifiable"
-if ($righe) { $righe | ForEach-Object { $_.Line.Trim() } } else { "OK: data/settings.yaml non le nomina, vale la base nuova" }
-```
-
-- **Deve uscire:** `OK: data/settings.yaml non le nomina, vale la base nuova`.
-- **Se esce una riga con `false`:** fermati e mandami la foto.
+- **Mandami:** la risposta, come per le domande (foto del Blocco note o della chat).
 
 ---
 
-**⬜ Passo 3 · Archiviare le prove**
+**⬜ Passo 2 · Ingestion dei manuali che mancano**
 
-Sposta le prove del 25-11 in `runs\archivio-...` (restano da leggere): con la base e le copie
-nuove non si confrontano più.
-
-```powershell
-$d = Get-Date -Format "yyyyMMdd-HHmm"; "piccolo", "grande" | ForEach-Object { if (Test-Path "runs/prove-$_") { Move-Item "runs/prove-$_" "runs/archivio-$d-$_" } }
-New-Item -ItemType Directory -Force runs/prove-grande | Out-Null; Copy-Item "runs/archivio-$d-grande/cicli.txt" runs/prove-grande/cicli.txt; Get-ChildItem runs -Directory | Select-Object Name
-```
-
-- **Deve uscire:** l'elenco delle cartelle di `runs`, con `archivio-<data>-piccolo` e
-  `archivio-<data>-grande`, e di nuovo `prove-grande` (con dentro solo la lista dei cicli
-  scelti).
-- **Mandami:** la foto.
+Il 26-11 mattina Copilot (in modalità Agent) ha copiato dei PDF nell'area dell'ingestion. Se
+sono i manuali che mancano (manuale del motore, capitolo 70-23 dell'SPM, i REPAIR), servono
+proprio: `fonte_ispezione` ha bisogno della sezione d'ispezione del manuale del motore.
+**Dimmi** se l'ingestion è finita: poi si fa la nuova fotografia (sezione
+[5](#5-dopo-una-nuova-ingestion)).
 
 ---
 
-**⬜ Passo 4 · Copie cieche nuove (seme 2)**
+**⬜ Passo 3 · Aggiornare, archiviare, campagna**
 
-```powershell
-$env:UV_PYTHON = "3.14"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-$seme = 2
-$foto = (Get-ChildItem eval/casi/aziendali/conoscenza -Directory -Filter "foto-*" | Sort-Object Name | Select-Object -Last 1).FullName
-$kb = "$foto/Manufacturing AI/ingestion-v2-test-qa-output/knowledge/civil/"; $v = $kb + (Get-Content ($kb + "current.json") | ConvertFrom-Json).path
-Remove-Item runs/mutazioni -Recurse -ErrorAction SilentlyContinue
-uv run cycle-validation eval muta --lista runs/prove-grande/cicli.txt --knowledge $v --quanti 100 --seme $seme --out runs/mutazioni
-```
-
-- **Deve uscire:** `Copie con un errore cieco: N su 100 chieste, seme 2.` e quante copie per
-  tipo. I tipi del modello possono essere meno di prima: ora vanno solo su operazioni che la v2
-  può confrontare con il manuale.
-- **Non aprire** `runs\mutazioni\errori.yaml`. **Mandami:** la foto (solo i conteggi).
-
----
-
-**⬜ Passo 5 · Accesso e piano**
-
-```powershell
-$env:UV_PYTHON = "3.14"
-aws sso login
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-uv run cycle-validation eval campagna --piano
-```
-
-- **Deve uscire:** `Piccolo: N cicli e copie; grande: 23 cicli.`, solo `haiku`, e:
-  - piccolo: `base` e `seconda_ricerca`: **3 da fare**;
-  - grande: `base`: **3 da fare**.
-- **Mandami:** la foto.
-
----
-
-**👉 Passo 6 · La campagna** · circa 2,5 $ (tetto 10 $) · circa 1 ora e 15
-
-```powershell
-$env:UV_PYTHON = "3.14"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-uv run cycle-validation eval campagna
-code runs/campagna.md
-```
-
-- **Prima:** PC acceso, attaccato alla corrente, senza sospensione.
-- **Dopo la prima prova:** il costo **non** deve essere `0.00 $` (se lo è: sezione 0.4).
-- **Alla fine:** `Campagna finita. Prove fatte ora: N · spesa ... $.`
-- **Mandami:** la foto della prima prova e della riga finale.
-
----
-
-**⬜ Passo 7 · Il report**
-
-Ctrl+Shift+V in ogni file, poi una foto per sezione:
-
-1. `runs\campagna.md`: **«haiku · piccolo»**, **«haiku · grande»**, **«Errori mai visti per
-   tipo»**, **«WARNING per motivo»**;
-2. `code runs/prove-piccolo/riepilogo.md`: **«Le prove»** ed **«Errore per errore»**;
-3. `code runs/prove-grande/riepilogo.md`: **«Classifica delle varianti»** e la tabella nuova
-   **«ERRATO da verificare»** (ciclo e operazione degli ERRATO sui cicli veri: servono per farli
-   guardare a una persona).
+Claude dettaglia i blocchi quando le migliorie sono pronte: Aggiornare (2.1), archiviare
+(3.8: cambia la lista degli errori noti), campagna (3.5). Le copie cieche restano quelle del
+seme 2.
 
 ### ⬜ Le tappe dopo (Claude le dettaglia quando ci arriviamo)
 

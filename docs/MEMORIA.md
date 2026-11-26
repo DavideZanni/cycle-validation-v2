@@ -1082,6 +1082,13 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   sezione d'ispezione del manuale del motore. P9 verificata con `confronta`: 5ff17062 ha 010,
   030, 040, 050 cambiate; `eval/errori-noti.yaml` aggiornato, vale dal giro dopo questa
   campagna (non aggiornare il PC mentre la campagna gira).
+- **26-11, report della campagna** (seme 2): `seconda_ricerca` stessi errori della base (14 su
+  25 sul piccolo, 7 su 10 sul grande), costo ×2,1 sul grande → non entra; la base resta.
+  Scoperte: i 7 visti stabili li trova tutti il controllo delle lingue (il modello ne aggiunge
+  pochi); le copie «numero in una lingua» trovate 1 su 5 → corretto il controllo delle lingue
+  (I10: conversione in una lingua sola). Da verificare sul grande: 895167b9 010/030/060,
+  2d724fba 050 (domanda a Copilot in COPILOT sezione 1). Prossimo: ingestion del manuale del
+  motore, `fonte_ispezione`, regola della scheda.
 - **26-11, richiesta nuova:** in azienda chiedono una guida agli unit test (Python, backend del
   chatbot, forse il frontend) per gli sviluppatori dei vari use case, che sono data scientist.
 - **`.gitignore` di `docs/` (24-11-2026):** in git entra solo `DOCUMENTAZIONE.md`; gli altri

@@ -387,7 +387,9 @@ si controlla.
    l'inglese hanno **numeri diversi**: ERRATO `INCOERENZA_LINGUE`. Si conta solo una
    sostituzione (un numero al posto di un altro). Non contano: un numero in una sola lingua,
    le conversioni mm ↔ pollici (2%) e °C ↔ °F (±1), i codici fatti di cifre (con `/`, o di 5
-   cifre o più, come i part number);
+   cifre o più, come i part number). Una conversione scritta in una sola lingua («0.38 MM
+   (0.015 IN)») non sposta l'allineamento: si toglie il numero che converte quello subito prima
+   e si confronta di nuovo (26-11);
 4. si cercano i **testi di riferimento** (`context_locations`, sotto); se la sorgente non
    risponde: WARNING `ERRORE_TECNICO`;
 5. task citati che il manuale non ha: WARNING `FONTE_ASSENTE` subito, senza modello

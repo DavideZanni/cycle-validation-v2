@@ -7,7 +7,9 @@ si vede senza manuale e senza modello.
 
 Si confrontano le due sequenze di numeri e si segnala solo una **sostituzione**: un numero al
 posto di un altro, nello stesso punto. Un numero che c'è in una sola lingua non conta (una
-frase in più), né una conversione tra millimetri e pollici o tra gradi C e F.
+frase in più), né una conversione tra millimetri e pollici o tra gradi C e F. Dal 26-11 una
+conversione scritta in una lingua sola («0.38 MM (0.015 IN)») non sposta l'allineamento: prima
+un numero cambiato lì vicino non si vedeva.
 """
 
 import difflib
@@ -65,9 +67,31 @@ def number_mismatches(description: str) -> list[tuple[str, str]]:
     )
     found: list[tuple[str, str]] = []
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-        if tag != "replace" or i2 - i1 != j2 - j1:
+        if tag != "replace":
             continue
-        for (raw_a, a), (raw_b, b) in zip(italian[i1:i2], english[j1:j2], strict=True):
+        left, right = italian[i1:i2], english[j1:j2]
+        if len(left) != len(right):
+            # una lingua scrive anche la conversione («0.38 MM (0.015 IN)») e l'altra no: senza
+            # le conversioni i due pezzi si allineano di nuovo (26-11)
+            left, right = (
+                _without_conversions(italian, i1, i2),
+                _without_conversions(english, j1, j2),
+            )
+            if len(left) != len(right):
+                continue
+        for (raw_a, a), (raw_b, b) in zip(left, right, strict=True):
             if a != b and not _converted(a, b):
                 found.append((raw_a, raw_b))
     return found
+
+
+def _without_conversions(
+    numbers: list[tuple[str, Decimal]], start: int, end: int
+) -> list[tuple[str, Decimal]]:
+    """I numeri del pezzo [start, end) senza quelli che sono la conversione del numero subito
+    prima (mm ↔ pollici, °C ↔ °F)."""
+    return [
+        numbers[k]
+        for k in range(start, end)
+        if k == 0 or not _converted(numbers[k - 1][1], numbers[k][1])
+    ]
