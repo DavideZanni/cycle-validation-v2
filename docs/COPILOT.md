@@ -168,8 +168,8 @@ Prima il piano, poi la campagna (sezione [3.5](#35-la-campagna-tutte-le-prove-in
 
 Non sono nella cartella di prova né nel corpus dell'ingestion sul PC. **Dove cercarli, in
 ordine:** (1) su S3, in tutta la cartella `Manufacturing AI/landing_area/` (lì ci sono gli
-originali di tutto il corpus, circa 2000 file: la ricerca del 26-11 guardava solo la cartella
-di prova); (2) sul resto del PC; (3) se non ci sono: chi ha preparato il corpus dell'ingestion,
+originali dei file del corpus, forse anche quelli mai ingestionati: la ricerca del 26-11
+guardava solo la cartella di prova); (2) sul resto del PC; (3) se non ci sono: chi ha preparato il corpus dell'ingestion,
 o l'ufficio delle pubblicazioni tecniche. Per (1) e (2) chiedi a Copilot, in **Ask**:
 
 ```text
