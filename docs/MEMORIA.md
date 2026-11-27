@@ -83,6 +83,27 @@ il falso errore P7 (dopo la P12); (6) nella grande ingestion i documenti che ha 
 no (capitolo 70 dell'SPM con le classi dell'etchant, indice delle schede con materiale e
 motore); (7) `finale` nella base; (8) H15, due tipi di WARNING, per la presentazione.
 
+**Cosa deve fare la v2 e cosa deve fare meglio della v1** (ragionamento del 27-11 sera, chiesto
+dall'utente: non sugli esperimenti ma sul prodotto). Il lavoro: chi prepara un ciclo vuole
+sapere, prima di rilasciarlo, se c'è un errore e dove, in pochi minuti, fidandosi della
+risposta. Quindi, in ordine di importanza:
+
+| # | La v2 deve | v1 | v2 oggi |
+|---|---|---|---|
+| 1 | non dare errori falsi (chi usa lo strumento smette di leggerlo) | 6 su 4 stampe giuste | 0 contati ✅ |
+| 2 | trovare almeno gli errori che trova la v1 | 15 su 19 | circa 13 su 19 dopo i controlli del 27-11 sera (da misurare, passo 4d): mancano schede (H18), una parola cambiata in inglese, un documento |
+| 3 | leggere tutte le stampe (MOS, DR con e senza serial, stampe modificate) e le due lingue | 10 su 14, solo inglese | 14 su 14, due lingue ✅ |
+| 4 | dire dove e perché, con la frase del manuale ritrovata | testo libero, a volte si contraddice | citazione ritrovata dal programma ✅ |
+| 5 | dire cosa non ha potuto controllare, senza confondere con i dubbi veri | OK anche senza controllo | WARNING tutti uguali: da dividere (H15) |
+| 6 | dare la stessa risposta ogni volta, in tempo, a poco costo | mai misurata | misurata: stabile, 15-30 s e 0,01-0,02 $ a ciclo ✅ |
+
+Da migliorare, in ordine: H18 (schede); il registro delle macchine in QA; nella grande
+ingestion i documenti che ha la v1 (classi dell'etchant, indice delle schede con materiale);
+H15 (due tipi di WARNING); le differenze di significato in una lingua sola che non sono né
+negazioni né limiti (una parola cambiata); due regole da decidere con le persone (scheda
+mancante in un processo speciale: errore o avviso? «almeno 4 volte» contro «più di 4»:
+errore?).
+
 **Come l'utente vuole le risposte** (detto il 27-11): le cose da fare scritte in modo preciso e
 puntuale, in ordine, ognuna con il paragrafo di `COPILOT.md`, *Deve uscire* e *Mandami*.
 
