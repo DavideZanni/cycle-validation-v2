@@ -176,3 +176,29 @@ def test_without_a_time_limit_sessions_are_awaited() -> None:
     session = ScriptedSession(lambda r, a: {"ok": 1})
     (outcome,) = run(session, ["a"], timeout_s=None)
     assert outcome.status is SessionStatus.OK
+
+
+def test_after_the_validation_deadline_no_session_starts() -> None:
+    """MG53 (27-11 notte): con la fine del tempo della validazione, le sessioni in corso si
+    fermano e quelle in coda non partono; quelle finite restano."""
+    from cycle_validation.agent.runner import DEADLINE_ERROR
+
+    session = _Stuck(quick={"a"})
+
+    async def main() -> list[SessionOutcome]:
+        deadline = asyncio.get_running_loop().time() + 0.05
+        return await run_sessions(
+            session,
+            [req("a"), req("b"), req("c")],
+            concurrency=2,
+            retries=2,
+            backoff_s=0,
+            invalid_output_retries=1,
+            timeout_s=30,
+            deadline=deadline,
+        )
+
+    outcomes = asyncio.run(main())
+    assert outcomes[0].status is SessionStatus.OK
+    assert [o.error for o in outcomes[1:]] == [DEADLINE_ERROR, DEADLINE_ERROR]
+    assert session.calls == 3 or session.calls == 2

@@ -13,6 +13,7 @@ INCOERENZA_LINGUE al posto dell'esito del confronto con il manuale.
 """
 
 import asyncio
+import contextvars
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -42,10 +43,15 @@ from cycle_validation.checks.base import CheckContext, make_result
 from cycle_validation.checks.dr_recommendation import (
     DR_PROCEDURE_KIND,
     dr_documents,
+    dr_number_mismatches,
     dr_tasks,
 )
 from cycle_validation.checks.languages import (
+    action_mismatches,
+    has_negation,
     language_parts,
+    limit_direction,
+    limit_mismatches,
     number_mismatches,
     strict_difference,
 )
@@ -116,6 +122,35 @@ _NO_LANGUAGE_CHECK = (
 )
 
 
+def _other_dr(ctx: CheckContext, settings: AgentSettings) -> dict[int, str]:
+    """Le operazioni che citano un altro DR (MG76): un guasto della conoscenza non le ferma."""
+    if not settings.dr_consistency:
+        return {}
+    try:
+        return dr_number_mismatches(ctx)
+    except SourceUnavailableError:
+        return {}
+
+
+def _language_difference(operation: Operation) -> str | None:
+    """Un limite al contrario (MG75) o un'azione diversa (MG47) tra le due lingue, trovati dal
+    codice: la spiegazione dell'ERRATO, None se le lingue sono d'accordo."""
+    description = operation.operation_description
+    if limits := limit_mismatches(description):
+        pairs = "; ".join(f"«{a}» contro «{b}»" for a, b in limits)
+        return (
+            "La descrizione italiana e quella inglese danno lo stesso limite al contrario "
+            f"(italiano contro inglese: {pairs}): una delle due è sbagliata."
+        )
+    if verbs := action_mismatches(description):
+        italian, english = verbs[0]
+        return (
+            "La descrizione italiana e quella inglese chiedono un'azione diversa (solo in "
+            f"italiano: {italian}; solo in inglese: {english}): una delle due è sbagliata."
+        )
+    return None
+
+
 def _facts(ctx: CheckContext, operation: Operation) -> list[str]:
     """Fatti che il codice ha già risolto e che l'agente non deve cercare."""
     facts: list[str] = [
@@ -145,7 +180,7 @@ def _locations(
     if ctx.profile.reference_mode == "document":
         documents = cited_documents(ctx.cycle, ctx.kb, ctx.profile.document_order)
         return tuple(whole_document(document) for document in documents)
-    procedures = dr_documents(ctx.kb, ctx.selectors)
+    procedures = dr_documents(ctx.kb, ctx.selectors, ctx.cycle)
     locations = context_locations(
         ctx.cycle,
         operation,
@@ -214,6 +249,7 @@ def plan_operation_checks(
     jobs: list[OperationJob] = []
     immediate: list[CheckResult] = []
     schema = judgement_schema(settings.out_of_scope)
+    other_dr = _other_dr(ctx, settings)
     for index, operation in enumerate(ctx.cycle.operations):
         target = Target.operation(index, operation)
         if not operation.operation_description:
@@ -245,6 +281,12 @@ def plan_operation_checks(
                     f"(italiano → inglese: {pairs}): una delle due è sbagliata.",
                 )
             )
+            continue
+        if index in other_dr:
+            immediate.append(make_result(CHECK, target, Reason.DR_DIVERSO, other_dr[index]))
+            continue
+        if settings.languages_from_code and (difference := _language_difference(operation)):
+            immediate.append(make_result(CHECK, target, Reason.INCOERENZA_LINGUE, difference))
             continue
         try:
             locations = _locations(ctx, operation, settings)
@@ -371,7 +413,7 @@ def wider_job(
     try:
         for document in cited_documents(ctx.cycle, ctx.kb, ctx.profile.document_order):
             documents.setdefault(document.key, document)
-        for document in dr_documents(ctx.kb, ctx.selectors):
+        for document in dr_documents(ctx.kb, ctx.selectors, ctx.cycle):
             documents.setdefault(document.key, document)
         locations = tuple(whole_document(document) for document in documents.values())
     except SourceUnavailableError:
@@ -429,6 +471,24 @@ def _failure(
     return result, PipelineError(stage=STAGE, target=job.target.label, message=detail)
 
 
+# MG45 (27-11 notte): il modello dice «fuori tema», ma la descrizione ha un limite o un divieto.
+# Non diventa N/A: WARNING, e una seconda ricerca in tutti i documenti del ciclo.
+OUT_OF_SCOPE_REFUSED = (
+    "Il modello dice che il testo non tratta l'operazione, ma la descrizione ha un limite o un "
+    "divieto: da guardare."
+)
+
+
+def _has_rule(operation: Operation) -> bool:
+    """La descrizione ha una negazione, un divieto o un limite, in una delle due lingue."""
+    text = operation.operation_description or ""
+    parts = language_parts(text) or (text, text)
+    return any(
+        has_negation(part, language) or limit_direction(part, language) is not None
+        for part, language in zip(parts, ("it", "en"), strict=True)
+    )
+
+
 def decide_operation(
     job: OperationJob, outcome: SessionOutcome, settings: AgentSettings
 ) -> tuple[CheckResult, PipelineError | None]:
@@ -451,7 +511,12 @@ def decide_operation(
             evidence.append(verified)
 
     rationale = judgement.rationale
-    if judgement.judgement is Judgement.FUORI_TEMA and settings.out_of_scope:
+    prudent = settings.prudent_out_of_scope and _has_rule(job.operation)
+    if judgement.judgement is Judgement.FUORI_TEMA and settings.out_of_scope and prudent:
+        # MG45: un limite o un divieto nella descrizione vanno controllati, mai N/A
+        reason = Reason.EVIDENZA_NON_TROVATA
+        rationale = f"{OUT_OF_SCOPE_REFUSED} {judgement.rationale}"
+    elif judgement.judgement is Judgement.FUORI_TEMA and settings.out_of_scope:
         reason = Reason.FUORI_TEMA
         rationale = f"Niente da confrontare: {judgement.rationale}"
     elif judgement.judgement in (Judgement.NON_VERIFICABILE, Judgement.FUORI_TEMA):
@@ -534,6 +599,13 @@ def _validate(output: dict[str, object]) -> object:
     return OperationJudgement.model_validate(output)
 
 
+# fine del tempo della validazione in corso (MG53), orologio del loop: la fissa
+# `check_operations`, valida per tutte le sessioni dello stesso ciclo
+_DEADLINE: contextvars.ContextVar[float | None] = contextvars.ContextVar(
+    "validation_deadline", default=None
+)
+
+
 async def _run(
     session: AgentSession, requests: Sequence[SessionRequest], settings: AgentSettings
 ) -> Sequence[SessionOutcome]:
@@ -546,7 +618,18 @@ async def _run(
         invalid_output_retries=settings.invalid_output_retries,
         validate=_validate,
         timeout_s=settings.session_timeout_s,
+        deadline=_DEADLINE.get(),
     )
+
+
+def _refused_out_of_scope(decided: list[tuple[CheckResult, PipelineError | None]]) -> set[int]:
+    """Le operazioni «fuori tema» non accettate (MG45): solo queste rifanno la ricerca."""
+    return {
+        i
+        for i, (result, _) in enumerate(decided)
+        if result.reason is Reason.EVIDENZA_NON_TROVATA
+        and result.rationale.startswith(OUT_OF_SCOPE_REFUSED)
+    }
 
 
 async def _second_search(
@@ -557,13 +640,16 @@ async def _second_search(
     jobs: list[OperationJob],
     decided: list[tuple[CheckResult, PipelineError | None]],
     stats: dict[str, int] | None,
+    only: set[int] | None = None,
 ) -> list[PipelineError]:
     """Le operazioni «non verificabili» si rifanno cercando in tutti i documenti del ciclo. Un
     giudizio nuovo (CORRETTO o ERRATO, con citazione verificata) prende il posto del primo e la
     sua sessione diventa quella dell'operazione (le conferme di un ERRATO si rifanno su questa);
     altrimenti resta il primo. Il costo delle due sessioni si somma."""
     unclear = [
-        i for i, (result, _) in enumerate(decided) if result.reason is Reason.EVIDENZA_NON_TROVATA
+        i
+        for i, (result, _) in enumerate(decided)
+        if result.reason is Reason.EVIDENZA_NON_TROVATA and (only is None or i in only)
     ]
     if not unclear:
         return []
@@ -600,6 +686,8 @@ async def check_operations(
 ) -> tuple[list[CheckResult], list[PipelineError]]:
     """`stats`, se dato, riceve il numero di sessioni "inline" e "search" pianificate e,
     se ce ne sono, quelle di "conferma" delle contraddizioni."""
+    if settings.validation_timeout_s is not None:
+        _DEADLINE.set(asyncio.get_running_loop().time() + settings.validation_timeout_s)
     # La pianificazione interroga la knowledge base (rete, file): fuori dal loop degli eventi,
     # che nel servizio è lo stesso di tutte le altre richieste.
     jobs, results = await asyncio.to_thread(plan_operation_checks, ctx, settings, system_prompt)
@@ -623,8 +711,11 @@ async def check_operations(
     ]
     errors = [error for _, error in decided if error is not None]
 
-    if settings.search_when_unverifiable:
-        errors += await _second_search(ctx, session, settings, system_prompt, jobs, decided, stats)
+    if settings.search_when_unverifiable or settings.prudent_out_of_scope:
+        only = None if settings.search_when_unverifiable else _refused_out_of_scope(decided)
+        errors += await _second_search(
+            ctx, session, settings, system_prompt, jobs, decided, stats, only
+        )
 
     repeats = settings.confirm_contradiction
     doubtful = [

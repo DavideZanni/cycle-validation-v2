@@ -49,6 +49,7 @@ from cycle_validation.evaluation.draft import draft_case
 from cycle_validation.evaluation.leaderboard import build_leaderboard, render_leaderboard
 from cycle_validation.evaluation.metrics import measure
 from cycle_validation.evaluation.mutations import mutate_cases
+from cycle_validation.evaluation.no_model import ModelFreeSession, model_free_settings
 from cycle_validation.evaluation.run import Suite, load_suites, run_variant
 from cycle_validation.evaluation.snapshot import snapshot_version, take_snapshot
 from cycle_validation.evaluation.trials import (
@@ -191,14 +192,17 @@ def build_dependencies(
     extractor: CycleExtractor | None,
     out_dir: Path | None,
     kb: KnowledgeBase | None = None,
+    session: AgentSession | None = None,
 ) -> Dependencies:
     """Senza `extractor` il ciclo si estrae dal PDF con una sessione LLM a output strutturato.
-    Senza `out_dir` nessun transcript; con `kb` la conoscenza è già pronta (EJ200)."""
+    Senza `out_dir` nessun transcript; con `kb` la conoscenza è già pronta (EJ200); con
+    `session` al posto del modello c'è quella (prova senza modello)."""
     profile = load_profile(profile_name, settings.paths.profiles_dir)
     if kb is None:
         kb = load_local_knowledge(kb_dir or settings.paths.knowledge_dir)
     system_prompt = load_prompt(settings.paths.prompts_dir, OPERATION_PROMPT_FILE)
-    session = make_session(settings.agent, out_dir / "transcripts" if out_dir else None)
+    if session is None:
+        session = make_session(settings.agent, out_dir / "transcripts" if out_dir else None)
     extraction_prompt = ""
     if extractor is None:
         extractor, extraction_prompt = make_pdf_extractor(
@@ -1051,9 +1055,11 @@ def _run_trial(
     nome: str,
     proposal: Proposal,
     cartella: Path,
+    session: AgentSession | None = None,
 ) -> tuple[Trial, Path]:
     """Una prova: valida ogni ciclo, lo confronta con gli errori noti, scrive il report della
-    prova e il riepilogo della cartella. La usano `eval prova` ed `eval campagna`."""
+    prova e il riepilogo della cartella. La usano `eval prova`, `eval campagna` ed `eval
+    senza-modello` (con `session`)."""
     started = datetime.now()
     safe = re.sub(r"[^\w.-]+", "-", nome).strip("-") or "prova"
     # due prove nello stesso secondo (campagna su pochi cicli) non si sovrascrivono
@@ -1089,6 +1095,7 @@ def _run_trial(
                 machines_file=None,
                 extractor=extractor,
                 out_dir=out,
+                session=session,
             )
             # una copia cieca viene dal suo file: il controllo di integrità contro il PDF
             # originale la declasserebbe (vedi `RunRequest.check_integrity`)
@@ -1190,6 +1197,55 @@ def eval_trial(
     summary = cartella / SUMMARY_REPORT
     typer.echo(f"Report della prova: {folder / TRIAL_REPORT}")
     typer.echo(f"Riepilogo di tutte le prove: {summary}")
+
+
+@eval_app.command("senza-modello")
+def eval_without_model(
+    insiemi: Annotated[str, typer.Option(help="piccolo, grande o tutti e due.")] = "piccolo,grande",
+    knowledge: Annotated[
+        Path | None, typer.Option(help="Conoscenza. Vuoto = l'ultima fotografia.")
+    ] = None,
+    config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
+    runs: Annotated[Path, typer.Option("--cartella", help="Cartella dei risultati.")] = Path(
+        "runs"
+    ),
+) -> None:
+    """Gli stessi cicli della campagna, solo con i controlli del codice: 0 $, pochi minuti.
+    Al posto del modello una risposta fissa («non verificabile»). Dice quanti errori noti
+    trova il codice da solo e se dà falsi errori: per provare una regola nuova del codice
+    prima di una campagna. Le prove vanno in `runs/senza-modello-<insieme>`, fuori dalle
+    cartelle della campagna."""
+    try:
+        kb = knowledge or _latest_knowledge()
+        sets = _campaign_sets(runs, KNOWN_ERRORS_FILE)
+        chosen = _split(insiemi) or []
+        unknown = [name for name in chosen if name not in sets]
+        if unknown or not chosen:
+            raise CycleValidationError(f"Insiemi: piccolo, grande (non {', '.join(unknown)}).")
+        settings = model_free_settings(load_settings(config))
+    except (CycleValidationError, OSError, ValueError) as error:
+        raise _fail(error) from error
+    for name in chosen:
+        typer.echo(f"--- {name} (senza modello) ---")
+        cycles = sets[name]
+        trial, _ = _run_trial(
+            cycles.entries,
+            cycles.known,
+            settings,
+            "auto",
+            kb,
+            "senza-modello",
+            Proposal(),
+            runs / f"senza-modello-{name}",
+            session=ModelFreeSession(),
+        )
+        warnings = sum(sum(c.warnings.values()) for c in trial.cycles)
+        typer.echo(
+            f"Senza modello, {name}: errori trovati dal codice {trial.known_found} su "
+            f"{trial.known_total} · falsi errori {trial.false_errors} · da verificare "
+            f"{trial.extra_errors} · WARNING per ciclo {warnings / max(len(trial.cycles), 1):.1f}"
+            f" · costo {trial.cost_usd:.2f} $"
+        )
 
 
 CAMPAIGN_FILE = Path("eval/campagna.yaml")

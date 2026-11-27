@@ -106,64 +106,64 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 |---|---|---|
 | ✅ | 1-3 · Preparare, campagne, migliorie | 27-11: base con `schede_e_limiti`, 0 falsi errori, 34/43 e 23/29 stabili |
 | 👉 | 4 · Prove dal frontend (sezione 4) | A3 e A1 fatte |
-| ⬜ | 5 · Grande ingestion, prova di controllo, QA | dopo la P13 |
+| ⬜ | 5 · Grande ingestion, prova di controllo, QA | dopo il passo 4h |
 | ⬜ | 6 · Produzione (`develop` → `main`) | quando i cancelli di `V1_CONTRO_V2.md` sono ✅ |
 
 | | Passo | Quando · costo |
 |---|---|---|
 | ✅ | 1-4e · campagne, v1 sugli stessi cicli, base nuova, schede e regole | 27-11 |
-| 👉 | **4g · Domande P13 e P14** | adesso · gratis |
+| ✅ | 4g · Domande P13 e P14 | 27-11 notte |
+| 👉 | **4h · Versione quasi finale: senza modello, poi campagna** | adesso · 0 $, poi circa 2,5 $ |
 | ⬜ | **4f · EJ200 sul PC** | dopo l'ingestion EJ200 · centesimi |
 | ⬜ | **5 · Grande ingestion e QA** | dopo |
 
 ---
 
-**👉 Passo 4g · Domande P13 e P14** (gratis)
+**👉 Passo 4h · Versione quasi finale: prima gratis, poi una campagna** (0 $, poi circa 2,5 $)
 
-Aggiornare e ricalcolare: fatti (27-11 notte). Le due domande vanno a Copilot in **Ask**, una
-alla volta.
+Claude ha messo nella base tante migliorie insieme (MIGLIORIE: MG44, MG45, MG47, MG50, MG53,
+MG75-MG80) e le ha provate sul testo delle 14 stampe. Ora si provano sul PC: prima solo i
+controlli del codice (gratis, pochi minuti), poi, se va bene, una campagna sola.
 
-1. **Domanda P13** (in **Ask**):
+1. **Aggiornare** (2.1).
+   - **Deve uscire:** `... passed`, nessun `failed`.
+2. **Ricalcolare** i riepiloghi: da ora contano anche 737dec71 060 e 8d3c673c 070 (P13).
 
-```text
-Modalità Ask: leggi soltanto, non modificare, non creare file, non lanciare comandi.
+   ```powershell
+   $env:UV_PYTHON = "3.14"
+   "piccolo", "grande" | ForEach-Object { uv run cycle-validation eval riepilogo --cartella "runs/prove-$_" --attesi eval/errori-noti.yaml }
+   ```
 
-In runs/prove-piccolo e runs/prove-grande, nelle ultime tre cartelle che finiscono con
--schede_e_limiti, la v2 dà ERRATO 3 volte su 3 su: 8d3c673c 060 e 070 (piccolo e grande);
-b1261d11 060 (grande, ciclo vero). Per ogni operazione, in un solo report.json
-(runs/prove-<insieme>/<prova>/<impronta>/):
-1) controllo (check) e motivo (reason) dell'ERRATO;
-2) la spiegazione (rationale), in una frase;
-3) il testo in italiano e in inglese: dicono la stessa cosa? 8d3c673c 060: «opposing» o
-   «opposite»? 8d3c673c 070: le targhe sono le stesse in tutte le pagine? b1261d11 060:
-   «superiore a 4X» contro «not to exceed 4X», come 737dec71 060?
-4) errore vero della stampa o falso errore della v2?
+   - **Deve uscire:** due volte `Ricalcolati con gli errori noti di adesso: N cicli cambiati`.
+3. **Prova senza modello** (0 $, pochi minuti): gli stessi cicli della campagna, solo i
+   controlli del codice. Le prove vanno in `runs\senza-modello-piccolo` e
+   `runs\senza-modello-grande`, fuori dalla campagna.
 
-Rispondi con una tabella: ciclo, operazione, controllo e motivo, spiegazione, italiano,
-inglese, conclusione. Copia solo le frasi di queste operazioni e le targhe, niente manuali.
-```
+   ```powershell
+   $env:UV_PYTHON = "3.14"
+   [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+   uv run cycle-validation eval senza-modello
+   ```
 
-   - **Deve uscire:** una tabella con 3 righe.
-   - **Mandami:** la foto della risposta.
-2. **Domanda P14** (in **Ask**): serve a trovare un DR cambiato anche nelle stampe senza serial
-   (MG76). Copilot legge solo il codice di knowledge-index, niente `data/`.
+   - **Deve uscire:** una riga per ciclo e, per ogni insieme, `Senza modello, <insieme>: errori
+     trovati dal codice N su M · falsi errori 0 · da verificare ... · costo 0.00 $`. I WARNING
+     qui non contano: tutto quello che fa il modello esce WARNING.
+   - **Mandami:** la foto delle due righe `Senza modello, ...` e delle righe dei cicli con
+     `ERRATO in più`.
+4. **Solo se i falsi errori sono 0: la campagna** (3 prove di `quasi_finale`, piccolo e grande;
+   la base è già fatta e si salta). Prima il piano (3.5), poi:
 
-```text
-Modalità Ask: leggi soltanto, non modificare, non creare file, non lanciare comandi.
-Non leggere data/ e non copiare valori veri (numeri DR, serial, codici).
+   ```powershell
+   $env:UV_PYTHON = "3.14"
+   [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+   uv run cycle-validation eval campagna --piano
+   uv run cycle-validation eval campagna
+   ```
 
-Nel codice di knowledge-index, l'ingestion degli RDR (le recommendation dei DR):
-1) Nel file che l'ingestion scrive per gli RDR, ogni voce ha il numero del DR (quello che
-   nelle stampe si legge come «D.R. CASE #...»)? Con quale nome di colonna o di campo
-   (per esempio reference, dr_number, dr)?
-2) Da dove lo prende: dal nome del file, dal testo del documento, da una tabella?
-3) È sempre pieno o può mancare? Ci sono più voci con lo stesso numero DR (una per serial)?
-
-Rispondi con una tabella: domanda, risposta, file e funzione del codice. Niente valori veri.
-```
-
-   - **Deve uscire:** una tabella con 3 righe.
-   - **Mandami:** la foto della risposta.
+   - **Deve uscire:** nel piano `quasi_finale: 3 da fare` per piccolo e grande; alla fine
+     `Campagna finita. Prove fatte ora: 6 · spesa ... $.`
+   - **Mandami:** la riga finale e la classifica dei due `riepilogo.md` (`runs\prove-piccolo`,
+     `runs\prove-grande`).
 
 ---
 

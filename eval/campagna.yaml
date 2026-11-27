@@ -25,8 +25,12 @@
 # codice, e la regola «almeno N contro più di N non è un errore»). La base è già fatta: si
 # fanno solo le 3 prove della variante, sul piccolo e sul grande
 # 27-11 notte: `schede_e_limiti` vince (34 contro 30 sul piccolo, 23 contro 18 sul grande,
-# 0 falsi errori): nella base. Nessuna variante in attesa
-varianti: []
+# 0 falsi errori): nella base.
+# 27-11 notte, dopo: la versione quasi finale (MG75-MG80, MG44, MG45, MG47, MG50, MG53) è nella
+# base. Le prove della base sono già fatte (con il codice di prima) e si saltano: si fanno le 3
+# prove di `quasi_finale` (uguale alla base nuova) sul piccolo e sul grande, nello stesso
+# riepilogo delle prove di prima. Prima, gratis: `eval senza-modello` (COPILOT passo 4h)
+varianti: [quasi_finale]
 
 # Prove per variante: tre (le differenze sono di uno o due errori).
 ripetizioni: 3

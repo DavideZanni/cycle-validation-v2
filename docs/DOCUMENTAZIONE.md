@@ -238,7 +238,9 @@ A cascata (`extract/factory.py`, `extract/composite.py`):
   toccate, a volte senza colonne TARGA e NUM. OPER: il parser le rimette al loro posto e le
   attacca all'operazione in corso;
 - **operazioni su più pagine:** si uniscono per numero (`*** CONTINUAZIONE DALLA PAGINA
-  PRECEDENTE ***`, banner `*** C O N T I N U A ***`);
+  PRECEDENTE ***`, banner `*** C O N T I N U A ***`). Dal 27-11 notte (MG77) una riga con la
+  descrizione a sinistra e «CONTINUA ALLA PAGINA SEGUENTE» a destra tiene la descrizione: prima
+  si buttava tutta la riga (298bc28e 035 perdeva proprio la riga cambiata);
 - **«OPERAZIONE EVENTUALE»:** il titolo passa all'operazione dopo;
 - **una fonte per ogni riparazione:** con la nota della testata delle sue pagine e il manuale
   del piè di pagina. Il task si cerca in tutta la nota (`TASK …`, `CIR <sezione>`,
@@ -447,7 +449,26 @@ Le voci incerte dell'indice (`DATO_INCERTO`) non danno mai questi ERRATO.
      in una lingua sola non conta.
 
    Il 26-11 le copie cieche «numero in una lingua» si trovavano 1 su 5: erano su codici e su
-   conversioni scritte prima del numero. Un test prova che ogni copia di questo tipo si trova;
+   conversioni scritte prima del numero. Un test prova che ogni copia di questo tipo si trova.
+   **Dal 27-11 notte:**
+   - **rimandi** (MG78): il numero dopo «operazione», «op.», «step», «figura», «pagina»,
+     «tabella», «sezione» è un rimando, non un valore. I rimandi si confrontano solo con quelli
+     dello stesso tipo dell'altra lingua, e solo se ci sono in tutte e due. Prima «nella
+     operazione 70 successiva» contro «refer to figure 903» era un numero cambiato (falso
+     errore di 8d3c673c 060 e b1261d11 060, P13);
+   - **limiti al contrario** (MG75, `agent.languages_from_code`): lo stesso numero con un limite
+     di verso opposto nella stessa frase («superiore a 4X» contro «not to exceed 4X»). Contano
+     solo le parole prima del numero; «non inferiore», «no less than» sono un minimo; i numeri
+     di un elenco («5)») no. ERRATO `INCOERENZA_LINGUE`;
+   - **azione diversa** (MG47, stessa impostazione): rimuovere, raccordare, sostituire,
+     lucidare, sabbiare, saldare, pulire. ERRATO solo se ogni lingua ha un'azione che l'altra non
+     ha («rimosso» contro «blended»): un'azione in più in una lingua sola non basta;
+   - **lo stesso DR** (MG76, `agent.dr_consistency`): ogni «D.R. CASE #…» citato deve essere il
+     DR del ciclo, quello delle recommendation del serial number (`reference`, P14) o, senza,
+     il primo citato nella stampa. Un altro: ERRATO `DR_DIVERSO`.
+
+   Sul testo delle 14 stampe della v1 (`tests/test_real_prints.py`) queste regole trovano 5
+   errori in più e nessun ERRATO fuori dagli errori noti;
 4. si cercano i **testi di riferimento** (`context_locations`, sotto); se la sorgente non
    risponde: WARNING `ERRORE_TECNICO`;
 5. task citati che il manuale non ha: WARNING `FONTE_ASSENTE` subito, senza modello
@@ -562,7 +583,11 @@ lavorazione), il modello risponde `fuori_tema` e l'esito è N/A `FUORI_TEMA` con
 `non_verificabile` resta per un testo che parla della stessa lavorazione ma non basta. Mai
 `fuori_tema` se il testo dice qualcosa di incompatibile. Nel frontend un N/A con il testo esce
 come bollino azzurro «Info». Nasce dalle prove dal frontend del 27-11: 6 operazioni su 9 WARNING
-«il testo non ne parla», dove la v1 dice OK senza aver controllato niente.
+«il testo non ne parla», dove la v1 dice OK senza aver controllato niente. **Dal 27-11 notte**
+(MG45, `agent.prudent_out_of_scope`): se la descrizione ha una negazione, un divieto o un
+limite, `fuori_tema` non vale: WARNING `EVIDENZA_NON_TROVATA` e una seconda ricerca in tutti i
+documenti del ciclo, solo per queste operazioni (una negazione tolta in tutte e due le lingue
+finiva N/A).
 
 **Conferma degli ERRATO (regola G1).** Ogni `CONTRADDIZIONE` si rifà con
 `confirm_contradiction` sessioni uguali (2). Resta ERRATO solo se **tutte** ritrovano la
@@ -579,7 +604,7 @@ Solo per i DR. **Bloccante.** Regole della v1, confermate dall'utente il 22-11-2
 
 | Situazione | Esito | Gli altri controlli |
 |---|---|---|
-| nessun serial number (né dato né nella stampa) | WARNING `DR_NON_VERIFICATA` | vanno avanti, senza la procedura DR |
+| nessun serial number (né dato né nella stampa) | WARNING `DR_NON_VERIFICATA` | vanno avanti; la procedura DR si cerca con il numero «D.R. CASE #…» scritto nella stampa (MG50, 27-11 notte) |
 | nessuna recommendation per il serial number | ERRATO `DR_NESSUNA_CORRISPONDENZA` | fermi |
 | più recommendation e una senza condition | WARNING `RIFERIMENTO_AMBIGUO` | fermi (è un fallimento bloccante) |
 | una sola recommendation | vale per qualunque condition | |
@@ -609,9 +634,10 @@ Ogni motivo ha un solo esito (`domain/check.py`).
 | | `DR_NON_APPLICABILE` | la DR dice `Reject` o `Accept as is` |
 | | `DR_NESSUNA_CORRISPONDENZA` | nessuna recommendation per serial number e condition |
 | | `TASK_INESISTENTE` | codice completo che non c'è, mentre ci sono i suoi fratelli |
-| | `INCOERENZA_LINGUE` | italiano e inglese con numeri o codici diversi; con `agent.compare_languages` anche istruzioni diverse (controllo del modello) |
+| | `INCOERENZA_LINGUE` | italiano e inglese con numeri o codici diversi, un limite al contrario o un'azione diversa (dal codice); con `agent.compare_languages` anche negazioni e limiti visti dal modello |
 | | `TASK_DIVERSO_DALLA_TESTATA` | il task accanto all'operazione è della stessa famiglia di quello della testata, ma diverso (H17, 27-11 sera) |
 | | `MACCHINE_DIVERSE` | la stessa operazione ha targhe diverse su pagine diverse (H19, 27-11 sera) |
+| | `DR_DIVERSO` | l'operazione cita un DR diverso da quello del ciclo (MG76, 27-11 notte) |
 | | `SCHEDA_ALTRO_MOTORE` | la scheda è di un'altra famiglia di motore (H18, con `agent.sheet_consistency`) |
 | | `SCHEDA_MATERIALE_DIVERSO` | il materiale della scheda non è quello della descrizione (H18) |
 | | `SCHEDA_INESISTENTE` | la scheda non è nell'indice, che ha altre schede con lo stesso prefisso (H18) |
@@ -717,7 +743,10 @@ vale.
 - guasto tecnico: si riprova `retries` (2) volte, con attesa crescente (`retry_backoff_s` 2 s);
 - output non conforme allo schema: si riprova `invalid_output_retries` (1) volta;
 - tempo massimo per sessione `session_timeout_s` (90 s): oltre, errore tecnico **senza**
-  riprovare.
+  riprovare;
+- tempo massimo di tutte le sessioni di un ciclo `validation_timeout_s` (480 s, sotto i 600 s
+  del backend; MG53, 27-11 notte): dopo, nessuna sessione parte e quelle in corso si fermano.
+  Diventano WARNING per errore tecnico e il report esce con quello che c'è.
 
 **Ragionamento:** `effort: low` nei controlli (circa -30% di costo), `high` nella lettura del
 PDF.
@@ -766,8 +795,10 @@ La prepara e la pubblica **knowledge-index** su S3. Il formato completo, con ese
 - **Conoscenza pubblicata** (`kb/published.py`): all'avvio scarica la versione di
   `current.json` in una cartella sua; ogni **5 minuti** rilegge il puntatore e, se c'è una
   versione nuova **valida**, passa a quella senza riavvio. Se non è valida resta sulla vecchia.
-  Tiene su disco le ultime 3 versioni. All'avvio, se un file non è valido, il servizio **non
-  parte** e dice quale.
+  Tiene su disco le ultime 3 versioni. All'avvio, se un file della conoscenza civile non è
+  valido, il servizio **non parte** e dice quale. Se è la conoscenza **EJ200** a non essere
+  valida, dal 27-11 notte (MG44) si spegne solo EJ200: MOS e DR partono, una richiesta EJ200 ha
+  la risposta 503 «profilo spento» e alla richiesta dopo si riprova a caricarla.
 - **EJ200** (`kb/ej200.py`): catalogo delle pubblicazioni e testi su S3, con cache a tempo. Il
   `code` del catalogo contiene la issue (`EJ00020L-01`): il programma la toglie, così le issue
   della stessa pubblicazione restano una. Un ciclo può citare una issue precisa o solo il
@@ -927,6 +958,10 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.out_of_scope` | `true` (dal 27-11 sera) | il modello può rispondere `fuori_tema`: N/A `FUORI_TEMA` invece di WARNING quando il testo non tratta il tipo di operazione (sezione 6.5). Variante `finale` (I16, 27-11) |
 | `agent.compare_languages_strict` | `true` (dal 27-11 sera) | con `compare_languages`: solo negazioni e limiti al contrario, ritrovati dal codice nelle parole copiate (sezione 6.5). Variante `finale` (I15, 27-11) |
 | `agent.dr_procedure_always` | `true` (dal 27-11) | nei cicli DR la procedura della D.R. va al modello insieme ai task trovati, con una nota: per quel pezzo vale più del manuale. Variante `procedura_dr` (26-11 sera), nella base dopo la campagna del 26-27-11 |
+| `agent.languages_from_code` | `true` (dal 27-11 notte) | limiti al contrario e azioni diverse tra le lingue, dal codice: ERRATO `INCOERENZA_LINGUE` (MG75, MG47; sezione 6.5) |
+| `agent.dr_consistency` | `true` (dal 27-11 notte) | tutte le operazioni citano lo stesso DR: un altro è ERRATO `DR_DIVERSO` (MG76; sezione 6.5) |
+| `agent.prudent_out_of_scope` | `true` (dal 27-11 notte) | `fuori_tema` non vale se la descrizione ha una negazione o un limite: WARNING e una seconda ricerca (MG45) |
+| `agent.validation_timeout_s` | 480 | tempo massimo delle sessioni di un ciclo (MG53; sezione 9) |
 | `agent.confirm_contradiction` | 2 | sessioni di conferma per ogni ERRATO del modello |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
 | `paths.*` | `config/profiles`, `prompts`, `data/knowledge`, `runs` | cartelle |
@@ -1141,6 +1176,7 @@ opzioni.
 | `eval scegli <cartelle>` | sceglie i cicli: prima quelli noti, poi i veri civili con almeno l'80% di operazioni confrontabili (`--copertura`), fino a `--quanti` (0 = tutti). Accanto a ogni ciclo vero scrive se è MOS o DR (dalla testata) e in fondo quanti per tipo | no |
 | `eval muta` | fa le copie cieche: `--lista`, `--knowledge`, `--quanti`, `--seme`, `--per-ciclo` (6) | no |
 | `eval prova [pdf]…` | valida, confronta con gli errori noti, scrive `prestazioni.md` e `riepilogo.md`. `--nome`, `--variante`, `--lista` (ripetibile), `--attesi` (ripetibile), `--cartella`, `--profile` (predefinito `auto`: MOS o DR ciclo per ciclo, dalla testata, così un DR nella lista non si ferma con «Modulo sbagliato») | sì |
+| `eval senza-modello` | gli stessi cicli della campagna (`--insiemi`, predefinito piccolo e grande), solo con i controlli del codice: al posto del modello una risposta fissa «non verificabile». Dice quanti errori noti trova il codice da solo e se dà falsi errori. Prove in `runs/senza-modello-<insieme>`, fuori dalle cartelle della campagna. I WARNING qui non contano (tutto quello che fa il modello esce WARNING). `--knowledge` (vuoto = ultima fotografia), `--config`, `--cartella`. Serve a provare una regola nuova del codice prima di una campagna (27-11 notte) | no |
 | `eval riepilogo` | riscrive `riepilogo.md` della cartella. Con `--attesi` (ripetibile) prima ricalcola le prove già fatte dai `report.json` dei cicli, con gli errori noti di adesso: solo i cicli che sono in quei file (copie cieche, gruppo nascosto e cicli veri restano come sono). Serve quando la lista degli errori noti cambia (27-11) | no |
 | `eval campagna` | tutte le prove di `eval/campagna.yaml` in fila, per ogni modello e insieme, e il report unico `runs/campagna.md`. `--piano` (gratis), `--solo-report` (gratis: solo il report), `--modelli` (con un solo modello il report è `runs/campagna-<modello>.md`), `--insiemi`, `--varianti`, `--ripetizioni`, `--grande`, `--massimo-dollari`, `--knowledge` (vuoto = ultima fotografia), `--config` (vuoto = `data/settings.yaml` se c'è), `--file`, `--cartella` | sì |
 
@@ -1637,6 +1673,7 @@ mano.
 | `Configurazione di produzione non valida` | manca la sorgente delle macchine o una variabile Redshift | sezione 13.6 |
 | `boto3 non è installato` | installato senza `--extra aws` | `uv sync --all-groups --extra aws` |
 | il servizio non parte e nomina un file della conoscenza | pubblicazione non valida | `kb-check` sulla versione |
+| EJ200 risponde 503 «profilo spento», MOS e DR vanno | conoscenza EJ200 non valida (MG44) | `kb-check` sulla versione EJ200, poi ripubblicare |
 | tutte le operazioni «errore tecnico» | Bedrock non risponde | `aws sso login`, regione, `agent.model` |
 | «meno di 100 caratteri di testo (è una scansione?)» | il PDF è una foto | `agent.transcribe_model` |
 | «Modulo sbagliato» su un file giusto | marcatori DR | `module_check.dr_markers` |

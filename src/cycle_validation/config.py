@@ -126,6 +126,11 @@ class AgentSettings(_Strict):
     # «non c'è niente da confrontare». Dentro la variante `finale` (I16); nella base dal
     # 27-11-2026 sera.
     out_of_scope: bool = True
+    # Con `out_of_scope`: se la descrizione ha un limite o un divieto, «fuori tema» non vale.
+    # WARNING EVIDENZA_NON_TROVATA e una seconda ricerca in tutti i documenti del ciclo, solo su
+    # queste operazioni (MG45, 27-11 notte): una negazione tolta in tutte e due le lingue finiva
+    # N/A FUORI_TEMA (copia cieca `negazione_due_lingue`).
+    prudent_out_of_scope: bool = True
     # «Almeno N» contro «più di N» (solo il caso uguale a N) non è una contraddizione: una nota
     # nel prompt dell'operazione. Regola decisa dall'utente il 27-11-2026 sera (P12: 04ecaabe
     # 050, l'italiano «almeno 4 volte», l'inglese e il manuale «più di 4»). Variante
@@ -137,11 +142,24 @@ class AgentSettings(_Strict):
     # (ma ne ha con lo stesso prefisso): ERRATO. Variante `schede_e_limiti`, nella base dal
     # 27-11 notte (campagna 4e: 34 contro 30 sul piccolo, 23 contro 18 sul grande, 0 falsi).
     sheet_consistency: bool = True
+    # Differenze tra le lingue trovate dal codice, senza modello (27-11 notte): lo stesso numero
+    # con un limite di verso opposto («superiore a 4X» contro «not to exceed 4X», MG75) e
+    # un'azione diversa («rimosso» contro «blended», MG47). ERRATO INCOERENZA_LINGUE. Provato sul
+    # testo delle 14 stampe della v1: 5 errori veri, nessun falso errore.
+    languages_from_code: bool = True
+    # Tutte le operazioni citano lo stesso DR («D.R. CASE #...»): quello delle recommendation del
+    # serial number o, senza, il primo citato nella stampa. Un DR diverso: ERRATO DR_DIVERSO
+    # (MG76, 27-11 notte; sulle 14 stampe della v1: 895167b9 030, nessun falso errore).
+    dr_consistency: bool = True
     # Una contraddizione (ERRATO) si conferma con altrettante sessioni uguali: resta ERRATO
     # solo se la ritrovano tutte, altrimenti WARNING GIUDIZIO_INSTABILE. Su un ciclo DR vero
     # lo stesso confronto dava ERRATO 3 volte su 6 (21-11-2026). Costa solo sugli ERRATO.
     # 0 = nessuna conferma.
     confirm_contradiction: int = Field(default=2, ge=0, le=5)
+    # Tempo massimo dei controlli con il modello di una validazione, in secondi (MG53, 27-11
+    # notte): sotto i 600 s del backend. Le sessioni che non finiscono in tempo diventano
+    # WARNING per errore tecnico e il report esce con quello che c'è. None = nessun limite.
+    validation_timeout_s: float | None = Field(default=480, gt=0)
     # Testo delle sessioni su disco: contiene cicli e manuali. Spento nel servizio, acceso
     # negli esperimenti (eval/varianti/baseline.yaml).
     save_transcripts: bool = False

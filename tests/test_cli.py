@@ -550,7 +550,8 @@ def test_the_known_errors_file_is_valid() -> None:
     # 26-11: 15 con la P9 (5ff17062 con 4 errori), 19 con 895167b9; 2d724fba giusto (vero).
     # 26-11 sera: 23 con 22f586bb, giusta anche 737dec71. 27-11 sera: 29, con le 6 operazioni
     # trovate nel testo delle stampe (v1 sugli stessi cicli)
-    assert total == 32 and len(giuste) == 5  # P12: 3 cicli veri con la 060 sbagliata
+    # 27-11 notte: 34, con 737dec71 060 (non più giusta) e 8d3c673c 070 (P13)
+    assert total == 34 and len(giuste) == 4  # P12: 3 cicli veri con la 060 sbagliata
 
 
 def test_eval_prova_scores_blind_copies_without_showing_them(tmp_path: Path, pdf: Path) -> None:
@@ -677,3 +678,49 @@ def test_the_summary_keeps_the_variant_name_as_it_is(
     path.write_text("{}", encoding="utf-8")
     line = cli._summary("sonnet-4.5", path)
     assert line.startswith("sonnet-4.5: concordanza 95,5%")
+
+
+def test_eval_without_model_runs_the_code_checks_for_free(tmp_path: Path) -> None:
+    """`eval senza-modello` (27-11 notte): gli stessi cicli della campagna, solo i controlli del
+    codice, 0 $, in una cartella sua."""
+    from pvrm320_report_fixtures import civil_pages
+
+    from cycle_validation.testing.pdf import build_pdf
+
+    runs = tmp_path / "runs"
+    prints = tmp_path / "vero.pdf"
+    prints.write_bytes(build_pdf(civil_pages()))
+    (runs / "prove-grande").mkdir(parents=True)
+    (runs / "prove-grande" / "cicli.txt").write_text(f"{prints}\n", encoding="utf-8")
+    result = runner.invoke(
+        cli.app,
+        [
+            "eval",
+            "senza-modello",
+            "--insiemi",
+            "grande",
+            "--knowledge",
+            str(EXAMPLE_KB),
+            "--cartella",
+            str(runs),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "Senza modello, grande: errori trovati dal codice" in result.output
+    assert "costo 0.00 $" in result.output
+    assert (runs / "senza-modello-grande" / "riepilogo.md").is_file()
+    assert not list((runs / "prove-grande").glob("*-senza-modello"))
+    bad = runner.invoke(
+        cli.app,
+        [
+            "eval",
+            "senza-modello",
+            "--insiemi",
+            "medio",
+            "--cartella",
+            str(runs),
+            "--knowledge",
+            str(EXAMPLE_KB),
+        ],
+    )
+    assert bad.exit_code != 0

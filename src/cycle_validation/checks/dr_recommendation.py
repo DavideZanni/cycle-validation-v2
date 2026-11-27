@@ -16,11 +16,13 @@ stampa), o senza la condition quando serve per scegliere, WARNING `DR_NON_VERIFI
 altri controlli proseguono e la recommendation si guarda a mano.
 """
 
+import re
 from dataclasses import dataclass, field
 
 from cycle_validation.checks.base import CheckContext, guarded, make_result
 from cycle_validation.checks.uncertainty import describe
 from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reason, Target
+from cycle_validation.domain.cycle import Cycle
 from cycle_validation.kb.port import DocumentInfo, DrRecommendation, KnowledgeBase
 from cycle_validation.resolve.civil import resolve_document
 from cycle_validation.resolve.dr import (
@@ -165,15 +167,24 @@ def dr_tasks(kb: KnowledgeBase, selectors: DrSelectors | None) -> list[tuple[str
 DR_PROCEDURE_KIND = "DR_PROC"
 
 
-def dr_documents(kb: KnowledgeBase, selectors: DrSelectors | None) -> list[DocumentInfo]:
+def dr_documents(
+    kb: KnowledgeBase, selectors: DrSelectors | None, cycle: Cycle | None = None
+) -> list[DocumentInfo]:
     """Procedure DR indicate dalle recommendation applicabili, intere: il contesto quando
     nessun task si trova (la procedura spesso non ha task con codice). La procedura si cerca
     con il manuale della recommendation e, se manca, con il codice del DR (`reference`):
     l'indice lascia il manuale vuoto quando i task non lo indicano. Solo documenti di tipo
-    procedura DR: un manuale intero sarebbe troppo grande e poco mirato."""
+    procedura DR: un manuale intero sarebbe troppo grande e poco mirato.
+
+    MG50 (27-11 notte): senza recommendation (DR senza serial) la procedura si cerca con il
+    numero del DR scritto nella stampa («D.R. CASE #...»), dato `cycle`: l'indice chiama la
+    procedura con lo stesso numero (P14: `reference` viene dal nome del file del DR)."""
     out: dict[str, DocumentInfo] = {}
-    for item in applicable_recommendations(kb, selectors):
-        for name in (item.manual, item.reference):
+    names = [[item.manual, item.reference] for item in applicable_recommendations(kb, selectors)]
+    if not names and cycle is not None:
+        names = [[number] for number in dict.fromkeys(cycle_dr_numbers(cycle))]
+    for candidates in names:
+        for name in candidates:
             if not name or not name.strip():
                 continue
             document = resolve_document(name, kb).document
@@ -181,6 +192,68 @@ def dr_documents(kb: KnowledgeBase, selectors: DrSelectors | None) -> list[Docum
                 out.setdefault(document.key, document)
                 break
     return list(out.values())
+
+
+# Numero del DR scritto nella descrizione: «D.R. CASE #NNNNNNNN», «DR N. NNNNNNNN» (MG76).
+_CITED_DR = re.compile(
+    r"\bD\.?\s?R\.?\s*(?:CASE\s*)?(?:N\s*[°.]?\s*)?#?\s*(\d{6,})\b", re.IGNORECASE
+)
+
+
+def cited_dr_numbers(text: str) -> list[str]:
+    """I numeri di DR citati nel testo, nell'ordine."""
+    return _CITED_DR.findall(text or "")
+
+
+def cycle_dr_numbers(cycle: Cycle) -> list[str]:
+    """I numeri di DR citati dalle operazioni del ciclo, nell'ordine delle operazioni."""
+    return [
+        number
+        for operation in cycle.operations
+        for number in cited_dr_numbers(operation.operation_description)
+    ]
+
+
+def _digits(text: str | None) -> str:
+    return re.sub(r"\D", "", text or "")
+
+
+def dr_number_mismatches(ctx: CheckContext) -> dict[int, str]:
+    """Operazioni (indice → spiegazione) che citano un DR diverso da quello del ciclo (MG76,
+    27-11 notte). Il DR del ciclo è quello delle recommendation trovate con il serial (campo
+    `reference`, P14) oppure, senza, il primo citato nella stampa (di solito nella 005).
+    Sulle 14 stampe della v1: 895167b9 030, nessun falso errore."""
+    cited = [
+        (index, cited_dr_numbers(operation.operation_description))
+        for index, operation in enumerate(ctx.cycle.operations)
+    ]
+    cited = [(index, numbers) for index, numbers in cited if numbers]
+    if not cited:
+        return {}
+    known = {
+        _digits(item.reference)
+        for item in applicable_recommendations(ctx.kb, ctx.selectors)
+        if _digits(item.reference)
+    }
+
+    def same(number: str) -> bool:
+        # `reference` può avere altre cifre attorno (revisione): basta che uno contenga l'altro
+        return any(number in item or item in number for item in known)
+
+    source = "delle recommendation del serial number"
+    if not any(same(number) for _, numbers in cited for number in numbers):
+        # le recommendation parlano d'altro (o mancano): vale il primo DR citato nella stampa
+        known = {cited[0][1][0]}
+        source = "citato per primo nella stampa"
+    out: dict[int, str] = {}
+    for index, numbers in cited:
+        other = [number for number in numbers if not same(number)]
+        if other:
+            out[index] = (
+                f"L'operazione cita il DR {', '.join(dict.fromkeys(other))}, diverso da quello "
+                f"del ciclo ({', '.join(sorted(known))}, {source})."
+            )
+    return out
 
 
 def _check(ctx: CheckContext, target: Target) -> CheckResult:

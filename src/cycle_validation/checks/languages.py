@@ -147,12 +147,35 @@ def language_blocks(description: str) -> tuple[str, str] | None:
     return " ".join(blocks[0]), " ".join(blocks[1])
 
 
-def _numbers(text: str) -> list[tuple[str, Decimal]]:
+# Rimandi: il numero di un'operazione, di una figura, di una pagina... (MG78, 27-11 notte).
+# «NELLA OPERAZIONE 70 SUCCESSIVA» contro «IN NEXT STEP ... REFER TO FIGURE 903» non è un numero
+# cambiato: i rimandi si confrontano solo con quelli dello stesso tipo dell'altra lingua.
+_REFERENCE_KINDS = {
+    "operazione": r"OPERAZION[EI]|OPER|OP|FASE|FASI|STEPS?",
+    "figura": r"FIGUR[AEI]|FIGURES?|FIGG?|FIGS?",
+    "pagina": r"PAGIN[AE]|PAGES?|PAGG?|PP?",
+    "tabella": r"TABELL[AE]|TABLES?|TABB?",
+    "sezione": r"SEZION[EI]|SECTIONS?|SEZ|SECT?|PARAGRAF[OI]|PARAGRAPHS?|PAR|PARA",
+}
+_REFERENCE = {
+    kind: re.compile(rf"\b(?:{words})\s*\.?\s*(?:N\s*[°.]?\s*)?$", re.IGNORECASE)
+    for kind, words in _REFERENCE_KINDS.items()
+}
+
+
+def _reference_kind(text: str, start: int) -> str | None:
+    """Il tipo di rimando del numero che comincia in `start`, None se è un valore."""
+    before = text[max(0, start - 20) : start]
+    return next((kind for kind, rule in _REFERENCE.items() if rule.search(before)), None)
+
+
+def _numbers(text: str, kind: str | None = None) -> list[tuple[str, Decimal]]:
+    """I numeri del testo: i valori (`kind` None) o i rimandi di un tipo (`_REFERENCE_KINDS`)."""
     # ogni numero trovato da `_NUMBER` è un decimale valido (Decimal accetta ogni cifra Unicode)
     return [
         (match.group(), Decimal(match.group().replace(",", ".")))
         for match in _NUMBER.finditer(text)
-        if not match["code"]
+        if not match["code"] and _reference_kind(text, match.start()) == kind
     ]
 
 
@@ -183,6 +206,12 @@ def number_mismatches(description: str) -> list[tuple[str, str]]:
     # no: senza le conversioni le due lingue si allineano di nuovo (26-11)
     italian, english = _without_pairs(italian, english), _without_pairs(english, italian)
     found = _aligned_mismatches(italian, english) or _single_swap(italian, english)
+    for kind in _REFERENCE_KINDS:
+        # un rimando che c'è in una lingua sola è una frase scritta in un altro modo («nella
+        # operazione 70 successiva» contro «in next step»): si confronta solo se ci sono tutti e due
+        it_refs, en_refs = (_numbers(part, kind) for part in parts)
+        if it_refs and en_refs:
+            found += _aligned_mismatches(it_refs, en_refs) or _single_swap(it_refs, en_refs)
     return found + _code_mismatches(*parts)
 
 
@@ -310,12 +339,24 @@ def has_negation(text: str, language: str) -> bool:
     return _NEGATION[language].search(text) is not None
 
 
+# «non inferiore a», «no less than»: un minimo scritto con una negazione (27-11 notte: senza
+# questa regola «NO LESS THAN 5» sembrava un massimo). Si cercano prima di tutto.
+_LIMIT_UP_NEGATED = {
+    "it": re.compile(r"\bnon\s+(?:inferior\w*|meno\s+di|sotto|minore)\b", re.IGNORECASE),
+    "en": re.compile(
+        r"\b(?:not|no)\s+(?:less|lower|fewer|below|under|smaller)(?:\s+than)?\b", re.IGNORECASE
+    ),
+}
+
+
 def limit_direction(text: str, language: str) -> str | None:
     """Il verso del limite nel testo: `giù` (al massimo), `su` (almeno), None se non ce n'è
     uno solo (nessun limite, oppure un intervallo con minimo e massimo)."""
+    negated_up = _LIMIT_UP_NEGATED[language].search(text) is not None
+    text = _LIMIT_UP_NEGATED[language].sub(" ", text)
     down = _LIMIT_DOWN[language].search(text) is not None
     rest = _LIMIT_DOWN[language].sub(" ", text)
-    up = _LIMIT_UP[language].search(rest) is not None
+    up = negated_up or _LIMIT_UP[language].search(rest) is not None
     if down == up:
         return None
     return "giù" if down else "su"
@@ -329,3 +370,84 @@ def strict_difference(kind: str, italian: str, english: str) -> bool:
         first, second = limit_direction(italian, "it"), limit_direction(english, "en")
         return first is not None and second is not None and first != second
     return False
+
+
+# --- Differenze tra le lingue trovate dal codice, senza modello (27-11 notte) ---------------
+# MG75: lo stesso numero con un limite di verso opposto nelle due lingue («LENTE CON
+# INGRANDIMENTO SUPERIORE A 4X» contro «MAGNIFICATION NOT TO EXCEED 4X»): prima lo trovava solo
+# il modello, 3-4 volte su 6. Conta solo la frase in cui sta il numero, e solo le parole prima.
+# Sulle 14 stampe della v1: le 060 di 22f586bb, 895167b9, 737dec71, nessun falso errore.
+_CLAUSE_END = re.compile(r"[.;:](?=\s)|\s-\s|\(|\)")
+
+
+def _limited_values(text: str, language: str) -> dict[Decimal, list[tuple[str, str]]]:
+    """Valore → [(verso, frase)] per i numeri preceduti da un limite nella stessa frase. I
+    rimandi, i codici e i numeri di un elenco («5)») restano fuori."""
+    found: dict[Decimal, list[tuple[str, str]]] = {}
+    for match in _NUMBER.finditer(text):
+        if match["code"] or _reference_kind(text, match.start()) is not None:
+            continue
+        if text[match.end() : match.end() + 1] == ")":
+            continue  # numero di un elenco: «5) NEL CASO...»
+        before = text[max(0, match.start() - 45) : match.start()]
+        clause = _CLAUSE_END.split(before)[-1]
+        direction = limit_direction(clause, language)
+        if direction is None:
+            continue
+        value = Decimal(match.group().replace(",", "."))
+        phrase = " ".join((clause + text[match.start() : match.end() + 3]).split())
+        found.setdefault(value, []).append((direction, phrase))
+    return found
+
+
+def limit_mismatches(description: str) -> list[tuple[str, str]]:
+    """(frase italiana, frase inglese) per ogni numero con un limite di verso opposto."""
+    parts = language_blocks(description)
+    if parts is None:
+        return []
+    italian, english = _limited_values(parts[0], "it"), _limited_values(parts[1], "en")
+    found: list[tuple[str, str]] = []
+    for value, it_limits in italian.items():
+        en_limits = english.get(value, [])
+        it_ways, en_ways = {way for way, _ in it_limits}, {way for way, _ in en_limits}
+        if len(it_ways) == 1 and len(en_ways) == 1 and it_ways != en_ways:
+            found.append((it_limits[0][1], en_limits[0][1]))
+    return found
+
+
+# MG47: un'azione diversa nelle due lingue («VERIFICARE CHE SIA STATO RIMOSSO» contro «HAS BEEN
+# BLENDED»). Conta solo se ogni lingua ha un'azione che l'altra non ha: una frase in più in una
+# lingua non basta. Sulle 14 stampe della v1: e9b74c84 040 e 298bc28e 035, nessun falso errore.
+_ACTIONS: dict[str, tuple[str, str]] = {
+    "rimuovere": (r"rimuov\w*|rimoss\w*|rimozion\w*|asport\w*", r"remov\w*"),
+    "raccordare": (r"raccord\w*", r"blend\w*"),
+    "sostituire": (r"sostitu\w*", r"replac\w*"),
+    "lucidare": (r"lucid\w*", r"polish\w*"),
+    "sabbiare": (r"sabbi\w*", r"(?:grit\s*)?blast\w*"),
+    "saldare": (r"sald\w*", r"weld\w*"),
+    "pulire": (r"pulir\w*|pulit\w*|lavagg\w*|lavar\w*", r"clean\w*|wash\w*"),
+}
+_ACTION = {
+    language: {
+        action: re.compile(rf"\b(?:{words[k]})", re.IGNORECASE)
+        for action, words in _ACTIONS.items()
+    }
+    for k, language in enumerate(("it", "en"))
+}
+
+
+def actions(text: str, language: str) -> set[str]:
+    """Le azioni del testo (nomi italiani di `_ACTIONS`)."""
+    return {action for action, rule in _ACTION[language].items() if rule.search(text)}
+
+
+def action_mismatches(description: str) -> list[tuple[str, str]]:
+    """[(azioni solo in italiano, azioni solo in inglese)] se tutte e due le lingue ne hanno."""
+    parts = language_blocks(description)
+    if parts is None:
+        return []
+    italian, english = actions(parts[0], "it"), actions(parts[1], "en")
+    only_italian, only_english = italian - english, english - italian
+    if not only_italian or not only_english:
+        return []
+    return [(", ".join(sorted(only_italian)), ", ".join(sorted(only_english)))]

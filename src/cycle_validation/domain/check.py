@@ -37,6 +37,8 @@ class Reason(StrEnum):
     SCHEDA_MATERIALE_DIVERSO = "SCHEDA_MATERIALE_DIVERSO"
     # la scheda non è nell'indice, che ha altre schede con lo stesso prefisso (H18)
     SCHEDA_INESISTENTE = "SCHEDA_INESISTENTE"
+    # l'operazione cita un DR diverso da quello del ciclo (MG76, 27-11 notte)
+    DR_DIVERSO = "DR_DIVERSO"
 
     EVIDENZA_NON_TROVATA = "EVIDENZA_NON_TROVATA"
     FONTE_ASSENTE = "FONTE_ASSENTE"
@@ -80,6 +82,7 @@ _ERRATO = (
     Reason.SCHEDA_ALTRO_MOTORE,
     Reason.SCHEDA_MATERIALE_DIVERSO,
     Reason.SCHEDA_INESISTENTE,
+    Reason.DR_DIVERSO,
 )
 _NON_APPLICABILE = (
     Reason.CAMPO_ASSENTE,

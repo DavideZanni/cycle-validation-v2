@@ -311,7 +311,8 @@ def assemble_services(
     session_factory: SessionFactory = SdkAgentSession,
 ) -> ApiServices:
     """I servizi con client già costruiti: qui nessun accesso alla rete. La conoscenza si
-    scarica nel `warmup`, all'avvio: un file pubblicato non valido ferma lì il servizio."""
+    scarica nel `warmup`, all'avvio: un file pubblicato non valido ferma lì il servizio (per
+    EJ200 spegne solo EJ200, MG44)."""
     if config.civil_knowledge_pointer is None:
         raise ConfigError(
             "CIVIL_KNOWLEDGE_POINTER vuota: il servizio legge la conoscenza pubblicata da "
@@ -361,5 +362,5 @@ def assemble_services(
         store=store,
         runner=runner,
         metrics=metrics,
-        warmup=lambda: runner.preload(list(knowledge)),
+        warmup=lambda: runner.preload(list(knowledge), optional=("ej200",)),
     )

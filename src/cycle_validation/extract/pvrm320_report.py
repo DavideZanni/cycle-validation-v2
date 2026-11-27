@@ -190,18 +190,27 @@ _FRAME = re.compile(r"^[\s*]+|[\s*]+$")
 _LONE_STAR = re.compile(r"(?:^|\s)\*(?=\s|$)")
 
 
+def _without_banner(text: str) -> str:
+    """La riga senza la scritta «CONTINUA ALLA PAGINA SEGUENTE» (o «CONTINUAZIONE DALLA PAGINA
+    PRECEDENTE») e quello che la segue. MG77 (27-11 notte): la scritta sta nella colonna di
+    destra, e prima si buttava tutta la riga, anche la descrizione scritta a sinistra (298bc28e
+    035: la riga cambiata «COLLAUDO VISIVO DELLE AREE RACCORDATE» non arrivava ai controlli)."""
+    banner = _CONTINUED_FROM.search(text) or _CONTINUES_ON.search(text)
+    if banner is None:
+        return text
+    return re.sub(r"[\s*]+$", "", text[: banner.start()])
+
+
 def _add_text(op: _Op, text: str) -> None:
     # i puntini sono campi da compilare a mano: si tolgono, il resto della riga (che può
     # contenere limiti e valori) resta nella descrizione
-    text = " ".join(_FILL_IN.sub(" ", text).split())
+    text = " ".join(_FILL_IN.sub(" ", _without_banner(text)).split())
     if _STAR_RULE.match(text):
         if op.text and op.text[-1] != _SECTION:
             op.text.append(_SECTION)
         return
     if (
         not _HAS_WORD.search(text)  # trattini, «/ .» e altri segni senza lettere né cifre
-        or _CONTINUED_FROM.search(text)
-        or _CONTINUES_ON.search(text)
         or _DT.match(text)
         or _TOOLING_HEADER.match(text)
         or _TOOLING_CODE.match(text)

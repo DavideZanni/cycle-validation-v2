@@ -1,0 +1,9 @@
+nome: quasi_finale
+descrizione: la versione quasi finale del 27-11 notte, tutta nella base. Dal codice - limiti al contrario tra le lingue (MG75), azione diversa (MG47), lo stesso DR in tutto il ciclo (MG76), la riga accanto a «continua» (MG77), i rimandi a operazioni e figure (MG78); con il modello - «fuori tema» più prudente (MG45); la procedura DR dal numero della stampa senza serial (MG50); tempo massimo della validazione (MG53)
+ipotesi: "Le regole del codice, provate sul testo delle 14 stampe della v1 (tests/test_real_prints.py), trovano 5 errori in più senza falsi errori (e9b74c84 040, 298bc28e 035, 895167b9 030, le 060 di 737dec71 e dei cicli veri sempre). MG78 toglie i 2 falsi errori della P13 (8d3c673c 060, b1261d11 060). Le prove vecchie (base e schede_e_limiti) restano nello stesso riepilogo: il confronto è con quelle"
+atteso: "falsi errori 0; da verificare 0; piccolo circa 39-40 su 45, grande circa 25-26 su 29; costo come la base (MG45 aggiunge una sessione solo sulle operazioni fuori tema con un limite o un divieto)"
+base: baseline
+agent:
+  languages_from_code: true
+  dr_consistency: true
+  prudent_out_of_scope: true

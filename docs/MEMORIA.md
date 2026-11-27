@@ -47,7 +47,9 @@ sezione 1 di `COPILOT.md`):
 | 7c | Claude: `finale` nella base e tre controlli del codice (H17, H19, la 010 in più parti) | Claude | ✅ 27-11 sera |
 | 7d | Aggiornare, archiviare, campagna della sola base nuova | COPILOT passo 4d | ✅ 27-11 sera: 30 su 43 stabili sul piccolo, 18 su 29 sul grande; falso errore 04ecaabe 050 in 2 prove su 3 |
 | 7e2 | Campagna della variante `schede_e_limiti` (H18, regola «almeno N») | COPILOT passo 4e | ✅ 27-11 notte: vince, nella base |
-| 7e5 | Aggiornare, ricalcolare, domanda P13 (8d3c673c 060 e 070, b1261d11 060) | COPILOT passo 4g | da fare |
+| 7e5 | Aggiornare, ricalcolare, domande P13 e P14 | COPILOT passo 4g | ✅ 27-11 notte: P13 8d3c673c 070 errore vero, le due 060 falsi errori del codice; P14 il numero del DR è in `reference` |
+| 7e6 | Claude: versione quasi finale (MG44, MG45, MG47, MG50, MG53, MG75-MG80), comando `eval senza-modello`, test sulle 14 stampe vere | Claude | ✅ 27-11 notte |
+| 7e7 | Aggiornare, ricalcolare, prova senza modello (0 $), poi campagna `quasi_finale` | COPILOT passo 4h | da fare |
 | 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
 | 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |
 | 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
@@ -1548,6 +1550,34 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   aggiornati (scheda LEAP su un ciclo GENX ora ERRATO; la copia «scheda inesistente» usa
   lettere che l'indice non ha).
 
+- **27-11 notte, il giro nuovo (chiesto dall'utente): meno campagne, tante migliorie insieme.**
+  Una campagna costa all'utente un'ora e qualche dollaro. Da ora: Claude fa tante migliorie
+  insieme, le prova lui sul testo vero delle 14 stampe (`docs/CONFRONTO_V1_14_CICLI.md`, test
+  `tests/test_real_prints.py`) e con i test; l'utente prova prima gratis con `eval senza-modello`
+  (solo i controlli del codice: quello che trova lì lo trova sempre), poi una campagna sola
+  quando il sistema è quasi finito. Una campagna serve solo quando cambia qualcosa che tocca il
+  modello o prima di un cancello di `V1_CONTRO_V2.md`.
+- **27-11 notte, P13 (Copilot).** 8d3c673c 060 e b1261d11 060: falsi errori del controllo dei
+  numeri (il codice, non il modello): «nella operazione 70 successiva» in italiano, «refer to
+  figure 903» in inglese, presi per un numero cambiato → MG78 (i rimandi si confrontano solo
+  con quelli dello stesso tipo). 8d3c673c 070: errore vero (una pagina con la targa cambiata,
+  la v1 la segnala) → tra gli errori noti. Decisione dell'utente: 737dec71 060 tra gli errori
+  (non più in attesa): 737dec71 non è più una «stampa giusta».
+- **27-11 notte, P14 (Copilot sul codice di knowledge-index).** Le voci RDR hanno il numero del
+  DR nel campo `reference` (dal nome del file `DR_<codice>[_Final]_revN`); più voci per lo
+  stesso DR (una per serial e condizione). Usato da MG76 (lo stesso DR in tutto il ciclo) e
+  MG50 (la procedura DR dal numero della stampa, anche senza serial).
+- **27-11 notte, versione quasi finale (Claude).** Provate sul testo delle 14 stampe, senza
+  modello: limiti al contrario (MG75: 22f586bb, 895167b9, 737dec71 060), azione diversa (MG47:
+  e9b74c84 040; 298bc28e 035 grazie a MG77, il parser buttava la riga accanto a «CONTINUA ALLA
+  PAGINA SEGUENTE»), un altro DR (MG76: 895167b9 030). Nessun ERRATO fuori dagli errori noti;
+  8d3c673c 060 non più ERRATO (MG78). Corretto anche «no less than» (era letto come massimo).
+  Prima di provarle sul PC: MG46 (materiale tra le lingue) scartata qui, l'unico caso lo trova
+  già la scheda; un numero «solo in una lingua» con unità scartato (troppi casi sulle stampe
+  giuste: conversioni). In più MG44 (EJ200 rotta spegne solo EJ200), MG45 (fuori tema prudente,
+  tocca il modello), MG53 (480 s per le sessioni di un ciclo). Stima: piccolo circa 39-40 su 45,
+  grande 25-26 su 29, 16 su 19 contro la v1, 0 falsi, 0 da verificare.
+
 ## 13. Da correggere nell'indice (knowledge-index)
 
 **Titoli dei task GE.** `regole.json` (`codice_task`) riconosce solo il codice completo
@@ -1923,3 +1953,9 @@ controlli del codice (+4 stabili sul piccolo, +5 sul grande) e toglie gli ultimi
 cicli veri restano instabili: il confronto stretto tra le lingue dipende dal modello. Prossimo:
 P13, poi MG75 (limiti al contrario tra le lingue dal codice) e MG46 (materiale tra le lingue)
 in una campagna.
+
+**Versione quasi finale (27-11 notte, Claude).** Non è una campagna: le regole nuove del codice
+provate sul testo delle 14 stampe (`tests/test_real_prints.py`): 5 errori in più (e9b74c84 040,
+298bc28e 035, 895167b9 030, 737dec71 060, più la 060 sempre sui cicli veri), 0 ERRATO fuori
+dagli errori noti, 8d3c673c 060 tolto. Da misurare sul PC: `eval senza-modello`, poi la
+campagna `quasi_finale` (COPILOT passo 4h).

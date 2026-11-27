@@ -851,6 +851,27 @@ def test_out_of_scope_is_not_applicable_only_with_the_setting() -> None:
     assert (result.reason, result.verdict) == (Reason.EVIDENZA_NON_TROVATA, Verdict.WARNING)
 
 
+def test_out_of_scope_is_refused_when_the_description_has_a_rule() -> None:
+    """MG45 (27-11 notte): con un divieto o un limite nella descrizione, «fuori tema» non vale."""
+
+    def outcome(output: dict[str, Any]) -> SessionOutcome:
+        return SessionOutcome(status=SessionStatus.OK, output=output, usage=ONE_CALL, attempts=1)
+
+    on = SETTINGS.model_copy(update={"out_of_scope": True, "prudent_out_of_scope": True})
+    output = answer("fuori_tema", [], "il testo non parla di questa operazione")
+    job = job_for(op("LA RACCORDATURA È PERMESSA / BLENDING IS NOT PERMITTED"), on)
+    result, _ = decide_operation(job, outcome(output), on)
+    assert (result.reason, result.verdict) == (Reason.EVIDENZA_NON_TROVATA, Verdict.WARNING)
+    assert "limite o un divieto" in result.rationale
+    job = job_for(op("PRESA IN CARICO DA PERIZIA"), on)
+    result, _ = decide_operation(job, outcome(output), on)
+    assert result.reason is Reason.FUORI_TEMA
+    off = on.model_copy(update={"prudent_out_of_scope": False})
+    job = job_for(op("LA RACCORDATURA È PERMESSA / BLENDING IS NOT PERMITTED"), off)
+    result, _ = decide_operation(job, outcome(output), off)
+    assert result.reason is Reason.FUORI_TEMA
+
+
 def test_at_least_against_more_than_is_not_a_contradiction_only_with_the_setting() -> None:
     """Regola dell'utente (27-11 sera, P12): «almeno N» contro «più di N» non è un errore."""
     off = SETTINGS.model_copy(update={"boundary_limits_note": False})

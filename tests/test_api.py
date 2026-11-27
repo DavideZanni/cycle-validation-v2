@@ -598,3 +598,37 @@ def test_the_runner_preloads_the_knowledge_of_each_profile() -> None:
     runner = PipelineRunner(lambda profile: dataclasses.replace(deps, kb=Kb(profile)))
     runner.preload(["mos", "dr", "ej200"])
     assert loaded == ["mos", "dr", "ej200"]
+
+
+def test_a_broken_optional_profile_does_not_stop_the_others() -> None:
+    """MG44 (27-11 notte): una conoscenza EJ200 non valida spegne solo EJ200; si riprova alla
+    prima richiesta di EJ200 e, se è stata ripubblicata, il profilo torna attivo."""
+    import asyncio
+    import dataclasses
+
+    from support import make_deps
+
+    from cycle_validation.api.runner import PipelineRunner
+    from cycle_validation.errors import KnowledgeError, ProfileUnavailableError
+
+    state = {"ej200_ok": False}
+
+    class Kb:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        def preload(self) -> None:
+            if self.name == "ej200" and not state["ej200_ok"]:
+                raise KnowledgeError("catalogo EJ200 non valido")
+
+    deps, _ = make_deps()
+    runner = PipelineRunner(lambda profile: dataclasses.replace(deps, kb=Kb(profile)))
+    with pytest.raises(KnowledgeError):
+        runner.preload(["mos", "ej200"])
+    runner.preload(["mos", "dr", "ej200"], optional=["ej200"])
+    assert runner.broken == {"ej200": "KnowledgeError"}
+    with pytest.raises(ProfileUnavailableError, match="Gli altri profili funzionano"):
+        asyncio.run(runner.run("ej200", None))  # type: ignore[arg-type]
+    state["ej200_ok"] = True
+    runner._check_available("ej200")
+    assert runner.broken == {}

@@ -80,6 +80,10 @@ cicli:
       "100": il codice della scheda e il suo task cambiati (probabile)
       "110": il codice della scheda e il suo task cambiati (probabile)
       "140": un numero cambiato (solo in una lingua)
+      # P13 (27-11 notte, Copilot): una pagina ha la targa cambiata (anche la v1 la segnala).
+      # La 060 invece è un falso errore della v2: «operazione 70» in italiano, una figura in
+      # inglese (MG78)
+      "070": la targa cambiata in una pagina (MACCHINE_DIVERSE)
   e9b74c84:
     # 27-11 sera: dal confronto con la stampa A3 dello stadio 7 (stesso testo). La v1 li segnala
     errori:
@@ -112,13 +116,12 @@ cicli:
       # ERRATO qui è un falso errore (la variante `schede_e_limiti` lo deve togliere)
   737dec71:
     # 26-11 sera (Copilot): la stampa giusta da cui vengono 22f586bb e 895167b9
-    giusto: true
-    di: 22f586bb
     # P10 (27-11, Copilot): la 060 è un errore vero della stampa: «superiore a 4X» in italiano,
     # «not to exceed 4X» in inglese; vale l'inglese (le altre stampe dicono «sino 4X»). Un
-    # ERRATO qui è giusto. Resta in attesa (non conta né come trovato né come falso errore),
-    # così le prove restano confrontabili con quelle di prima
-    in_attesa:
+    # ERRATO qui è giusto. Era in attesa; 27-11 notte (decisione dell'utente) conta tra gli
+    # errori, come le 060 di 414d85ca, 477abec8, ffadfe16. Così non è più una stampa giusta:
+    # un altro ERRATO qui conta tra quelli da verificare, non tra i falsi errori
+    errori:
       "060": "P10: errore vero della stampa (limite al contrario tra le lingue)"
   2d724fba:
     # ciclo vero: per la v2 una stampa giusta. 26-11 (Copilot): l'ERRATO della 050 è un falso

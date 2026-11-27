@@ -17,6 +17,10 @@ from cycle_validation.agent.session import (
 from cycle_validation.domain.check import Usage
 
 Validator = Callable[[dict[str, Any]], object]
+# MG53 (27-11 notte): la validazione ha un tempo massimo (`agent.validation_timeout_s`), sotto i
+# 600 s del backend. Le sessioni che non finiscono in tempo chiudono come errore tecnico: il
+# report esce con quello che c'è.
+DEADLINE_ERROR = "tempo massimo della validazione superato"
 Sleep = Callable[[float], Awaitable[None]]
 
 
@@ -51,19 +55,33 @@ async def _run_one(
     validate: Validator | None,
     sleep: Sleep,
     timeout_s: float | None,
+    deadline: float | None = None,
 ) -> SessionOutcome:
     usage = Usage()
     errors_left = retries
     invalid_left = invalid_output_retries
     attempts = 0
+    loop = asyncio.get_running_loop()
     while True:
         attempts += 1
+        limit = timeout_s
+        if deadline is not None:
+            left = deadline - loop.time()
+            if left <= 0:
+                return SessionOutcome(
+                    status=SessionStatus.ERROR,
+                    error=DEADLINE_ERROR,
+                    usage=usage,
+                    attempts=attempts - 1,
+                )
+            limit = left if limit is None else min(limit, left)
         try:
-            outcome = _validated(await asyncio.wait_for(session.run(request), timeout_s), validate)
+            outcome = _validated(await asyncio.wait_for(session.run(request), limit), validate)
         except TimeoutError:
+            ended = deadline is not None and loop.time() >= deadline
             return SessionOutcome(
                 status=SessionStatus.ERROR,
-                error=f"tempo massimo superato ({timeout_s:g} s)",
+                error=DEADLINE_ERROR if ended else f"tempo massimo superato ({timeout_s:g} s)",
                 usage=usage,
                 attempts=attempts,
             )
@@ -94,10 +112,13 @@ async def run_sessions(
     validate: Validator | None = None,
     sleep: Sleep = asyncio.sleep,
     timeout_s: float | None = None,
+    deadline: float | None = None,
 ) -> list[SessionOutcome]:
     """Esegue le richieste e restituisce gli esiti nello stesso ordine.
 
-    `timeout_s` vale per ogni tentativo di ogni sessione. None = nessun limite."""
+    `timeout_s` vale per ogni tentativo di ogni sessione. None = nessun limite. `deadline`
+    (orologio del loop, `loop.time()`) vale per tutte: dopo, nessuna sessione parte più e
+    quelle in corso si fermano (MG53)."""
     gate = asyncio.Semaphore(concurrency)
 
     async def guarded(request: SessionRequest) -> SessionOutcome:
@@ -111,6 +132,7 @@ async def run_sessions(
                 validate=validate,
                 sleep=sleep,
                 timeout_s=timeout_s,
+                deadline=deadline,
             )
 
     return list(await asyncio.gather(*(guarded(request) for request in requests)))

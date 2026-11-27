@@ -8,8 +8,11 @@ Tutte le migliorie della v2, provate e da fare, in una tabella sola.
 - Come si prova e come si decide: `DOCUMENTAZIONE.md` 15.3. La storia delle prove: `MEMORIA.md`
   sezione 16. Se si è pronti per la produzione: `V1_CONTRO_V2.md` sezione 1.
 
-**Prossime, in ordine:** MG43 domanda P13 · MG44 · MG45 · MG75 e MG46 (una campagna) · MG73
-grande ingestion · MG42 prova EJ200.
+**27-11 notte, versione quasi finale:** MG44, MG45, MG47, MG50, MG53, MG75-MG80 insieme. Si
+provano prima gratis (`eval senza-modello`, MG79), poi con una campagna sola (COPILOT passo 4h).
+
+**Prossime, in ordine:** passo 4h (senza modello, poi campagna) · MG73 grande ingestion · MG42
+prova EJ200.
 
 | Sigla | Miglioria | Cosa fa | Stato | Imp. | Era |
 |---|---|---|:-:|:-:|---|
@@ -55,17 +58,17 @@ grande ingestion · MG42 prova EJ200.
 | MG40 | Scheda coerente | scheda di un altro motore o materiale, task della scheda inesistente: ERRATO (campagna 4e: +4 stabili sul piccolo, +5 sul grande) | ✅ | 5 | H18 |
 | MG41 | Regola «almeno N» | «almeno 4» contro «più di 4» non è un errore (toglie gli ultimi 2 falsi errori) | ✅ | 5 | N1, N2 |
 | MG42 | EJ200 sul PC | `prova-ej200`: conoscenza da S3, niente tracce sul PC | 🔶 | 5 | N4 |
-| MG43 | Domanda P13 | 8d3c673c 060 e 070, b1261d11 060: errori veri o falsi? | 🔶 | 5 | N3 |
-| MG44 | EJ200 rotta non ferma il civile | una conoscenza EJ200 non valida spegne solo EJ200, MOS e DR partono | ⬜ | 5 | B7 |
-| MG45 | Fuori tema più prudente | mai N/A se la descrizione ha un limite o una negazione | ⬜ | 4 | F3 |
+| MG43 | Domanda P13 | 8d3c673c 070 errore vero (targa); 8d3c673c 060 e b1261d11 060 falsi errori del codice, tolti da MG78 | ✅ | 5 | N3 |
+| MG44 | EJ200 rotta non ferma il civile | una conoscenza EJ200 non valida spegne solo EJ200, MOS e DR partono; si riprova alla richiesta dopo | ✅ | 5 | B7 |
+| MG45 | Fuori tema più prudente | mai N/A se la descrizione ha un limite o una negazione: WARNING e seconda ricerca (tocca il modello: si misura con la campagna) | 🔶 | 4 | F3 |
 | MG46 | Materiale tra le lingue | materiale diverso tra italiano e inglese, dal codice | ⬜ | 4 | F1 |
-| MG47 | Parola cambiata in una lingua | una parola che cambia il significato (non numero, non negazione) | ⬜ | 3 | F1 |
+| MG47 | Azione diversa tra le lingue | dal codice: rimuovere, raccordare, sostituire, lucidare, sabbiare, saldare, pulire (e9b74c84 040, 298bc28e 035) | ✅ | 4 | F1 |
 | MG48 | Task di un altro stadio | il task cita un pezzo diverso da quello del ciclo | ⬜ | 3 | F2 |
 | MG49 | Errori più stabili | errori che escono 2 volte su 3 | ⬜ | 3 | F4 |
-| MG50 | DR senza serial | quali documenti usare (regola da decidere con le persone) | ⬜ | 3 | F5 |
+| MG50 | DR senza serial | la procedura DR dal numero «D.R. CASE #» della stampa (P14); le recommendation restano da decidere con le persone | 🔶 | 3 | F5 |
 | MG51 | Frontend con i due WARNING | colori diversi per `[da guardare]` e `[non controllabile]` (collega) | ⬜ | 3 | F7 |
 | MG52 | Fonte della nota | la fonte giusta per il task della nota nelle MOS | ⬜ | 3 | H16 |
-| MG53 | Tempo massimo della validazione | sotto i 600 s del backend: chiude con quello che ha | ⬜ | 3 | T1 |
+| MG53 | Tempo massimo della validazione | 480 s per le sessioni di un ciclo: chiude con quello che ha | ✅ | 3 | T1 |
 | MG54 | Chiamata diretta a Bedrock | niente avvio dell'agente per ogni operazione: circa metà del tempo | ⬜ | 3 | B1 |
 | MG55 | Più operazioni insieme | dopo MG54: meno tempo | ⬜ | 2 | B4 |
 | MG56 | Cache e batch di Bedrock | meno costo | ⬜ | 2 | H10 |
@@ -87,4 +90,9 @@ grande ingestion · MG42 prova EJ200.
 | MG72 | Pulizia | golden in parallelo; togliere le rotte storiche quando il frontend è pronto | ⬜ | 1 | B8, D |
 | MG73 | Grande ingestion | tutti i documenti civili, con quelli che ha la v1 (schede con materiale, SPM) | ⬜ | 5 | — |
 | MG74 | Indice (knowledge-index) | nomi dei manuali (`aliases.json`), intervalli dei task, voci RDR «OTHER» | ⬜ | 3 | — |
-| MG75 | Limiti al contrario tra le lingue, dal codice | «superiore a N» contro «not to exceed N»: oggi lo trova il modello, 3-4 volte su 6 | ⬜ | 4 | — |
+| MG75 | Limiti al contrario tra le lingue, dal codice | «superiore a 4X» contro «not to exceed 4X»: prima lo trovava il modello 3-4 volte su 6 | ✅ | 5 | — |
+| MG76 | Lo stesso DR in tutto il ciclo | un «D.R. CASE #» diverso da quello del ciclo: ERRATO `DR_DIVERSO` (895167b9 030) | ✅ | 4 | — |
+| MG77 | Riga accanto a «continua» | il parser non butta più la descrizione scritta accanto a «CONTINUA ALLA PAGINA SEGUENTE» | ✅ | 4 | — |
+| MG78 | Rimandi a operazioni e figure | «operazione 70» contro «figure 903» non è un numero cambiato (2 falsi errori della P13) | ✅ | 5 | — |
+| MG79 | Prova senza modello | `eval senza-modello`: i controlli del codice su piccolo e grande, 0 $, pochi minuti | ✅ | 4 | — |
+| MG80 | Test sulle 14 stampe vere | le regole del codice sul testo di `CONFRONTO_V1_14_CICLI.md`, a ogni `pytest` | ✅ | 4 | — |

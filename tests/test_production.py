@@ -189,12 +189,19 @@ def test_military_cycles_off_means_no_ej200_knowledge(tmp_path: Path) -> None:
         services.runner._deps_for("ej200")
 
 
-def test_a_broken_publication_stops_the_start(tmp_path: Path) -> None:
+def test_a_broken_civil_publication_stops_the_start(tmp_path: Path) -> None:
+    services = _assemble(tmp_path, store=InMemoryObjectStore())  # niente pubblicato
+    with pytest.raises(KnowledgeError, match=r"current.json"):
+        services.warmup()
+
+
+def test_a_broken_ej200_publication_turns_off_only_ej200(tmp_path: Path) -> None:
+    """MG44 (27-11 notte): prima fermava tutto il servizio, anche MOS e DR."""
     store = InMemoryObjectStore()
     publish_example(store, "r1")
     services = _assemble(tmp_path, store=store)  # EJ200 acceso ma non pubblicato
-    with pytest.raises(KnowledgeError, match=r"current.json"):
-        services.warmup()
+    services.warmup()
+    assert services.runner.broken == {"ej200": "KnowledgeError"}
 
 
 def test_published_civil_knowledge_is_required(tmp_path: Path) -> None:
