@@ -113,13 +113,13 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 |---|---|---|
 | ✅ | 1-4e · campagne, v1 sugli stessi cicli, base nuova, schede e regole | 27-11 |
 | ✅ | 4g · Domande P13 e P14 | 27-11 notte |
-| 👉 | **4h · Versione quasi finale: senza modello, poi campagna** (P15 fatta) | adesso · 0 $, poi circa 2,5 $ |
+| 👉 | **4h · Versione quasi finale: campagna** (senza modello e banco fatti) | adesso · circa 2,5 $ |
 | ⬜ | **4f · EJ200 sul PC** | dopo l'ingestion EJ200 · centesimi |
 | ⬜ | **5 · Grande ingestion e QA** | dopo |
 
 ---
 
-**👉 Passo 4h · Versione quasi finale: prima gratis, poi una campagna** (0 $, poi circa 2,5 $)
+**👉 Passo 4h · Versione quasi finale: la campagna** (circa 2,5 $)
 
 Fatti il 27-11 notte: due prove senza modello e la P15. Solo il codice trova 41 errori su 45
 nel piccolo e 31 su 31 nel grande, con 0 falsi errori. I 4 ERRATO da verificare dei cicli veri
@@ -128,32 +128,13 @@ Claude li ha corretti. Terza prova (27-11 notte): 41 su 45 e 31 su 31, 0 falsi e
 verificare.
 
 Dopo (27-11 notte) Claude ha aggiunto il **banco di prova** (`eval banco`), le **metriche di
-controllo** nel riepilogo e due correzioni dei numeri trovate dal banco (date, limiti ripetuti).
-Il codice è cambiato: prima della campagna si rifanno i punti 1-2, gratis. **Se la campagna sta
-già girando, non fermarla:** finita quella, fai i punti 1, 2 e 4.
+controllo** nel riepilogo e due correzioni dei numeri (date, limiti ripetuti). Quarta prova
+senza modello e banco sul PC (27-11 notte): 41 su 45 e 31 su 31, 0 e 0; banco 308 su 310, 0
+falsi allarmi, lettura 105 su 105. Manca solo la campagna. **Se la campagna sta già girando,
+non fermarla:** finita quella, fai il punto 2.
 
-1. **Aggiornare** (2.1).
-   - **Deve uscire:** `... passed`, nessun `failed`.
-2. **Prova senza modello e banco di prova** (0 $, pochi minuti):
-
-   ```powershell
-   $env:UV_PYTHON = "3.14"
-   [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-   uv run cycle-validation eval senza-modello
-   uv run cycle-validation eval banco
-   ```
-
-   - **Deve uscire:** `Senza modello, piccolo: errori trovati dal codice 41 su 45 · falsi errori
-     0 · da verificare 0` e `Senza modello, grande: ... 31 su 31 · falsi errori 0 · da
-     verificare 0`.
-     Dal banco: `numero_una_lingua: trovati 38 su 40`, gli altri tipi tutti trovati, `falsi
-     allarmi 0` ovunque; `Lettura della stampa contro la v1 (13 cicli): operazioni 105 su 105`
-     e 2 differenze (8d3c673c 070 e c5ff3cd6 030: gli errori noti). Con la conoscenza vera i
-     numeri possono cambiare di poco.
-   - **Se non è 0 e 0:** fermati e mandami la foto delle righe con `ERRATO in più`.
-   - **Mandami:** la foto delle due righe `Senza modello, ...` e di tutto l'output del banco.
-3. **Solo con 0 falsi errori e 0 da verificare: la campagna** (3 prove di `quasi_finale`,
-   piccolo e grande, circa un'ora; la base è già fatta e si salta). Prima il piano (3.5), poi:
+1. **La campagna** (3 prove di `quasi_finale`, piccolo e grande, circa un'ora; la base è già
+   fatta e si salta). Prima il piano (3.5), poi:
 
    ```powershell
    $env:UV_PYTHON = "3.14"
@@ -167,8 +148,8 @@ già girando, non fermarla:** finita quella, fai i punti 1, 2 e 4.
    - **Mandami:** la riga finale della campagna, poi dei due `riepilogo.md`
      (`runs\prove-piccolo`, `runs\prove-grande`) la classifica, la tabella «ERRATO da
      verificare» e la tabella «Metriche di controllo».
-4. **Solo se la campagna è partita prima dei punti 1-2:** ricalcola i riepiloghi, così escono
-   anche le «Metriche di controllo»:
+2. **Solo se la campagna è partita prima dell'aggiornamento del 27-11 notte:** ricalcola i
+   riepiloghi, così escono anche le «Metriche di controllo»:
 
    ```powershell
    $env:UV_PYTHON = "3.14"

@@ -55,7 +55,7 @@ sezione 1 di `COPILOT.md`):
 | 7e10 | Claude: MG47 corretta (condizioni, «ripristinare») | Claude | ✅ 27-11 notte |
 | 7e11 | Aggiornare, senza modello (0 e 0 attesi), poi subito la campagna `quasi_finale` | COPILOT passo 4h | senza modello ✅ 27-11 notte: piccolo 41 su 45, grande 31 su 31, 0 falsi errori, 0 da verificare; campagna da fare |
 | 7e12 | Claude: banco di prova (`eval banco`), metriche di controllo nel riepilogo, date e limiti ripetuti | Claude | ✅ 27-11 notte |
-| 7e13 | Aggiornare, senza modello, `eval banco`; campagna (o, se già partita, ricalcolo dei riepiloghi per le metriche di controllo) | COPILOT passo 4h | da fare |
+| 7e13 | Aggiornare, senza modello, `eval banco`; campagna (o, se già partita, ricalcolo dei riepiloghi per le metriche di controllo) | COPILOT passo 4h | senza modello e banco ✅ 27-11 notte: 41 su 45 e 31 su 31, 0 e 0; banco sul PC uguale a quello di Claude (308 su 310, 0 falsi allarmi, lettura 105 su 105); campagna da fare |
 | 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
 | 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |
 | 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
@@ -1624,6 +1624,13 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   pericolosi), mancati come WARNING o N/A, esiti decisi, errori tecnici, ciclo peggiore.
   Attenzione: il banco misura le regole del codice, non il modello; il modello lo misurano le
   copie cieche e la campagna.
+- **27-11 notte, quarta prova senza modello e primo banco sul PC.** Senza modello come prima:
+  piccolo 41 su 45, grande 31 su 31, 0 falsi errori, 0 da verificare (le correzioni MG86 non
+  rompono niente). Il banco sul PC, con la conoscenza vera, dà gli stessi numeri di quello di
+  Claude: numeri 38 su 40 (mancati 8d3c673c 060, e9b74c84 010), limiti 12 su 12,
+  massimo/minimo 16 su 16, azioni 223 su 223, DR 1 su 1, 0 falsi allarmi; lettura contro la v1
+  105 su 105, targhe 104 su 105, schede 21 su 22, 13 operazioni lette solo dalla v2. Via libera
+  alla campagna `quasi_finale`.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 
