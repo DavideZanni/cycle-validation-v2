@@ -1,5 +1,6 @@
-"""CLI: `run`, `leggi`, `confronta`, `manuali`, `macchine`, `qa`, `golden`, `kb-check` ed `eval` (esperimenti: `eval esegui`,
-`eval classifica`)."""
+"""CLI: `run`, `leggi`, `confronta`, `manuali`, `macchine`, `qa`, `golden`, `kb-check` ed `eval`
+(prove ed esperimenti: `scegli`, `muta`, `prova`, `campagna`, `riepilogo`, `esegui`, `classifica`,
+`pipeline`, `prepara`, `mutazioni`, `fotografia`)."""
 
 import asyncio
 import difflib
@@ -8,6 +9,8 @@ import json
 import os
 import re
 import shutil
+import subprocess
+import sys
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -46,7 +49,7 @@ from cycle_validation.evaluation.draft import draft_case
 from cycle_validation.evaluation.leaderboard import build_leaderboard, render_leaderboard
 from cycle_validation.evaluation.metrics import measure
 from cycle_validation.evaluation.mutations import mutate_cases
-from cycle_validation.evaluation.run import load_suites, run_variant
+from cycle_validation.evaluation.run import Suite, load_suites, run_variant
 from cycle_validation.evaluation.snapshot import snapshot_version, take_snapshot
 from cycle_validation.evaluation.trials import (
     BASE_NAME,
@@ -65,14 +68,14 @@ from cycle_validation.evaluation.trials import (
     write_summary,
     write_trial,
 )
-from cycle_validation.evaluation.variant import load_variant
+from cycle_validation.evaluation.variant import Variant, load_variant
 from cycle_validation.extract.base import CycleExtractor
 from cycle_validation.extract.factory import make_pdf_extractor
 from cycle_validation.extract.from_file import FileCycleExtractor
 from cycle_validation.extract.pvrm320 import parse_pvrm320
 from cycle_validation.extract.pvrm320_report import footer_oems, page_structure
 from cycle_validation.golden import GoldenCase, load_cases, run_golden
-from cycle_validation.ingest.pdf import read_pdf, read_pdf_bytes
+from cycle_validation.ingest.pdf import PdfDocument, read_pdf, read_pdf_bytes
 from cycle_validation.ingest.transcribe import make_transcriber
 from cycle_validation.kb.local import load_local_knowledge
 from cycle_validation.module_kind import DR, EJ200, detect_module_kind
@@ -107,7 +110,7 @@ def make_session(settings: AgentSettings, transcripts_dir: Path | None) -> Agent
 
 
 def _fail(error: Exception) -> typer.Exit:
-    typer.echo(f"Errore: {error}", err=False)
+    typer.echo(f"Errore: {error}")
     return typer.Exit(code=1)
 
 
@@ -246,9 +249,7 @@ def run(
         report = run_validation(
             RunRequest(pdf_path=pdf, selectors=selectors, skip_checks=skipped), deps, out
         )
-    except typer.BadParameter as error:
-        raise _fail(error) from error
-    except CycleValidationError as error:
+    except (typer.BadParameter, CycleValidationError) as error:
         raise _fail(error) from error
     counts = report.counts
     typer.echo(
@@ -291,6 +292,121 @@ def _reference_shape(match: re.Match[str]) -> str:
     code = match["code"]
     shown = code[:8] + _masked(code[8:]) if len(code) > 8 else code
     return f"{_masked(match['word'])} {shown}" if match["word"] else shown
+
+
+def _parsed(pdf: PdfDocument) -> Cycle | None:
+    """Il ciclo letto dal parser di layout; se non si legge lo stampa e restituisce None."""
+    try:
+        return parse_pvrm320(pdf)
+    except CycleValidationError as error:
+        typer.echo(f"  non letto dal parser: {_masked_quotes(str(error))}")
+        return None
+
+
+def _print_brief(pdf: PdfDocument, reordered: list[str]) -> None:
+    """`leggi --breve`: una riga con operazioni, parser e pagine rimesse in ordine."""
+    try:
+        parsed = parse_pvrm320(pdf)
+        state = f"operazioni: {len(parsed.operations)} · parser: letto"
+    except CycleValidationError as error:
+        state = f"parser: NON LETTO ({_masked_quotes(str(error))})"
+    typer.echo(f"  {state} · pagine rimesse in ordine: {', '.join(reordered) or 'nessuna'}")
+
+
+def _print_structure(pdf: PdfDocument, number: int) -> None:
+    """`leggi --struttura`: come il parser vede ogni riga della pagina, senza il testo."""
+    if not 1 <= number <= len(pdf.pages):
+        typer.echo(f"  pagina {number} non c'è (pagine: {len(pdf.pages)})")
+        return
+    page = pdf.pages[number - 1]
+    if page.reordered:
+        typer.echo("  (righe rimesse nell'ordine della pagina: stampa modificata a mano)")
+    for row, shape in enumerate(page_structure(page.text), 1):
+        # solo la parola tra « » viene dal documento: si maschera quella
+        typer.echo(f"  {row:3} | {_masked_quotes(shape)}")
+    try:
+        parse_pvrm320(pdf)
+        typer.echo("  parser: letto")
+    except CycleValidationError as error:
+        typer.echo(f"  parser: {_masked_quotes(str(error))}")
+
+
+def _print_search(pdf: PdfDocument, text: str) -> None:
+    """`leggi --cerca`: le righe con il testo e i serial number, tutto mascherato, per capire
+    cosa c'è nella stampa senza far vedere codici veri nelle foto."""
+    for page in pdf.pages:
+        for line in page.text.splitlines():
+            if text.casefold() in line.casefold():
+                typer.echo(f"  p.{page.number} | {_masked(line.strip())}")
+    serials = [_masked(serial) for serial in serials_in_text(pdf.text)]
+    typer.echo(f"  serial number trovati: {len(serials)} ({', '.join(serials) or '-'})")
+
+
+def _print_languages(pdf: PdfDocument) -> None:
+    """`leggi --lingue`: le operazioni con numeri diversi tra italiano e inglese."""
+    cycle = _parsed(pdf)
+    if cycle is None:
+        return
+    both = [op for op in cycle.operations if language_parts(op.operation_description)]
+    for op in both:
+        if pairs := number_mismatches(op.operation_description):
+            shown = ", ".join(f"{a} → {b}" for a, b in pairs)
+            typer.echo(f"  op {op.operation_number}: italiano → inglese {shown}")
+    typer.echo(f"  operazioni con le due lingue: {len(both)} su {len(cycle.operations)}")
+
+
+def _print_sources(pdf: PdfDocument) -> None:
+    """`leggi --fonti`: fonti e riparazioni, i manuali come M1, M2, ..., senza i loro codici."""
+    cycle = _parsed(pdf)
+    if cycle is None:
+        return
+    names = list(dict.fromkeys(source.manual for source in cycle.sources))
+    for source in cycle.sources:
+        typer.echo(
+            f"  fonte M{names.index(source.manual) + 1} · task {source.task or '-'} · "
+            f"rc {source.repair_code or '-'}"
+        )
+    repairs = sorted({op.repair_code or "-" for op in cycle.operations})
+    typer.echo(f"  rc delle operazioni: {' '.join(repairs)}")
+    oems = [_masked(oem) for oem in footer_oems(pdf)]
+    typer.echo(f"  OEM nel piè di pagina (forma): {', '.join(oems) or 'nessuno'}")
+    for op in cycle.operations:
+        cited = {normalize_code(code) for code in op.task_codes}
+        others = [
+            _reference_shape(match)
+            for match in _ATA_REFERENCE.finditer(op.operation_description)
+            if normalize_code(match["code"]) not in cited
+        ]
+        if others:
+            typer.echo(
+                f"  op {op.operation_number} · rc {op.repair_code or '-'} · task "
+                f"{', '.join(op.task_codes) or '-'} · altri codici nel testo: "
+                f"{'; '.join(dict.fromkeys(others))}"
+            )
+
+
+def _print_cycle(pdf: PdfDocument, page: int | None) -> None:
+    """`leggi` senza modi: la pagina chiesta, caso DR e serial, riparazione, fonti e task."""
+    if page is not None and 1 <= page <= len(pdf.pages):
+        for number, line in enumerate(pdf.pages[page - 1].text.splitlines(), 1):
+            typer.echo(f"  {number:3} | {line}")
+    # caso DR e serial number si cercano nel testo, anche se il parser non lo legge
+    cases = list(dict.fromkeys(_DR_CASE.findall(pdf.text)))
+    serials = list(dict.fromkeys(SERIAL_IN_TEXT.findall(pdf.text)))
+    if cases or serials:
+        typer.echo(f"  dr: caso {', '.join(cases) or '-'} · S/N {', '.join(serials) or '-'}")
+    cycle = _parsed(pdf)
+    if cycle is None:
+        return
+    sources = ", ".join(
+        source.manual + (f" {source.task}" if source.task else "") for source in cycle.sources
+    )
+    tasks = list(dict.fromkeys(code for op in cycle.operations for code in op.task_codes))
+    typer.echo(
+        f"  riparazione: {cycle.repair_code or '-'} · fonti: {sources or '-'} · "
+        f"operazioni: {len(cycle.operations)}"
+    )
+    typer.echo(f"  task: {', '.join(tasks) or '-'}")
 
 
 @app.command("leggi")
@@ -357,104 +473,20 @@ def read_cycles(
             continue
         reordered = [str(page.number) for page in pdf.pages if page.reordered]
         if breve:
-            try:
-                parsed = parse_pvrm320(pdf)
-                state = f"operazioni: {len(parsed.operations)} · parser: letto"
-            except CycleValidationError as error:
-                state = f"parser: NON LETTO ({_masked_quotes(str(error))})"
-            typer.echo(f"  {state} · pagine rimesse in ordine: {', '.join(reordered) or 'nessuna'}")
+            _print_brief(pdf, reordered)
             continue
         if reordered:
             typer.echo(f"  pagine rimesse nell'ordine della pagina: {', '.join(reordered)}")
         if struttura is not None:
-            if not 1 <= struttura <= len(pdf.pages):
-                typer.echo(f"  pagina {struttura} non c'è (pagine: {len(pdf.pages)})")
-                continue
-            if pdf.pages[struttura - 1].reordered:
-                typer.echo("  (righe rimesse nell'ordine della pagina: stampa modificata a mano)")
-            for number, shape in enumerate(page_structure(pdf.pages[struttura - 1].text), 1):
-                # solo la parola tra « » viene dal documento: si maschera quella
-                typer.echo(f"  {number:3} | {_masked_quotes(shape)}")
-            try:
-                parse_pvrm320(pdf)
-                typer.echo("  parser: letto")
-            except CycleValidationError as error:
-                typer.echo(f"  parser: {_masked_quotes(str(error))}")
-            continue
-        if cerca:
-            # per capire cosa c'è nella stampa senza far vedere codici veri nelle foto
-            for page in pdf.pages:
-                for line in page.text.splitlines():
-                    if cerca.casefold() in line.casefold():
-                        typer.echo(f"  p.{page.number} | {_masked(line.strip())}")
-            serials = [_masked(serial) for serial in serials_in_text(pdf.text)]
-            typer.echo(f"  serial number trovati: {len(serials)} ({', '.join(serials) or '-'})")
-            continue
-        if lingue:
-            try:
-                cycle = parse_pvrm320(pdf)
-            except CycleValidationError as error:
-                typer.echo(f"  non letto dal parser: {_masked_quotes(str(error))}")
-                continue
-            both = [op for op in cycle.operations if language_parts(op.operation_description)]
-            for op in both:
-                if pairs := number_mismatches(op.operation_description):
-                    shown = ", ".join(f"{a} → {b}" for a, b in pairs)
-                    typer.echo(f"  op {op.operation_number}: italiano → inglese {shown}")
-            typer.echo(f"  operazioni con le due lingue: {len(both)} su {len(cycle.operations)}")
-            continue
-        if fonti:
-            try:
-                cycle = parse_pvrm320(pdf)
-            except CycleValidationError as error:
-                typer.echo(f"  non letto dal parser: {_masked_quotes(str(error))}")
-                continue
-            names = list(dict.fromkeys(source.manual for source in cycle.sources))
-            for source in cycle.sources:
-                typer.echo(
-                    f"  fonte M{names.index(source.manual) + 1} · task {source.task or '-'} · "
-                    f"rc {source.repair_code or '-'}"
-                )
-            repairs = sorted({op.repair_code or "-" for op in cycle.operations})
-            typer.echo(f"  rc delle operazioni: {' '.join(repairs)}")
-            oems = [_masked(oem) for oem in footer_oems(pdf)]
-            typer.echo(f"  OEM nel piè di pagina (forma): {', '.join(oems) or 'nessuno'}")
-            for op in cycle.operations:
-                cited = {normalize_code(code) for code in op.task_codes}
-                others = [
-                    _reference_shape(match)
-                    for match in _ATA_REFERENCE.finditer(op.operation_description)
-                    if normalize_code(match["code"]) not in cited
-                ]
-                if others:
-                    typer.echo(
-                        f"  op {op.operation_number} · rc {op.repair_code or '-'} · task "
-                        f"{', '.join(op.task_codes) or '-'} · altri codici nel testo: "
-                        f"{'; '.join(dict.fromkeys(others))}"
-                    )
-            continue
-        if pagina is not None and 1 <= pagina <= len(pdf.pages):
-            for number, line in enumerate(pdf.pages[pagina - 1].text.splitlines(), 1):
-                typer.echo(f"  {number:3} | {line}")
-        # caso DR e serial number si cercano nel testo, anche se il parser non lo legge
-        cases = list(dict.fromkeys(_DR_CASE.findall(pdf.text)))
-        serials = list(dict.fromkeys(SERIAL_IN_TEXT.findall(pdf.text)))
-        if cases or serials:
-            typer.echo(f"  dr: caso {', '.join(cases) or '-'} · S/N {', '.join(serials) or '-'}")
-        try:
-            cycle = parse_pvrm320(pdf)
-        except CycleValidationError as error:
-            typer.echo(f"  non letto dal parser: {_masked_quotes(str(error))}")
-            continue
-        sources = ", ".join(
-            source.manual + (f" {source.task}" if source.task else "") for source in cycle.sources
-        )
-        tasks = list(dict.fromkeys(code for op in cycle.operations for code in op.task_codes))
-        typer.echo(
-            f"  riparazione: {cycle.repair_code or '-'} · fonti: {sources or '-'} · "
-            f"operazioni: {len(cycle.operations)}"
-        )
-        typer.echo(f"  task: {', '.join(tasks) or '-'}")
+            _print_structure(pdf, struttura)
+        elif cerca:
+            _print_search(pdf, cerca)
+        elif lingue:
+            _print_languages(pdf)
+        elif fonti:
+            _print_sources(pdf)
+        else:
+            _print_cycle(pdf, pagina)
 
 
 def _changed(first: str, second: str, quote: str = "") -> str:
@@ -597,6 +629,16 @@ def _pdfs_in(folder: Path) -> list[Path]:
     return found
 
 
+def _pdfs_of(paths: list[Path]) -> list[Path]:
+    """I PDF dati e quelli delle cartelle date (`eval scegli`, `eval prova`)."""
+    return [pdf for path in paths for pdf in (_pdfs_in(path) if path.is_dir() else [path])]
+
+
+def _fingerprint(data: bytes) -> str:
+    """L'impronta di un file: le prime 8 cifre del suo sha256 (nomi delle cartelle, errori noti)."""
+    return hashlib.sha256(data).hexdigest()[:8]
+
+
 # una stampa di ciclo pesa poco: i PDF più grandi (manuali, scansioni lunghe) non si leggono
 _CYCLE_MAX_BYTES = 20 * 1024 * 1024
 
@@ -622,7 +664,7 @@ def _read_cycles(
         except OSError:
             unread += 1
             continue
-        name = hashlib.sha256(data).hexdigest()[:8]
+        name = _fingerprint(data)
         names.setdefault(name, []).append(pdf_path.name)
         hash_of[str(pdf_path)] = name
         if name in cycles:
@@ -733,6 +775,7 @@ def list_manuals(
 def _session_for(name: str) -> Callable[[AgentSettings, Path | None], AgentSession]:
     """Implementazioni di AgentSession scelte per nome da una variante (`sessione:`)."""
     factories: dict[str, Callable[[AgentSettings, Path | None], AgentSession]] = {
+        # una lambda e non make_session: i test sostituiscono make_session nel modulo
         "sdk": lambda settings, transcripts: make_session(settings, transcripts),
     }
     return factories[name]
@@ -756,6 +799,32 @@ def _summary(name: str, path: Path) -> str:
         lines.append(f"    ... e altre {len(metrics.mismatches) - 20} discordanze")
     lines.append(f"Risultati in {path}")
     return "\n".join(lines)
+
+
+def _run_variant(
+    variant: Variant,
+    suites: list[Suite],
+    repetitions: int,
+    cases: Path,
+    results_dir: Path,
+    runs: Path | None,
+    environment: str | None,
+) -> Path:
+    """Una variante su tutti i casi (`eval esegui`, `eval pipeline`): il file dei risultati."""
+    return asyncio.run(
+        run_variant(
+            variant,
+            suites,
+            repetitions=repetitions,
+            results_dir=results_dir,
+            session_factory=_session_for(variant.session),
+            project_root=Path.cwd(),
+            runs_dir=runs or variant.settings.paths.runs_dir,
+            environment=environment,
+            cases_label=cases.as_posix(),
+            progress=typer.echo,
+        )
+    )
 
 
 @eval_app.command("esegui")
@@ -782,20 +851,7 @@ def eval_run(
     try:
         variant = load_variant(variante, config_override=config)
         suites = load_suites(casi)
-        path = asyncio.run(
-            run_variant(
-                variant,
-                suites,
-                repetitions=ripetizioni,
-                results_dir=risultati,
-                session_factory=_session_for(variant.session),
-                project_root=Path.cwd(),
-                runs_dir=runs or variant.settings.paths.runs_dir,
-                environment=ambiente,
-                cases_label=casi.as_posix(),
-                progress=typer.echo,
-            )
-        )
+        path = _run_variant(variant, suites, ripetizioni, casi, risultati, runs, ambiente)
         summary = _summary(variant.name, path)
     except CycleValidationError as error:
         raise _fail(error) from error
@@ -810,6 +866,8 @@ def _write_leaderboard(results_dir: Path, out: Path) -> str:
 
 
 DEFAULT_TRIAL_LIST = Path("runs/prove/cicli.txt")
+KNOWN_ERRORS_FILE = Path("eval/errori-noti.yaml")
+VARIANTS_DIR = Path("eval/varianti")
 
 
 @eval_app.command("scegli")
@@ -822,9 +880,7 @@ def eval_choose(
     copertura: Annotated[
         float, typer.Option(help="Parte minima delle operazioni confrontabili (0-1).")
     ] = 0.8,
-    attesi: Annotated[Path, typer.Option(help="YAML degli errori noti.")] = Path(
-        "eval/errori-noti.yaml"
-    ),
+    attesi: Annotated[Path, typer.Option(help="YAML degli errori noti.")] = KNOWN_ERRORS_FILE,
     out: Annotated[Path, typer.Option(help="Lista dei PDF (resta sul PC).")] = DEFAULT_TRIAL_LIST,
     config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
 ) -> None:
@@ -839,9 +895,7 @@ def eval_choose(
         kb = load_local_knowledge(knowledge)
     except (CycleValidationError, OSError, ValueError) as error:
         raise _fail(error) from error
-    pdfs: list[Path] = []
-    for path in percorsi:
-        pdfs.extend(_pdfs_in(path) if path.is_dir() else [path])
+    pdfs = _pdfs_of(percorsi)
     cycles: dict[str, CycleSeen] = {}
     names: dict[str, list[str]] = {}
     hash_of: dict[str, str] = {}
@@ -910,9 +964,7 @@ def eval_blind(
     per_ciclo: Annotated[
         int, typer.Option(help="Copie al massimo da uno stesso ciclo vero.")
     ] = BLIND_PER_CYCLE,
-    attesi: Annotated[Path, typer.Option(help="YAML degli errori noti.")] = Path(
-        "eval/errori-noti.yaml"
-    ),
+    attesi: Annotated[Path, typer.Option(help="YAML degli errori noti.")] = KNOWN_ERRORS_FILE,
     out: Annotated[Path, typer.Option(help="Cartella delle copie (resta sul PC).")] = Path(
         "runs/mutazioni"
     ),
@@ -937,7 +989,7 @@ def eval_blind(
     for pdf_path, _ in entries:
         try:
             data = pdf_path.read_bytes()
-            name = hashlib.sha256(data).hexdigest()[:8]
+            name = _fingerprint(data)
             entry = known.cycle(name)
             if name in pdf_of or (entry is not None and not entry.giusto):
                 continue  # doppione, o ciclo che ha già i suoi errori
@@ -956,7 +1008,7 @@ def eval_blind(
     kinds: Counter[str] = Counter()
     for mutation in mutations:
         text = mutation.cycle.model_dump_json(indent=2)
-        fingerprint = hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
+        fingerprint = _fingerprint(text.encode("utf-8"))
         path = out / f"{fingerprint}.json"
         # byte esatti: su Windows `write_text` scrive \r\n e l'impronta del file non sarebbe
         # più quella scritta in errori.yaml (24-11: le copie uscivano come cicli veri)
@@ -1016,7 +1068,7 @@ def _run_trial(
         data = source.read_bytes()
         if cycle_file is not None:
             data = data.replace(b"\r\n", b"\n")  # copie scritte su Windows prima del 24-11
-        fingerprint = hashlib.sha256(data).hexdigest()[:8]
+        fingerprint = _fingerprint(data)
         if fingerprint in seen:
             continue
         seen.add(fingerprint)
@@ -1072,6 +1124,13 @@ def _run_trial(
     return trial, folder
 
 
+def _proposal(variant: Variant) -> Proposal:
+    """La proposta scritta nella variante: cosa cambia, perché, cosa ci si aspetta."""
+    return Proposal(
+        change=variant.description, hypothesis=variant.hypothesis, expected=variant.expected
+    )
+
+
 @eval_app.command("prova")
 def eval_trial(
     pdfs: Annotated[
@@ -1109,19 +1168,13 @@ def eval_trial(
             loaded = load_variant(variante, config_override=config)
             settings = loaded.settings
             nome = nome or loaded.name
-            proposal = Proposal(
-                change=loaded.description,
-                hypothesis=loaded.hypothesis,
-                expected=loaded.expected,
-            )
+            proposal = _proposal(loaded)
         else:
             settings = load_settings(config)
         if not nome:
             raise CycleValidationError("Manca --nome (o --variante).")
-        known = load_known_errors(attesi or [Path("eval/errori-noti.yaml")])
-        entries: list[tuple[Path, Path | None]] = []
-        for path in pdfs or []:
-            entries += [(pdf, None) for pdf in (_pdfs_in(path) if path.is_dir() else [path])]
+        known = load_known_errors(attesi or [KNOWN_ERRORS_FILE])
+        entries: list[tuple[Path, Path | None]] = [(pdf, None) for pdf in _pdfs_of(pdfs or [])]
         entries += _list_entries(lista or [])
         if not entries:
             raise CycleValidationError("Nessun PDF: dai i PDF o --lista.")
@@ -1170,7 +1223,7 @@ def _campaign_sets(runs: Path, known_file: Path) -> dict[str, _CampaignSet]:
     noted: list[tuple[Path, Path | None]] = [
         (pdf, None)
         for pdf, _ in big
-        if pdf.is_file() and known.cycle(hashlib.sha256(pdf.read_bytes()).hexdigest()[:8])
+        if pdf.is_file() and known.cycle(_fingerprint(pdf.read_bytes()))
     ]
     small = list(noted)
     small_known = [known_file]
@@ -1197,19 +1250,167 @@ def _campaign_settings(
     if name.casefold() == BASE_NAME:
         settings = load_settings(config)
     else:
-        loaded = load_variant(Path("eval/varianti") / f"{name}.yaml", config_override=config)
+        loaded = load_variant(VARIANTS_DIR / f"{name}.yaml", config_override=config)
         settings = loaded.settings
-        proposal = Proposal(
-            change=loaded.description, hypothesis=loaded.hypothesis, expected=loaded.expected
-        )
+        proposal = _proposal(loaded)
     if model_id:
         agent = settings.agent.model_copy(update={"model": model_id})
         settings = settings.model_copy(update={"agent": agent})
     return settings, proposal
 
 
+class _CampaignStop(Exception):
+    """Fine anticipata della campagna (tetto di spesa, nessun ciclo eseguito)."""
+
+
 def _split(value: str | None) -> list[str] | None:
     return [item.strip() for item in value.split(",") if item.strip()] if value else None
+
+
+def _narrowed(
+    campaign: CampaignFile,
+    varianti: str | None,
+    modelli: str | None,
+    insiemi: str | None,
+    ripetizioni: int | None,
+    grande: str | None,
+    massimo_dollari: float | None,
+) -> CampaignFile:
+    """La campagna del file ristretta (o cambiata) dalle opzioni di `eval campagna`."""
+    updates: dict[str, Any] = {}
+    if (names := _split(varianti)) is not None:
+        updates["varianti"] = names
+    if (chosen := _split(modelli)) is not None:
+        unknown = [m for m in chosen if m not in campaign.modelli]
+        if unknown:
+            raise CycleValidationError(
+                f"Modelli non nel file: {', '.join(unknown)}. Ci sono: "
+                f"{', '.join(campaign.modelli)}."
+            )
+        updates["modelli"] = {m: campaign.modelli[m] for m in chosen}
+    if (set_names := _split(insiemi)) is not None:
+        updates["insiemi"] = set_names
+    if ripetizioni is not None:
+        updates["ripetizioni"] = ripetizioni
+    if grande is not None:
+        updates["grande"] = grande
+    if massimo_dollari is not None:
+        updates["massimo_dollari"] = massimo_dollari
+    return CampaignFile.model_validate({**campaign.model_dump(), **updates})
+
+
+def _print_plan(
+    campaign: CampaignFile,
+    models: list[str],
+    all_models: list[str],
+    runs: Path,
+    sets: dict[str, _CampaignSet],
+    kb: Path,
+) -> None:
+    """`eval campagna --piano`: cosa farebbe, senza lanciare niente."""
+    typer.echo(
+        f"Piano (gratis, niente viene lanciato). Piccolo: {len(sets['piccolo'].entries)} "
+        f"cicli e copie; grande: {len(sets['grande'].entries)} cicli. Conoscenza: {kb.name}."
+    )
+    for model in models:
+        for set_name in campaign.insiemi:
+            steps = plan(campaign, runs, set_name=set_name, model=model, order=all_models)
+            note = (
+                " (le varianti del grande dipendono dal piccolo: qui quelle che si tengono adesso)"
+                if set_name == "grande" and campaign.grande == "se_si_tiene"
+                else ""
+            )
+            typer.echo(f"{model} · {set_name}{note}:")
+            for step in steps:
+                state = f"{step.missing} da fare" if step.missing else "già fatte"
+                typer.echo(f"  {step.name}: {state} → {step.folder.as_posix()}")
+
+
+def _drop_unusable(
+    campaign: CampaignFile, models: list[str], all_models: list[str], runs: Path
+) -> None:
+    """Le prove in cui il modello non ha risposto (accesso scaduto) non contano: si tolgono e
+    la campagna le rifà."""
+    for model in models:
+        for set_name in campaign.insiemi:
+            folder = folder_for(all_models, model, set_name, runs)
+            dropped = unusable_trials(folder)
+            for bad in dropped:
+                shutil.rmtree(bad, ignore_errors=True)
+                typer.echo(f"Tolta la prova non valida (il modello non aveva risposto): {bad.name}")
+            if dropped:
+                write_summary(folder)
+
+
+def _run_campaign(
+    campaign: CampaignFile,
+    models: list[str],
+    all_models: list[str],
+    runs: Path,
+    sets: dict[str, _CampaignSet],
+    kb: Path,
+    config: Path | None,
+    outcome: Outcome,
+) -> None:
+    """Le prove che mancano, in fila. Si ferma con `_CampaignStop` (tetto di spesa, prova che
+    non misura niente). Il piano del grande si fa dopo il piccolo: dipende da com'è andato."""
+    for model in models:
+        for set_name in campaign.insiemi:
+            for step in plan(campaign, runs, set_name=set_name, model=model, order=all_models):
+                for _ in range(step.missing):
+                    if outcome.spent >= campaign.massimo_dollari:
+                        outcome.stopped = f"raggiunto il tetto di {campaign.massimo_dollari:.0f} $"
+                        raise _CampaignStop
+                    settings, proposal = _campaign_settings(
+                        step.name, campaign.modelli[model], config
+                    )
+                    typer.echo(
+                        f"=== {model} · {set_name} · {step.name} · prova "
+                        f"{done(step.folder, step.name) + 1} di {campaign.ripetizioni} · "
+                        f"spesa finora {outcome.spent:.2f} $"
+                    )
+                    chosen_set = sets[set_name]
+                    trial, folder = _run_trial(
+                        chosen_set.entries,
+                        chosen_set.known,
+                        settings,
+                        "auto",
+                        kb,
+                        step.name,
+                        proposal,
+                        step.folder,
+                    )
+                    _count_trial(trial, folder, step, outcome)
+
+
+def _count_trial(trial: Trial, folder: Path, step: Step, outcome: Outcome) -> None:
+    """Conta una prova della campagna. Una prova che non misura niente si toglie (non deve
+    contare come fatta) e ferma la campagna."""
+    outcome.spent += trial.cost_usd
+    outcome.run += 1
+    if trial.cycles and trial.failures == len(trial.cycles):
+        # nessun ciclo è partito (accesso AWS scaduto, rete)
+        shutil.rmtree(folder, ignore_errors=True)
+        write_summary(step.folder)
+        outcome.stopped = (
+            "nessun ciclo eseguito nell'ultima prova (accesso AWS scaduto? `aws sso login`)"
+        )
+        raise _CampaignStop
+    if trial.unusable:
+        # il modello non ha risposto: la prova non misura niente
+        shutil.rmtree(folder, ignore_errors=True)
+        write_summary(step.folder)
+        outcome.stopped = (
+            f"il modello non ha risposto ({trial.model_failures} "
+            "controlli con errore tecnico; accesso AWS scaduto? "
+            f"`aws sso login`). Primo errore: {trial.technical_detail or '-'}"
+        )
+        raise _CampaignStop
+    if trial.failures:
+        outcome.errors.append(
+            f"{step.model} · {step.set_name} · {step.name}: {trial.failures} cicli non "
+            "eseguiti (la variante risulterà scartata)"
+        )
 
 
 @eval_app.command("campagna")
@@ -1251,43 +1452,22 @@ def eval_campaign(
     contiene comunque tutti i modelli del file con le prove che ci sono. Il tetto di spesa vale
     per ogni terminale."""
     try:
-        campaign = load_campaign(file)
-        updates: dict[str, Any] = {}
-        if (names := _split(varianti)) is not None:
-            updates["varianti"] = names
-        if (chosen := _split(modelli)) is not None:
-            unknown = [m for m in chosen if m not in campaign.modelli]
-            if unknown:
-                raise CycleValidationError(
-                    f"Modelli non nel file: {', '.join(unknown)}. Ci sono: "
-                    f"{', '.join(campaign.modelli)}."
-                )
-            updates["modelli"] = {m: campaign.modelli[m] for m in chosen}
-        if (set_names := _split(insiemi)) is not None:
-            updates["insiemi"] = set_names
-        if ripetizioni is not None:
-            updates["ripetizioni"] = ripetizioni
-        if grande is not None:
-            updates["grande"] = grande
-        if massimo_dollari is not None:
-            updates["massimo_dollari"] = massimo_dollari
-        campaign = CampaignFile.model_validate({**campaign.model_dump(), **updates})
+        campaign = _narrowed(
+            load_campaign(file), varianti, modelli, insiemi, ripetizioni, grande, massimo_dollari
+        )
         # le cartelle del primo modello del file restano quelle di sempre anche se lo si salta
         all_models = list(load_campaign(file).modelli)
         models = list(campaign.modelli)
         if config is None and Path("data/settings.yaml").is_file():
             config = Path("data/settings.yaml")
         for name in campaign.varianti:
-            if not (Path("eval/varianti") / f"{name}.yaml").is_file():
+            if not (VARIANTS_DIR / f"{name}.yaml").is_file():
                 raise CycleValidationError(f"Variante non trovata: eval/varianti/{name}.yaml")
         kb = knowledge or _latest_knowledge()
-        sets = _campaign_sets(runs, Path("eval/errori-noti.yaml"))
+        sets = _campaign_sets(runs, KNOWN_ERRORS_FILE)
     except (CycleValidationError, OSError, ValueError) as error:
         raise _fail(error) from error
     outcome = Outcome()
-
-    def steps_for(model: str, set_name: str) -> list[Step]:
-        return plan(campaign, runs, set_name=set_name, model=model, order=all_models)
 
     # lanciata solo per una parte (un terminale per modello o per insieme) scrive un report suo:
     # due terminali non si sovrascrivono
@@ -1319,91 +1499,11 @@ def eval_campaign(
         typer.echo(f"Report scritto (niente lanciato): {report}")
         return
     if piano:
-        typer.echo(
-            f"Piano (gratis, niente viene lanciato). Piccolo: {len(sets['piccolo'].entries)} "
-            f"cicli e copie; grande: {len(sets['grande'].entries)} cicli. Conoscenza: {kb.name}."
-        )
-        for model in models:
-            for set_name in campaign.insiemi:
-                steps = steps_for(model, set_name)
-                note = (
-                    " (le varianti del grande dipendono dal piccolo: qui quelle che si tengono "
-                    "adesso)"
-                    if set_name == "grande" and campaign.grande == "se_si_tiene"
-                    else ""
-                )
-                typer.echo(f"{model} · {set_name}{note}:")
-                for step in steps:
-                    state = f"{step.missing} da fare" if step.missing else "già fatte"
-                    typer.echo(f"  {step.name}: {state} → {step.folder.as_posix()}")
+        _print_plan(campaign, models, all_models, runs, sets, kb)
         return
-    # le prove in cui il modello non ha risposto (accesso scaduto) non contano: si tolgono e
-    # la campagna le rifà
-    for model in models:
-        for set_name in campaign.insiemi:
-            folder = folder_for(all_models, model, set_name, runs)
-            dropped = unusable_trials(folder)
-            for bad in dropped:
-                shutil.rmtree(bad, ignore_errors=True)
-                typer.echo(f"Tolta la prova non valida (il modello non aveva risposto): {bad.name}")
-            if dropped:
-                write_summary(folder)
+    _drop_unusable(campaign, models, all_models, runs)
     try:
-        for model in models:
-            for set_name in campaign.insiemi:
-                for step in steps_for(model, set_name):
-                    for _ in range(step.missing):
-                        if outcome.spent >= campaign.massimo_dollari:
-                            outcome.stopped = (
-                                f"raggiunto il tetto di {campaign.massimo_dollari:.0f} $"
-                            )
-                            raise _CampaignStop
-                        settings, proposal = _campaign_settings(
-                            step.name, campaign.modelli[model], config
-                        )
-                        typer.echo(
-                            f"=== {model} · {set_name} · {step.name} · prova "
-                            f"{done(step.folder, step.name) + 1} di {campaign.ripetizioni} · "
-                            f"spesa finora {outcome.spent:.2f} $"
-                        )
-                        chosen_set = sets[set_name]
-                        trial, folder = _run_trial(
-                            chosen_set.entries,
-                            chosen_set.known,
-                            settings,
-                            "auto",
-                            kb,
-                            step.name,
-                            proposal,
-                            step.folder,
-                        )
-                        outcome.spent += trial.cost_usd
-                        outcome.run += 1
-                        if trial.cycles and trial.failures == len(trial.cycles):
-                            # nessun ciclo è partito (accesso AWS scaduto, rete): la prova non
-                            # vale e non deve contare come fatta
-                            shutil.rmtree(folder, ignore_errors=True)
-                            write_summary(step.folder)
-                            outcome.stopped = (
-                                "nessun ciclo eseguito nell'ultima prova (accesso AWS scaduto? "
-                                "`aws sso login`)"
-                            )
-                            raise _CampaignStop
-                        if trial.unusable:
-                            # il modello non ha risposto: la prova non misura niente
-                            shutil.rmtree(folder, ignore_errors=True)
-                            write_summary(step.folder)
-                            outcome.stopped = (
-                                f"il modello non ha risposto ({trial.model_failures} "
-                                "controlli con errore tecnico; accesso AWS scaduto? "
-                                f"`aws sso login`). Primo errore: {trial.technical_detail or '-'}"
-                            )
-                            raise _CampaignStop
-                        if trial.failures:
-                            outcome.errors.append(
-                                f"{model} · {set_name} · {step.name}: {trial.failures} cicli non "
-                                "eseguiti (la variante risulterà scartata)"
-                            )
+        _run_campaign(campaign, models, all_models, runs, sets, kb, config, outcome)
     except _CampaignStop:
         pass
     except (CycleValidationError, OSError, ValueError) as error:
@@ -1415,10 +1515,6 @@ def eval_campaign(
         f"Prove fatte ora: {outcome.run} · spesa {outcome.spent:.2f} $."
     )
     typer.echo(f"Report finale: {report}")
-
-
-class _CampaignStop(Exception):
-    """Fine anticipata della campagna (tetto di spesa, nessun ciclo eseguito)."""
 
 
 @eval_app.command("riepilogo")
@@ -1497,7 +1593,7 @@ def _direct_fetch(values: dict[str, Any], database: str | None, query: str) -> l
     )
 
 
-_MASKED = ("CV_ENV_SECRET", "REDSHIFT_DATABASE", "MACHINES_QUERY")
+_COMPANY_ENV = ("CV_ENV_SECRET", "REDSHIFT_DATABASE", "MACHINES_QUERY")
 
 
 @app.command("qa")
@@ -1522,8 +1618,6 @@ def prepare_qa(
 ) -> None:
     """Prepara la v2 per QA sul PC aziendale: Dockerfile dalla v1 con i valori aziendali,
     libreria di accesso in vendor/, impostazioni nell'immagine, buildspec sulla v2."""
-    import shutil
-
     from cycle_validation.deploy import (
         SETTINGS_FILE,
         V1_FOLDER,
@@ -1611,7 +1705,7 @@ def prepare_qa(
         typer.echo(f"  {line}")
     typer.echo("Dockerfile scritto (valori aziendali coperti):")
     shown = dockerfile
-    for name in _MASKED:
+    for name in _COMPANY_ENV:
         shown = re.sub(rf'({name}=)"(?:[^"\\]|\\.)*"', r'\1"…"', shown)
     for line in shown.splitlines():
         typer.echo(f"  {line}")
@@ -1861,23 +1955,20 @@ CHECKS = (
 
 def run_code_checks(echo: Callable[[str], None]) -> bool:
     """Test, ruff e mypy con lo stesso Python del programma. Requisito, non punteggio."""
-    import subprocess
-    import sys
-
     ok = True
     for name, args in CHECKS:
-        done = subprocess.run(
+        result = subprocess.run(
             [sys.executable, *args],
             capture_output=True,
             text=True,
             encoding="utf-8",
             errors="replace",
         )
-        last = (done.stdout.strip().splitlines() or [""])[-1]
-        echo(f"  {name}: {'OK' if done.returncode == 0 else 'FALLITO'} {last}")
-        if done.returncode != 0:
+        last = (result.stdout.strip().splitlines() or [""])[-1]
+        echo(f"  {name}: {'OK' if result.returncode == 0 else 'FALLITO'} {last}")
+        if result.returncode != 0:
             ok = False
-            echo(done.stdout[-3000:] + done.stderr[-2000:])
+            echo(result.stdout[-3000:] + result.stderr[-2000:])
     return ok
 
 
@@ -1944,20 +2035,7 @@ def eval_pipeline(
         )
         for number, variant in enumerate(loaded, 1):
             echo(f"--- variante {number}/{len(loaded)}: {variant.name} ({variant.description})")
-            path = asyncio.run(
-                run_variant(
-                    variant,
-                    suites,
-                    repetitions=ripetizioni,
-                    results_dir=risultati,
-                    session_factory=_session_for(variant.session),
-                    project_root=Path.cwd(),
-                    runs_dir=runs or variant.settings.paths.runs_dir,
-                    environment=ambiente,
-                    cases_label=casi.as_posix(),
-                    progress=echo,
-                )
-            )
+            path = _run_variant(variant, suites, ripetizioni, casi, risultati, runs, ambiente)
             echo(_summary(variant.name, path))
         echo("3. Classifica")
         out = risultati / "classifica.md"

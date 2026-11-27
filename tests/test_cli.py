@@ -150,10 +150,8 @@ def test_run_without_cycle_json_extracts_with_the_model(
     assert payload["cycle_errors_count"] == 2
 
 
-def test_golden_command(tmp_path: Path) -> None:
-    from pathlib import Path as P
-
-    golden = P(__file__).parents[1] / "eval" / "casi" / "sintetici" / "mos"
+def test_golden_command() -> None:
+    golden = Path(__file__).parents[1] / "eval" / "casi" / "sintetici" / "mos"
     result = runner.invoke(
         cli.app,
         [
