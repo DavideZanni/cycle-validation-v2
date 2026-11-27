@@ -1,8 +1,9 @@
+import json
 from pathlib import Path
 from typing import Any
 
 import pytest
-from kb_fixtures import EXAMPLE_KB, example_store
+from kb_fixtures import EXAMPLE_KB, example_store, snapshot_store
 
 from cycle_validation.errors import KnowledgeError, SourceUnavailableError
 from cycle_validation.kb.remote import RemoteKnowledgeBase
@@ -133,6 +134,20 @@ def test_preload_fails_but_lookups_during_checks_are_warnings(tmp_path: Path) ->
         kb.preload()
     with pytest.raises(SourceUnavailableError):
         kb.find_machine_tag("TM-1001")
+
+
+def test_documents_of_kind_come_from_the_manual_snapshot(tmp_path: Path) -> None:
+    # I documenti SPM servono al report dei manuali e ai codici sbagliati: la conoscenza
+    # remota li prende dallo snapshot dei manuali, come quella locale.
+    store = snapshot_store()
+    manifest = json.loads(store.get_bytes("kb/sintetico/manifest.json"))
+    manifest["documents"][1]["kind"] = "SPM"
+    store.put("kb/sintetico/manifest.json", manifest)
+    kb = RemoteKnowledgeBase(
+        "v", example_store(), SnapshotManualSource(store, "kb/sintetico", tmp_path)
+    )
+    assert [document.key for document in kb.documents_of_kind("spm")] == ["MAN-DEMO-75"]
+    assert kb.documents_of_kind("RN") == []
 
 
 def test_example_store_fixture_is_loadable() -> None:

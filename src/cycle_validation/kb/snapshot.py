@@ -27,6 +27,8 @@ class ManualSource(Protocol):
 
     def find_task_in_kind(self, kind: str, task: str) -> TaskLocation | None: ...
 
+    def documents_of_kind(self, kind: str) -> list[DocumentInfo]: ...
+
 
 def sync_snapshot(store: ObjectStore, prefix: str, dest: Path, *, workers: int = 8) -> int:
     """Copia in `dest` ogni oggetto sotto `prefix`. Restituisce quanti ne ha copiati.
@@ -99,3 +101,6 @@ class SnapshotManualSource:
 
     def find_task_in_kind(self, kind: str, task: str) -> TaskLocation | None:
         return self._ready().find_task_in_kind(kind, task)
+
+    def documents_of_kind(self, kind: str) -> list[DocumentInfo]:
+        return self._ready().documents_of_kind(kind)
