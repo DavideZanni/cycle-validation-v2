@@ -129,45 +129,14 @@ servizio la scegli tu: una grande ingestion di tutti i documenti civili.
 | ✅ | **3 · Aggiornare, prove dal frontend, domande a Copilot** | tu | 27-11 (restano le altre prove dal frontend, sezione 4) |
 | ✅ | **4 · Campagna finale e v1 sugli stessi cicli** | tu | 27-11: vince `finale`; la v1 in `docs/CONFRONTO_V1_14_CICLI.md` |
 | ✅ | **4c · Riepiloghi ricalcolati e domanda P12** | tu | 27-11 sera: la v2 mancava tutte e 6 le operazioni aggiunte; P12: i 3 ERRATO dei cicli veri sono errori veri |
-| 👉 | **4d · La base nuova** (`finale` più tre controlli del codice) | tu | adesso · circa 2,5 $ · 1 ora |
-| ⬜ | **4e · Schede e regole** (variante `schede_e_limiti`: H18 e la regola «almeno N») | tu | dopo il 4d · circa 2,5 $ · 1 ora |
+| ✅ | **4d · La base nuova** (`finale` più tre controlli del codice) | tu | 27-11 sera: 30 su 43 stabili sul piccolo, 18 su 29 sul grande; un falso errore, la 050 di 04ecaabe (la regola «almeno N» del 4e lo deve togliere) |
+| 👉 | **4e · Schede e regole** (variante `schede_e_limiti`: H18 e la regola «almeno N») e **domanda P13** | tu | adesso · circa 2,5 $ · 1 ora |
+| ⬜ | **4f · EJ200 sul PC** (comando nuovo `prova-ej200`, senza tracce) | tu | dopo l'ingestion EJ200 · pochi centesimi a ciclo |
 | ⬜ | **5 · Grande ingestion, prova di controllo, Salvare, QA** | tu | dopo |
 
 ---
 
-**👉 Passo 4d · La base nuova** (adesso, circa 2,5 $, 1 ora)
-
-**Fatto il 27-11 sera:** riepiloghi ricalcolati (la v2 mancava tutte e 6 le operazioni trovate
-dalla v1) e P12 (i 3 ERRATO dei cicli veri sono lo stesso errore vero di 737dec71). Claude ha
-messo **`finale` nella base** e ha scritto **tre controlli del codice**, senza modello, provati
-sul testo delle 14 stampe: il task accanto all'operazione contro quello della testata (H17),
-la stessa operazione con due macchine (H19), i limiti della 010 cambiati in una lingua sola.
-Sulle 14 stampe trovano 5 operazioni in più e nessun falso errore. Adesso si misura la base
-nuova.
-
-1. **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)).
-   - **Deve uscire:** `... passed`, nessun `failed`.
-2. **Archiviare** le prove di oggi (sezione [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove),
-   «Archiviare»): la base è cambiata, le prove vecchie non si confrontano più.
-   - **Deve uscire:** l'elenco delle cartelle di `runs`, con le due nuove `archivio-...`.
-3. **`aws sso login`**, poi **il piano** (sezione [3.5](#35-la-campagna-tutte-le-prove-in-automatico)).
-   - **Deve uscire:** per ogni insieme una riga sola, `base`, `3 da fare`.
-4. **La campagna** (3.5): solo la base, 3 prove, piccolo e grande.
-   - **Deve uscire:** 0 falsi errori; circa 28 errori stabili su 40 sul piccolo e circa 20 su
-     29 sul grande (i 3 cicli veri ora sono errori da trovare); nessun ciclo oltre 10 minuti.
-     Se sono molti meno, mandami la foto lo stesso: la lettura vera dei PDF può differire dal
-     testo su cui Claude ha provato.
-   - **Mandami:** la riga finale, `runs\campagna.md` e i due `riepilogo.md` (classifica,
-     «Errore per errore», «ERRATO da verificare», «In attesa»).
-5. **Ricordati:** Copilot sempre in **Ask** (nella foto della P12 era in Agent con «Allow all»).
-
-Se hai aggiornato **dopo** le 22 del 27-11, nel piano del punto 3 c'è anche una seconda riga,
-`schede_e_limiti`, `3 da fare`: va bene, la campagna fa le due insieme (circa 5 $, 2 ore). Poi
-salta al punto 3 del passo 4e.
-
----
-
-**👉 Passo 4e · Schede e regole** (dopo il 4d, circa 2,5 $, 1 ora)
+**👉 Passo 4e · Schede e regole** (adesso, circa 2,5 $, 1 ora)
 
 **Fatto il 27-11 sera:** le due regole sono decise (scheda mancante = avviso con il commento
 «Scheda mancante»; «almeno 4 volte» contro «più di 4 volte» non è un errore: un ERRATO sulla
@@ -195,12 +164,85 @@ regola «almeno N». In più i WARNING ora dicono il loro tipo (H15): `[da guard
      almeno in parte); nessun ERRATO sulla 050 di 04ecaabe; costo quasi uguale alla base.
    - **Mandami:** la riga finale, `runs\campagna.md` e i due `riepilogo.md` (classifica,
      «Errore per errore», «ERRATO da verificare»).
+5. **Ricalcolare di nuovo** (gratis), se hai aggiornato **dopo** le 23 del 27-11: il blocco del
+   punto 2. Da allora anche la 050 di 2d724fba non è più in attesa: dice «almeno 4 volte» in
+   italiano e «more than 4 times» in inglese, come la 050 di 04ecaabe, quindi un ERRATO lì è un
+   falso errore. Se la campagna gira, aspetta che finisca.
+   - **Deve uscire:** due volte `Ricalcolati con gli errori noti di adesso: N cicli cambiati`.
+6. **Domanda P13 a Copilot** (in **Ask**, non in Agent; si può fare anche mentre gira la
+   campagna, Copilot legge soltanto): copia il testo qui sotto.
+
+```text
+Modalità Ask: leggi soltanto, non modificare e non creare file e non lanciare comandi.
+
+Nelle cartelle runs/prove-piccolo e runs/prove-grande ci sono tre prove «base» del 27-11 sera
+(le ultime tre cartelle che finiscono con -base). La v2 dà ERRATO 3 volte su 3 su queste
+operazioni, che non sono nella lista degli errori noti:
+- ciclo 8d3c673c, operazioni 060 e 070 (piccolo e grande);
+- ciclo b1261d11, operazione 060 (grande; è un ciclo vero).
+
+Per ogni operazione guarda runs/prove-<insieme>/<prova>/<impronta>/report.json, in una prova
+sola:
+1) quale controllo dà ERRATO (check: operation_description, machine_tag, task_code o altro) e
+   con quale motivo (reason);
+2) che cosa dice la spiegazione (rationale), in una frase;
+3) il testo dell'operazione in italiano e in inglese (cycle, poi operations): dicono la stessa
+   cosa? Per 8d3c673c 060: l'inglese dice «opposing blends», il manuale «opposite»? Per 8d3c673c
+   070: le targhe dell'operazione sono le stesse in tutte le pagine della stampa? Per b1261d11
+   060: l'italiano dice «superiore a 4X» e l'inglese «not to exceed 4X», come la 060 di 737dec71?
+4) la conclusione: errore vero della stampa o falso errore della v2?
+
+Rispondi in italiano semplice con una tabella: ciclo, operazione, controllo e motivo,
+spiegazione, italiano, inglese, conclusione. Delle stampe copia solo le frasi di queste
+operazioni e le targhe; non copiare testo dei manuali.
+```
+
+   - **Deve uscire:** la tabella con 3 righe.
+   - **Mandami:** la foto della risposta.
+7. **Ricordati:** Copilot sempre in **Ask**.
+
+---
+
+**⬜ Passo 4f · EJ200 sul PC** (dopo l'ingestion EJ200, pochi centesimi a ciclo)
+
+**Da sapere.** Hai l'autorizzazione a provare EJ200 sul PC. Il comando `prova-ej200` è fatto
+per non lasciare niente: legge catalogo e testi EJ200 da S3 (AWS EU), mette i testi delle
+pubblicazioni usate in una cartella temporanea che cancella alla fine (anche dopo un errore o
+Ctrl+C), non scrive in `runs\` e non salva le sessioni. A schermo stampa solo l'impronta della
+stampa, i conteggi e i motivi: mai descrizioni, fonti o codici EJ200. Per questo a Claude si
+manda **solo la foto dello schermo** e a Copilot **non si chiede niente** sui cicli EJ200.
+
+1. **I documenti su S3 e l'ingestion EJ200** (come fai per il civile, con knowledge-index).
+   La v2 conosce i tipi **RDR, EF e RN**. Se un tipo di documento ha un'altra sigla (per
+   esempio «RI»), **dimmelo a parole prima**: va aggiunto. Le copie dei documenti sul PC
+   tienile fuori da `ProgettoDocumenti` e dalle cartelle git, e cancellale dopo il caricamento.
+   - **Mandami:** a parole, la chiave S3 del `current.json` della conoscenza EJ200 (senza il
+     nome del bucket), e i conteggi dell'ingestion.
+2. **Le stampe EJ200** in una cartella **fuori** da `app_cycle_validation_v2` e da ogni
+   cartella git (per esempio una cartella nuova sul Desktop). Al posto di `<cartella EJ200>`
+   scrivi il suo percorso; al posto della chiave scrivi quella del punto 1 (questa è quella
+   di prova).
+
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+aws sso login
+uv run cycle-validation prova-ej200 "<cartella EJ200>" --bucket (Get-Content data/bucket.txt) --conoscenza-ej200 "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/ej200/current.json" --regione eu-south-1
+```
+
+   - **Deve uscire:** `Conoscenza EJ200 <versione>: pubblicazioni N, issue M, targhe K`; poi
+     per ogni stampa una riga `<impronta>: <stato> · ... corretti, ... errati, ... da guardare,
+     ... non controllabili, ... N/A · ... $ · ... s` e sotto i motivi (`ERRATO · controllo ·
+     MOTIVO: n`); alla fine `Totale: ...` e `Cartella temporanea cancellata; niente in runs.`
+     Se esce `prova non partita (...)`: mandami la foto, dice solo il tipo dell'errore.
+   - **Mandami:** la foto dello **schermo** e basta.
+3. **Ricordati:** non aprire con Copilot né la cartella EJ200 né i documenti EJ200.
 
 ---
 
 **⬜ Passo 5 · Grande ingestion, prova di controllo, Salvare, QA**
 
-1. **Ingestion** di tutti i documenti civili (EJ200 a parte: resta su AWS EU, mai sul PC).
+1. **Ingestion** di tutti i documenti civili (EJ200 a parte: passo 4f).
    Dentro anche le 2 schede LEAP di M5.
 2. Sezione [5](#5-dopo-una-nuova-ingestion) blocco A (fotografia e `kb-check`), poi cicli veri
    (3.2) e **una prova della base sul grande** (3.7, circa 0,25 $): i manuali nuovi non devono

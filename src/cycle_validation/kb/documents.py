@@ -37,6 +37,24 @@ def _cached_lines(path: str, mtime_ns: int) -> tuple[str, ...]:
     return tuple(Path(path).read_text(encoding="utf-8").splitlines())
 
 
+# Un codice di task completo nel testo, con gli stessi confini della ricerca dei fratelli.
+_FULL_TASK_CODE = re.compile(r"(?<![\dA-Za-z-])(\d{2}-\d{2}-\d{2}-\d{3}-\d{3})(?![\dA-Za-z]|-\d)")
+
+
+@lru_cache(maxsize=512)
+def _cached_codes(path: str, mtime_ns: int) -> frozenset[str]:
+    return frozenset(_FULL_TASK_CODE.findall("\n".join(_cached_lines(path, mtime_ns))))
+
+
+def full_task_codes(path: Path) -> frozenset[str]:
+    """I codici di task completi scritti nel documento, in cache finché il file non cambia:
+    con 2900 documenti la ricerca dei codici sbagliati non rilegge gli SPM a ogni codice."""
+    try:
+        return _cached_codes(str(path), path.stat().st_mtime_ns)
+    except (OSError, UnicodeDecodeError) as exc:
+        raise SourceUnavailableError(f"Documento non leggibile: {path.name} ({exc})") from exc
+
+
 def read_lines(path: Path) -> tuple[str, ...]:
     """Righe del documento, in cache finché il file non cambia."""
     try:

@@ -79,6 +79,7 @@ from cycle_validation.golden import GoldenCase, load_cases, run_golden
 from cycle_validation.ingest.pdf import PdfDocument, read_pdf, read_pdf_bytes
 from cycle_validation.ingest.transcribe import make_transcriber
 from cycle_validation.kb.local import load_local_knowledge
+from cycle_validation.kb.port import KnowledgeBase
 from cycle_validation.module_kind import DR, EJ200, detect_module_kind
 from cycle_validation.pipeline import Dependencies, RunRequest, run_validation
 from cycle_validation.report.manuals import (
@@ -188,13 +189,16 @@ def build_dependencies(
     kb_dir: Path | None,
     machines_file: Path | None,
     extractor: CycleExtractor | None,
-    out_dir: Path,
+    out_dir: Path | None,
+    kb: KnowledgeBase | None = None,
 ) -> Dependencies:
-    """Senza `extractor` il ciclo si estrae dal PDF con una sessione LLM a output strutturato."""
+    """Senza `extractor` il ciclo si estrae dal PDF con una sessione LLM a output strutturato.
+    Senza `out_dir` nessun transcript; con `kb` la conoscenza è già pronta (EJ200)."""
     profile = load_profile(profile_name, settings.paths.profiles_dir)
-    kb = load_local_knowledge(kb_dir or settings.paths.knowledge_dir)
+    if kb is None:
+        kb = load_local_knowledge(kb_dir or settings.paths.knowledge_dir)
     system_prompt = load_prompt(settings.paths.prompts_dir, OPERATION_PROMPT_FILE)
-    session = make_session(settings.agent, out_dir / "transcripts")
+    session = make_session(settings.agent, out_dir / "transcripts" if out_dir else None)
     extraction_prompt = ""
     if extractor is None:
         extractor, extraction_prompt = make_pdf_extractor(
@@ -1883,6 +1887,128 @@ def eval_snapshot(
     except CycleValidationError as error:
         raise _fail(error) from error
     typer.echo(f"Fotografia in {out}: {count} oggetti ({snapshot_version(out)}).")
+
+
+def _s3_store(bucket: str, region: str | None) -> Any:
+    """Lo store S3 con le credenziali dell'ambiente (punto di sostituzione dei test)."""
+    try:
+        import boto3
+    except ImportError as error:
+        raise CycleValidationError(
+            "Serve boto3: installare l'extra aws (uv sync --extra aws)."
+        ) from error
+    from cycle_validation.kb.stores import S3ObjectStore
+
+    return S3ObjectStore(boto3.client("s3", region_name=region), bucket)
+
+
+@app.command("prova-ej200")
+def ej200_trial(
+    cicli: Annotated[list[Path], typer.Argument(help="PDF dei cicli EJ200 o cartelle.")],
+    bucket: Annotated[str, typer.Option(help="Bucket S3 della conoscenza EJ200.")],
+    conoscenza_ej200: Annotated[
+        str, typer.Option(help="Chiave S3 del current.json della conoscenza EJ200.")
+    ],
+    regione: Annotated[str | None, typer.Option(help="Regione AWS. Vuoto = ambiente.")] = None,
+    targhe: Annotated[
+        Path | None,
+        typer.Option(help="Conoscenza civile per le targhe. Vuoto = l'ultima fotografia."),
+    ] = None,
+    machines: Annotated[Path | None, typer.Option(help="JSON delle macchine attive.")] = None,
+    config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
+    cycle_json: Annotated[
+        Path | None, typer.Option(help="Ciclo già estratto (JSON), per le prove.", hidden=True)
+    ] = None,
+) -> None:
+    """Valida cicli EJ200 sul PC senza lasciare tracce: conoscenza letta da S3, testi in una
+    cartella temporanea cancellata alla fine, niente runs, a schermo solo esiti e conteggi."""
+    import logging
+
+    from cycle_validation.evaluation.ej200_local import (
+        remove_leftovers,
+        render,
+        run_cycles,
+        temporary_workdir,
+    )
+    from cycle_validation.kb.ej200 import Ej200Catalog, Ej200KnowledgeBase
+
+    pdfs = _pdfs_of(cicli)
+    if not pdfs:
+        raise _fail(CycleValidationError("Nessun PDF nei percorsi dati."))
+    leftovers = remove_leftovers()
+    if leftovers:
+        typer.echo(f"Cancellate {leftovers} cartelle temporanee di una prova interrotta.")
+    # i messaggi del log possono citare codici EJ200: spenti durante la prova
+    logging.disable(logging.CRITICAL)
+    try:
+        settings = load_settings(config)
+        settings = settings.model_copy(
+            update={"agent": settings.agent.model_copy(update={"save_transcripts": False})}
+        )
+        civil = load_local_knowledge(targhe or _latest_knowledge())
+        store = _s3_store(bucket, regione)
+        with temporary_workdir() as workdir:
+            kb = Ej200KnowledgeBase(
+                "ej200",
+                Ej200Catalog(store, pointer_key=conoscenza_ej200),
+                workdir,
+                store,
+                tags=civil.machine_tags,
+            )
+            kb.preload()
+            typer.echo(
+                f"Conoscenza EJ200 {kb.version}: "
+                + ", ".join(f"{name} {count}" for name, count in kb.stats().items())
+            )
+            deps = build_dependencies(
+                settings,
+                "ej200",
+                kb_dir=None,
+                machines_file=machines,
+                extractor=FileCycleExtractor(cycle_json) if cycle_json else None,
+                out_dir=None,
+                kb=kb,
+            )
+            outcomes = run_cycles(
+                pdfs, lambda pdf: run_validation(RunRequest(pdf_path=pdf), deps, None)
+            )
+        cleaned = not workdir.exists()
+    except Exception as error:  # il messaggio può contenere testo EJ200
+        raise _fail(CycleValidationError(f"prova non partita ({type(error).__name__})")) from None
+    finally:
+        logging.disable(logging.NOTSET)
+    for line in render(outcomes):
+        typer.echo(line)
+    typer.echo(
+        "Cartella temporanea cancellata; niente in runs."
+        if cleaned
+        else "Attenzione: la cartella temporanea non si è cancellata (vedi DOCUMENTAZIONE)."
+    )
+
+
+@eval_app.command("scala")
+def eval_scale(
+    documenti: Annotated[int, typer.Option(help="Documenti della conoscenza finta.")] = 2900,
+    righe: Annotated[int, typer.Option(help="Righe per documento.")] = 3000,
+    task: Annotated[int, typer.Option(help="Task per documento.")] = 30,
+    spm: Annotated[int, typer.Option(help="Documenti SPM (capitolo 70).")] = 30,
+    senza_righe: Annotated[
+        bool, typer.Option(help="Manifest senza il numero di righe dei documenti.")
+    ] = False,
+) -> None:
+    """Misura avvio, disco, memoria e ricerche con una conoscenza finta di molti documenti
+    (scritta in una cartella temporanea e cancellata alla fine). Gratis: niente modello."""
+    from cycle_validation.evaluation.scale import ScaleShape, measure_scale
+
+    shape = ScaleShape(
+        documents=documenti,
+        lines=righe,
+        tasks=task,
+        standard_practices=min(spm, documenti),
+        line_counts=not senza_righe,
+    )
+    for line in measure_scale(shape).lines():
+        typer.echo(line)
 
 
 @eval_app.command("mutazioni")

@@ -168,6 +168,22 @@ def lines_with(lines: Sequence[str], code: str, limit: int = 3) -> list[int]:
     return found
 
 
+# Separatore delle righe in `joined_clean`: `\s` non lo prende, quindi un codice non si
+# trova a cavallo di due righe, come in `lines_with`.
+_LINE_BREAK = "\x00"
+
+
+def joined_clean(lines: Sequence[str]) -> str:
+    """Le righe pulite come in `lines_with`, in un solo testo (da tenere in cache)."""
+    return _LINE_BREAK.join(_clean(line) for line in lines)
+
+
+def has_code(joined: str, code: str) -> bool:
+    """Come `lines_with(...)` non vuoto, sul testo di `joined_clean`: molto più veloce."""
+    wanted = normalize_code(code).casefold()
+    return bool(wanted) and re.search(rf"(?<![0-9a-z]){_code_body(wanted)}", joined) is not None
+
+
 def task_section(task: str) -> str | None:
     """La sezione ATA del task (`72-00-01 REPAIR 002` → `72-00-01`), se c'è."""
     match = _SECTION_SHAPE.match(normalize_code(task))

@@ -18,6 +18,9 @@ impari qualcosa di nuovo, aggiungilo lì. Le regole che non si discutono:
   usa, ma in quello che scrive lui restano impronte e numeri di operazione. Valori inventati negli esempi; i comandi leggono i
   codici dai file sul PC. Nelle foto può comparire il nome del bucket: non ripeterlo.
 - Documenti e output EJ200 restano su AWS EU: nessuna copia locale della conoscenza EJ200.
+  Dal 27-11 l'utente ha l'autorizzazione a provare cicli EJ200 sul suo PC, solo con
+  `prova-ej200` (testi in una cartella temporanea cancellata alla fine, niente `runs/`, a
+  schermo solo esiti e conteggi). A Claude solo foto dello schermo; Copilot non legge EJ200.
 - Prima di ogni commit: `uv run pytest -q`, `uv run ruff check .`, `uv run ruff format --check .`,
   `uv run mypy src`.
 - Si scrive in italiano, in modo molto semplice. In `docs/` restano quattro file:
@@ -25,7 +28,9 @@ impari qualcosa di nuovo, aggiungilo lì. Le regole che non si discutono:
   configurare e avviare il servizio), `COPILOT.md` (lavoro sul PC e domande aperte),
   `MEMORIA.md` (la storia: non si toglie niente), `MIGLIORIE.md`. Niente file
   nuovi in `docs/` senza motivo: si aggiunge a uno di questi. In più c'è
-  `CONFRONTO_V1_14_CICLI.md`, messo dall'utente: è un dato, non si modifica.
+  `CONFRONTO_V1_14_CICLI.md`, messo dall'utente: è un dato, non si modifica. E
+  `V1_CONTRO_V2.md` (chiesto dall'utente il 27-11): v1 contro v2 aspetto per aspetto ed errore
+  per errore, solo impronte e numeri di operazione; Claude lo aggiorna dopo ogni campagna.
 - Quando cambia come funziona il programma (regole, controlli, comandi, impostazioni, rotte),
   si aggiorna `docs/DOCUMENTAZIONE.md` nello stesso commit.
 - Regole fisse dell'utente (dettagli in `docs/MEMORIA.md`, sezione 7): mai scrivere (repository,

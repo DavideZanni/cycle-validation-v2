@@ -3,13 +3,20 @@
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 
 from cycle_validation.checks.uncertainty import describe, is_doubtful
 from cycle_validation.domain.check import Reason
 from cycle_validation.domain.cycle import Cycle, Operation, Source
-from cycle_validation.kb.documents import read_lines
+from cycle_validation.kb.documents import full_task_codes, read_lines
 from cycle_validation.kb.port import DocumentInfo, KnowledgeBase, TaskLocation
-from cycle_validation.kb.task_text import find_task_in_text, lines_with, task_section
+from cycle_validation.kb.task_text import (
+    find_task_in_text,
+    has_code,
+    joined_clean,
+    task_section,
+)
 from cycle_validation.text import normalize_code
 
 _NUMBERS = re.compile(r"\d+")
@@ -147,6 +154,18 @@ def documents_of_kind(kb: object, kind: str) -> list[DocumentInfo]:
 _FULL_TASK = re.compile(r"^(\d{2}-\d{2}-\d{2}-\d{3})-\d{3}$")
 
 
+@lru_cache(maxsize=512)
+def _cached_joined(path: str, mtime_ns: int) -> str:
+    return joined_clean(read_lines(Path(path)))
+
+
+def _joined(path: Path) -> str:
+    try:
+        return _cached_joined(str(path), path.stat().st_mtime_ns)
+    except OSError:
+        return joined_clean(read_lines(path))  # read_lines dà l'errore giusto
+
+
 def wrong_code_siblings(kb: KnowledgeBase, manuals: Sequence[str], task: str) -> list[str]:
     """Se il codice completo non compare **in nessun punto** dei documenti dove dovrebbe stare,
     ma quei documenti hanno altri task della stessa famiglia (stesse prime quattro parti), il
@@ -159,18 +178,17 @@ def wrong_code_siblings(kb: KnowledgeBase, manuals: Sequence[str], task: str) ->
     documents = [document for manual in manuals for document in kb.find_manuals(manual)]
     if _STANDARD_PRACTICES_TASK.match(wanted):
         documents += documents_of_kind(kb, STANDARD_PRACTICES_KIND)
-    family = re.compile(rf"(?<![\dA-Za-z-]){re.escape(match.group(1))}-\d{{3}}(?![\dA-Za-z]|-\d)")
+    family = match.group(1) + "-"
     siblings: set[str] = set()
     seen: set[str] = set()
     for document in documents:
         if document.key in seen:
             continue
         seen.add(document.key)
-        lines = read_lines(document.path)
-        if lines_with(lines, wanted, limit=1):
+        codes = full_task_codes(document.path)
+        if wanted in codes or has_code(_joined(document.path), wanted):
             return []
-        for line in lines:
-            siblings.update(code.upper() for code in family.findall(line))
+        siblings.update(code for code in codes if code.startswith(family))
     siblings.discard(wanted)
     return sorted(siblings)
 

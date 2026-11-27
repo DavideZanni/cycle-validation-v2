@@ -246,3 +246,25 @@ def test_an_operation_without_tasks_uses_the_tasks_of_its_repair(tmp_path: Path)
     found = context_locations(cycle, cycle.operations[1], kb)
     assert [(item.document.key, item.line_start) for item in found] == [("spm.md", 2)]
     assert context_locations(cycle, cycle.operations[2], kb) == ()
+
+
+def test_has_code_agrees_with_lines_with() -> None:
+    from cycle_validation.kb.task_text import has_code, joined_clean, lines_with
+
+    lines = [
+        "TASK 72-00-01-200-801 Ispezione",
+        "vedi 70-91-02-350- 001 per la raccordatura",
+        "codice spezzato 72-00-01-",
+        "200-802 sulla riga dopo",
+        "codice lungo 72-00-01-200-8011",
+    ]
+    joined = joined_clean(lines)
+    for code in (
+        "72-00-01-200-801",
+        "70-91-02-350-001",
+        "72-00-01-200-802",
+        "72-00-01-200-801 ",
+        "72-00-01-200-803",
+        "",
+    ):
+        assert has_code(joined, code) == bool(lines_with(lines, code, limit=1)), code

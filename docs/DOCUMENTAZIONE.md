@@ -770,7 +770,9 @@ La prepara e la pubblica **knowledge-index** su S3. Il formato completo, con ese
 - **EJ200** (`kb/ej200.py`): catalogo delle pubblicazioni e testi su S3, con cache a tempo. Il
   `code` del catalogo contiene la issue (`EJ00020L-01`): il programma la toglie, così le issue
   della stessa pubblicazione restano una. Un ciclo può citare una issue precisa o solo il
-  codice (vale la più recente). **La conoscenza EJ200 non si scarica mai sul PC.**
+  codice (vale la più recente). **La conoscenza EJ200 non si scarica mai sul PC**: anche la
+  prova sul PC (`prova-ej200`, sezione 14.4) legge da S3 e tiene i testi usati solo in una
+  cartella temporanea che cancella alla fine.
 - **Fotografia** (`evaluation/snapshot.py`): copia locale datata di alcuni prefissi, per le
   prove; si legge con lo stesso codice di produzione.
 
@@ -784,6 +786,15 @@ La prepara e la pubblica **knowledge-index** su S3. Il formato completo, con ese
 | task che l'indice non ha | nel testo del manuale (`kb/task_text.py`) |
 | fonte con la sola sezione | tutti i task di quella sezione, in ogni documento del manuale |
 | codice sbagliato o documento mancante | sbagliato se il codice non c'è da nessuna parte e ci sono i fratelli della stessa famiglia |
+
+**Con molti documenti.** La ricerca di un task è un dizionario (manuale, codice): non rallenta
+con il numero di documenti. Le ricerche che leggono il testo tengono una cache per documento,
+finché il file non cambia: le righe (`kb/documents.py`, 256 documenti), i codici di task completi
+scritti nel documento (`full_task_codes`, 512) e il testo pulito per cercare un codice con gli
+spazi (`resolve/civil.py`, 512). Così la ricerca dei fratelli di un codice sbagliato del capitolo
+70, che guarda il manuale e **tutti** i documenti SPM, legge gli SPM una volta sola (27-11 notte:
+da 0,7 s a 0,07 s a codice con 30 SPM finti da 3000 righe). La misura con 2900 documenti finti
+è il comando `eval scala` (sezione 14.3); i numeri sono nella sezione 20.
 
 ### 10.4 Il formato, con esempi inventati
 
@@ -1145,6 +1156,7 @@ opzioni.
 | `eval classifica` | mette in classifica le varianti |
 | `eval mutazioni` | copie dei casi rivisti con difetti noti o modifiche innocue |
 | `eval pipeline` | tutto insieme: verifiche del codice, baseline, varianti, classifica |
+| `eval scala` | scrive una conoscenza finta di molti documenti in una cartella temporanea, la carica come il servizio e misura avvio, disco, memoria e ricerche; poi la cancella. `--documenti` (2900), `--righe` (3000), `--task` (30), `--spm` (30), `--senza-righe` (manifest senza il numero di righe). Gratis |
 
 ### 14.4 Azienda
 
@@ -1152,6 +1164,7 @@ opzioni.
 |---|---|
 | `macchine` | scarica le macchine attive da Redshift in `data/macchine_attive.json` (stampa solo il numero) |
 | `qa` | prepara la pubblicazione in QA (sezione 16); `--torna-alla-v1` la annulla |
+| `prova-ej200 <pdf o cartelle>…` | valida cicli EJ200 sul PC **senza lasciare tracce** (autorizzazione dell'utente del 27-11): legge catalogo e testi da S3 con il puntatore `--conoscenza-ej200` (`--bucket`, `--regione`), scrive i testi usati in una cartella temporanea `cv-ej200-…` cancellata alla fine (anche dopo un errore o Ctrl+C; quelle rimaste da una prova chiusa con forza si cancellano alla prova dopo), niente `runs/`, niente report, niente transcript, log spento. Le targhe vengono dalla conoscenza civile (`--targhe`, vuoto = ultima fotografia), le macchine da `--machines`. A schermo solo l'impronta della stampa, stato, conteggi, motivi e costo; un errore si stampa con il tipo, mai con il messaggio (`evaluation/ej200_local.py`) |
 
 ---
 
@@ -1440,8 +1453,10 @@ I passi da fare sono in `COPILOT.md`, sezione 7.
 
 ## 17. Regole sui dati e sicurezza
 
-- **EJ200:** documenti e output restano su AWS EU. Nessuna copia locale della conoscenza
-  EJ200; un ciclo EJ200 non si prova sul PC; nei documenti nessun contenuto EJ200.
+- **EJ200:** documenti e output restano su AWS EU. Nessuna copia della conoscenza EJ200 sul
+  PC; nei documenti nessun contenuto EJ200. Dal 27-11 l'utente è autorizzato a provare i cicli
+  EJ200 sul suo PC, **solo** con `prova-ej200` (sezione 14.4): testi in una cartella temporanea
+  cancellata alla fine, niente in `runs/`, a schermo solo esiti e conteggi.
 - **Repository pubblico:** mai bucket, account, host, ARN, nomi o valori di secret, matricola o
   utente Windows, codici di manuali (si scrivono M1…M6), numeri DR, serial o part number,
   codici dei cicli, profilo AWS, database, tabella delle macchine, repository aziendale.
@@ -1557,9 +1572,21 @@ in 10-20 secondi; la concordanza del golden set; `1 passed`. Se **tutte** le ope
   WARNING `FONTE_ASSENTE`, ed è giusto;
 - sul PC le macchine attive non si leggono: le targhe escono N/A `CONTROLLO_SPENTO` (dal 27-11;
   prima WARNING e il ciclo `parziale`);
-- EJ200 non è mai stato provato con i servizi veri: va fatto dentro AWS;
+- EJ200 non è mai stato provato con i servizi veri: si prova sul PC con `prova-ej200` (dal
+  27-11), poi in QA;
 - il modello non risponde sempre uguale sullo stesso testo: per questo c'è la conferma degli
   ERRATO e le prove si ripetono almeno 2 volte.
+
+**Con 2900 documenti (misura del 27-11 notte, `eval scala`, conoscenza finta, disco locale del
+container di Claude; sul PC e in AWS i tempi cambiano).** 2900 documenti da 3000 righe e 30 task
+(87.000 task, 30 SPM): 559 MB in 2902 file. Avvio, cioè copia e lettura come fa il servizio:
+4,2 s (7,7 s se il manifest non scrive le righe dei documenti: allora li apre tutti); riavvio con
+la versione già su disco 1,0 s (2,5 s); memoria della conoscenza letta 164 MB (248 MB). Un task
+dell'indice: 6-9 µs. Un task che l'indice non ha (ricerca nel testo): 25 ms. I fratelli di un
+codice sbagliato del capitolo 70: 0,7 s la prima volta, 0,07 s dopo. Con 75 documenti: 0,1 s,
+14 MB, 4 MB. Quello che la misura non dice: il tempo per scaricare 560 MB da S3 (in AWS pochi
+secondi o decine di secondi, dal PC di più), e la qualità dell'ingestion (task tagliati male
+nei manuali nuovi portano falsi errori nuovi: per questo la prova di controllo sul grande).
 
 **Regole scelte senza tutti i dati veri, da rivedere con chi conosce i cicli:**
 

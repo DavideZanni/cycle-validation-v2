@@ -122,15 +122,17 @@ cicli:
       "060": "P10: errore vero della stampa (limite al contrario tra le lingue)"
   2d724fba:
     # ciclo vero: per la v2 una stampa giusta. 26-11 (Copilot): l'ERRATO della 050 è un falso
-    # errore come quello della P7 («4 volte» contro la definizione generica di «3 volte»).
-    # In attesa finché `definizioni_generali` o `fonte_ispezione` non lo tolgono
+    # errore come quello della P7 («4 volte» contro la definizione generica di «3 volte»)
     giusto: true
     # P10 (27-11, Copilot): la 030 ha lo stesso testo della 030 di 04ecaabe («larghezza» contro
     # «length»), ma per questo stadio il manuale chiede tutte e due le misure, tranne sui bordi:
     # uguali nell'uso comune, diverse se l'operazione vale anche sui bordi. Un dubbio: in attesa
+    # 27-11 notte: la 050 dice «almeno 4 volte la larghezza» in italiano e «more than 4 times»
+    # in inglese, come la 050 di 04ecaabe; il manuale del motore dice 4 volte (P7). Con la
+    # regola dell'utente («almeno N» contro «più di N» non è un errore) un ERRATO qui è un
+    # falso errore: non è più in attesa (la variante `schede_e_limiti` lo deve togliere)
     in_attesa:
       "030": "P10: dubbio (larghezza contro length: dipende se vale anche sui bordi)"
-      "050": "P7 su un ciclo vero: falso errore noto (definizione generica dell'SPM)"
   # P12 (27-11 sera, Copilot): tre cicli veri con la stessa 060 di 737dec71, parola per parola
   # («superiore a 4X» in italiano, «not to exceed 4X» in inglese): errore vero della stampa,
   # trovato solo da `finale` (nella base dal 27-11 sera)

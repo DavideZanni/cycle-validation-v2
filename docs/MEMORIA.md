@@ -45,7 +45,10 @@ sezione 1 di `COPILOT.md`):
 | 7 | La v1 sugli stessi 14 cicli noti, in QA, con le copie rinominate con l'impronta (si può fare mentre gira la campagna) | COPILOT 3.9 | ✅ 27-11: `docs/CONFRONTO_V1_14_CICLI.md` (298bc28e da ricaricare una volta) |
 | 7b | Aggiornare, riepiloghi ricalcolati con gli errori aggiunti dal testo delle stampe (gratis), domanda P12 a Copilot | COPILOT passo 4c | ✅ 27-11 sera |
 | 7c | Claude: `finale` nella base e tre controlli del codice (H17, H19, la 010 in più parti) | Claude | ✅ 27-11 sera |
-| 7d | Aggiornare, archiviare, campagna della sola base nuova | COPILOT passo 4d | da fare |
+| 7d | Aggiornare, archiviare, campagna della sola base nuova | COPILOT passo 4d | ✅ 27-11 sera: 30 su 43 stabili sul piccolo, 18 su 29 sul grande; falso errore 04ecaabe 050 in 2 prove su 3 |
+| 7e2 | Campagna della variante `schede_e_limiti` (H18, regola «almeno N»), riepiloghi ricalcolati, domanda P13 (8d3c673c 060 e 070, b1261d11 060) | COPILOT passo 4e | in corso |
+| 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
+| 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |
 | 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
 | 8 | Le altre prove dal frontend della v2, dopo la campagna (due cicli «con errori», il più lungo con il tempo, DR con e senza serial, file sbagliato, storico, CSV) | COPILOT 4 | A3 e A1 fatte il 27-11 |
 | 9 | Prompt della documentazione completa (quando c'è tempo) | COPILOT 6.3 | da fare |
@@ -527,6 +530,11 @@ dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora
     il 21-11-2026);
   - **un ciclo EJ200 non si prova sul PC**, perché il risultato finirebbe in `runs\`. Va
     provato dentro AWS, per esempio con la v2 dietro il gateway QA;
+  - **eccezione dal 27-11 sera:** l'utente ha l'autorizzazione scritta di chi decide sulla
+    sicurezza per provare EJ200 sul suo PC. Si prova **solo** con `prova-ej200`: catalogo e
+    testi letti da S3, testi usati in una cartella temporanea cancellata alla fine, niente in
+    `runs\`, niente transcript, a schermo e a Claude solo esiti e conteggi; Copilot non legge
+    niente di EJ200;
   - nei documenti non si scrivono contenuti EJ200 visti nelle foto.
 - I dati veri stanno solo in cartelle che git ignora: `data/`, `runs/`, `eval/casi/aziendali/`,
   `docs/Esempio*/`.
@@ -1487,6 +1495,30 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   stampe con errori 38960731 e 8d3c673c hanno un'altra scheda o un'altra cifra del task. Il
   controllo usa l'indice delle schede della conoscenza (trattamento, famiglie di motore), che
   qui non si vede: per questo si misura (COPILOT passo 4e).
+
+- **27-11 notte, risultati del 4d, EJ200 sul PC, 2900 documenti.** Il 4d (base nuova, 3 prove):
+  piccolo 30 su 43 stabili (avevo previsto 28), grande 18 su 29 (previsto 20), 0,011-0,019 $ e
+  16-26 s a ciclo; unico falso errore 04ecaabe 050 in 2 prove su 3 (la regola «almeno N» lo
+  deve togliere). Da verificare: 8d3c673c 060 e 070 (3 su 3; la v1 le segnala, ma il 27-11 sera
+  le avevo contate come falsi errori della v1) e b1261d11 060 (ciclo vero, forse lo stesso
+  «superiore a 4X» di 737dec71): domanda **P13**. Dei 4 errori «mai visti» la v2 ne trova 1: un
+  limite invertito dato CORRETTO e una negazione tolta in tutte e due le lingue finita N/A
+  «fuori tema» (rischio di I16). **2d724fba 050** ha lo stesso testo della 050 di 04ecaabe
+  («almeno 4 volte» contro «more than 4 times»): con la regola dell'utente non è più in attesa,
+  un ERRATO lì è un falso errore (N1). **L'utente ha l'autorizzazione a provare EJ200 sul PC**
+  (sezione 7) e ha già sul PC i documenti RDR, RN e «RI» e alcune stampe EJ200: Claude ha
+  scritto `prova-ej200` (COPILOT passo 4f). La v2 conosce RDR, EF e RN: «RI» va chiarito
+  (forse è EF, o un tipo nuovo da aggiungere al profilo e all'ingestion). **2900 documenti**
+  (la produzione, contro i 75 delle prove): la ricerca è per codice esatto, quindi il modello
+  riceve lo stesso testo e qualità e costo per controllo non cambiano; cambiano avvio, disco,
+  memoria e le ricerche nel testo. Misura con una conoscenza finta (`eval scala`,
+  DOCUMENTAZIONE 20): 559 MB, avvio 4,2 s, 164 MB di memoria, ricerca di un task 6-9 µs. Trovato
+  un punto lento: i fratelli di un codice sbagliato del capitolo 70 rileggevano tutti gli SPM
+  a ogni codice (0,7 s); ora una cache per documento (0,07 s). I rischi veri restano
+  l'ingestion (task tagliati male nei manuali nuovi) e più operazioni controllabili (più costo,
+  più occasioni di falsi errori): li misura la prova di controllo sul grande dopo la grande
+  ingestion. L'utente vuole poi ragionare su quali migliorie «dopo la produzione» si possono
+  fare prima.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

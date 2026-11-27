@@ -6,6 +6,8 @@ docs/*
 !docs/DOCUMENTAZIONE.md
 # la v1 sui 14 cicli noti, con i codici veri: permesso dal responsabile dell'utente (27-11)
 !docs/CONFRONTO_V1_14_CICLI.md
+# il confronto v1 contro v2 per aspetto, chiesto dall'utente (27-11): solo impronte e numeri
+!docs/V1_CONTRO_V2.md
 
 # Materiale aziendale: mai in git
 data/
