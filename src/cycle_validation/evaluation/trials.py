@@ -15,7 +15,8 @@ sono da verificare e i suoi WARNING contano nel lavoro a mano.
 
 import hashlib
 import re
-from collections.abc import Sequence
+from collections.abc import Iterable, Iterator, Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -69,22 +70,15 @@ def load_known_errors(path: Path | Sequence[Path]) -> KnownErrors:
 
 def _known_cycles(path: Path) -> dict[str, KnownCycle]:
     raw = yaml.safe_load(path.read_text("utf-8")) or {}
-    return {
-        str(key).lower(): KnownCycle.model_validate(
-            {
-                **(value or {}),
-                "errori": {
-                    op_key(op): str(text)
-                    for op, text in ((value or {}).get("errori") or {}).items()
-                },
-                "in_attesa": {
-                    op_key(op): str(text)
-                    for op, text in ((value or {}).get("in_attesa") or {}).items()
-                },
-            }
-        )
-        for key, value in (raw.get("cicli") or {}).items()
-    }
+    cycles: dict[str, KnownCycle] = {}
+    for key, value in (raw.get("cicli") or {}).items():
+        value = value or {}
+        ops = {
+            field: {op_key(op): str(text) for op, text in (value.get(field) or {}).items()}
+            for field in ("errori", "in_attesa")
+        }
+        cycles[str(key).lower()] = KnownCycle.model_validate({**value, **ops})
+    return cycles
 
 
 def op_key(label: object) -> str:
@@ -175,18 +169,23 @@ class Trial(_Strict):
     def seen_found(self) -> int:
         return sum(len(c.found) for c in self._errors(True))
 
+    def _unseen(self, found_only: bool, model: bool) -> int:
+        """Errori mai visti (trovati, o trovati e mancati) del modello o del codice."""
+        return sum(
+            generalizes(text) == model
+            for c in self._errors(False)
+            for text in _known_texts(c, found_only)
+        )
+
     @property
     def unseen_total(self) -> int:
         """Errori mai visti che deve trovare il modello (copie cieche dei tipi in
         `MODEL_KINDS`, gruppo nascosto): misurano la generalizzazione."""
-        return sum(
-            sum(map(generalizes, [f.known for f in c.found] + [m.known for m in c.missed]))
-            for c in self._errors(False)
-        )
+        return self._unseen(found_only=False, model=True)
 
     @property
     def unseen_found(self) -> int:
-        return sum(sum(generalizes(f.known) for f in c.found) for c in self._errors(False))
+        return self._unseen(found_only=True, model=True)
 
     def unseen_ops(self) -> set[tuple[str, str]]:
         return {
@@ -200,25 +199,19 @@ class Trial(_Strict):
     def code_unseen_total(self) -> int:
         """Errori mai visti dei tipi che trova il codice con la stessa regola che li ha messi:
         dicono solo che non si è rotto niente, non che la v2 generalizza."""
-        return sum(
-            sum(
-                not generalizes(text)
-                for text in [f.known for f in c.found] + [m.known for m in c.missed]
-            )
-            for c in self._errors(False)
-        )
+        return self._unseen(found_only=False, model=False)
 
     @property
     def code_unseen_found(self) -> int:
-        return sum(sum(not generalizes(f.known) for f in c.found) for c in self._errors(False))
+        return self._unseen(found_only=True, model=False)
 
     @property
     def known_total(self) -> int:
-        return sum(len(c.found) + len(c.missed) for c in self.cycles if c.kind == "errori")
+        return sum(len(c.found) + len(c.missed) for c in self._errors(None))
 
     @property
     def known_found(self) -> int:
-        return sum(len(c.found) for c in self.cycles if c.kind == "errori")
+        return sum(len(c.found) for c in self._errors(None))
 
     @property
     def false_errors(self) -> int:
@@ -289,9 +282,8 @@ class Trial(_Strict):
             # sono state tolte per questo
             technical = sum(c.warnings.get("ERRORE_TECNICO", 0) for c in self.cycles)
             return self.tokens == 0 and technical >= MIN_TECHNICAL
-        else:
-            failures = self.model_failures
-            checks = sum(c.model_checks or 0 for c in self.cycles)
+        failures = self.model_failures
+        checks = sum(c.model_checks or 0 for c in self.cycles)
         return failures >= MIN_TECHNICAL and failures > MAX_TECHNICAL_SHARE * checks
 
     @property
@@ -308,16 +300,20 @@ class Trial(_Strict):
         given = self.known_found + self.false_errors + self.extra_errors
         return self.known_found / given if given else 1.0
 
+    def _clean(self) -> list[CycleScore]:
+        """I cicli eseguiti senza errori noti (giusti e veri)."""
+        return [c for c in self.cycles if c.kind in ("giusto", "vero") and not c.failure]
+
     @property
     def clean_warnings(self) -> float:
         """WARNING per ciclo senza errori noti (giusti e veri): il lavoro a mano che la v2
         lascia su un ciclo senza errori."""
-        clean = [c for c in self.cycles if c.kind in ("giusto", "vero") and not c.failure]
+        clean = self._clean()
         return sum(c.counts.get("warning", 0) for c in clean) / len(clean) if clean else 0.0
 
     def clean_warning_reasons(self) -> dict[str, float]:
         """WARNING per ciclo senza errori noti, per motivo, dal più frequente."""
-        clean = [c for c in self.cycles if c.kind in ("giusto", "vero") and not c.failure]
+        clean = self._clean()
         totals: dict[str, int] = {}
         for cycle in clean:
             for reason, count in cycle.warnings.items():
@@ -327,15 +323,19 @@ class Trial(_Strict):
             for reason, count in sorted(totals.items(), key=lambda item: -item[1])
         }
 
+    def _run(self) -> int:
+        """Quanti cicli sono stati eseguiti."""
+        return sum(1 for c in self.cycles if not c.failure)
+
     @property
     def cost_per_cycle(self) -> float:
-        run = [c for c in self.cycles if not c.failure]
-        return self.cost_usd / len(run) if run else 0.0
+        run = self._run()
+        return self.cost_usd / run if run else 0.0
 
     @property
     def mean_ms(self) -> int:
-        run = [c for c in self.cycles if not c.failure]
-        return round(self.duration_ms / len(run)) if run else 0
+        run = self._run()
+        return round(self.duration_ms / run) if run else 0
 
     @property
     def max_ms(self) -> int:
@@ -364,19 +364,34 @@ def technical_message(errors: Sequence[PipelineError]) -> str:
     return text[:200]
 
 
+@dataclass(frozen=True)
+class _Entry:
+    """Che cosa dicono gli errori noti di un ciclo."""
+
+    kind: str  # "errori" | "giusto" | "vero" (non è negli errori noti)
+    expected: dict[str, str]  # errori noti da trovare (operazione → descrizione)
+    waiting: dict[str, str]  # operazioni in attesa di una risposta
+    seen: bool
+
+    @classmethod
+    def of(cls, known: KnownErrors, fingerprint: str) -> "_Entry":
+        entry = known.cycle(fingerprint)
+        if entry is None:
+            return cls("vero", {}, {}, True)
+        # un errore noto in attesa (documento mancante, regola da chiedere) oggi non si può
+        # trovare: resta fuori dal conto, come un ERRATO in attesa su una stampa giusta
+        expected = {op: text for op, text in entry.errori.items() if op not in entry.in_attesa}
+        kind = "giusto" if entry.giusto else "errori"
+        return cls(kind, expected, entry.in_attesa, entry.visto)
+
+
 def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = None) -> CycleScore:
     """Punteggio di un ciclo: ERRATO sulle operazioni confrontati con gli errori noti.
     `fingerprint` sostituisce l'impronta del PDF (una copia con un errore cieco ha il PDF del
     ciclo vero, ma un'impronta sua)."""
     fingerprint = (fingerprint or report.meta.pdf_sha256[:8]).lower()
-    entry = known.cycle(fingerprint)
-    kind = "vero" if entry is None else ("giusto" if entry.giusto else "errori")
-    waiting = entry.in_attesa if entry is not None else {}
-    # un errore noto in attesa (documento mancante, regola da chiedere) oggi non si può trovare:
-    # resta fuori dal conto, come un ERRATO in attesa su una stampa giusta
-    expected = {
-        op: text for op, text in (entry.errori if entry else {}).items() if op not in waiting
-    }
+    entry = _Entry.of(known, fingerprint)
+    expected, waiting = entry.expected, entry.waiting
     errato: dict[str, Finding] = {}
     said: dict[str, str] = {}
     warnings: dict[str, int] = {}
@@ -403,7 +418,7 @@ def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = No
     usage = report.usage
     return CycleScore(
         fingerprint=fingerprint,
-        kind=kind,
+        kind=entry.kind,
         status=report.status.value,
         counts={
             "corretto": report.counts.corretto,
@@ -427,7 +442,7 @@ def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = No
         tokens=usage.input_tokens + usage.output_tokens,
         cache_read_tokens=usage.cache_read_tokens,
         duration_ms=report.timings_ms.get("total", usage.wall_ms),
-        seen=entry.visto if entry is not None else True,
+        seen=entry.seen,
         technical=technical_message(report.pipeline_errors),
         model_checks=model_checks,
         model_failures=model_failures,
@@ -438,20 +453,15 @@ def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = No
 
 def failed_cycle(fingerprint: str, known: KnownErrors, failure: str) -> CycleScore:
     """Un ciclo che la v2 non ha validato: i suoi errori noti contano come mancati."""
-    entry = known.cycle(fingerprint)
-    kind = "vero" if entry is None else ("giusto" if entry.giusto else "errori")
-    waiting = entry.in_attesa if entry is not None else {}
-    expected = {
-        op: text for op, text in (entry.errori if entry else {}).items() if op not in waiting
-    }
+    entry = _Entry.of(known, fingerprint)
     return CycleScore(
         fingerprint=fingerprint,
-        kind=kind,
+        kind=entry.kind,
         status="non eseguito",
-        missed=[Missed(op=op, known=text) for op, text in sorted(expected.items())],
+        missed=[Missed(op=op, known=text) for op, text in sorted(entry.expected.items())],
         failure=_short(failure),
-        seen=entry.visto if entry is not None else True,
-        waiting=dict(waiting),
+        seen=entry.seen,
+        waiting=dict(entry.waiting),
     )
 
 
@@ -506,18 +516,28 @@ def generalizes(text: str | None) -> bool:
     return error_kind(text) not in CODE_KINDS
 
 
+def _known_texts(cycle: CycleScore, found_only: bool = False) -> list[str | None]:
+    """Le descrizioni degli errori noti del ciclo: i trovati e, se non `found_only`, i mancati."""
+    texts: list[str | None] = [f.known for f in cycle.found]
+    return texts if found_only else texts + [m.known for m in cycle.missed]
+
+
 def unseen_by_kind(trial: Trial) -> dict[str, tuple[int, int]]:
     """Tipo → (trovati, totali) degli errori mai visti."""
     counts: dict[str, list[int]] = {}
     for cycle in trial.cycles:
         if cycle.kind != "errori" or cycle.seen:
             continue
-        for finding in cycle.found:
-            counts.setdefault(error_kind(finding.known or ""), [0, 0])[0] += 1
-        texts = [f.known or "" for f in cycle.found] + [m.known for m in cycle.missed]
-        for text in texts:
+        for text in _known_texts(cycle, found_only=True):
+            counts.setdefault(error_kind(text), [0, 0])[0] += 1
+        for text in _known_texts(cycle):
             counts.setdefault(error_kind(text), [0, 0])[1] += 1
     return {kind: (found, total) for kind, (found, total) in sorted(counts.items())}
+
+
+def _answer(missed: Missed) -> str:
+    """Che cosa ha detto la v2 su un errore mancato, solo esito e motivo (senza spiegazione)."""
+    return missed.said.split(":", 1)[0].strip()
 
 
 def unseen_answers(trial: Trial) -> dict[str, str]:
@@ -529,9 +549,7 @@ def unseen_answers(trial: Trial) -> dict[str, str]:
         if cycle.kind != "errori" or cycle.seen:
             continue
         for missed in cycle.missed:
-            said = missed.said.split(":", 1)[0].strip() or "nessun esito"
-            if cycle.failure:
-                said = "ciclo non eseguito"
+            said = "ciclo non eseguito" if cycle.failure else _answer(missed) or "nessun esito"
             bucket = answers.setdefault(error_kind(missed.known), {})
             bucket[said] = bucket.get(said, 0) + 1
     return {
@@ -657,9 +675,8 @@ def render_trial(trial: Trial) -> str:
         for finding in cycle.found:
             reasons[finding.reason] = reasons.get(finding.reason, 0) + 1
     if reasons:
-        lines += ["**Come li ha trovati:** "]
-        lines[-1] += ", ".join(f"`{reason}` {count}" for reason, count in sorted(reasons.items()))
-        lines.append("")
+        found = ", ".join(f"`{reason}` {count}" for reason, count in sorted(reasons.items()))
+        lines += [f"**Come li ha trovati:** {found}", ""]
     lines += [
         "## Ciclo per ciclo",
         "",
@@ -716,8 +733,8 @@ def render_trial(trial: Trial) -> str:
         "## Errori noti",
         "",
         "| Ciclo | Op | Errore | Trovato | Come / cosa ha detto la v2 |",
+        "|---|---|---|---|---|",
     ]
-    lines.append("|---|---|---|---|---|")
     for c in trial.cycles:
         if c in hidden:
             continue
@@ -766,33 +783,29 @@ def write_trial(trial: Trial, folder: Path) -> None:
     partial.replace(folder / TRIAL_FILE)
 
 
-def load_trials(root: Path) -> list[Trial]:
-    """Tutte le prove valide della cartella, dalla più vecchia. Un file che non si legge
-    (scritto a metà da una versione vecchia, rovinato) si salta invece di fermare tutto; una
-    prova in cui il modello non ha risposto (`Trial.unusable`) si salta: non misura niente."""
-    trials: list[Trial] = []
-    for path in root.glob(f"*/{TRIAL_FILE}"):
+def _read_trials(paths: Iterable[Path]) -> Iterator[tuple[Path, Trial]]:
+    """Le prove che si leggono. Un file che non si legge (scritto a metà da una versione
+    vecchia, rovinato) si salta invece di fermare tutto."""
+    for path in paths:
         try:
             trial = Trial.model_validate_json(path.read_text("utf-8"))
         except (OSError, ValueError):
             continue
-        if not trial.unusable:
-            trials.append(trial)
+        yield path, trial
+
+
+def load_trials(root: Path) -> list[Trial]:
+    """Tutte le prove valide della cartella, dalla più vecchia. Una prova in cui il modello non
+    ha risposto (`Trial.unusable`) si salta: non misura niente."""
+    trials = [t for _, t in _read_trials(root.glob(f"*/{TRIAL_FILE}")) if not t.unusable]
     return sorted(trials, key=lambda t: t.started_at)
 
 
 def unusable_trials(root: Path) -> list[Path]:
     """Le cartelle delle prove in cui il modello non ha risposto: la campagna le toglie e le
     rifà."""
-    folders: list[Path] = []
-    for path in sorted(root.glob(f"*/{TRIAL_FILE}")):
-        try:
-            trial = Trial.model_validate_json(path.read_text("utf-8"))
-        except (OSError, ValueError):
-            continue
-        if trial.unusable:
-            folders.append(path.parent)
-    return folders
+    paths = sorted(root.glob(f"*/{TRIAL_FILE}"))
+    return [path.parent for path, trial in _read_trials(paths) if trial.unusable]
 
 
 # --- Metriche e scelta della variante migliore -------------------------------------------
@@ -979,13 +992,20 @@ def _baseline(trials: Sequence[Trial], index: int) -> Trial | None:
     return trials[0] if index > 0 else None
 
 
+def _by_name(trials: Sequence[Trial]) -> dict[str, list[Trial]]:
+    """Le prove per nome (esatto), nell'ordine in cui il nome compare la prima volta."""
+    groups: dict[str, list[Trial]] = {}
+    for trial in trials:
+        groups.setdefault(trial.name, []).append(trial)
+    return groups
+
+
 def _render_to_check(trials: Sequence[Trial]) -> list[str]:
     """Gli ERRATO fuori dalla lista (cicli veri e cicli con errori), operazione per operazione:
     in quante prove di ogni variante. Solo impronta, operazione e motivo, senza testo: la
     tabella si fotografa e una persona guarda quelle operazioni sul ciclo (25-11: sul grande
     `elementi_e_lingue` ne dava 4 contro 2 della base, e non si sapeva quali)."""
-    names = list(dict.fromkeys(t.name for t in trials))
-    totals = {name: sum(t.name == name for t in trials) for name in names}
+    groups = _by_name(trials)
     found: dict[tuple[str, str, str], dict[str, int]] = {}
     for trial in trials:
         for cycle in trial.cycles:
@@ -1007,12 +1027,12 @@ def _render_to_check(trials: Sequence[Trial]) -> list[str]:
     if not found:
         return [*lines, "Nessuno."]
     lines += [
-        "| Ciclo | Tipo | Op | " + " | ".join(_cell(n) for n in names) + " |",
-        "|---|---|---|" + "---|" * len(names),
+        "| Ciclo | Tipo | Op | " + " | ".join(_cell(n) for n in groups) + " |",
+        "|---|---|---|" + "---|" * len(groups),
     ]
     for (fingerprint, kind, op), counts in sorted(found.items()):
         cells = " | ".join(
-            f"{counts.get(n, 0)} su {totals[n]}" if counts.get(n) else "-" for n in names
+            f"{counts[n]} su {len(runs)}" if counts.get(n) else "-" for n, runs in groups.items()
         )
         lines.append(f"| {fingerprint} | {kind} | {op} | {cells} |")
     return lines
@@ -1025,6 +1045,7 @@ def render_summary(trials: Sequence[Trial]) -> str:
     first, last = trials[0].started_at, trials[-1].started_at
     variants = build_variants(trials)
     best = best_variant(variants)
+    cycle_sets = len({t.cycle_set for t in trials})
     lines = [
         "# Riepilogo delle prove",
         "",
@@ -1034,12 +1055,12 @@ def render_summary(trials: Sequence[Trial]) -> str:
         *(
             [
                 "**Attenzione:** le prove di questa cartella non sono tutte sugli stessi cicli "
-                f"({len({t.cycle_set for t in trials})} insiemi, colonna «Cicli»): il confronto "
+                f"({cycle_sets} insiemi, colonna «Cicli»): il confronto "
                 "vale solo tra prove con lo stesso insieme. Usa una cartella per insieme "
                 "(`--cartella`).",
                 "",
             ]
-            if len({t.cycle_set for t in trials}) > 1
+            if cycle_sets > 1
             else []
         ),
         "## Scelta migliore",
@@ -1145,8 +1166,7 @@ def render_summary(trials: Sequence[Trial]) -> str:
         for finding in cycle.found:
             last_said[(cycle.fingerprint, finding.op)] = f"ERRATO {finding.reason}"
         for missed in cycle.missed:
-            said = missed.said.split(":", 1)[0].strip()
-            last_said[(cycle.fingerprint, missed.op)] = said or (
+            last_said[(cycle.fingerprint, missed.op)] = _answer(missed) or (
                 "ciclo non eseguito" if cycle.failure else "nessun esito"
             )
     found_sets = [trial.found_ops() - trial.unseen_ops() for trial in trials]
@@ -1196,17 +1216,16 @@ def render_summary(trials: Sequence[Trial]) -> str:
     if pending:
         # per variante, come gli ERRATO da verificare (26-11 sera: con il totale non si sapeva
         # se `definizioni_generali` toglieva il falso errore della P7)
-        names = list(dict.fromkeys(t.name for t in trials))
+        groups = _by_name(trials)
         lines += [
             "| Ciclo | Op | Che cosa aspetta | "
-            + " | ".join(f"ERRATO {_cell(n)}" for n in names)
+            + " | ".join(f"ERRATO {_cell(n)}" for n in groups)
             + " |",
-            "|---|---|---|" + "---|" * len(names),
+            "|---|---|---|" + "---|" * len(groups),
         ]
         for name, op, question in pending:
             cells = []
-            for variant in names:
-                runs = [t for t in trials if t.name == variant]
+            for runs in groups.values():
                 hits = sum(
                     any(f.op == op for c in t.cycles if c.fingerprint == name for f in c.pending)
                     for t in runs
