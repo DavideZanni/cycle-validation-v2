@@ -811,7 +811,7 @@ def _with_header_task(header: str | None, original: str | None) -> Cycle:
         ("70-11-00-350-002", "70-11-00-350-003", Reason.TASK_DIVERSO_DALLA_TESTATA),
         # uguale alla testata, o di un altro processo (attacco chimico), o incompleto: niente
         ("70-11-00-350-002", "70-11-00-350-002", Reason.CAMPO_ASSENTE),
-        ("70-11-00-350-002", "70-24-00-110-033", Reason.CAMPO_ASSENTE),
+        ("70-11-00-350-002", "70-99-00-110-001", Reason.CAMPO_ASSENTE),
         ("70-11-00-350-002", "70-11-00", Reason.CAMPO_ASSENTE),
         # testata senza task: niente da confrontare
         (None, "70-11-00-350-003", Reason.CAMPO_ASSENTE),
