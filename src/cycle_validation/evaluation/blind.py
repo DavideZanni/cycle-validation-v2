@@ -151,14 +151,21 @@ def _description(italian: str, english: str) -> str:
     return f"{italian}{LANGUAGE_SEPARATOR}{english}"
 
 
-def _one_language_number(operation: Operation, rng: random.Random) -> Operation | None:
+def _shared_numbers(operation: Operation) -> tuple[str, str, set[str]] | None:
+    """Le due lingue e i numeri scritti in tutte e due, o None se non ce ne sono."""
     parts = language_parts(operation.operation_description)
     if parts is None:
         return None
     italian, english = parts
     shared = {m.group() for m in _numbers(italian)} & {m.group() for m in _numbers(english)}
-    if not shared:
+    return (italian, english, shared) if shared else None
+
+
+def _one_language_number(operation: Operation, rng: random.Random) -> Operation | None:
+    found = _shared_numbers(operation)
+    if found is None:
         return None
+    italian, english, shared = found
     raw = rng.choice(sorted(shared))
     everything = {_value(m.group()) for m in _numbers(italian) + _numbers(english)}
     new = _other_value(raw, everything)
@@ -184,13 +191,10 @@ def _context_numbers(cycle: Cycle, operation: Operation, kb: KnowledgeBase) -> s
 def _manual_number(
     cycle: Cycle, operation: Operation, kb: KnowledgeBase, rng: random.Random
 ) -> Operation | None:
-    parts = language_parts(operation.operation_description)
-    if parts is None:
+    found = _shared_numbers(operation)
+    if found is None:
         return None
-    italian, english = parts
-    shared = {m.group() for m in _numbers(italian)} & {m.group() for m in _numbers(english)}
-    if not shared:
-        return None
+    italian, english, shared = found
     manual = _context_numbers(cycle, operation, kb)
     in_manual = sorted(raw for raw in shared if _value(raw) in manual)
     if not in_manual:
@@ -208,26 +212,8 @@ def _manual_number(
     )
 
 
-def _one_language_negation(operation: Operation, rng: random.Random) -> Operation | None:
-    parts = language_parts(operation.operation_description)
-    if parts is None:
-        return None
-    italian, english = parts
-    english_hits = [(p, r) for p, r in _ENGLISH_NOT if p.search(english)]
-    choices: list[str] = []
-    if _ITALIAN_NOT.search(italian) and english_hits:
-        choices = ["italiano", "inglese"]
-    if not choices:
-        return None
-    if rng.choice(choices) == "italiano":
-        italian = _ITALIAN_NOT.sub("", italian, count=1)
-    else:
-        pattern, replacement = english_hits[0]
-        english = pattern.sub(replacement, english, count=1)
-    return _with(operation, operation_description=_description(italian, english))
-
-
-def _both_languages_negation(operation: Operation) -> Operation | None:
+def _negations(operation: Operation) -> tuple[str, str, str, str] | None:
+    """Le due lingue e le stesse senza la prima negazione, se c'è in tutte e due; o None."""
     parts = language_parts(operation.operation_description)
     if parts is None:
         return None
@@ -236,12 +222,32 @@ def _both_languages_negation(operation: Operation) -> Operation | None:
     if not _ITALIAN_NOT.search(italian) or not english_hits:
         return None
     pattern, replacement = english_hits[0]
-    return _with(
-        operation,
-        operation_description=_description(
-            _ITALIAN_NOT.sub("", italian, count=1), pattern.sub(replacement, english, count=1)
-        ),
+    return (
+        italian,
+        english,
+        _ITALIAN_NOT.sub("", italian, count=1),
+        pattern.sub(replacement, english, count=1),
     )
+
+
+def _one_language_negation(operation: Operation, rng: random.Random) -> Operation | None:
+    found = _negations(operation)
+    if found is None:
+        return None
+    italian, english, italian_without, english_without = found
+    if rng.choice(["italiano", "inglese"]) == "italiano":
+        italian = italian_without
+    else:
+        english = english_without
+    return _with(operation, operation_description=_description(italian, english))
+
+
+def _both_languages_negation(operation: Operation) -> Operation | None:
+    found = _negations(operation)
+    if found is None:
+        return None
+    _, _, italian, english = found
+    return _with(operation, operation_description=_description(italian, english))
 
 
 def _swap_limit(text: str, pairs: Sequence[tuple[str, str]]) -> str | None:

@@ -78,6 +78,13 @@ def _merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
+def _problems(exc: ValidationError, root: str = "") -> str:
+    """Gli errori di validazione in una riga: `campo.sotto: messaggio; ...`."""
+    return "; ".join(
+        f"{'.'.join(str(p) for p in item['loc']) or root}: {item['msg']}" for item in exc.errors()
+    )
+
+
 def _read(path: Path) -> VariantFile:
     if not path.is_file():
         raise ConfigError(f"Variante non trovata: {path}")
@@ -87,11 +94,7 @@ def _read(path: Path) -> VariantFile:
     except yaml.YAMLError as exc:
         raise ConfigError(f"YAML non valido in {path}: {exc}") from exc
     except ValidationError as exc:
-        problems = "; ".join(
-            f"{'.'.join(str(p) for p in item['loc']) or '(radice)'}: {item['msg']}"
-            for item in exc.errors()
-        )
-        raise ConfigError(f"Variante non valida in {path}: {problems}") from exc
+        raise ConfigError(f"Variante non valida in {path}: {_problems(exc, '(radice)')}") from exc
     if variant.nome != path.stem:
         raise ConfigError(f"{path}: il nome '{variant.nome}' deve coincidere con il file.")
     if variant.base is not None and variant.config is not None:
@@ -143,10 +146,9 @@ def load_variant(
     try:
         settings = Settings.model_validate(data)
     except ValidationError as exc:
-        problems = "; ".join(
-            f"{'.'.join(str(p) for p in item['loc'])}: {item['msg']}" for item in exc.errors()
-        )
-        raise ConfigError(f"Impostazioni non valide nella variante {path}: {problems}") from exc
+        raise ConfigError(
+            f"Impostazioni non valide nella variante {path}: {_problems(exc)}"
+        ) from exc
     last = chain[-1]
     return Variant(
         name=last.nome,

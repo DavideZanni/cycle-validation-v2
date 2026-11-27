@@ -189,11 +189,10 @@ def render_campaign(
         lines += [f"**Campagna fermata:** {outcome.stopped}. Rilanciala per continuare.", ""]
     if outcome.errors:
         lines += ["**Problemi:**", "", *(f"- {e}" for e in outcome.errors), ""]
-    order = list(models)
     tables: dict[tuple[str, str], list[Variant]] = {}
     for model in models:
         for set_name in config.insiemi:
-            folder = folder_for(order, model, set_name, runs)
+            folder = folder_for(models, model, set_name, runs)
             trials = load_trials(folder) if folder.is_dir() else []
             variants = build_variants(trials)
             tables[(model, set_name)] = variants
@@ -213,8 +212,9 @@ def render_campaign(
             ]
     if len(models) > 1:
         lines += _compare(tables, models, config.insiemi)
-    lines += _unseen_section(runs, models, order)
-    lines += _warning_section(runs, models, order)
+    bases = [(m, _last_base(folder_for(models, m, "piccolo", runs))) for m in models]
+    lines += _unseen_section([(m, t) for m, t in bases if t is not None])
+    lines += _warning_section([(m, t) for m, t in bases if t is not None])
     lines += [
         "Dettagli di ogni insieme: `riepilogo.md` nella sua cartella. Le considerazioni le scrive "
         "Claude nel registro di `docs/MIGLIORIE.md`.",
@@ -268,40 +268,30 @@ def _last_base(folder: Path) -> Trial | None:
     return bases[-1] if bases else None
 
 
-def _unseen_section(runs: Path, models: Sequence[str], order: Sequence[str]) -> list[str]:
-    """Gli errori mai visti per tipo nell'ultima prova della base sul piccolo: da qui si
-    scelgono le migliorie (solo conteggi, mai quali sono)."""
+def _unseen_section(bases: Sequence[tuple[str, Trial]]) -> list[str]:
+    """Gli errori mai visti per tipo nell'ultima prova della base sul piccolo (`bases`: modello
+    e prova): da qui si scelgono le migliorie (solo conteggi, mai quali sono)."""
     lines = ["## Errori mai visti per tipo (ultima base, piccolo)", ""]
-    any_row = False
-    for model in models:
-        trial = _last_base(folder_for(order, model, "piccolo", runs))
-        if trial is None:
-            continue
+    rows: list[str] = []
+    for model, trial in bases:
         answers = unseen_answers(trial)
-        rows = [
+        rows += [
             f"| {model} | {kind} | {found} su {total} | {answers.get(kind, '-')} |"
             for kind, (found, total) in unseen_by_kind(trial).items()
         ]
-        if rows:
-            if not any_row:
-                lines += [
-                    "| Modello | Tipo | Trovati | Cosa ha risposto la v2 sui mancati |",
-                    "|---|---|---|---|",
-                ]
-            any_row = True
-            lines += rows
-    lines += ["" if any_row else "Nessuna base sul piccolo con errori mai visti.", ""]
-    return lines
+    if rows:
+        header = "| Modello | Tipo | Trovati | Cosa ha risposto la v2 sui mancati |"
+        lines += [header, "|---|---|---|---|", *rows, ""]
+    else:
+        lines.append("Nessuna base sul piccolo con errori mai visti.")
+    return [*lines, ""]
 
 
-def _warning_section(runs: Path, models: Sequence[str], order: Sequence[str]) -> list[str]:
+def _warning_section(bases: Sequence[tuple[str, Trial]]) -> list[str]:
     """Da dove vengono i WARNING dei cicli senza errori noti (ultima base, piccolo)."""
     lines = ["## WARNING per motivo (ultima base, piccolo, per ciclo senza errori noti)", ""]
     rows: list[str] = []
-    for model in models:
-        trial = _last_base(folder_for(order, model, "piccolo", runs))
-        if trial is None:
-            continue
+    for model, trial in bases:
         rows += [
             f"| {model} | `{reason}` | {per_cycle:.1f} | {WARNING_MEANING.get(reason, '-')} |"
             for reason, per_cycle in trial.clean_warning_reasons().items()
