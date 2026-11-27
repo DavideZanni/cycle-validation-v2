@@ -30,5 +30,4 @@ Documenti (in `docs/`, scritti in modo semplice):
 - `docs/MEMORIA.md`: tutto quello che sappiamo già: PC, regole, come funziona la v2, frontend,
   problemi già visti, decisioni prese;
 - `docs/MIGLIORIE.md`: cosa migliorare, in che ordine, e il registro delle prove;
-- `docs/AZIENDA.md`: guida tecnica: installare, configurare, avviare il servizio, esperimenti,
-  formato della conoscenza.
+

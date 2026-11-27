@@ -17,9 +17,10 @@ impari qualcosa di nuovo, aggiungilo lì. Le regole che non si discutono:
 - Documenti e output EJ200 restano su AWS EU: nessuna copia locale della conoscenza EJ200.
 - Prima di ogni commit: `uv run pytest -q`, `uv run ruff check .`, `uv run ruff format --check .`,
   `uv run mypy src`.
-- Si scrive in italiano, in modo molto semplice. In `docs/` restano cinque file:
-  `DOCUMENTAZIONE.md` (com'è fatto e come funziona tutto il progetto), `COPILOT.md` (lavoro sul
-  PC e domande aperte), `MEMORIA.md`, `MIGLIORIE.md`, `AZIENDA.md` (guida tecnica). Niente file
+- Si scrive in italiano, in modo molto semplice. In `docs/` restano quattro file:
+  `DOCUMENTAZIONE.md` (com'è fatto e come funziona tutto il progetto, anche installare,
+  configurare e avviare il servizio), `COPILOT.md` (lavoro sul PC e domande aperte),
+  `MEMORIA.md` (la storia: non si toglie niente), `MIGLIORIE.md`. Niente file
   nuovi in `docs/` senza motivo: si aggiunge a uno di questi.
 - Quando cambia come funziona il programma (regole, controlli, comandi, impostazioni, rotte),
   si aggiorna `docs/DOCUMENTAZIONE.md` nello stesso commit.

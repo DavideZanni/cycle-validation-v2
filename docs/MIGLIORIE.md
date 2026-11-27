@@ -102,7 +102,7 @@ Prima delle prove, gratis: i test (`uv run pytest -q`) e, per una miglioria sull
 il comando `leggi --lingue`.
 
 Sul computer personale, con i casi inventati, le varianti si provano anche con `eval pipeline`
-(`AZIENDA.md`, parte B).
+(`DOCUMENTAZIONE.md`, sezione 15.2).
 
 ---
 
@@ -565,19 +565,7 @@ Nessuna serve per la consegna. In ordine di valore.
 
 ## 11. Dove sta il codice
 
-Come funziona la v2, passo per passo, è in `DOCUMENTAZIONE.md`. Qui solo dove sta ogni parte
-(cartella `src/cycle_validation/`):
-
-| Dove | Cosa c'è |
-|---|---|
-| `domain/check.py` | gli esiti e i motivi (`Reason`), e quale esito dà ogni motivo |
-| `checks/` | un file per ogni controllo; `uncertainty.py` per le voci incerte dell'indice |
-| `agent/` | le sessioni del modello: prompt, controlli di sicurezza, tempi massimi, Claude Agent SDK |
-| `kb/` | la conoscenza: `published.py` (il puntatore `current.json`), `ej200.py`, `local.py` (da una cartella), `structured.py` |
-| `services/` | le macchine attive: da file o da Redshift |
-| `api/` | il servizio web (FastAPI); `production.py` lo avvia dalle variabili d'ambiente |
-| `evaluation/` | gli esperimenti: casi, varianti, misure, classifica, copie cieche, guasti, prove (`trials.py`) |
-| `prompts/`, `config/` (fuori da `src/`) | i tre prompt, `settings.yaml`, i profili |
+In `DOCUMENTAZIONE.md`, sezione 18 (le cartelle e i file) e sezione 5 (la pipeline).
 
 ---
 

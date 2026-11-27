@@ -4,7 +4,7 @@ Questo file spiega **tutto il progetto**: a cosa serve, come è fatto, come funz
 dove sta il codice, come si prova e come si pubblica. È scritto per chi lo legge la prima
 volta e per chi deve ritrovare un dettaglio.
 
-Ultimo aggiornamento: 26-11-2026. Claude lo aggiorna quando cambia il funzionamento del
+Ultimo aggiornamento: 27-11-2026. Claude lo aggiorna quando cambia il funzionamento del
 programma: regole, controlli, comandi, impostazioni.
 
 Gli altri documenti in `docs/`:
@@ -15,7 +15,6 @@ Gli altri documenti in `docs/`:
 | `COPILOT.md` | il lavoro sul PC aziendale: cosa fare adesso, i blocchi PowerShell da lanciare |
 | `MEMORIA.md` | la storia: cosa si è visto, i problemi già risolti, le decisioni prese |
 | `MIGLIORIE.md` | cosa migliorare, in che ordine, metriche e registro delle prove |
-| `AZIENDA.md` | guida tecnica: installare, configurare, avviare il servizio, formato della conoscenza |
 
 Il repository è pubblico: qui ci sono **solo valori inventati**. Niente nomi di bucket,
 account, host, matricole, codici di manuali, numeri DR, serial o part number veri, codici dei
@@ -45,7 +44,8 @@ cicli, contenuti EJ200.
 18. [Le cartelle e i file](#18-le-cartelle-e-i-file)
 19. [Test e verifiche](#19-test-e-verifiche)
 20. [Limiti noti e regole da rivedere](#20-limiti-noti-e-regole-da-rivedere)
-21. [Come si aggiorna questo file](#21-come-si-aggiorna-questo-file)
+21. [Se qualcosa non va](#21-se-qualcosa-non-va)
+22. [Come si aggiorna questo file](#22-come-si-aggiorna-questo-file)
 
 ---
 
@@ -620,7 +620,7 @@ sessione va in `runs/.../transcripts/`. Contiene cicli e manuali: nel servizio �
 ### 10.1 Da dove arriva
 
 La prepara e la pubblica **knowledge-index** su S3. Il formato completo, con esempi inventati,
-è in `AZIENDA.md`, parte D.
+è nella sezione 10.4.
 
 ```
 <prefisso>/knowledge/civil/current.json     {"version": "...", "path": "v/<versione>/"}
@@ -673,6 +673,82 @@ La prepara e la pubblica **knowledge-index** su S3. Il formato completo, con ese
 | task che l'indice non ha | nel testo del manuale (`kb/task_text.py`) |
 | fonte con la sola sezione | tutti i task di quella sezione, in ogni documento del manuale |
 | codice sbagliato o documento mancante | sbagliato se il codice non c'è da nessuna parte e ci sono i fratelli della stessa famiglia |
+
+### 10.4 Il formato, con esempi inventati
+
+Confrontato il 20-11-2026 con i file veri della versione di prova. **I valori sono inventati**,
+la forma è quella vera. `tests/test_e2e_formato_reale.py` fa girare tutto (dal PDF al payload
+del frontend) con una conoscenza in questo formato.
+
+Bucket e puntatori si danno con `BUCKETNAME`, `CIVIL_KNOWLEDGE_POINTER` ed
+`EJ200_KNOWLEDGE_POINTER` (sezione 13.6). La versione ha la forma di una data e ora
+(`AAAAMMGGThhmmssZ`). Di `current.json` il programma usa solo `version` e `path`.
+
+**`manifest.json` (civile).** Una voce per documento; più documenti possono avere lo stesso
+`code`, uno per capitolo.
+
+```json
+{
+  "format": 1,
+  "version": "AAAAMMGGThhmmssZ",
+  "documents": [
+    {"key": "SPM_M1_pb70-21-00-010_ch1", "file": "documents/SPM_M1_pb70-21-00-010_ch1.md",
+     "lines": 214, "version": "ch1", "title": "SPM_M1_pb70-21-00-010_ch1", "code": "M1", "kind": "SPM"}
+  ]
+}
+```
+
+**`tasks.json`.** `manual` è la `key` di un documento del manifest, non il `code`, altrimenti la
+conoscenza non si carica. `line_end` non può superare `lines` del documento.
+
+```json
+[
+  {"manual": "SPM_M1_pb70-21-00-010_ch1", "task": "70-21-00-110-030", "line_start": 14, "line_end": 45},
+  {"manual": "SPM_M1_pb70-21-00-010_ch1", "task": "70-21-00-110-031", "line_start": 46, "line_end": 214}
+]
+```
+
+**`machine_tags.json`.** `function` elenca le lavorazioni separate da `; `. Le targhe si
+confrontano senza spazi né maiuscole (`A 0100` = `A0100`).
+
+```json
+[
+  {"tag": "1200", "function": "ASCIUGATURA; TRATTAMENTO TERMICO", "needs_review": true},
+  {"tag": "A 0100", "function": "RIPORTO HVOF; RIPORTO PLASMA", "needs_review": true}
+]
+```
+
+**`process_sheets.json`.** I codici si confrontano senza spazi, trattini né maiuscole
+(`CPEC 100-BR` = `CPEC100BR`). Con `engine_families` vuoto la scheda risulta presente, ma non
+si controlla se vale per il motore.
+
+```json
+[
+  {"code": "10", "edition": "13", "treatment": "POST EMULSIFIED LEV.2", "engine_families": ["GENX"]},
+  {"code": "CPEC 100-BR", "edition": "51", "treatment": "ATTACCO LOCALE A TAMPONE", "engine_families": []}
+]
+```
+
+**`dr_recommendations.json`.** Con `manual: null` i task si cercano nei manuali citati dal ciclo.
+
+```json
+[
+  {"serial_number": "AAAA0BBB", "conditions": [1], "procedure": "Repair", "reference": "R-0001", "manual": null, "tasks": ["72-56-30-220-100"]},
+  {"serial_number": "AAAA0BBB", "conditions": [2], "procedure": "Accept as is", "reference": "R-0001", "manual": null, "tasks": []}
+]
+```
+
+**`catalog.json` (EJ200).** Una voce per issue; il testo sta in `<document_id>/<content_hash>.md`.
+Il `code` contiene già la issue: il programma la toglie (sezione 10.2).
+
+```json
+[
+  {"code": "EJ00020L-01", "kind": "RDR", "issue": "01", "document_id": "EJ00020L-01-1a2b3c4d", "content_hash": "1a2b3c4d5e6f7080", "title": "EJ00020L-01", "published": true, "partial": false, "references": ["EJ00020"]}
+]
+```
+
+Un ciclo EJ200 che cita una issue vecchia: la fonte esce WARNING e le operazioni si confrontano
+con la issue citata.
 
 ---
 
@@ -757,7 +833,7 @@ Le impostazioni si validano al caricamento: un valore sbagliato dice il file e i
 nell'immagine; in locale sulla porta 8003 al posto della v1). Il servizio si monta da solo
 dalle variabili d'ambiente (`api/main.py`, `api/production.py`, `api/settings.py`): prima le
 controlla tutte e, se qualcosa non va, le elenca insieme per nome, senza stampare valori di
-secret. L'elenco completo delle variabili è in `AZIENDA.md`, sezione 4.2.
+secret. L'elenco completo delle variabili è nella sezione 13.6.
 
 Con `CV_ENV_SECRET` (lo stesso secret «di ambiente» della v1) le chiavi del secret diventano
 variabili, senza sovrascrivere quelle già impostate: la v2 parte con la configurazione della
@@ -833,6 +909,87 @@ con dei Warning.
 L'utente finisce nel percorso S3 di sessioni e feedback: si accettano solo lettere, cifre e
 `.`, `_`, `@`, `-`.
 
+### 13.6 Le variabili d'ambiente
+
+Il servizio si monta da solo da queste variabili: non c'è codice da scrivere. In servizio
+arrivano quasi tutte dal secret «di ambiente» della v1 (`CV_ENV_SECRET`) e dalle righe `ENV`
+del Dockerfile scritto da `qa`.
+
+| Variabile | Obbligatoria | Cosa fa |
+|---|---|---|
+| `BUCKETNAME`, `REGION_NAME`, `FRONTEND_URL` | sì | bucket S3, regione AWS, indirizzo del frontend |
+| `CV_ENV_SECRET` | no | nome del secret «di ambiente» (lo stesso della v1): le sue chiavi diventano variabili, senza sovrascrivere quelle già impostate |
+| `MACHINES_SOURCE` | no (dedotta) | `diretta` (come la v1, **in servizio**), `data_api`, `file` o `nessuna` (sezione 11). Senza: `file` se c'è `MACHINES_FILE`, `data_api` se c'è `REDSHIFT_DATABASE` |
+| `REDSHIFT_DATABASE` | con `diretta` e `data_api` | il database di Redshift |
+| `REDSHIFT_SECRET_NAME` | no | con `diretta`: il secret con host, porta, utente e password. Senza, `SECRET_NAME` come nella v1 |
+| `MACHINES_QUERY` | **sì** | prima colonna = targa; la tabella è quella della v1. La predefinita è solo un segnaposto |
+| `MACHINES_FILE` | con `file` | JSON delle macchine attive |
+| `REDSHIFT_WORKGROUP`, `REDSHIFT_CLUSTER_ID`, `REDSHIFT_DB_USER`, `REDSHIFT_SECRET_ARN` | con `data_api` | workgroup Serverless, oppure cluster con utente IAM o secret |
+| `MACHINES_TTL_S` | no | ogni quanti secondi si rilegge Redshift (900) |
+| `CIVIL_KNOWLEDGE_POINTER` | no | `current.json` della conoscenza civile |
+| `EJ200_KNOWLEDGE_POINTER` | no | `current.json` di EJ200; vuota = catalogo a chiave fissa `EJ200_CATALOG_KEY` |
+| `EJ200_VALIDATION_ENABLED` | no | `false` spegne i cicli militari |
+| `SECRET_NAME` | no | con `CV_ENV_SECRET`: il secret di Redshift, come nella v1 |
+| `KNOWLEDGE_WORKDIR` | no | dove scaricare la conoscenza (predefinita: nella cartella temporanea) |
+| `CYCLE_VALIDATION_CONFIG` | no | file delle impostazioni |
+| `CLOUDWATCH_METRICS` | no | `false` per non pubblicare il costo su CloudWatch |
+| `API_MAX_WORKERS`, `API_MAX_UPLOAD_MB` | no | validazioni insieme (6), dimensione massima del file (50) |
+| `API_INCLUDE_TRACEBACK` | no | **in produzione `false`** |
+| `API_AUTH` | no | `sdk`, `header` (prove) o `auto` (predefinito: `sdk` se c'è `AUTH_INTROSPECT_URL`) |
+| `AUTH_*` | con `sdk` | le variabili della libreria, già nel secret della v1 (`AUTH_INTROSPECT_URL`, `AUTH_CLIENT_ID`, `AUTH_CLIENT_SECRET`, `AUTH_EXPECTED_CLIENT_ID`, `AUTH_SSO_CLAIM`, `AUTH_PERMISSIONS_BUCKET`, `AUTH_PERMISSIONS_KEY`) |
+| `API_USER_HEADER`, `API_SERVICES_HEADER` | no | con `header`: gli header con utente e servizi (`X-User`, `X-Services`) |
+
+Con `diretta` serve quello che usa già la v1: leggere il secret di Redshift, arrivare alla
+porta del cluster e la libreria `redshift_connector` (extra `redshift`, già nel Dockerfile).
+Con `data_api` il ruolo deve poter usare `redshift-data:ExecuteStatement`,
+`DescribeStatement` e `GetStatementResult`.
+
+### 13.7 In locale, con login e frontend (provato il 22-11-2026)
+
+Come per la v1, da Run and Debug di VS Code. La v1 in locale gira sulla porta 8003 e il
+frontend manda lì `/cycle_validation/`: la v2 si avvia sulla 8003 **al posto** della v1.
+
+1. La libreria di accesso nella v2: la riga dei requirements della v1,
+   `chatbot_ai_sdk-0.4.0rc2-py3-none-any.whl[auth]` dalla cartella `vendor` della v1
+   (`uv pip install "chatbot_ai_sdk[auth] @ file:///<cartella della v1>/vendor/<file .whl>"`).
+   La 0.3.0, nella stessa cartella, non ha i pezzi che servono.
+2. In `.vscode/launch.json` una configurazione per la v2 e una voce composta «CV v2» con
+   `login`, `app_frontend` e la v2, **senza** il task «Centralizer prerequisites» (sul PC lo
+   script non c'è).
+
+```json
+{
+  "name": "CV v2 (porta 8003)",
+  "type": "debugpy",
+  "request": "launch",
+  "module": "uvicorn",
+  "args": ["cycle_validation.api.entry:app", "--port", "8003"],
+  "cwd": "${workspaceFolder}/<repository aziendale>/app_cycle_validation_v2",
+  "python": "${workspaceFolder}/<repository aziendale>/app_cycle_validation_v2/.venv/Scripts/python.exe",
+  "env": {
+    "AWS_PROFILE": "<come nella configurazione della v1>",
+    "CV_ENV_SECRET": "<identico al nome in load_secrets della v1>",
+    "FRONTEND_URL": "http://localhost:3000",
+    "CYCLE_VALIDATION_CONFIG": "data/settings.yaml",
+    "MACHINES_SOURCE": "nessuna",
+    "CIVIL_KNOWLEDGE_POINTER": "<puntatore della conoscenza civile>",
+    "EJ200_VALIDATION_ENABLED": "false",
+    "CLOUDWATCH_METRICS": "false"
+  }
+}
+```
+
+Perché: con un `CV_ENV_SECRET` diverso dalla v1 la v2 non parte (`ResourceNotFoundException`);
+senza `FRONTEND_URL` locale la libreria rifiuta ogni POST con 403 `Origine non ammessa.`;
+dal PC Redshift non si raggiunge (`nessuna`: targhe WARNING); EJ200 spento perché la sua
+conoscenza non deve arrivare sul PC. Aperta direttamente, `http://127.0.0.1:8003/` risponde
+401 `Login richiesto.`: è giusto, la prova passa da `http://localhost:3000` dopo il login.
+
+Senza login né frontend basta `uv run uvicorn cycle_validation.api.entry:app --port 8000`
+(oppure `docker build -t cycle-validation .` e `docker run -p 8000:8000 --env-file .env
+cycle-validation`): `http://127.0.0.1:8000/cycle_validation/health` risponde
+`{"status":"ok","code":200}`.
+
 ---
 
 ## 14. I comandi (CLI)
@@ -897,7 +1054,24 @@ Per cicli veri con l'esito giusto riga per riga, rivisto da chi conosce il ciclo
 true`). Le varianti girano sugli stessi casi e sulla stessa fotografia. Una variante è
 scartata se ha più ERRATO falsi, più errori mancati, concordanza più bassa, più righe
 instabili o più esiti tecnici; tra le ammesse vince la più veloce. La variante `guasti`
-simula guasti e **regge** se nessun guasto diventa ERRATO. Dettagli in `AZIENDA.md`, parte B.
+simula guasti e **regge** se nessun guasto diventa ERRATO.
+
+Oggi si usano le prove della sezione 15.3; questi esperimenti restano per quando ci saranno casi
+rivisti. Come si preparano:
+
+1. `cp -r eval/modelli/aziendali/mos eval/modelli/aziendali/dr eval/casi/aziendali/` e, in ogni
+   `suite.yaml`, `conoscenza` = il nome della cartella della fotografia (`eval fotografia`);
+2. per ogni ciclo vero una cartella con `ciclo.pdf`, poi `eval prepara <cartella>` (per un DR
+   anche `--serial-number`, `--condition`): scrive `ciclo.json`, `expected.json` (esiti
+   proposti, `"rivisto": false`) e `revisione.md`;
+3. chi conosce il ciclo corregge `verdict` e `reason` sbagliati in `expected.json`, controlla
+   `ciclo.json` contro la stampa e mette `"rivisto": true`. Finché è `false` il caso si salta;
+4. `eval pipeline --casi eval/casi/aziendali --ripetizioni 3`: verifiche del codice, baseline,
+   varianti, classifica in `eval/risultati/classifica.md`. Si confrontano solo prove dello
+   stesso ambiente, ogni variante con l'ultima baseline. Per gli errori fabbricati:
+   `eval mutazioni`, poi `eval pipeline --casi eval/casi/mutazioni --salta-verifiche`.
+
+Bastano pochi casi ma vari (5-10 MOS, 3-5 DR), con qualche ERRATO vero: sono i più preziosi.
 
 ### 15.3 Prove sui cicli veri (`evaluation/trials.py`, `evaluation/blind.py`)
 
@@ -1156,7 +1330,7 @@ I passi da fare sono in `COPILOT.md`, sezione 7.
   impronte dei PDF.
 - **Dati veri solo in cartelle che git ignora:** `data/`, `runs/`, `eval/casi/aziendali/`,
   `eval/casi/mutazioni/`, `eval/risultati/`, `.env`, e tutta `docs/` tranne
-  `DOCUMENTAZIONE.md` (esempi, foto, materiale di lavoro). Gli altri quattro file di `docs/`
+  `DOCUMENTAZIONE.md` (esempi, foto, materiale di lavoro). Gli altri tre file di `docs/`
   erano già in git e restano seguiti: la regola vale per i file nuovi.
 - **Nelle foto** possono comparire bucket, codici, percorsi con la matricola: Claude non li
   ripete. `report.md` non si manda (contiene i testi dei manuali).
@@ -1237,7 +1411,22 @@ Test importanti da conoscere:
 - `test_hooks.py`: le regole GRASP;
 - `test_eval_guasti.py`: un guasto non diventa mai ERRATO.
 
-Python: il progetto chiede 3.12 o più; sul PC si usa 3.14.
+Python: il progetto chiede 3.12 o più; sul PC si usa 3.14. `.python-version` chiede 3.13:
+con un altro Python si scrive, in ogni terminale nuovo, `$env:UV_PYTHON = "3.14"`
+(altrimenti uv risponde `No interpreter found for Python 3.13`).
+
+**Prima prova con Bedrock, sui dati inventati** (dice una cosa sola: il modello risponde):
+
+```bash
+uv run cycle-validation kb-check examples/sintetico/knowledge
+uv run cycle-validation run examples/sintetico/ciclo.pdf --cycle-json examples/sintetico/ciclo.json --knowledge examples/sintetico/knowledge --machines examples/sintetico/macchine_attive.json --config config/settings.yaml
+uv run cycle-validation golden eval/casi/sintetici/mos --knowledge examples/sintetico/knowledge --machines examples/sintetico/macchine_attive.json --config config/settings.yaml
+uv run pytest -m live
+```
+
+Deve uscire: un elenco che finisce con `recommendation_dr_incerte: 0`; `Ciclo completo: ...`
+in 10-20 secondi; la concordanza del golden set; `1 passed`. Se **tutte** le operazioni escono
+«errore tecnico», il modello non risponde: accesso AWS, regione, `agent.model`.
 
 ---
 
@@ -1252,23 +1441,72 @@ Python: il progetto chiede 3.12 o più; sul PC si usa 3.14.
 - il modello non risponde sempre uguale sullo stesso testo: per questo c'è la conferma degli
   ERRATO e le prove si ripetono almeno 2 volte.
 
-**Regole scelte senza tutti i dati veri, da rivedere con chi conosce i cicli** (l'elenco
-completo è in `AZIENDA.md`, parte C):
+**Regole scelte senza tutti i dati veri, da rivedere con chi conosce i cicli:**
 
-- una DR con una sola recommendation vale per qualunque condition;
-- serial number non indicato = quello scritto nella stampa, se è uno solo;
-- MOS: la fonte è l'OEM del piè di pagina più il task delle NOTE;
-- stesso numero di operazione = stessa operazione, anche su pagine diverse;
-- si leggono solo la prima SCHEDA e il primo SP.ORIG / SP.FIAT di ogni operazione;
-- PDF misto testo e scansione: si legge solo il testo;
-- oltre il 20% di parole della descrizione assenti dal PDF: niente modello, WARNING;
-- chi vede i cicli militari vede anche i civili (come nella v1).
+| Regola di oggi | Se è sbagliata |
+|---|---|
+| DR: un serial number con una sola recommendation vale per qualunque condition | si applica una recommendation a una condition non prevista |
+| DR: `Accept as is` (anche `Accept-as-is`, `Use as is`) e `Reject` riconosciuti per nome | un'altra parola per la stessa disposizione passa come riparazione normale |
+| DR: `Reject` e `Accept as is` = ERRATO e ciclo bloccato, come nella v1 | un ciclo con `Accept as is` che contiene solo ispezioni esce ERRATO lo stesso |
+| DR: serial number non indicato = quello scritto nella stampa (`APPLY ON S/N`), se ce n'è uno solo | un altro numero scritto dopo `S/N` viene preso per serial number |
+| DR: condition non indicata e recommendation diverse per lo stesso serial number = WARNING `DR_NON_VERIFICATA`, si prosegue con le sole `Repair` | un pezzo da scartare passa con un WARNING invece di un ERRATO |
+| DR: nessuna recommendation trovata = ERRATO | dati DR incompleti danno ERRATO invece di WARNING |
+| Scheda presente ma famiglia del motore non riconosciuta = CORRETTO, con nota | passa una scheda di un'altra famiglia |
+| MOS: la fonte è l'OEM del piè di pagina più il task letto dalle NOTE | note scritte in altro modo danno fonti mancanti |
+| EJ200: le fonti sono i codici RDR, RN ed EF nel testo (dopo la sigla, o RN/EF da soli) | una fonte scritta in un altro modo non viene trovata |
+| Stesso numero di operazione = stessa operazione, anche su pagine diverse | due operazioni distinte diventano una |
+| Si leggono solo la prima SCHEDA e il primo SP.ORIG / SP.FIAT di ogni operazione | le successive non vengono controllate |
+| EJ200: il paragrafo citato si legge solo accanto al codice (`PAR.`, `FIG.`, `TAB.`, `STEP`…) | un paragrafo scritto altrove non viene mostrato |
+| PDF misto testo e scansione: si legge solo il testo | le operazioni delle pagine scansionate mancano, senza avviso |
+| Oltre il 20% di parole della descrizione assenti dal PDF: niente modello, WARNING | soglia da tarare sui PDF veri |
+| Chi ha solo `cv_ej200` può usare anche le rotte civili | come nella v1: chi vede i militari vede anche i civili |
+| Elenco delle macchine attive vuoto = «registro non disponibile» (WARNING) | è voluto: un guasto non diventa ERRATO |
+
+**Cose scritte senza dati veri, da guardare una volta:**
+
+| Cosa | Dove si corregge | Come ti accorgi che è sbagliata |
+|---|---|---|
+| Id del modello | `agent.model` | tutte le operazioni «errore tecnico» |
+| Come si riconosce un DR dalla testata | `module_check.dr_markers`; `[]` smette di distinguere MOS da DR | i DR veri rifiutati come «ciclo civile MOS» |
+| Query delle macchine attive | `MACHINES_QUERY` | targhe giuste segnate «non attiva» (ERRATO) |
+| La colonna TARGA della stampa è la targa da verificare | `extract/pvrm320_report.py` | esiti sulla macchina sbagliata |
+| Nomi con cui i cicli citano manuali e documenti (LEAP compresi) | `aliases.json` accanto a `current.json`, lato knowledge-index | fonti valide segnate «non trovate» |
+
+**Attenzione alle targhe:** una targa che non è tra le macchine attive dà ERRATO. Se l'elenco
+delle attive è incompleto escono ERRATO falsi: i primi risultati in servizio vanno guardati a
+mano.
 
 **Domande aperte alle persone:** in `COPILOT.md`, sezione 6.1.
 
 ---
 
-## 21. Come si aggiorna questo file
+## 21. Se qualcosa non va
+
+| Cosa vedi | Causa probabile | Cosa fare |
+|---|---|---|
+| il servizio non parte e nomina una variabile | variabile mancante o sbagliata | sezione 13.6 |
+| `Configurazione di produzione non valida` | manca la sorgente delle macchine o una variabile Redshift | sezione 13.6 |
+| `boto3 non è installato` | installato senza `--extra aws` | `uv sync --all-groups --extra aws` |
+| il servizio non parte e nomina un file della conoscenza | pubblicazione non valida | `kb-check` sulla versione |
+| tutte le operazioni «errore tecnico» | Bedrock non risponde | `aws sso login`, regione, `agent.model` |
+| «meno di 100 caratteri di testo (è una scansione?)» | il PDF è una foto | `agent.transcribe_model` |
+| «Modulo sbagliato» su un file giusto | marcatori DR | `module_check.dr_markers` |
+| molte targhe ERRATO | elenco macchine incompleto o scritto diverso | sezione 20, «Attenzione alle targhe» |
+| molte targhe WARNING «Registro macchine non raggiungibile» | Redshift non risponde o query sbagliata | con `diretta`: secret, rete verso il cluster, `REDSHIFT_DATABASE`, `MACHINES_QUERY`; con `data_api`: permessi `redshift-data`. Intanto `MACHINES_FILE` |
+| `MACHINES_SOURCE=diretta: serve redshift_connector` | installato senza l'extra `redshift` | `uv sync --extra aws --extra redshift` |
+| `Nessun caso rivisto` | casi ancora in bozza | revisione (sezione 15.2) |
+| `verifiche del codice fallite` | test, ruff o mypy rossi | il dettaglio è stampato sopra; nessuna prova è partita |
+| `NON regge` sotto i guasti | un guasto è diventato ERRATO | difetto del codice: tenere il file dei risultati |
+
+Gli errori visti sul PC aziendale, con la soluzione, sono in `MEMORIA.md`, sezione 11.
+
+**Cosa non toccare.** Rendono affidabile il risultato e costano millisecondi: la verifica che i
+valori letti compaiano nel PDF, la verifica che ogni citazione del modello esista nel manuale a
+quella riga, l'esito deciso dal codice e non dal modello, un guasto che dà WARNING e mai ERRATO.
+
+---
+
+## 22. Come si aggiorna questo file
 
 - Claude lo aggiorna **nello stesso commit** in cui cambia una regola, un controllo, un
   comando, un'impostazione o una rotta.

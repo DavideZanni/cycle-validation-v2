@@ -12,8 +12,7 @@ quando un passo lo dice.
 | **Copilot** | sempre in modalità **Ask**: legge i file e lancia i comandi di prova, **non cambia mai il codice** |
 
 Gli altri documenti: `DOCUMENTAZIONE.md` (come funziona il programma), `MIGLIORIE.md` (cosa si
-prova e cosa si è deciso), `MEMORIA.md` (cosa è successo finora), `AZIENDA.md` (installare e
-configurare).
+prova e cosa si è deciso), `MEMORIA.md` (cosa è successo finora).
 
 ---
 
@@ -93,6 +92,7 @@ La riga `$env:UV_PYTHON = "3.14"` all'inizio dei blocchi serve: non toglierla.
 | `FERMO: ...` | il blocco si è fermato prima di fare danni: niente è cambiato | leggi il motivo (di solito la cartella del terminale), correggi, rilancia |
 | `failed` nei test o una scritta rossa `Errore` | qualcosa non va | **fermati** e manda la foto a Claude |
 | la campagna non finisce dopo ore | è normale: dura ore | lasciala girare |
+| devi staccarti (rete, PC spento o in sospensione) con la campagna che gira | si può: riparte da dove era | aspetta la riga `Prova «...»`, **Ctrl+C**, poi stacca. Al ritorno: `aws sso login` e lo stesso blocco. Non staccare la rete a prova in corso: una variante buona può risultare scartata |
 
 ```powershell
 $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Path; $env:AWS_CA_BUNDLE = $env:NODE_EXTRA_CA_CERTS
@@ -629,5 +629,5 @@ uv run cycle-validation qa --conoscenza-civile "Manufacturing AI/ingestion-v2-te
 ```
 
 La conoscenza: nei blocchi c'è quella di prova; quando scegli la tua (passo 5 della sezione 1)
-Claude cambia il puntatore qui. Se Claude dice che il comando `qa` è cambiato: rilancia lo stesso comando (senza `--ej200` finché
-i cicli militari sono spenti), poi Salvare.
+Claude cambia il puntatore qui. Se Claude dice che il comando `qa` è cambiato: rilancia lo
+stesso comando (senza `--ej200` finché i cicli militari sono spenti), poi Salvare.

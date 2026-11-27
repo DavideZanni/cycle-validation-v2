@@ -4,7 +4,7 @@ Qui c'è tutto quello che sappiamo già: com'è il PC aziendale, cosa si può fa
 v2, il frontend, i problemi già visti e le decisioni prese. Serve a non rifare le stesse analisi.
 
 **Claude la legge prima di ogni lavoro sulle prove e la aggiorna quando impara qualcosa di
-nuovo.** Ultimo aggiornamento: 26-11-2026 (sera).
+nuovo.** Ultimo aggiornamento: 27-11-2026.
 
 Il repository è pubblico: qui non ci sono mai valori veri (bucket, account, host, matricola,
 codici di manuali, numeri DR, serial number, part number, codici dei cicli, contenuti EJ200).
@@ -17,7 +17,6 @@ Gli altri documenti:
 | `docs/COPILOT.md` | il file per lavorare sul PC: cosa fare adesso, blocchi da lanciare, domande per Copilot e per le persone |
 | `docs/MEMORIA.md` | questo file |
 | `docs/MIGLIORIE.md` | cosa migliorare, in che ordine, e il registro delle prove fatte |
-| `docs/AZIENDA.md` | guida tecnica: installare, configurare, avviare il servizio, fare esperimenti, formato della conoscenza |
 
 ---
 
@@ -53,7 +52,7 @@ sugli errori veri aspetta i manuali nella conoscenza.
 | 1 | Misura sugli errori veri | 23-11 sera: 3 degli 8 errori noti trovati in modo stabile, più uno per ciascuno degli altri 4 cicli; 0 falsi errori nei 3 cicli giusti | ingestion del manuale principale fatta il 23-11 (10 manuali); due correzioni nel 23-11 (titoli `CIR`, fonti con la sola sezione). Mancano i file di due REPAIR e il capitolo 70-23 dell'SPM: **decisione del 26-11 sera, non si chiedono più** (si va in produzione senza). Si chiude con la campagna finale del 27-11 (seme 3) e la prova di controllo dopo la grande ingestion | U, poi C |
 | 2 | Accesso degli utenti come la v1 | il frontend manda solo il cookie con il token | **fatto nel codice** (22-11 sera): `API_AUTH=sdk`, scelto da solo quando c'è `AUTH_INTROSPECT_URL`, con gli stessi middleware della v1 (sezione 9). Provato in locale il 22-11 (punto 4); da provare in QA | U |
 | 3 | Stessa configurazione della v1 | in servizio la v2 deve partire con lo stesso secret «di ambiente» della v1, senza chiavi nuove | **fatto nel codice**: `CV_ENV_SECRET` = nome del secret di ambiente, letto come `load_secrets` (22-11 sera); macchine attive come la v1 con `MACHINES_SOURCE=diretta`: `redshift_connector` con il secret `SECRET_NAME` (22-11 notte). Da provare in QA | C, poi U |
-| 4 | Prova in locale | è il passo prima di develop | **fatto** (22-11 notte): login, frontend e v2 da Run and Debug; ciclo MOS di esempio `Validation Passed` in circa 20 s, con accesso e permessi della v1. Configurazione in `AZIENDA.md`, sezione 7 | — |
+| 4 | Prova in locale | è il passo prima di develop | **fatto** (22-11 notte): login, frontend e v2 da Run and Debug; ciclo MOS di esempio `Validation Passed` in circa 20 s, con accesso e permessi della v1. Configurazione in `DOCUMENTAZIONE.md`, sezione 13.7 | — |
 | 5 | Pubblicazione in QA | oggi `buildspec.yml` costruisce solo la cartella della v1: un push della v2 su develop non cambia il servizio | **pronto nel codice** (22-11 notte): `cycle-validation qa` sul PC scrive il Dockerfile della v2 da quello della v1 (base, certificati), copia la libreria in `vendor/`, mette i valori aziendali nelle righe `ENV`, copia le impostazioni in `config/settings.azienda.yaml` e sposta il buildspec sulla v2. Primo passaggio con EJ200 spento. Dockerfile e buildspec scritti sul PC e controllati (22-11). Manca la pull request verso develop: COPILOT 4 | U |
 | 6 | Pulsante Confirm | per usare DR senza serial number e condition | messaggio COPILOT 6.2 | U |
 | 7 | Prova in QA: EJ200 e targhe | i dati EJ200 non escono da AWS; Redshift si raggiunge solo da AWS | dopo il punto 5, dal frontend QA | U |
@@ -152,7 +151,7 @@ aziendale descrive le due cartelle. Come è stata fatta l'importazione: storia g
     `redshift_connector` con host, porta, utente e password del secret `SECRET_NAME` (riletto
     a ogni aggiornamento dell'elenco, ogni 15 minuti), database da `REDSHIFT_DATABASE`, query
     da `MACHINES_QUERY`, 20 secondi al massimo per collegarsi. Resta possibile la Data API
-    (`MACHINES_SOURCE=data_api`, `AZIENDA.md`).
+    (`MACHINES_SOURCE=data_api`, `DOCUMENTAZIONE.md`, sezione 13.6).
   - **Sul PC** (dal 22-11): `cycle-validation macchine --v1 ..\app_cycle_validation`
     scrive `data\macchine_attive.json`; poi `run --machines data\macchine_attive.json`.
     Nella v1 il nome del secret di Redshift non è nel codice: `config.py` ha
@@ -433,7 +432,7 @@ dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora
 
 ## 8. Come funziona la v2, in breve
 
-Più dettagli in `MIGLIORIE.md` e `AZIENDA.md`.
+Più dettagli in `MIGLIORIE.md` e `DOCUMENTAZIONE.md`.
 
 1. **Legge il PDF.** Prima prova il lettore a regole fisse (il "parser"), che non costa niente;
    se non riconosce la stampa, usa il modello. Il parser è più stabile: si tiene.
@@ -736,7 +735,7 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   ha `ServiceAccessMiddleware` e `S3PermissionsSource`; la 0.3.0 no. Sul PC il `.venv` della
   v1 ha ancora la 0.3.0 (non aggiornato dai requirements): il backend v1 in locale con quel
   `.venv` non ha i pezzi che importa. La v2 installa la riga dei requirements della v1
-  (`AZIENDA.md`, sezione 7) e nel Dockerfile farà lo stesso.
+  (`DOCUMENTAZIONE.md`, sezione 13.7) e nel Dockerfile farà lo stesso.
 - **Come la v1 usa la libreria (C21).** Import: `from chatbot_ai_sdk.auth import
   AuthMiddleware, AuthSettings, IntrospectionValidator, current_user, ServiceAccessMiddleware,
   S3PermissionsSource` (in `routes.py` anche `VerifiedUser`). Chiamata:
@@ -765,7 +764,7 @@ DR) e militare (EJ200); gli altri vedono solo MOS e DR. Una sola pipeline per i 
   `validation/options` e `validation/upload` non offrono il militare; i cicli militari passano
   da `/cycle_validation/ej200/...`, come nel frontend di oggi. Senza la libreria installata la
   v2 non parte (meglio che partire senza controllo). `API_AUTH=header` resta per le prove.
-- La libreria nella v2: `uv pip install` del `.whl` della v1 (`AZIENDA.md`, sezione 7). `uv run` la
+- La libreria nella v2: `uv pip install` del `.whl` della v1 (`DOCUMENTAZIONE.md`, sezione 13.7). `uv run` la
   lascia; `uv sync` la toglierebbe (va reinstallata).
 - `GET /validation/options` della v2 mostra il pulsante militare solo a chi ha `cv_ej200` o
   `all` (per un frontend futuro; quello di oggi usa `/login/permissions`).
@@ -941,15 +940,15 @@ Con Bedrock Haiku 5.5 e la conoscenza di prova:
 | I documenti tolti restano sul PC | `robocopy` copia ma non cancella | il blocco di aggiornamento li cancella per nome |
 | `macchine`: «Nel secret mancano host o database» | il secret di Redshift della v1 non ha il database: la v1 lo scrive nella connessione | il comando lo cerca nel codice della v1; se no `--database` |
 | Un blocco Python si ferma su un modulo della libreria standard | un file con lo stesso nome (`inspect.py`) nella cartella TEMP | lo script gira in una cartella sua con `python -I` |
-| Dal frontend locale ogni POST della v2 dà 403 `Origine non ammessa.` (log: `cookie sent from a foreign origin`) | la libreria accetta solo l'`Origin` uguale a `FRONTEND_URL`; dal secret arriva l'indirizzo del servizio, in locale il frontend è `http://localhost:3000` | `FRONTEND_URL` nella configurazione CV v2 di `launch.json` (`AZIENDA.md`, sezione 7) |
+| Dal frontend locale ogni POST della v2 dà 403 `Origine non ammessa.` (log: `cookie sent from a foreign origin`) | la libreria accetta solo l'`Origin` uguale a `FRONTEND_URL`; dal secret arriva l'indirizzo del servizio, in locale il frontend è `http://localhost:3000` | `FRONTEND_URL` nella configurazione CV v2 di `launch.json` (`DOCUMENTAZIONE.md`, sezione 13.7) |
 | Nel terminale del frontend: `[vite] http proxy error: /prc/sessions/...`, `/mrb/...`, `/me/...`, `/psr/...` `ECONNREFUSED` | il frontend chiede le sessioni anche ai backend di altri progetti, che in locale non sono accesi | niente: non riguarda Cycle Validation |
 | `git status` mostra `?? ../src/`, `../tests/`, `../docs/`, `../eval/` | un blocco di aggiornamento lanciato dalla radice del repository invece che dalla cartella della v2 | tolte il 22-11 (blocco Pulizia); ora il blocco Aggiornare si ferma con `FERMO` se il terminale non è nella cartella della v2; controllare sempre che il terminale finisca con `app_cycle_validation_v2>` |
-| Avviando una voce composta: `ensure-opensearch-tunnels.ps1 ... non esiste`, exit code 1 | il task «Centralizer prerequisites» chiama uno script che sul PC non c'è | la voce «CV v2» senza il task (`AZIENDA.md`, sezione 7); oppure avviare le voci una per una |
-| Avviando «CV» partono v1 e v2 insieme | la v2 aggiunta alla voce composta della v1: tutte e due sulla porta 8003 | voce composta a parte «CV v2» (login, frontend, v2): `AZIENDA.md`, sezione 7 |
-| Avvio della v2 in locale: `Secret '...' non leggibile o non valido (ResourceNotFoundException)` | in `CV_ENV_SECRET` un nome diverso da quello della v1 (per esempio con `_v2` in fondo) | lo stesso nome di `load_secrets` della v1: `AZIENDA.md`, sezione 7 |
+| Avviando una voce composta: `ensure-opensearch-tunnels.ps1 ... non esiste`, exit code 1 | il task «Centralizer prerequisites» chiama uno script che sul PC non c'è | la voce «CV v2» senza il task (`DOCUMENTAZIONE.md`, sezione 13.7); oppure avviare le voci una per una |
+| Avviando «CV» partono v1 e v2 insieme | la v2 aggiunta alla voce composta della v1: tutte e due sulla porta 8003 | voce composta a parte «CV v2» (login, frontend, v2): `DOCUMENTAZIONE.md`, sezione 13.7 |
+| Avvio della v2 in locale: `Secret '...' non leggibile o non valido (ResourceNotFoundException)` | in `CV_ENV_SECRET` un nome diverso da quello della v1 (per esempio con `_v2` in fondo) | lo stesso nome di `load_secrets` della v1: `DOCUMENTAZIONE.md`, sezione 13.7 |
 | Nel pannello di Claude in VS Code tante chat con i nomi delle operazioni dei cicli | il Claude Agent SDK (le sessioni della v2, con Bedrock) salva ogni sessione in `~/.claude/projects` come una chat di Claude Code; il pannello le mostra. Non sono Copilot e non sono chat dell'utente | dal 23-11 la v2 passa `--no-session-persistence` (provato: nessun file scritto); le vecchie (167 chat) spostate il 23-11 in `.claude\chat-validazioni-v2`; il blocco è tolto da COPILOT |
 | In una prova della campagna `costo 0.00 $`, nel riepilogo `WARNING ERRORE_TECNICO` come ultimo esito e «mai visti 0 su 29» (25-11 mattina) | l'accesso AWS (SSO) della sera prima era scaduto: i cicli girano, ma ogni chiamata al modello fallisce; la prova contava come fatta | dal 25-11 una prova così non conta (`Trial.unusable`): la campagna si ferma con «il modello non ha risposto» e al lancio dopo la toglie e la rifà. Prima di una campagna: `aws sso login` |
-| Blocco della libreria: mancano delle classi (`libreria pronta: False`) | in `vendor` ci sono la 0.3.0 e la 0.4.0rc2; era stata presa la 0.3.0 | installare la riga dei requirements della v1, 0.4.0rc2 con `[auth]` (`AZIENDA.md`, sezione 7) |
+| Blocco della libreria: mancano delle classi (`libreria pronta: False`) | in `vendor` ci sono la 0.3.0 e la 0.4.0rc2; era stata presa la 0.3.0 | installare la riga dei requirements della v1, 0.4.0rc2 con `[auth]` (`DOCUMENTAZIONE.md`, sezione 13.7) |
 
 ## 12. Decisioni prese
 
@@ -1146,6 +1145,9 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   l'utente: una grande ingestion di tutti i documenti civili (dentro anche le schede LEAP di
   M5). Su S3 entra solo l'utente, come oggi: nessun collegamento ai documenti per gli utenti
   (deciso il 26-11 sera); la v2 legge la conoscenza e non scrive niente su S3.
+  Dopo l'ingestion: fotografia, `kb-check` e una prova della base sul grande (i manuali nuovi
+  portano confronti nuovi, quindi possibili falsi errori nuovi). Prove dal frontend il 27-11,
+  mai mentre gira una campagna (quota di Bedrock divisa). Tempo e costo dopo la produzione.
 - **26-11 sera, EJ200 (l'utente).** Anche i documenti militari andranno su S3 (AWS EU, l'ambiente
   autorizzato): l'utente li carica, fa l'ingestion EJ200 e prova la pipeline EJ200; poi Claude
   dice cosa sistemare, come per il civile. Regole che restano: ingestion e prove EJ200 **dentro
@@ -1158,9 +1160,21 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   il caricamento. Prove EJ200 sul PC solo con la conferma scritta di chi decide sulla sicurezza.
 - **26-11 sera, idee H (MIGLIORIE 10.4):** all'utente piacciono tutte (H1-H14). Si fanno dopo la
   produzione; prima le migliorie I8 e I9 e la campagna finale.
-  Dopo l'ingestion: fotografia, `kb-check` e una prova della base sul grande (i manuali nuovi
-  portano confronti nuovi, quindi possibili falsi errori nuovi). Prove dal frontend il 27-11,
-  mai mentre gira una campagna (quota di Bedrock divisa). Tempo e costo dopo la produzione.
+- **27-11 mattina, campagna e accesso scaduto.** Rilanciata la campagna senza `aws sso login`:
+  la prima prova (`lingue_tra_loro` sul grande, prova 2 di 3) ha dato 142 controlli in errore
+  tecnico e costo 0.00 $. La campagna l'ha buttata da sola e si è fermata; le prove già fatte
+  restano. Rimedio: `aws sso login` e lo stesso blocco. Regola per staccarsi (rete o PC): aspettare
+  la riga `Prova «...»`, Ctrl+C, poi `aws sso login` e rilanciare: riparte da dove era (il
+  risultato di una prova si salva solo alla fine; quella a metà si rifà). Staccare la rete con la
+  prova in corso può dare pochi «cicli non eseguiti» e scartare una variante buona.
+- **27-11, pulizia dei documenti e del codice (richiesta dell'utente).** `AZIENDA.md` tolto: le
+  parti ancora utili (variabili d'ambiente, avvio in locale con login, formato della conoscenza,
+  installazione e prima prova, regole da rivedere, «se qualcosa non va») sono in
+  `DOCUMENTAZIONE.md` (sezioni 10.4, 13.6, 13.7, 19, 20, 21); la parte sugli esperimenti con i
+  casi rivisti è riassunta in 15.2. In `docs/` restano quattro file. `MEMORIA.md` non si
+  accorcia: traccia tutto quello che è stato fatto. Il codice lo rivedono quattro agenti di
+  revisione, una zona ciascuno, con la regola «funziona come prima» (formati delle prove,
+  impostazioni, prompt, rotte e testi citati in `COPILOT.md` intoccabili).
 
 ## 13. Da correggere nell'indice (knowledge-index)
 
