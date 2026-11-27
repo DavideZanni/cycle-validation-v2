@@ -1265,6 +1265,152 @@ def _split(value: str | None) -> list[str] | None:
     return [item.strip() for item in value.split(",") if item.strip()] if value else None
 
 
+def _narrowed(
+    campaign: CampaignFile,
+    varianti: str | None,
+    modelli: str | None,
+    insiemi: str | None,
+    ripetizioni: int | None,
+    grande: str | None,
+    massimo_dollari: float | None,
+) -> CampaignFile:
+    """La campagna del file ristretta (o cambiata) dalle opzioni di `eval campagna`."""
+    updates: dict[str, Any] = {}
+    if (names := _split(varianti)) is not None:
+        updates["varianti"] = names
+    if (chosen := _split(modelli)) is not None:
+        unknown = [m for m in chosen if m not in campaign.modelli]
+        if unknown:
+            raise CycleValidationError(
+                f"Modelli non nel file: {', '.join(unknown)}. Ci sono: "
+                f"{', '.join(campaign.modelli)}."
+            )
+        updates["modelli"] = {m: campaign.modelli[m] for m in chosen}
+    if (set_names := _split(insiemi)) is not None:
+        updates["insiemi"] = set_names
+    if ripetizioni is not None:
+        updates["ripetizioni"] = ripetizioni
+    if grande is not None:
+        updates["grande"] = grande
+    if massimo_dollari is not None:
+        updates["massimo_dollari"] = massimo_dollari
+    return CampaignFile.model_validate({**campaign.model_dump(), **updates})
+
+
+def _print_plan(
+    campaign: CampaignFile,
+    models: list[str],
+    all_models: list[str],
+    runs: Path,
+    sets: dict[str, _CampaignSet],
+    kb: Path,
+) -> None:
+    """`eval campagna --piano`: cosa farebbe, senza lanciare niente."""
+    typer.echo(
+        f"Piano (gratis, niente viene lanciato). Piccolo: {len(sets['piccolo'].entries)} "
+        f"cicli e copie; grande: {len(sets['grande'].entries)} cicli. Conoscenza: {kb.name}."
+    )
+    for model in models:
+        for set_name in campaign.insiemi:
+            steps = plan(campaign, runs, set_name=set_name, model=model, order=all_models)
+            note = (
+                " (le varianti del grande dipendono dal piccolo: qui quelle che si tengono adesso)"
+                if set_name == "grande" and campaign.grande == "se_si_tiene"
+                else ""
+            )
+            typer.echo(f"{model} · {set_name}{note}:")
+            for step in steps:
+                state = f"{step.missing} da fare" if step.missing else "già fatte"
+                typer.echo(f"  {step.name}: {state} → {step.folder.as_posix()}")
+
+
+def _drop_unusable(
+    campaign: CampaignFile, models: list[str], all_models: list[str], runs: Path
+) -> None:
+    """Le prove in cui il modello non ha risposto (accesso scaduto) non contano: si tolgono e
+    la campagna le rifà."""
+    for model in models:
+        for set_name in campaign.insiemi:
+            folder = folder_for(all_models, model, set_name, runs)
+            dropped = unusable_trials(folder)
+            for bad in dropped:
+                shutil.rmtree(bad, ignore_errors=True)
+                typer.echo(f"Tolta la prova non valida (il modello non aveva risposto): {bad.name}")
+            if dropped:
+                write_summary(folder)
+
+
+def _run_campaign(
+    campaign: CampaignFile,
+    models: list[str],
+    all_models: list[str],
+    runs: Path,
+    sets: dict[str, _CampaignSet],
+    kb: Path,
+    config: Path | None,
+    outcome: Outcome,
+) -> None:
+    """Le prove che mancano, in fila. Si ferma con `_CampaignStop` (tetto di spesa, prova che
+    non misura niente). Il piano del grande si fa dopo il piccolo: dipende da com'è andato."""
+    for model in models:
+        for set_name in campaign.insiemi:
+            for step in plan(campaign, runs, set_name=set_name, model=model, order=all_models):
+                for _ in range(step.missing):
+                    if outcome.spent >= campaign.massimo_dollari:
+                        outcome.stopped = f"raggiunto il tetto di {campaign.massimo_dollari:.0f} $"
+                        raise _CampaignStop
+                    settings, proposal = _campaign_settings(
+                        step.name, campaign.modelli[model], config
+                    )
+                    typer.echo(
+                        f"=== {model} · {set_name} · {step.name} · prova "
+                        f"{done(step.folder, step.name) + 1} di {campaign.ripetizioni} · "
+                        f"spesa finora {outcome.spent:.2f} $"
+                    )
+                    chosen_set = sets[set_name]
+                    trial, folder = _run_trial(
+                        chosen_set.entries,
+                        chosen_set.known,
+                        settings,
+                        "auto",
+                        kb,
+                        step.name,
+                        proposal,
+                        step.folder,
+                    )
+                    _count_trial(trial, folder, step, outcome)
+
+
+def _count_trial(trial: Trial, folder: Path, step: Step, outcome: Outcome) -> None:
+    """Conta una prova della campagna. Una prova che non misura niente si toglie (non deve
+    contare come fatta) e ferma la campagna."""
+    outcome.spent += trial.cost_usd
+    outcome.run += 1
+    if trial.cycles and trial.failures == len(trial.cycles):
+        # nessun ciclo è partito (accesso AWS scaduto, rete)
+        shutil.rmtree(folder, ignore_errors=True)
+        write_summary(step.folder)
+        outcome.stopped = (
+            "nessun ciclo eseguito nell'ultima prova (accesso AWS scaduto? `aws sso login`)"
+        )
+        raise _CampaignStop
+    if trial.unusable:
+        # il modello non ha risposto: la prova non misura niente
+        shutil.rmtree(folder, ignore_errors=True)
+        write_summary(step.folder)
+        outcome.stopped = (
+            f"il modello non ha risposto ({trial.model_failures} "
+            "controlli con errore tecnico; accesso AWS scaduto? "
+            f"`aws sso login`). Primo errore: {trial.technical_detail or '-'}"
+        )
+        raise _CampaignStop
+    if trial.failures:
+        outcome.errors.append(
+            f"{step.model} · {step.set_name} · {step.name}: {trial.failures} cicli non "
+            "eseguiti (la variante risulterà scartata)"
+        )
+
+
 @eval_app.command("campagna")
 def eval_campaign(
     file: Annotated[Path, typer.Option("--file", help="Elenco degli esperimenti.")] = CAMPAIGN_FILE,
@@ -1304,27 +1450,9 @@ def eval_campaign(
     contiene comunque tutti i modelli del file con le prove che ci sono. Il tetto di spesa vale
     per ogni terminale."""
     try:
-        campaign = load_campaign(file)
-        updates: dict[str, Any] = {}
-        if (names := _split(varianti)) is not None:
-            updates["varianti"] = names
-        if (chosen := _split(modelli)) is not None:
-            unknown = [m for m in chosen if m not in campaign.modelli]
-            if unknown:
-                raise CycleValidationError(
-                    f"Modelli non nel file: {', '.join(unknown)}. Ci sono: "
-                    f"{', '.join(campaign.modelli)}."
-                )
-            updates["modelli"] = {m: campaign.modelli[m] for m in chosen}
-        if (set_names := _split(insiemi)) is not None:
-            updates["insiemi"] = set_names
-        if ripetizioni is not None:
-            updates["ripetizioni"] = ripetizioni
-        if grande is not None:
-            updates["grande"] = grande
-        if massimo_dollari is not None:
-            updates["massimo_dollari"] = massimo_dollari
-        campaign = CampaignFile.model_validate({**campaign.model_dump(), **updates})
+        campaign = _narrowed(
+            load_campaign(file), varianti, modelli, insiemi, ripetizioni, grande, massimo_dollari
+        )
         # le cartelle del primo modello del file restano quelle di sempre anche se lo si salta
         all_models = list(load_campaign(file).modelli)
         models = list(campaign.modelli)
@@ -1338,9 +1466,6 @@ def eval_campaign(
     except (CycleValidationError, OSError, ValueError) as error:
         raise _fail(error) from error
     outcome = Outcome()
-
-    def steps_for(model: str, set_name: str) -> list[Step]:
-        return plan(campaign, runs, set_name=set_name, model=model, order=all_models)
 
     # lanciata solo per una parte (un terminale per modello o per insieme) scrive un report suo:
     # due terminali non si sovrascrivono
@@ -1372,91 +1497,11 @@ def eval_campaign(
         typer.echo(f"Report scritto (niente lanciato): {report}")
         return
     if piano:
-        typer.echo(
-            f"Piano (gratis, niente viene lanciato). Piccolo: {len(sets['piccolo'].entries)} "
-            f"cicli e copie; grande: {len(sets['grande'].entries)} cicli. Conoscenza: {kb.name}."
-        )
-        for model in models:
-            for set_name in campaign.insiemi:
-                steps = steps_for(model, set_name)
-                note = (
-                    " (le varianti del grande dipendono dal piccolo: qui quelle che si tengono "
-                    "adesso)"
-                    if set_name == "grande" and campaign.grande == "se_si_tiene"
-                    else ""
-                )
-                typer.echo(f"{model} · {set_name}{note}:")
-                for step in steps:
-                    state = f"{step.missing} da fare" if step.missing else "già fatte"
-                    typer.echo(f"  {step.name}: {state} → {step.folder.as_posix()}")
+        _print_plan(campaign, models, all_models, runs, sets, kb)
         return
-    # le prove in cui il modello non ha risposto (accesso scaduto) non contano: si tolgono e
-    # la campagna le rifà
-    for model in models:
-        for set_name in campaign.insiemi:
-            folder = folder_for(all_models, model, set_name, runs)
-            dropped = unusable_trials(folder)
-            for bad in dropped:
-                shutil.rmtree(bad, ignore_errors=True)
-                typer.echo(f"Tolta la prova non valida (il modello non aveva risposto): {bad.name}")
-            if dropped:
-                write_summary(folder)
+    _drop_unusable(campaign, models, all_models, runs)
     try:
-        for model in models:
-            for set_name in campaign.insiemi:
-                for step in steps_for(model, set_name):
-                    for _ in range(step.missing):
-                        if outcome.spent >= campaign.massimo_dollari:
-                            outcome.stopped = (
-                                f"raggiunto il tetto di {campaign.massimo_dollari:.0f} $"
-                            )
-                            raise _CampaignStop
-                        settings, proposal = _campaign_settings(
-                            step.name, campaign.modelli[model], config
-                        )
-                        typer.echo(
-                            f"=== {model} · {set_name} · {step.name} · prova "
-                            f"{done(step.folder, step.name) + 1} di {campaign.ripetizioni} · "
-                            f"spesa finora {outcome.spent:.2f} $"
-                        )
-                        chosen_set = sets[set_name]
-                        trial, folder = _run_trial(
-                            chosen_set.entries,
-                            chosen_set.known,
-                            settings,
-                            "auto",
-                            kb,
-                            step.name,
-                            proposal,
-                            step.folder,
-                        )
-                        outcome.spent += trial.cost_usd
-                        outcome.run += 1
-                        if trial.cycles and trial.failures == len(trial.cycles):
-                            # nessun ciclo è partito (accesso AWS scaduto, rete): la prova non
-                            # vale e non deve contare come fatta
-                            shutil.rmtree(folder, ignore_errors=True)
-                            write_summary(step.folder)
-                            outcome.stopped = (
-                                "nessun ciclo eseguito nell'ultima prova (accesso AWS scaduto? "
-                                "`aws sso login`)"
-                            )
-                            raise _CampaignStop
-                        if trial.unusable:
-                            # il modello non ha risposto: la prova non misura niente
-                            shutil.rmtree(folder, ignore_errors=True)
-                            write_summary(step.folder)
-                            outcome.stopped = (
-                                f"il modello non ha risposto ({trial.model_failures} "
-                                "controlli con errore tecnico; accesso AWS scaduto? "
-                                f"`aws sso login`). Primo errore: {trial.technical_detail or '-'}"
-                            )
-                            raise _CampaignStop
-                        if trial.failures:
-                            outcome.errors.append(
-                                f"{model} · {set_name} · {step.name}: {trial.failures} cicli non "
-                                "eseguiti (la variante risulterà scartata)"
-                            )
+        _run_campaign(campaign, models, all_models, runs, sets, kb, config, outcome)
     except _CampaignStop:
         pass
     except (CycleValidationError, OSError, ValueError) as error:
