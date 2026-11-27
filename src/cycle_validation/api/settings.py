@@ -8,9 +8,9 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from cycle_validation.errors import ConfigError
+from cycle_validation.kb.ej200 import DEFAULT_CATALOG_KEY as DEFAULT_EJ200_CATALOG_KEY
 from cycle_validation.kb.pointer import DEFAULT_CIVIL_POINTER, DEFAULT_EJ200_POINTER
 
-DEFAULT_EJ200_CATALOG_KEY = "Manufacturing AI/exports/ej200_publication/catalog.json"
 _TRUE = {"1", "true", "yes", "on", "si", "sì"}
 _FALSE = {"0", "false", "no", "off", ""}
 _REQUIRED = ("BUCKETNAME", "REGION_NAME", "FRONTEND_URL")

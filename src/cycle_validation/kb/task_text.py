@@ -20,6 +20,7 @@ finisce al prossimo SUBTASK o al titolo di un altro task.
 import re
 from collections.abc import Sequence
 
+from cycle_validation.kb.documents import PAGE_MARKER
 from cycle_validation.text import normalize_code, normalize_quote
 
 _PREFIX = re.compile(
@@ -28,7 +29,6 @@ _PREFIX = re.compile(
 # Virgola dopo la sezione (`72-00-01, REPAIR 002`): si toglie prima del confronto.
 _SECTION_COMMA = re.compile(r"(\d{2}-\d{2}-\d{2})\s*,")
 _TOC = re.compile(r"(?:\.\s*){4,}\d+\s*$")
-_PAGE_MARKER = re.compile(r"^<!--\s*page\s+\d+\s*-->\s*$")
 # Titolo di un task qualsiasi, per capire dove finisce quello cercato.
 _ANY_TASK = re.compile(
     _PREFIX.pattern
@@ -38,14 +38,15 @@ _ANY_TASK = re.compile(
 # Si cercano nel testo solo codici con la forma di un task, nelle due forme sopra: un codice
 # di documento (o una parola) non deve diventare un task di una riga.
 _TASK_SHAPE = re.compile(r"\d{2}-\d{2}-\d{2}(?:-\d{3}-\d{3}|[A-Z]+\d{3})")
+# Sezione ATA (`72-00-01`): da sola, in una riga o all'inizio di un codice di task.
 _SECTION_SHAPE = re.compile(r"\d{2}-\d{2}-\d{2}")
 
 
-def _code_pattern(wanted: str) -> re.Pattern[str]:
-    """Il codice (già normalizzato, senza spazi) con spazi ammessi tra un carattere e l'altro,
-    seguito da qualcosa che non continua il codice."""
+def _code_body(wanted: str) -> str:
+    """Espressione regolare del codice (già normalizzato, senza spazi) con spazi ammessi tra
+    un carattere e l'altro, seguito da qualcosa che non continua il codice."""
     body = r"\s*".join(re.escape(char) for char in wanted.casefold())
-    return re.compile(rf"{body}(?![0-9a-z]|-\d)")
+    return rf"{body}(?![0-9a-z]|-\d)"
 
 
 def _clean(line: str) -> str:
@@ -66,9 +67,6 @@ def _opens(line: str, pattern: re.Pattern[str]) -> bool:
 _ANY_SECTION = re.compile(_PREFIX.pattern + r"\d{2}-\d{2}-\d{2}\s+[A-Za-z]", re.IGNORECASE)
 
 
-_SECTION_IN_LINE = re.compile(r"\d{2}-\d{2}-\d{2}")
-
-
 def _opens_other(
     line: str, pattern: re.Pattern[str], sections: bool = False, section: str | None = None
 ) -> bool:
@@ -78,7 +76,7 @@ def _opens_other(
     if not heading or _TOC.search(line) or _opens(line, pattern):
         return False
     if section is not None:
-        found = _SECTION_IN_LINE.search(line)
+        found = _SECTION_SHAPE.search(line)
         return found is None or found.group(0) != section
     return True
 
@@ -91,7 +89,7 @@ def find_task_in_text(
     if not is_task_code(task, sections=sections):
         return None
     wanted = normalize_code(task)
-    pattern = _code_pattern(wanted)
+    pattern = re.compile(_code_body(wanted))
     section = wanted if _SECTION_SHAPE.fullmatch(wanted) else None
     best: tuple[int, int] | None = None
     index = 0
@@ -103,11 +101,7 @@ def find_task_in_text(
         end = index + 1
         while end < len(lines) and not _opens_other(lines[end], pattern, sections, section):
             end += 1
-        last = end
-        while last > start + 1 and (
-            not lines[last - 1].strip() or _PAGE_MARKER.match(lines[last - 1])
-        ):
-            last -= 1
+        last = _last_line(lines, start, end)
         if best is None or last - start > best[1] - best[0] + 1:
             best = (start + 1, last)
         index = end
@@ -124,6 +118,15 @@ _SUBTASK = re.compile(
 )
 
 
+def _last_line(lines: Sequence[str], start: int, end: int) -> int:
+    """L'ultima riga (da 1) del blocco che va dall'indice `start` a `end` escluso, senza le
+    righe vuote e i marcatori di pagina in fondo. La prima riga resta sempre."""
+    last = end
+    while last > start + 1 and (not lines[last - 1].strip() or PAGE_MARKER.match(lines[last - 1])):
+        last -= 1
+    return last
+
+
 def _find_subtask(lines: Sequence[str], pattern: re.Pattern[str]) -> tuple[int, int] | None:
     """Righe del subtask del `pattern`: dalla riga `SUBTASK <codice>` al prossimo SUBTASK o
     titolo di task."""
@@ -136,17 +139,8 @@ def _find_subtask(lines: Sequence[str], pattern: re.Pattern[str]) -> tuple[int, 
         end = index + 1
         while end < len(lines) and not (_SUBTASK.match(lines[end]) or _ANY_TASK.match(lines[end])):
             end += 1
-        last = end
-        while last > index + 1 and (
-            not lines[last - 1].strip() or _PAGE_MARKER.match(lines[last - 1])
-        ):
-            last -= 1
-        return (index + 1, last)
+        return (index + 1, _last_line(lines, index, end))
     return None
-
-
-# Sezione ATA all'inizio di un codice di task (`72-00-01`).
-_SECTION = re.compile(r"^\d{2}-\d{2}-\d{2}")
 
 
 def is_task_code(task: str, *, sections: bool = False) -> bool:
@@ -164,8 +158,7 @@ def lines_with(lines: Sequence[str], code: str, limit: int = 3) -> list[int]:
     wanted = normalize_code(code).casefold()
     if not wanted:
         return []
-    body = r"\s*".join(re.escape(char) for char in wanted)
-    pattern = re.compile(rf"(?<![0-9a-z]){body}(?![0-9a-z]|-\d)")
+    pattern = re.compile(rf"(?<![0-9a-z]){_code_body(wanted)}")
     found: list[int] = []
     for number, line in enumerate(lines, start=1):
         if pattern.search(_clean(line)):
@@ -177,5 +170,5 @@ def lines_with(lines: Sequence[str], code: str, limit: int = 3) -> list[int]:
 
 def task_section(task: str) -> str | None:
     """La sezione ATA del task (`72-00-01 REPAIR 002` → `72-00-01`), se c'è."""
-    match = _SECTION.match(normalize_code(task))
+    match = _SECTION_SHAPE.match(normalize_code(task))
     return match.group(0) if match else None
