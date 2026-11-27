@@ -18,19 +18,26 @@ Seconda prova: piccolo 41 su 45, grande 31 su 31, 0 falsi errori. P15: i 4 da ve
 falsi errori di MG47, tutti dallo stesso testo («sabbiatura» in una condizione, «replace» per
 «ripristinare»): corretti, attesi 0.
 
-**Prossime, in ordine (guadagno più alto prima):**
+**Prossime, in ordine (27-11 notte, dopo il banco):** solo quelle che si possono fare davvero
+e che migliorano qualcosa di misurabile.
 
-1. La campagna `quasi_finale` (passo 4h), dopo una prova senza modello con 0 e 0: chiude il
-   cancello A di `V1_CONTRO_V2.md`.
-2. MG73 grande ingestion: la classe dell'acido (f355dc3c 040, 5ff17062 040, gli unici errori
-   della v1 che la v2 non trova) e meno WARNING `FONTE_ASSENTE`.
-3. MG83 meno avvisi per ciclo: serve al cancello C (≤ 5 per ciclo). Si parte dalla tabella
-   «WARNING per motivo» del riepilogo della campagna.
-4. MG42 prova EJ200 (cancello B).
-5. MG48 task di un altro stadio (l'unico controllo che la v1 fa e la v2 no): prima una domanda
-   a Copilot su come l'indice scrive lo stadio nei titoli dei task.
-6. MG62 `kb-check` nell'ingestion e MG54 chiamata diretta a Bedrock (produzione: sicurezza e
-   metà del tempo).
+1. La campagna `quasi_finale` (passo 4h, utente, circa 2,5 $): chiude il cancello A e dà i
+   numeri per i punti 2 e 3.
+2. MG83 meno avvisi per ciclo (Claude, dai numeri della campagna): cancello C (≤ 5 per ciclo;
+   oggi circa 5 nel piccolo e 10 nel grande). Si prova gratis con `eval senza-modello`.
+3. MG49 errori più stabili (Claude, dalla campagna): gli errori che escono 2 volte su 3.
+4. MG48 task di un altro stadio (una domanda a Copilot, poi Claude): l'unico controllo che la
+   v1 fa e la v2 no. Si misura con un tipo nuovo nel banco.
+5. MG73 grande ingestion, con MG74 (utente con Copilot, ore di lavoro): la classe dell'acido
+   (f355dc3c 040, 5ff17062 040, gli unici errori della v1 che la v2 non trova) e meno avvisi
+   «fonte assente».
+6. MG42 prova EJ200 (utente, passo 4f): cancello B.
+7. Dopo la presentazione, per la produzione: MG54 (metà del tempo), MG62 (`kb-check`
+   nell'ingestion), MG58 (risultato già calcolato), MG63 (prova ombra in QA).
+
+Da non fare adesso: MG46 (già vista: l'unico caso lo trova la scheda), MG57 (rischio di falsi
+errori senza la conoscenza completa), MG51 (collega), MG52, MG55, MG56, MG59-MG61, MG64-MG72
+(poco guadagno o dipendono da altre persone o dalla produzione).
 
 | Sigla | Miglioria | Cosa fa | Stato | Imp. | Era |
 |---|---|---|:-:|:-:|---|
