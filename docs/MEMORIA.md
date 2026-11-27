@@ -59,6 +59,28 @@ sezione 1 di `COPILOT.md`):
   (COPILOT passo 5). Per la presentazione basta la demo in locale con la configurazione
   scelta.
 
+**v1 contro v2, in breve** (27-11 sera, dalla campagna finale e da `docs/CONFRONTO_V1_14_CICLI.md`;
+numeri della v2 da confermare con i riepiloghi ricalcolati):
+
+| Dove | Meglio | Perché |
+|---|---|---|
+| Codici cambiati (task accanto all'operazione, scheda, macchina) | v1 | li confronta con l'indice delle schede, il registro delle macchine e il task giusto; la v2 controlla solo che esistano |
+| Documenti | v1 | ha la classe dell'etchant (capitolo 70 dell'SPM) che la v2 non ha nella conoscenza |
+| Falsi errori | **v2** | v1: 6 sulle 4 stampe giuste, più 2; v2: 0 contati (resta il P7 della 050) |
+| Testo in italiano | **v2** | la v1 legge l'inglese: perde 3 cambi fatti solo in italiano |
+| Stampe che legge | **v2** | la v1 si ferma sulle 3 A6 (vuole serial e condition) e non carica 298bc28e |
+| Prove di quello che dice | **v2** | ogni ERRATO ha la frase del manuale ritrovata dal programma; dove non può controllare lo dice invece di OK |
+| Errori tra le due lingue (negazioni, limiti al contrario) | **v2** | trova anche 2 errori veri in stampe che si credevano giuste (737dec71 060, 04ecaabe 030) |
+
+**Per rendere la v2 migliore della v1** (proposte del 27-11 sera, in ordine): (1) H17, il task
+accanto all'operazione contro quello della testata; (2) capire perché i limiti cambiati in una
+lingua nella 010 (5ff17062, f355dc3c, 38960731) non li trova il controllo delle lingue: forse
+la pagina a due colonne; (3) H18, la scheda coerente con l'operazione; (4) H19, la stessa
+operazione con due macchine, e in QA il registro delle macchine attive acceso; (5) togliere
+il falso errore P7 (dopo la P12); (6) nella grande ingestion i documenti che ha la v1 e la v2
+no (capitolo 70 dell'SPM con le classi dell'etchant, indice delle schede con materiale e
+motore); (7) `finale` nella base; (8) H15, due tipi di WARNING, per la presentazione.
+
 **Come l'utente vuole le risposte** (detto il 27-11): le cose da fare scritte in modo preciso e
 puntuale, in ordine, ognuna con il paragrafo di `COPILOT.md`, *Deve uscire* e *Mandami*.
 
