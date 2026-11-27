@@ -769,3 +769,52 @@ def test_an_operation_that_is_not_an_inspection_is_unchanged(tmp_path: Path) -> 
     with_flag, _ = plan_operation_checks(context, on, "s")
     without, _ = plan_operation_checks(context, SETTINGS, "s")
     assert with_flag[0].request.prompt == without[0].request.prompt
+
+
+def test_an_inspection_gets_the_engine_inspection_task_cited_with_its_full_code(
+    tmp_path: Path,
+) -> None:
+    """Stampa MOS del 27-11: la nota della testata cita prima il task SPM della raccordatura,
+    poi il task d'ispezione delle pale con il codice completo (gruppo 200). Un'ispezione che
+    cita solo il task SPM dei liquidi penetranti riceve anche l'ispezione del motore."""
+    from cycle_validation.kb.memory import IndexedKnowledgeBase
+    from cycle_validation.kb.port import DocumentInfo
+
+    spm = tmp_path / "spm.md"
+    spm.write_text(
+        "<!-- page 1 -->\n70-21-00-110-030 Indicazioni\nLineare: lunghezza 3 volte la larghezza.\n"
+        "70-11-00-350-002 Raccordatura\nRaccordare.\n",
+        "utf-8",
+    )
+    engine = tmp_path / "motore.md"
+    engine.write_text(
+        "<!-- page 1 -->\nTASK 72-11-31-200-801\nIspezione delle pale.\nLineare: lunghezza "
+        "oltre 4 volte la larghezza.\n",
+        "utf-8",
+    )
+    kb = IndexedKnowledgeBase(
+        "v",
+        documents=[
+            DocumentInfo(key="SPM_DEMO", path=spm, code="SPM-DEMO", kind="SPM"),
+            DocumentInfo(key="MOTORE_DEMO", path=engine, code="MOTORE-DEMO"),
+        ],
+    )
+    blending = op("RACCORDARE", codes=["70-11-00-350-002", "72-11-31-200-801"])
+    fpi = op("ISPEZIONE FPI: INDICAZIONE LINEARE OLTRE 4 VOLTE", codes=["70-21-00-110-030"])
+    fpi = fpi.model_copy(update={"operation_number": "050"})
+    cycle = Cycle(
+        engine_model="GENX-1B",
+        # come la legge il parser oggi: il manuale del motore con il primo task della nota
+        sources=[Source(manual="MOTORE-DEMO", task="70-11-00-350-002", repair_code="R-01")],
+        operations=[blending, fpi],
+    )
+    context = CheckContext(cycle, kb, StaticMachineRegistry([]), profile("mos"))
+    on = SETTINGS.model_copy(update={"inspection_source": True})
+    jobs, _ = plan_operation_checks(context, on, "s")
+    job = next(job for job in jobs if "FPI" in job.request.prompt)
+    assert [item.document.key for item in job.locations] == ["SPM_DEMO", "MOTORE_DEMO"]
+    assert "oltre 4 volte" in job.request.prompt
+    assert "sezione d'ispezione del manuale del motore" in job.request.prompt
+    off, _ = plan_operation_checks(context, SETTINGS, "s")
+    off_job = next(job for job in off if "FPI" in job.request.prompt)
+    assert [item.document.key for item in off_job.locations] == ["SPM_DEMO"]

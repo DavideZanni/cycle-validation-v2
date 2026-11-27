@@ -467,7 +467,12 @@ magnetoscopia, inspect…) che hanno già un testo di riferimento, si aggiunge l
 d'ispezione del manuale del motore: per ogni fonte del ciclo che cita una sezione fuori dal
 capitolo 70 (`72-00-01 REPAIR 001`), il task `72-00-01 INSPECTION 001` (fino a 003) nello stesso
 manuale (`resolve/civil.inspection_locations`, con la ricerca nel testo se l'indice non ha quel
-titolo). Alla domanda si aggiunge una nota (`INSPECTION_NOTE`): per i criteri d'ispezione vale
+titolo); in più i **task d'ispezione con il codice completo** (terzo gruppo 2xx, per esempio
+`72-00-01-200-801`, fuori dal capitolo 70: `is_inspection_task`) citati dalle fonti o da una
+qualsiasi operazione del ciclo, cercati nei manuali delle fonti. Questa seconda forma è quella
+delle stampe MOS (prove dal frontend del 27-11): la prima operazione cita il task SPM della
+raccordatura e il task d'ispezione delle pale, l'ispezione con liquidi penetranti cita solo il
+task SPM. Alla domanda si aggiunge una nota (`INSPECTION_NOTE`): per i criteri d'ispezione vale
 la sezione del motore, non le definizioni generali di un manuale di pratiche standard. Nasce da
 P7 e P8: la stampa giusta 04ecaabe op. 050 e il ciclo vero 2d724fba op. 050 dicono «4 volte»
 come il manuale del motore, la v2 confrontava solo con il «3 volte» generico dell'SPM.
@@ -831,7 +836,7 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.general_definitions_note` | `false` | nella domanda al modello: una differenza solo con una **definizione generale** del manuale di pratiche standard (per esempio «indicazione lineare = 3 volte la larghezza») dà `non_verificabile`, non `contraddetto`; resta `contraddetto` con un limite specifico o con una lingua diversa dall'altra. Variante `definizioni_generali` (26-11) |
 | `agent.compare_languages` | `false` | una sessione corta per ogni operazione scritta in due lingue: il modello confronta l'italiano e l'inglese **tra loro**, senza manuale. Una differenza (negazione, limite, materiale, valore) con le citazioni ritrovate e confermata è ERRATO `INCOERENZA_LINGUE`. Variante `lingue_tra_loro` (26-11 sera) |
 | `agent.special_process_sheet` | `true` (dal 27-11) | processo speciale senza scheda: WARNING `SCHEDA_FORSE_MANCANTE` invece di N/A (sezione 6.4). Regola P6, I9 |
-| `agent.inspection_source` | `false` | nelle ispezioni anche la sezione INSPECTION del manuale del motore, con una nota (sezione 6.5). Variante `fonte_ispezione` (I8, 27-11) |
+| `agent.inspection_source` | `false` | nelle ispezioni anche la sezione INSPECTION o i task d'ispezione (gruppo 200) del manuale del motore, con una nota (sezione 6.5). Variante `fonte_ispezione` (I8, 27-11) |
 | `agent.compare_languages_strict` | `false` | con `compare_languages`: solo negazioni e limiti al contrario, ritrovati dal codice nelle parole copiate (sezione 6.5). Variante `finale` (I15, 27-11) |
 | `agent.dr_procedure_always` | `true` (dal 27-11) | nei cicli DR la procedura della D.R. va al modello insieme ai task trovati, con una nota: per quel pezzo vale più del manuale. Variante `procedura_dr` (26-11 sera), nella base dopo la campagna del 26-27-11 |
 | `agent.confirm_contradiction` | 2 | sessioni di conferma per ogni ERRATO del modello |

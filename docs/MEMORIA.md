@@ -1231,6 +1231,25 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   della v1. Da confermare che la foto della QA sia della stessa stampa. Le WARNING della v2 sono
   oneste (la v1 dice OK senza aver controllato), ma sono tante: idea in MIGLIORIE 10.4 (H15).
 
+- **27-11, seconda prova dal frontend (12:15): stampa MOS A1 dello stadio 6** (senza errori
+  messi apposta; dal falso errore della 050 sembra il ciclo vero 2d724fba: da confermare con la
+  P11). **In locale:** 1 ERRATO, sulla 050, ed è il **falso errore noto della P7** («4 volte»
+  della stampa contro il «3 volte» generico dell'SPM); 2 OK, 6 WARNING «il testo non decide»,
+  fonte OK. **In QA:** tutto OK tranne 1 ERRORE sulla **scheda della 040** (il task del
+  capitolo 70 scritto accanto alla scheda «non esiste», ne propone un altro con la classe): la
+  v2 lì dice OK e quel task non lo controlla. Chi ha ragione: domanda P11 a Copilot.
+  **Scoperta per I8:** nelle stampe MOS l'ispezione del manuale del motore **non** è una
+  sezione «INSPECTION 001» ma un **task con il codice completo del gruppo 200** (ispezione
+  delle pale), citato nella 005 e nella 010 insieme al task SPM della raccordatura; la 050
+  (liquidi penetranti) cita solo il task SPM. Con l'ipotesi del 27-11 mattina `fonte_ispezione`
+  non avrebbe aggiunto niente. **Corretto subito** (prima della campagna finale): I8 prende
+  anche i task d'ispezione con il codice completo citati in qualsiasi punto del ciclo, con un
+  test. La base non cambia. **Altra cosa vista:** la fonte della v2 è il manuale del motore
+  con il **primo** task della nota della testata, che nelle MOS sembra il task SPM (la riga
+  Sources mostra il manuale del motore con il task SPM; la QA mostra due righe, una per
+  manuale). Le operazioni senza task ricevono quel task SPM. Da cambiare dopo la produzione,
+  con una variante (MIGLIORIE 10.4, H16); prima la P11 dice com'è fatta la nota.
+
 ## 13. Da correggere nell'indice (knowledge-index)
 
 **Titoli dei task GE.** `regole.json` (`codice_task`) riconosce solo il codice completo

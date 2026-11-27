@@ -68,6 +68,7 @@ from cycle_validation.resolve.civil import (
     cited_documents,
     context_locations,
     inspection_locations,
+    is_inspection_task,
     resolve_operation,
     whole_document,
 )
@@ -183,7 +184,7 @@ def is_inspection(operation: Operation) -> bool:
 
 
 def _has_inspection(locations: Sequence[TaskLocation]) -> bool:
-    return any("INSPECTION" in item.task.upper() for item in locations)
+    return any(is_inspection_task(item.task) for item in locations)
 
 
 def _languages(operation: Operation, settings: AgentSettings) -> tuple[str, str] | None:

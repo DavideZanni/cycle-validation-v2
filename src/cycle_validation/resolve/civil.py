@@ -224,9 +224,16 @@ _INSPECTION_NUMBERS = ("001", "002", "003")
 
 
 def inspection_locations(cycle: Cycle, kb: KnowledgeBase) -> tuple[TaskLocation, ...]:
-    """La sezione d'ispezione del manuale del motore per ogni sezione citata dalle fonti del
-    ciclo (`72-00-01 REPAIR 001` → `72-00-01 INSPECTION 001`, nello stesso manuale). Il
-    capitolo 70 (pratiche standard) non ha una sezione d'ispezione del motore."""
+    """Le ispezioni del manuale del motore citate dal ciclo (I8), in due forme:
+
+    - la sezione d'ispezione di ogni sezione citata dalle fonti (`72-00-01 REPAIR 001` →
+      `72-00-01 INSPECTION 001`, nello stesso manuale);
+    - i task d'ispezione con il codice completo (gruppo 200: `72-00-01-200-801`) citati dalle
+      fonti o da una qualsiasi operazione del ciclo (stampe MOS del 27-11: la nota della
+      testata e la prima operazione citano il task SPM della raccordatura **e** il task
+      d'ispezione delle pale), cercati nei manuali delle fonti.
+
+    Il capitolo 70 (pratiche standard) non ha un'ispezione del motore."""
     found: list[TaskLocation] = []
     for source in cycle.sources:
         section = task_section(source.task or "")
@@ -236,7 +243,26 @@ def inspection_locations(cycle: Cycle, kb: KnowledgeBase) -> tuple[TaskLocation,
             hit = kb.find_task(source.manual, f"{section} INSPECTION {number}")
             if hit is not None:
                 found.append(hit)
+    cited = [source.task or "" for source in cycle.sources]
+    cited += [task for operation in cycle.operations for task in operation.task_codes]
+    manuals = _unique([source.manual for source in cycle.sources])
+    for task in _unique([normalize_code(task) for task in cited if is_inspection_task(task)]):
+        if (hit := locate_task(kb, manuals, task)) is not None:
+            found.append(hit)
     return _dedupe(found)
+
+
+# Task d'ispezione con il codice completo: il terzo gruppo è 2xx (ispezione e controllo).
+_INSPECTION_FULL_TASK = re.compile(r"^(?!70-)\d{2}-\d{2}-\d{2}-2\d{2}-\d{3}$")
+
+
+def is_inspection_task(task: str) -> bool:
+    """Il task è un'ispezione del manuale del motore: `... INSPECTION 001` o un codice
+    completo del gruppo 200, fuori dal capitolo 70."""
+    code = normalize_code(task)
+    if _STANDARD_PRACTICES_TASK.match(code):
+        return False
+    return "INSPECTION" in code.upper() or _INSPECTION_FULL_TASK.match(code) is not None
 
 
 def _dedupe(locations: Sequence[TaskLocation]) -> tuple[TaskLocation, ...]:

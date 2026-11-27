@@ -147,12 +147,13 @@ revisione del codice.
 1. Aggiornare (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Foto dell'ultima riga. Porta la
    pulizia del codice del 27-11, `procedura_dr` e la regola della scheda nella base, le
    varianti della campagna finale.
-2. Prove dal frontend (sezione [4](#4-prove-dal-frontend)). Il 27-11 alle 12:07 la prima:
-   il ciclo «con errori» A3 in locale, errore della 005 trovato (foto mandate). Mancano le
-   altre (sezione 4).
-3. ✅ Domanda **P10** a Copilot: fatta il 27-11 (due errori veri, uno uguale, un dubbio:
+2. Prove dal frontend (sezione [4](#4-prove-dal-frontend)). Fatte il 27-11: il ciclo «con
+   errori» A3 (errore della 005 trovato) e la stampa A1 dello stadio 6 (solo il falso errore
+   noto della 050), in locale e in QA. Mancano le altre (sezione 4).
+3. Domanda **P11** a Copilot (sezione [6.1](#61-domande)), in Ask.
+4. ✅ Domanda **P10** a Copilot: fatta il 27-11 (due errori veri, uno uguale, un dubbio:
    tutto in `eval/errori-noti.yaml`).
-4. Quando hai tempo: il prompt per la **documentazione completa** (sezione
+5. Quando hai tempo: il prompt per la **documentazione completa** (sezione
    [6.3](#63-prompt-per-copilot-la-documentazione-completa)).
 
 ---
@@ -592,6 +593,31 @@ P1-P9 chiuse il 26-11, P10 il 27-11 (decise da Copilot sui dati, con la **regola
 dove i dati non bastano, WARNING e mai ERRATO). Le risposte e cosa cambiano sono in
 `MEMORIA.md` (note del 26-11 e del 27-11), `MIGLIORIE.md` (7.3) ed `eval/errori-noti.yaml`. Se una persona che conosce cicli e manuali dice altro, scrivilo
 a Claude a parole, senza codici veri.
+
+**👉 P11 (27-11): la stampa A1 dello stadio 6, dalle prove dal frontend.** La versione in QA
+segna ERRORE sulla scheda dell'operazione 040 (dice che il task scritto accanto alla scheda non
+esiste e ne propone un altro, con la classe); la v2 dice OK. E la v2 legge la nota della
+testata prendendo il primo task: va capito com'è fatta. Copilot **in modalità Ask** (non
+Agent), incolla:
+
+```text
+Sono in app_cycle_validation_v2. Non modificare nessun file e non creare file, nemmeno
+temporanei. Le stampe si riconoscono dall'impronta: i primi 8 caratteri, minuscoli, dello
+SHA-256 del PDF (Get-FileHash); i percorsi sono in runs\prove-grande\cicli.txt.
+Prendi la stampa con impronta 2d724fba (dimmi se è un ciclo MOS con riparazione A1 sullo
+stadio 6; se non lo è, cerca nella lista quella che lo è e dammi la sua impronta).
+1. Operazione 040 (attacco chimico): accanto al codice della scheda c'è un task del capitolo
+   70. Quel task esiste nei documenti di riferimento che puoi leggere (SPM)? La classe
+   dell'etchant scritta nella descrizione è quella che chiede il documento? Rispondi: GIUSTO,
+   SBAGLIATO o NON SO, con una riga di spiegazione.
+2. La riga RIPARAZIONE in testata, a destra del codice della riparazione: descrivi la sua forma
+   a parole, senza codici (per esempio «parola, codice di un manuale SPM, TASK, task del
+   capitolo 70, codice del manuale del motore, TASK, task con il terzo gruppo 200»).
+Non scrivere codici di manuali, part number, serial number, numeri DR o codici di ciclo: usa
+le parole o le impronte.
+```
+
+**Mandami:** la foto della risposta.
 
 ### 6.2 Messaggio per il collega del frontend
 
