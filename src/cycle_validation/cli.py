@@ -73,7 +73,7 @@ from cycle_validation.extract.from_file import FileCycleExtractor
 from cycle_validation.extract.pvrm320 import parse_pvrm320
 from cycle_validation.extract.pvrm320_report import footer_oems, page_structure
 from cycle_validation.golden import GoldenCase, load_cases, run_golden
-from cycle_validation.ingest.pdf import read_pdf, read_pdf_bytes
+from cycle_validation.ingest.pdf import PdfDocument, read_pdf, read_pdf_bytes
 from cycle_validation.ingest.transcribe import make_transcriber
 from cycle_validation.kb.local import load_local_knowledge
 from cycle_validation.module_kind import DR, EJ200, detect_module_kind
@@ -292,6 +292,121 @@ def _reference_shape(match: re.Match[str]) -> str:
     return f"{_masked(match['word'])} {shown}" if match["word"] else shown
 
 
+def _parsed(pdf: PdfDocument) -> Cycle | None:
+    """Il ciclo letto dal parser di layout; se non si legge lo stampa e restituisce None."""
+    try:
+        return parse_pvrm320(pdf)
+    except CycleValidationError as error:
+        typer.echo(f"  non letto dal parser: {_masked_quotes(str(error))}")
+        return None
+
+
+def _print_brief(pdf: PdfDocument, reordered: list[str]) -> None:
+    """`leggi --breve`: una riga con operazioni, parser e pagine rimesse in ordine."""
+    try:
+        parsed = parse_pvrm320(pdf)
+        state = f"operazioni: {len(parsed.operations)} · parser: letto"
+    except CycleValidationError as error:
+        state = f"parser: NON LETTO ({_masked_quotes(str(error))})"
+    typer.echo(f"  {state} · pagine rimesse in ordine: {', '.join(reordered) or 'nessuna'}")
+
+
+def _print_structure(pdf: PdfDocument, number: int) -> None:
+    """`leggi --struttura`: come il parser vede ogni riga della pagina, senza il testo."""
+    if not 1 <= number <= len(pdf.pages):
+        typer.echo(f"  pagina {number} non c'è (pagine: {len(pdf.pages)})")
+        return
+    page = pdf.pages[number - 1]
+    if page.reordered:
+        typer.echo("  (righe rimesse nell'ordine della pagina: stampa modificata a mano)")
+    for row, shape in enumerate(page_structure(page.text), 1):
+        # solo la parola tra « » viene dal documento: si maschera quella
+        typer.echo(f"  {row:3} | {_masked_quotes(shape)}")
+    try:
+        parse_pvrm320(pdf)
+        typer.echo("  parser: letto")
+    except CycleValidationError as error:
+        typer.echo(f"  parser: {_masked_quotes(str(error))}")
+
+
+def _print_search(pdf: PdfDocument, text: str) -> None:
+    """`leggi --cerca`: le righe con il testo e i serial number, tutto mascherato, per capire
+    cosa c'è nella stampa senza far vedere codici veri nelle foto."""
+    for page in pdf.pages:
+        for line in page.text.splitlines():
+            if text.casefold() in line.casefold():
+                typer.echo(f"  p.{page.number} | {_masked(line.strip())}")
+    serials = [_masked(serial) for serial in serials_in_text(pdf.text)]
+    typer.echo(f"  serial number trovati: {len(serials)} ({', '.join(serials) or '-'})")
+
+
+def _print_languages(pdf: PdfDocument) -> None:
+    """`leggi --lingue`: le operazioni con numeri diversi tra italiano e inglese."""
+    cycle = _parsed(pdf)
+    if cycle is None:
+        return
+    both = [op for op in cycle.operations if language_parts(op.operation_description)]
+    for op in both:
+        if pairs := number_mismatches(op.operation_description):
+            shown = ", ".join(f"{a} → {b}" for a, b in pairs)
+            typer.echo(f"  op {op.operation_number}: italiano → inglese {shown}")
+    typer.echo(f"  operazioni con le due lingue: {len(both)} su {len(cycle.operations)}")
+
+
+def _print_sources(pdf: PdfDocument) -> None:
+    """`leggi --fonti`: fonti e riparazioni, i manuali come M1, M2, ..., senza i loro codici."""
+    cycle = _parsed(pdf)
+    if cycle is None:
+        return
+    names = list(dict.fromkeys(source.manual for source in cycle.sources))
+    for source in cycle.sources:
+        typer.echo(
+            f"  fonte M{names.index(source.manual) + 1} · task {source.task or '-'} · "
+            f"rc {source.repair_code or '-'}"
+        )
+    repairs = sorted({op.repair_code or "-" for op in cycle.operations})
+    typer.echo(f"  rc delle operazioni: {' '.join(repairs)}")
+    oems = [_masked(oem) for oem in footer_oems(pdf)]
+    typer.echo(f"  OEM nel piè di pagina (forma): {', '.join(oems) or 'nessuno'}")
+    for op in cycle.operations:
+        cited = {normalize_code(code) for code in op.task_codes}
+        others = [
+            _reference_shape(match)
+            for match in _ATA_REFERENCE.finditer(op.operation_description)
+            if normalize_code(match["code"]) not in cited
+        ]
+        if others:
+            typer.echo(
+                f"  op {op.operation_number} · rc {op.repair_code or '-'} · task "
+                f"{', '.join(op.task_codes) or '-'} · altri codici nel testo: "
+                f"{'; '.join(dict.fromkeys(others))}"
+            )
+
+
+def _print_cycle(pdf: PdfDocument, page: int | None) -> None:
+    """`leggi` senza modi: la pagina chiesta, caso DR e serial, riparazione, fonti e task."""
+    if page is not None and 1 <= page <= len(pdf.pages):
+        for number, line in enumerate(pdf.pages[page - 1].text.splitlines(), 1):
+            typer.echo(f"  {number:3} | {line}")
+    # caso DR e serial number si cercano nel testo, anche se il parser non lo legge
+    cases = list(dict.fromkeys(_DR_CASE.findall(pdf.text)))
+    serials = list(dict.fromkeys(SERIAL_IN_TEXT.findall(pdf.text)))
+    if cases or serials:
+        typer.echo(f"  dr: caso {', '.join(cases) or '-'} · S/N {', '.join(serials) or '-'}")
+    cycle = _parsed(pdf)
+    if cycle is None:
+        return
+    sources = ", ".join(
+        source.manual + (f" {source.task}" if source.task else "") for source in cycle.sources
+    )
+    tasks = list(dict.fromkeys(code for op in cycle.operations for code in op.task_codes))
+    typer.echo(
+        f"  riparazione: {cycle.repair_code or '-'} · fonti: {sources or '-'} · "
+        f"operazioni: {len(cycle.operations)}"
+    )
+    typer.echo(f"  task: {', '.join(tasks) or '-'}")
+
+
 @app.command("leggi")
 def read_cycles(
     pdfs: Annotated[list[Path], typer.Argument(help="PDF dei cicli.")],
@@ -356,104 +471,20 @@ def read_cycles(
             continue
         reordered = [str(page.number) for page in pdf.pages if page.reordered]
         if breve:
-            try:
-                parsed = parse_pvrm320(pdf)
-                state = f"operazioni: {len(parsed.operations)} · parser: letto"
-            except CycleValidationError as error:
-                state = f"parser: NON LETTO ({_masked_quotes(str(error))})"
-            typer.echo(f"  {state} · pagine rimesse in ordine: {', '.join(reordered) or 'nessuna'}")
+            _print_brief(pdf, reordered)
             continue
         if reordered:
             typer.echo(f"  pagine rimesse nell'ordine della pagina: {', '.join(reordered)}")
         if struttura is not None:
-            if not 1 <= struttura <= len(pdf.pages):
-                typer.echo(f"  pagina {struttura} non c'è (pagine: {len(pdf.pages)})")
-                continue
-            if pdf.pages[struttura - 1].reordered:
-                typer.echo("  (righe rimesse nell'ordine della pagina: stampa modificata a mano)")
-            for number, shape in enumerate(page_structure(pdf.pages[struttura - 1].text), 1):
-                # solo la parola tra « » viene dal documento: si maschera quella
-                typer.echo(f"  {number:3} | {_masked_quotes(shape)}")
-            try:
-                parse_pvrm320(pdf)
-                typer.echo("  parser: letto")
-            except CycleValidationError as error:
-                typer.echo(f"  parser: {_masked_quotes(str(error))}")
-            continue
-        if cerca:
-            # per capire cosa c'è nella stampa senza far vedere codici veri nelle foto
-            for page in pdf.pages:
-                for line in page.text.splitlines():
-                    if cerca.casefold() in line.casefold():
-                        typer.echo(f"  p.{page.number} | {_masked(line.strip())}")
-            serials = [_masked(serial) for serial in serials_in_text(pdf.text)]
-            typer.echo(f"  serial number trovati: {len(serials)} ({', '.join(serials) or '-'})")
-            continue
-        if lingue:
-            try:
-                cycle = parse_pvrm320(pdf)
-            except CycleValidationError as error:
-                typer.echo(f"  non letto dal parser: {_masked_quotes(str(error))}")
-                continue
-            both = [op for op in cycle.operations if language_parts(op.operation_description)]
-            for op in both:
-                if pairs := number_mismatches(op.operation_description):
-                    shown = ", ".join(f"{a} → {b}" for a, b in pairs)
-                    typer.echo(f"  op {op.operation_number}: italiano → inglese {shown}")
-            typer.echo(f"  operazioni con le due lingue: {len(both)} su {len(cycle.operations)}")
-            continue
-        if fonti:
-            try:
-                cycle = parse_pvrm320(pdf)
-            except CycleValidationError as error:
-                typer.echo(f"  non letto dal parser: {_masked_quotes(str(error))}")
-                continue
-            names = list(dict.fromkeys(source.manual for source in cycle.sources))
-            for source in cycle.sources:
-                typer.echo(
-                    f"  fonte M{names.index(source.manual) + 1} · task {source.task or '-'} · "
-                    f"rc {source.repair_code or '-'}"
-                )
-            repairs = sorted({op.repair_code or "-" for op in cycle.operations})
-            typer.echo(f"  rc delle operazioni: {' '.join(repairs)}")
-            oems = [_masked(oem) for oem in footer_oems(pdf)]
-            typer.echo(f"  OEM nel piè di pagina (forma): {', '.join(oems) or 'nessuno'}")
-            for op in cycle.operations:
-                cited = {normalize_code(code) for code in op.task_codes}
-                others = [
-                    _reference_shape(match)
-                    for match in _ATA_REFERENCE.finditer(op.operation_description)
-                    if normalize_code(match["code"]) not in cited
-                ]
-                if others:
-                    typer.echo(
-                        f"  op {op.operation_number} · rc {op.repair_code or '-'} · task "
-                        f"{', '.join(op.task_codes) or '-'} · altri codici nel testo: "
-                        f"{'; '.join(dict.fromkeys(others))}"
-                    )
-            continue
-        if pagina is not None and 1 <= pagina <= len(pdf.pages):
-            for number, line in enumerate(pdf.pages[pagina - 1].text.splitlines(), 1):
-                typer.echo(f"  {number:3} | {line}")
-        # caso DR e serial number si cercano nel testo, anche se il parser non lo legge
-        cases = list(dict.fromkeys(_DR_CASE.findall(pdf.text)))
-        serials = list(dict.fromkeys(SERIAL_IN_TEXT.findall(pdf.text)))
-        if cases or serials:
-            typer.echo(f"  dr: caso {', '.join(cases) or '-'} · S/N {', '.join(serials) or '-'}")
-        try:
-            cycle = parse_pvrm320(pdf)
-        except CycleValidationError as error:
-            typer.echo(f"  non letto dal parser: {_masked_quotes(str(error))}")
-            continue
-        sources = ", ".join(
-            source.manual + (f" {source.task}" if source.task else "") for source in cycle.sources
-        )
-        tasks = list(dict.fromkeys(code for op in cycle.operations for code in op.task_codes))
-        typer.echo(
-            f"  riparazione: {cycle.repair_code or '-'} · fonti: {sources or '-'} · "
-            f"operazioni: {len(cycle.operations)}"
-        )
-        typer.echo(f"  task: {', '.join(tasks) or '-'}")
+            _print_structure(pdf, struttura)
+        elif cerca:
+            _print_search(pdf, cerca)
+        elif lingue:
+            _print_languages(pdf)
+        elif fonti:
+            _print_sources(pdf)
+        else:
+            _print_cycle(pdf, pagina)
 
 
 def _changed(first: str, second: str, quote: str = "") -> str:
