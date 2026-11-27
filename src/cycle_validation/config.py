@@ -92,8 +92,10 @@ class AgentSettings(_Strict):
     # più del manuale. Oggi arriva solo se nessun task si trova. Variante `procedura_dr`
     # (26-11-2026 sera): ERRATO su 895167b9 005 falso (il manuale manda a sostituire, la deroga
     # citata nella 005 autorizza la raccordatura) e il «4 volte» di 2d724fba 050 che viene dalla
-    # D.R. (Copilot).
-    dr_procedure_always: bool = False
+    # D.R. (Copilot). Nella base dal 27-11-2026 (campagna del 26-27-11: toglie il falso errore di
+    # 895167b9 005, 0 falsi errori, stessi errori stabili; quelli che perde erano trovati per il
+    # motivo sbagliato, «il manuale vieta la raccordatura»).
+    dr_procedure_always: bool = True
     # Una contraddizione (ERRATO) si conferma con altrettante sessioni uguali: resta ERRATO
     # solo se la ritrovano tutte, altrimenti WARNING GIUDIZIO_INSTABILE. Su un ciclo DR vero
     # lo stesso confronto dava ERRATO 3 volte su 6 (21-11-2026). Costa solo sugli ERRATO.

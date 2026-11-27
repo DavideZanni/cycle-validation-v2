@@ -45,6 +45,8 @@ agent:
   # nuova (variante `seconda_ricerca`).
   separate_languages: true
   itemized_check: true
+  # Nei DR la procedura della D.R. va al modello insieme ai task (MIGLIORIE I14, base dal 27-11).
+  dr_procedure_always: true
   search_when_unverifiable: false
   # Testo delle sessioni su disco (runs/): contiene cicli e manuali. Acceso negli esperimenti.
   save_transcripts: false

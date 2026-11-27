@@ -1188,6 +1188,11 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   prende la parola della riga dopo (`\s*` attraversa l'a capo); (3) una sessione con la ricerca
   accesa e nessun file ammesso avrebbe Read e Grep senza il limite ai file (oggi non succede);
   (4) `_summary` di `eval esegui`: il punto diventa virgola anche nel nome della variante.
+- **27-11, campagna finita (11:17).** `procedura_dr` **nella base** (toglie il falso errore di
+  895167b9 005; i due errori che perde erano trovati per il motivo sbagliato). `lingue_tra_loro`
+  scartata: circa 10 errori in più ma 11-13 falsi errori a prova (traduzioni libere). Da qui
+  la versione stretta (I15). Tre differenze tra le lingue in stampe «giuste» sono da far
+  guardare a Copilot (potrebbero essere errori veri). Dettagli in `MIGLIORIE.md`, sezione 13.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

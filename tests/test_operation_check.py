@@ -654,12 +654,15 @@ def _dr_ctx(tmp_path: Path) -> CheckContext:
     )
 
 
-def test_the_dr_procedure_goes_with_the_found_tasks_only_in_its_variant(tmp_path: Path) -> None:
+def test_the_dr_procedure_goes_with_the_found_tasks_in_the_base(tmp_path: Path) -> None:
+    # nella base dal 27-11 (`procedura_dr`); spenta, solo i task trovati
     context = _dr_ctx(tmp_path)
-    jobs, _ = plan_operation_checks(context, SETTINGS, "s")
+    off = SETTINGS.model_copy(update={"dr_procedure_always": False})
+    jobs, _ = plan_operation_checks(context, off, "s")
     assert [item.document.key for item in jobs[0].locations] == ["MAN-DEMO-72"]
     assert "**D.R.**" not in jobs[0].request.prompt
-    on = SETTINGS.model_copy(update={"dr_procedure_always": True})
+    on = AgentSettings(retry_backoff_s=0)
+    assert on.dr_procedure_always
     jobs, _ = plan_operation_checks(context, on, "s")
     assert [item.document.key for item in jobs[0].locations] == ["MAN-DEMO-72", "DR_PROC_77"]
     assert "DEROGA DI PROVA" in jobs[0].request.prompt

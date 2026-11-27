@@ -9,7 +9,7 @@ in `DOCUMENTAZIONE.md`.
 
 ---
 
-## In breve (26-11-2026, sera tardi)
+## In breve (27-11-2026)
 
 | Domanda | Risposta |
 |---|---|
@@ -22,7 +22,8 @@ in `DOCUMENTAZIONE.md`.
 | **La campagna del 26-11 sera** | base contro `definizioni_generali`, 3 prove, piccolo (29 cicli e copie, 35 errori) e grande (23 cicli, 20 errori): base 15 su 35 e 10 su 20 stabili, `definizioni_generali` 14 e 8: **non si tiene**. Perde proprio gli errori trovati per il motivo sbagliato (5ff17062 050, 895167b9 030) e non trova quelli giusti (negazioni e materiale cambiati in una lingua: `EVIDENZA_NON_TROVATA`). 0 falsi errori per tutte e due; 2,77 $ in tutto |
 | **Cosa si è scoperto dalla campagna** | (1) il controllo dei numeri tra le lingue trovava ancora 1 su 5 copie «numero in una lingua»: non confrontava i codici (part number) e perdeva il numero vicino a una conversione scritta prima («248 °F (120 °C)»). **Corretto** nel codice, con un test che prova le copie una per una. (2) Le negazioni, i limiti e i materiali cambiati in una lingua il modello li cerca solo nel manuale: se il passo giusto non c'è li perde (22f586bb, DR senza serial: tutte e 4 `FONTE_ASSENTE`). Le due lingue però si possono confrontare **tra loro**, senza manuale: variante `lingue_tra_loro` (I12) |
 | **Pronta per la produzione?** | non ancora: 0 falsi errori sulle stampe giuste, costo e tempo bassi, ma pochi errori nuovi trovati e un falso errore sistematico, anche su un ciclo vero (P7 e 2d724fba: si prova a toglierlo con `definizioni_generali`, poi `fonte_ispezione`, sezione 7.3). Sul PC circa 8 WARNING per ciclo vengono dalle targhe (Redshift non raggiungibile): in produzione non ci sono |
-| **Prossimo passo** | (decisione del 26-11 sera: niente altri manuali da chiedere, si va in produzione senza; la conoscenza la sceglie l'utente con una grande ingestion) campagna in corso: la base nuova (I13) contro `lingue_tra_loro` (I12) e `procedura_dr` (I14). Poi `fonte_ispezione` (I8) e la regola della scheda (I9); il 27-11 prove dal frontend e campagna finale con il seme 3. Dopo l'ingestion dell'utente, una prova di controllo della base sul grande (sezione 8) |
+| **La campagna del 26-27-11** | base contro `lingue_tra_loro` (I12) e `procedura_dr` (I14), 3 prove, seme 2. **`lingue_tra_loro`**: il guadagno più grande visto finora (30 su 35 stabili contro 20 sul piccolo, 14 su 20 contro 9 sul grande; mai visti 3 su 5 contro 1) ma **circa 12 falsi errori a prova**: prende per errore le traduzioni libere (titoli delle operazioni, «carta abrasiva» e «crocus cloth», un codice con o senza la lettera davanti). Scartata così; da qui la versione stretta (I15). **`procedura_dr`**: pari alla base nei numeri, ma toglie il falso errore di 895167b9 005 e cambia 895167b9 010 e 030 (trovati per il motivo sbagliato) con la 060 (trovata sempre): **entra nella base**. Il controllo dei numeri tra le lingue (I13) trova 4 copie su 5 (prima 1) |
+| **Prossimo passo** | (decisione del 26-11 sera: niente altri manuali da chiedere, si va in produzione senza; la conoscenza la sceglie l'utente con una grande ingestion) `fonte_ispezione` (I8), regola della scheda (I9), `lingue_tra_loro` stretta (I15), i difetti trovati nella revisione del codice; poi prove dal frontend e campagna finale con il seme 3. Dopo l'ingestion dell'utente, una prova di controllo della base sul grande (sezione 8) |
 
 ---
 
@@ -319,8 +320,8 @@ la variante `sonnet` resta per le prove a mano.
 | `tutto_insieme` (25-11; **22 stabili, mai visti 5 su 29; scartata per il costo, ×2,2 la base vecchia**; dal 26-11 è uguale a `seconda_ricerca`) | le tre insieme: elementi, lingue, seconda ricerca | come si guarda la descrizione e dove si cerca nel manuale sono due cose diverse: possono sommarsi | nessuno |
 | `fonte_ispezione` (I8, **da scrivere**: P7 e P8 chiuse il 26-11) | per le operazioni di controllo e ispezione, tra le fonti anche la **sezione d'ispezione del manuale del motore citato in testata**; per le operazioni che non citano un task, i task della **prima riga di note** del ciclo | P7: la stampa giusta 04ecaabe op. 050 dice «4 volte» come il manuale del motore, la v2 confronta con il task SPM («3 volte») e dà ERRATO (14 prove su 18 con Haiku): è un **falso errore**, che succederebbe anche sui cicli veri. P8: operazioni senza task che oggi escono WARNING. Quando c'è, 04ecaabe 050 esce dall'attesa: un ERRATO lì conta come falso errore | medio |
 | `definizioni_generali` (I11, 26-11 sera; **non si tiene**: 14 contro 15 sul piccolo, 8 contro 10 sul grande) | nella domanda al modello: le **definizioni generali** di un manuale di pratiche standard (per esempio «indicazione lineare = lunghezza almeno 3 volte la larghezza») valgono solo dove non ci sono limiti specifici. Se l'unica differenza è con una di queste: `non_verificabile` (WARNING), non `contraddetto`. Resta `contraddetto` con un limite specifico o con una lingua diversa dall'altra (`agent.general_definitions_note`) | i falsi errori «4 volte contro 3 volte»: 04ecaabe 050 (P7) e il ciclo vero 2d724fba 050. Obbliga il modello a cercare il motivo vero (5ff17062 050: la negazione tolta in inglese, vista solo in 2 prove su 6). Non serve l'ingestion. Rischio: perdere gli errori trovati per il motivo sbagliato (è la misura onesta) o dire `non_verificabile` su un numero cambiato davvero (copie «numero del manuale», limite invertito) | piccolo |
-| `lingue_tra_loro` (I12, **scritta il 26-11 sera, da provare**) | per ogni operazione scritta in due lingue una sessione corta chiede al modello se l'italiano e l'inglese danno le stesse istruzioni, **senza manuale**. `diverse` (negazione o divieto in una lingua sola, limite al contrario, materiale, pezzo, lavorazione, valore o codice diversi) con le parole copiate e ritrovate dal codice nelle due lingue, confermato come gli altri ERRATO (G1): ERRATO `INCOERENZA_LINGUE` (`agent.compare_languages`) | le copie cieche `negazione_una_lingua` (1 su 2, il mancato `EVIDENZA_NON_TROVATA`) e tutti gli errori «in una lingua sola» quando il passo del manuale non arriva al modello o non c'è (22f586bb, DR senza serial: 4 errori `FONTE_ASSENTE`; 895167b9 050 e 060; 5ff17062 050). È una regola generale: le due lingue devono dire la stessa cosa, sempre. Rischio: ERRATO sui cicli veri dove una lingua traduce liberamente (si guarda sul grande); costo +1 sessione corta per operazione | medio |
-| `procedura_dr` (I14, **scritta il 26-11 sera, da provare**) | nei cicli DR la procedura della D.R. (la deroga) va al modello **insieme** ai task trovati, con una nota: per quel pezzo vale più del manuale; se il manuale vieta o manda a sostituire qualcosa che la D.R. autorizza, non è una contraddizione (`agent.dr_procedure_always`). Oggi la procedura arriva solo se nessun task si trova | 895167b9 005 (Copilot, 26-11 sera): ERRATO falso, il manuale manda a sostituire, la deroga citata nella stessa 005 autorizza la raccordatura. Il «4 volte» di 2d724fba 050 viene dalla D.R. (P7 sui cicli DR). È la stessa regola di P7 e P8: un documento più specifico vale più del manuale generale. Rischio: perdere 895167b9 010 e 030, trovati per il motivo «il manuale vieta la raccordatura»; più testo nei DR (costo) | piccolo |
+| `lingue_tra_loro` (I12, 26-11 sera; **scartata il 27-11**: +10 errori stabili sul piccolo e +5 sul grande, ma 11-13 falsi errori a prova; da qui I15) | per ogni operazione scritta in due lingue una sessione corta chiede al modello se l'italiano e l'inglese danno le stesse istruzioni, **senza manuale**. `diverse` (negazione o divieto in una lingua sola, limite al contrario, materiale, pezzo, lavorazione, valore o codice diversi) con le parole copiate e ritrovate dal codice nelle due lingue, confermato come gli altri ERRATO (G1): ERRATO `INCOERENZA_LINGUE` (`agent.compare_languages`) | le copie cieche `negazione_una_lingua` (1 su 2, il mancato `EVIDENZA_NON_TROVATA`) e tutti gli errori «in una lingua sola» quando il passo del manuale non arriva al modello o non c'è (22f586bb, DR senza serial: 4 errori `FONTE_ASSENTE`; 895167b9 050 e 060; 5ff17062 050). È una regola generale: le due lingue devono dire la stessa cosa, sempre. Rischio: ERRATO sui cicli veri dove una lingua traduce liberamente (si guarda sul grande); costo +1 sessione corta per operazione | medio |
+| `procedura_dr` (I14, 26-11 sera; **nella base dal 27-11**: toglie il falso errore di 895167b9 005, stessi errori stabili, 0 falsi errori) | nei cicli DR la procedura della D.R. (la deroga) va al modello **insieme** ai task trovati, con una nota: per quel pezzo vale più del manuale; se il manuale vieta o manda a sostituire qualcosa che la D.R. autorizza, non è una contraddizione (`agent.dr_procedure_always`). Oggi la procedura arriva solo se nessun task si trova | 895167b9 005 (Copilot, 26-11 sera): ERRATO falso, il manuale manda a sostituire, la deroga citata nella stessa 005 autorizza la raccordatura. Il «4 volte» di 2d724fba 050 viene dalla D.R. (P7 sui cicli DR). È la stessa regola di P7 e P8: un documento più specifico vale più del manuale generale. Rischio: perdere 895167b9 010 e 030, trovati per il motivo «il manuale vieta la raccordatura»; più testo nei DR (costo) | piccolo |
 | `scheda_processi_speciali` (I9, **da scrivere**: P6 chiusa il 26-11) | un'operazione di processo speciale (lubrificante secco, rivestimenti, attacco chimico, liquidi penetranti) senza scheda: WARNING «scheda forse mancante», mai ERRATO. Le altre operazioni senza scheda restano come oggi | non cambia gli errori trovati (c5ff3cd6 030 resta in attesa: è un WARNING, non un ERRATO); è una regola per la produzione. Rischio: WARNING in più sui cicli veri, da guardare sul grande | piccolo |
 | `numeri_manuale` (I4, è H12; **rimandata**) | confronta i numeri e le classi della descrizione con quelli del passo del manuale. Alla sessione passa le differenze da guardare; se tutto coincide, CORRETTO senza modello | numeri cambiati in tutte e due le lingue; 7 errori noti su 10 sono numeri, classi o codici; meno sessioni | medio |
 
@@ -418,11 +419,13 @@ Questi errori noti mancano per motivi che non dipendono dalla v2:
    lista);
 8. ✅ **26-11 sera:** campagna base contro `definizioni_generali`: non si tiene. Corretto il
    controllo dei numeri tra le lingue (I13); scritta `lingue_tra_loro` (I12);
-9. 👉 **26-11 sera:** prove archiviate; campagna base nuova (I13) contro `lingue_tra_loro`
-   (I12) e `procedura_dr` (I14), piccolo e grande, stesse copie cieche (seme 2). Decisione
+9. ✅ **26-27-11:** prove archiviate; campagna base nuova (I13) contro `lingue_tra_loro`
+   (I12) e `procedura_dr` (I14), piccolo e grande, stesse copie cieche (seme 2):
+   `procedura_dr` entra nella base, `lingue_tra_loro` scartata per i falsi errori. Decisione
    dell'utente: niente altri manuali da chiedere (70-23 dell'SPM, due REPAIR, M4): si va in
    produzione senza, li aggiunge poi l'azienda;
-10. `fonte_ispezione` (I8, P7 e P8) e `scheda_processi_speciali` (I9, P6);
+10. 👉 `fonte_ispezione` (I8, P7 e P8), `scheda_processi_speciali` (I9, P6), `lingue_tra_loro`
+    stretta (I15) e i difetti della revisione del codice del 27-11;
 11. **27-11:** prove dal frontend, poi **campagna finale** con il seme 3: la base contro la v2
     con tutto acceso. Deve dare 0 falsi errori, contando anche le operazioni oggi «in attesa»;
 12. grande ingestion di tutti i documenti civili (la fa l'utente, che sceglie la conoscenza del
@@ -484,7 +487,7 @@ Ogni miglioria ha un codice (Id) che si usa nei documenti e nel codice.
 | I7 | (25-11-2026) `seconda_ricerca`: dopo un «non verificabile», una seconda sessione con Grep e Read in tutti i documenti del ciclo (`agent.search_when_unverifiable`). Spenta nella base; da provare sulla base nuova |
 | I11 | (26-11-2026 sera) `definizioni_generali`: una differenza solo con una definizione generale del manuale di pratiche standard dà `non_verificabile`, non `contraddetto` (`agent.general_definitions_note`, `agent/prompt.py`). Spenta nella base; da provare |
 | I12 | (26-11-2026 sera) `lingue_tra_loro`: il modello confronta le due lingue tra loro, senza manuale; una differenza confermata con le citazioni ritrovate è ERRATO `INCOERENZA_LINGUE` (`agent.compare_languages`, `checks/operation.py`). Spenta nella base; da provare |
-| I14 | (26-11-2026 sera) `procedura_dr`: nei cicli DR la procedura della D.R. va al modello insieme ai task trovati, con una nota (`agent.dr_procedure_always`). Spenta nella base; da provare. Nel riepilogo la tabella «In attesa» conta gli ERRATO per variante |
+| I14 | (26-11-2026 sera) `procedura_dr`: nei cicli DR la procedura della D.R. va al modello insieme ai task trovati, con una nota (`agent.dr_procedure_always`). **Nella base dal 27-11** (valore predefinito nel codice, vale anche per `data/settings.yaml` sul PC). Nel riepilogo la tabella «In attesa» conta gli ERRATO per variante |
 | I13 | (26-11-2026 sera) controllo dei numeri tra le lingue (`checks/languages.py`): i codici (part number) si confrontano come elenco; di due numeri vicini che sono uno la conversione dell'altro resta quello che c'è anche nell'altra lingua (anche con la conversione scritta prima, «248 °F (120 °C)»); due lingue con gli stessi numeri tranne uno. Un test prova che ogni copia cieca «numero in una lingua» si trova. **Nella base** (è un controllo del codice) |
 | I10 | (26-11-2026) controllo delle due lingue: una conversione scritta in una lingua sola («0.38 MM (0.015 IN)») non sposta più l'allineamento dei numeri (`checks/languages.py`). Sul piccolo del 26-11 le copie «numero in una lingua» trovate erano 1 su 5 (il 25-11 4 su 5): la causa è un'ipotesi, si verifica alla prossima campagna |
 | — | (26-11-2026) copie cieche dei tipi del modello solo su operazioni confrontabili (`blind.comparable`); nel riepilogo la tabella «ERRATO da verificare» (ciclo, operazione, in quante prove per variante, senza testo); regola delle prove vecchie non valide corretta (solo zero token) |
@@ -817,3 +820,53 @@ alle 15:39, 12 prove, 2,77 $.
 | 2026-11-26 sera | come sopra | `definizioni_generali` | stabili 14 (14, 14, 15); mai visti 1 su 5; 0 falsi; 1 da verificare; 15,5 WARNING | 0,0074 $ | 12 s (34 s) | **non si tiene** | perde 5ff17062 050 (trovato per il motivo sbagliato); più veloce perché meno ERRATO da confermare |
 | 2026-11-26 sera | campagna, Haiku, grande (23 cicli), 3 prove | `base` | stabili 10 su 20 (10, 10, 11); 0 falsi; 1 da verificare (895167b9 005); precisione 91%; 19,9 WARNING | 0,0107 $, 0,23-0,26 $ a prova | 15 s (1 min 19 s) | riferimento | |
 | 2026-11-26 sera | come sopra | `definizioni_generali` | stabili 8 (8, 8, 8); 0 falsi; 1 da verificare; precisione 89%; 20,2 WARNING | 0,0102 $ | 13 s (44 s) | **non si tiene** | perde 5ff17062 050 e 895167b9 030 |
+
+**27-11 (campagna Haiku, 3 prove per variante; base del 26-11 sera con I13; copie cieche del
+seme 2).** Iniziata il 26-11 alle 17:18, interrotta (accesso AWS scaduto: la prova senza
+risposte buttata da sola) e finita il 27-11 alle 11:17. Nell'ultimo pezzo 5 prove, 1,83 $.
+
+- **Piccolo** (29 cicli e copie, 35 errori). Base 20 stabili (21, 20, 21), mai visti 1 su 5, 0
+  falsi errori, 1 da verificare, 0,0078 $ e 13 s a ciclo. `lingue_tra_loro` 30 stabili (31, 31,
+  31), mai visti 3-4 su 5, **11 falsi errori in ogni prova**, 13-14 da verificare, 0,0136 $ e 22
+  s. `procedura_dr` 20 stabili (20, 20, 20), mai visti 1 su 5, 0 falsi, 0 da verificare,
+  0,0073 $ e 12 s.
+- **Mai visti per tipo** (ultima base): numero in una lingua **4 su 5** (prima 1 su 5: I13
+  funziona; il mancato `FONTE_ASSENTE`), task inesistente 5 su 5, negazione in una lingua 1 su
+  2, limite invertito 0 su 1 (CORRETTO VERIFICATO), negazione in due lingue 0 su 1 e numero del
+  manuale 0 su 1 (`EVIDENZA_NON_TROVATA`). WARNING per ciclo senza errori: 7,8 `ERRORE_TECNICO`
+  (targhe), 4,8 `EVIDENZA_NON_TROVATA`, 2,0 `FONTE_ASSENTE`, 0,2 `DR_NON_VERIFICATA`.
+- **Grande** (23 cicli, 20 errori). Base 9 stabili (9, 11, 10), 0 falsi, 1 da verificare
+  (895167b9 005, 1 su 3), 0,0109 $ e 15 s. `lingue_tra_loro` 14 stabili (17, 16, 17), **12-13
+  falsi errori**, 31-37 da verificare, 0,0239 $ e 39 s. `procedura_dr` 9 stabili (10, 10, 9), 0
+  falsi, **0 da verificare**, 0,0107 $ e 15 s.
+- **Cosa trova in più `lingue_tra_loro`** (grande): 22f586bb 010, 030, 050, 060 (limite,
+  numero di documento, materiale, negazione cambiati in una lingua: nella base `FONTE_ASSENTE`),
+  298bc28e 035, 895167b9 050 e 060, f355dc3c 050 sempre. **I suoi falsi errori**: titoli e frasi
+  di presa in carico tradotti liberamente («presa in carico da perizia» e «handling of the part
+  to the repair area», «collaudo finale, documentale e versamento» e «general visual
+  inspection», «prelievo ed identificazione della pala» e «identification of the blade»), un
+  codice con o senza la lettera davanti, «carta abrasiva» e «crocus cloth». Tre casi sono da
+  far guardare a Copilot perché potrebbero essere **differenze vere** nelle stampe giuste:
+  «larghezza» contro «length» (04ecaabe 030, 2d724fba 030), «superiore a 4X» contro «not to
+  exceed 4X» (737dec71 060), «sul lubrificante applicato» contro «on the coating» (8bdb25d5
+  040). Anche c5ff3cd6 030 e f355dc3c 040 (in attesa) escono ERRATO 3 su 3.
+- **Cosa fa `procedura_dr`** (grande): 895167b9 005 non è più ERRATO (era il falso errore
+  visto da Copilot); 895167b9 010 e 030 non più trovati (`EVIDENZA_NON_TROVATA`: erano trovati
+  per il motivo «il manuale vieta la raccordatura», che la deroga toglie); 895167b9 060 trovato
+  3 su 3 (nella base 0 su 3). È quello che la proposta si aspettava.
+- **In attesa**: 04ecaabe 050 ERRATO 3 su 3 con tutte (P7: lo toglie I8); 2d724fba 050 2-3 su 3.
+- **Decisione:** `procedura_dr` **entra nella base** anche se la regola dice «pari alla base»:
+  toglie un falso errore confermato e trova gli errori per il motivo giusto (eccezione scritta
+  qui). `lingue_tra_loro` **scartata**. **Lezione:** confrontare le due lingue tra loro trova
+  proprio gli errori che mancavano, ma Haiku prende per errore ogni traduzione non letterale.
+  Da qui I15: solo negazioni, numeri e limiti al contrario, con un controllo del codice sulle
+  parole copiate; il resto al massimo WARNING.
+
+| Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
+|---|---|---|---|---|---|---|---|
+| 2026-11-27 | campagna, Haiku, piccolo (29 cicli e copie, seme 2), 3 prove | `base` | stabili 20 su 35 (21, 20, 21); mai visti 1 su 5; 0 falsi; 1 da verificare; precisione 95%; 15,0 WARNING | 0,0078 $ a ciclo | 13 s (45 s) | riferimento | I13 nella base: numero in una lingua 4 su 5 |
+| 2026-11-27 | come sopra | `lingue_tra_loro` | stabili 30 (31, 31, 31); mai visti 3 su 5; **33 falsi**; 14 da verificare; precisione 55% | 0,0136 $ | 22 s (57 s) | **scartata** | traduzioni libere prese per errori |
+| 2026-11-27 | come sopra | `procedura_dr` | stabili 20; mai visti 1 su 5; 0 falsi; 0 da verificare; precisione 100% | 0,0073 $ | 12 s (1 min 03 s) | **nella base** (pari, ma toglie un falso errore) | |
+| 2026-11-27 | campagna, Haiku, grande (23 cicli), 3 prove | `base` | stabili 9 su 20 (9, 11, 10); 0 falsi; 1 da verificare (895167b9 005); precisione 90%; 19,9 WARNING | 0,0109 $ | 15 s (50 s) | riferimento | |
+| 2026-11-27 | come sopra | `lingue_tra_loro` | stabili 14 (17, 16, 17); **38 falsi**; 37 da verificare; precisione 26% | 0,0239 $ | 39 s (1 min 13 s) | **scartata** | |
+| 2026-11-27 | come sopra | `procedura_dr` | stabili 9 (10, 10, 9); 0 falsi; 0 da verificare; precisione 100% | 0,0107 $ | 15 s (43 s) | **nella base** | perde 895167b9 010 e 030 (motivo sbagliato), trova 060 |
