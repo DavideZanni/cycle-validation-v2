@@ -775,6 +775,7 @@ def list_manuals(
 def _session_for(name: str) -> Callable[[AgentSettings, Path | None], AgentSession]:
     """Implementazioni di AgentSession scelte per nome da una variante (`sessione:`)."""
     factories: dict[str, Callable[[AgentSettings, Path | None], AgentSession]] = {
+        # una lambda e non make_session: i test sostituiscono make_session nel modulo
         "sdk": lambda settings, transcripts: make_session(settings, transcripts),
     }
     return factories[name]
