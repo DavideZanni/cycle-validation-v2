@@ -270,7 +270,7 @@ def _machines(
     redshift_driver: Any | None,
 ) -> MachineRegistry:
     if production.no_machines:
-        return UnavailableMachineRegistry(NO_MACHINES)
+        return UnavailableMachineRegistry(NO_MACHINES, disabled=True)
     if production.direct is not None:
         if secrets is None or redshift_driver is None:
             raise ConfigError(

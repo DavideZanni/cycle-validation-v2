@@ -1250,6 +1250,29 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   manuale). Le operazioni senza task ricevono quel task SPM. Da cambiare dopo la produzione,
   con una variante (MIGLIORIE 10.4, H16); prima la P11 dice com'è fatta la nota.
 
+- **27-11, risposta di Copilot alla P11.** La stampa A1 dello stadio 6 è **2d724fba** (ciclo
+  vero). (1) La scheda della 040: il task del capitolo 70 accanto alla scheda **esiste** (è la
+  parte generale dell'attacco chimico) e la classe dell'etchant è giusta: **l'ERRORE della QA è
+  un falso errore della v1**, l'OK della v2 è giusto. (2) La nota della testata ha solo la parola
+  della lavorazione e **un task completo del capitolo 70** (niente codice di manuale, niente
+  task del motore). Quindi la fonte della v2 (manuale del motore del piè di pagina + task della
+  nota) abbina il manuale del motore a un task SPM: H16 aggiornata. Copilot ancora in **Agent
+  con «Allow all»** (ha detto di non aver creato file).
+- **27-11, l'utente: «perché la v2 dà così tanti warning? quale è più giusta? lo devo
+  presentare fra 2 settimane».** Risposta di Claude, dai fatti: sulle due stampe provate la v1
+  non ha trovato nessuno dei 2 errori messi apposta nella A3 (legge solo l'inglese, e la 005
+  non la mostra come operazione) e ha dato **2 falsi errori** (fonte della A3, scheda della 040
+  della A1, confermato dalla P11); la v2 ha trovato 1 errore su 2 e dato 1 falso errore (la 050
+  di 2d724fba, già noto, che `fonte_ispezione` deve togliere). I WARNING della v2 vengono da tre
+  cose: (a) le **targhe sul PC** (registro non collegato): non sono un dubbio, il controllo è
+  spento → da oggi **N/A `CONTROLLO_SPENTO`** nella base (in produzione non cambia niente: lì il
+  registro c'è); (b) le operazioni di cui il manuale **non parla** (presa in carico,
+  preservazione, collaudo finale): la v1 dice OK senza aver controllato, la v2 WARNING → **I16
+  `fuori_tema`**, N/A con la spiegazione, dentro la variante `finale` della campagna finale;
+  (c) i dubbi veri (per esempio la classe dell'etchant che il testo non nomina): restano WARNING,
+  sono quelli da guardare. Manca la misura della v1 sulle stesse stampe: nuovo passo 4b (COPILOT
+  3.9), con le copie rinominate con l'impronta.
+
 ## 13. Da correggere nell'indice (knowledge-index)
 
 **Titoli dei task GE.** `regole.json` (`codice_task`) riconosce solo il codice completo

@@ -17,7 +17,7 @@ from cycle_validation.domain.check import (
     Usage,
 )
 from cycle_validation.domain.cycle import Cycle, Operation
-from cycle_validation.errors import SourceUnavailableError
+from cycle_validation.errors import CheckDisabledError, SourceUnavailableError
 from cycle_validation.kb.documents import page_at, read_lines
 from cycle_validation.kb.port import DocumentInfo, KnowledgeBase
 from cycle_validation.resolve.dr import DrSelectors
@@ -77,6 +77,8 @@ def guarded(check: CheckName, target: Target, decide: Callable[[], CheckResult])
     """Una sorgente che non risponde non è un errore del ciclo: diventa un warning."""
     try:
         return decide()
+    except CheckDisabledError as exc:
+        return make_result(check, target, Reason.CONTROLLO_SPENTO, f"Controllo non eseguito: {exc}")
     except SourceUnavailableError as exc:
         return make_result(check, target, Reason.ERRORE_TECNICO, f"Controllo non eseguito: {exc}")
 

@@ -23,7 +23,7 @@ prova e cosa si è deciso), `MEMORIA.md` (cosa è successo finora).
 | **0. Prima di iniziare** | parole, come si lancia un blocco, regole, cosa fare se va storto |
 | **1. Cosa fare adesso** | le tappe e i passi di oggi |
 | **2. Aggiornare e salvare** | 2.1 Aggiornare il codice · 2.2 Salvare nel repository aziendale |
-| **3. Le prove** | 3.1 Come funzionano · 3.2 Cicli veri · 3.3 Copie cieche · 3.4 Gruppo nascosto · 3.5 Campagna · 3.6 Leggere i risultati · 3.7 Prova a mano · 3.8 Mettere ordine |
+| **3. Le prove** | 3.1 Come funzionano · 3.2 Cicli veri · 3.3 Copie cieche · 3.4 Gruppo nascosto · 3.5 Campagna · 3.6 Leggere i risultati · 3.7 Prova a mano · 3.8 Mettere ordine · 3.9 La v1 sugli stessi cicli |
 | **4. Prove dal frontend** | la v2 dalla pagina web |
 | **5. Dopo una nuova ingestion** | fotografia della conoscenza, lista dei manuali, cosa rifare |
 | **6. Le persone** | domande aperte, messaggio per il collega del frontend, prompt per la documentazione completa |
@@ -150,9 +150,10 @@ revisione del codice.
 2. Prove dal frontend (sezione [4](#4-prove-dal-frontend)). Fatte il 27-11: il ciclo «con
    errori» A3 (errore della 005 trovato) e la stampa A1 dello stadio 6 (solo il falso errore
    noto della 050), in locale e in QA. Mancano le altre (sezione 4).
-3. Domanda **P11** a Copilot (sezione [6.1](#61-domande)), in Ask.
-4. ✅ Domanda **P10** a Copilot: fatta il 27-11 (due errori veri, uno uguale, un dubbio:
-   tutto in `eval/errori-noti.yaml`).
+3. ✅ Domande **P10** e **P11** a Copilot: fatte il 27-11 (P10: due errori veri, uno uguale,
+   un dubbio, tutto in `eval/errori-noti.yaml`; P11: l'ERRORE della QA sulla scheda della 040 è
+   falso).
+4. **Ricordati:** Copilot sempre in **Ask**. Nelle foto del 27-11 era in Agent con «Allow all».
 5. Quando hai tempo: il prompt per la **documentazione completa** (sezione
    [6.3](#63-prompt-per-copilot-la-documentazione-completa)).
 
@@ -170,9 +171,18 @@ righe: `base`, `fonte_ispezione`, `finale`, ognuna `3 da fare`.
 
 **La campagna deve dire:** 0 falsi errori (anche nella tabella «In attesa»: 04ecaabe 050 e
 2d724fba 050 con `fonte_ispezione` e `finale` a 0 su 3, o quasi; 737dec71 060 con `finale` a
-3 su 3 va bene, è un errore vero della stampa), nessun ciclo oltre 10 minuti,
+3 su 3 va bene, è un errore vero della stampa), con `finale` molti meno WARNING per ciclo
+(le operazioni «fuori tema» diventano N/A), nessun ciclo oltre 10 minuti,
 nessun ciclo non eseguito. **Mandami:** la riga finale, `runs\campagna.md` e i due
 `riepilogo.md`, come oggi.
+
+---
+
+**⬜ Passo 4b · La v1 sugli stessi cicli** (per la presentazione; dopo la campagna o mentre
+gira, dal browser)
+
+Sezione [3.9](#39-la-v1-sugli-stessi-cicli). Circa 1 ora, nessun costo per noi. Serve per la
+tabella «v1 contro v2 sugli stessi cicli con errori conosciuti».
 
 ---
 
@@ -527,11 +537,40 @@ if ($ok) { $lista = "runs/prove-grande/cicli.txt"; $copia = Join-Path $env:TEMP 
 
 ---
 
+### 3.9 La v1 sugli stessi cicli
+
+**A cosa serve:** la v2 si misura nelle campagne sulle stampe con errori conosciuti
+(`eval/errori-noti.yaml`); la v1 no. Per dire quale delle due è più giusta servono le stesse
+stampe nella v1 (in QA, uguale alla produzione). **Costa:** niente per noi, circa 1 ora.
+
+**1. Le copie con il nome = impronta** (così nelle foto non ci sono codici veri):
+
+```powershell
+$env:UV_PYTHON = "3.14"
+$noti = @("298bc28e", "c5ff3cd6", "f355dc3c", "38960731", "5ff17062", "22f586bb", "895167b9", "8d3c673c", "e9b74c84", "4e64d49a", "8bdb25d5", "04ecaabe", "737dec71", "2d724fba")
+New-Item -ItemType Directory -Force runs/v1-confronto | Out-Null
+Get-ChildItem (Resolve-Path "..\..").Path -Recurse -Filter "*.pdf" -ErrorAction SilentlyContinue | ForEach-Object { $h = (Get-FileHash $_.FullName).Hash.Substring(0, 8).ToLower(); if ($h -in $noti -and -not (Test-Path "runs/v1-confronto/$h.pdf")) { Copy-Item $_.FullName "runs/v1-confronto/$h.pdf" } }
+$trovate = (Get-ChildItem runs/v1-confronto -Filter "*.pdf").BaseName; "copie: " + $trovate.Count + " su " + $noti.Count; "mancano: " + (($noti | Where-Object { $_ -notin $trovate }) -join ", ")
+```
+
+- **Deve uscire:** `copie: 14 su 14` e `mancano:` vuoto (se ne manca qualcuna, va bene lo
+  stesso: mandami la riga).
+
+**2. Nel frontend della QA**, per ogni file di `runs\v1-confronto` (Nuova validazione, MOS,
+carica il file): se chiede serial number e condition o dice che è un DR, **saltalo** e scrivimi
+l'impronta. **Mandami** per ogni stampa una foto dell'intestazione (si vede il nome del file =
+impronta e il numero di errori) e una foto di **ogni riga con un bollino rosso «Error»**. Non
+servono le righe OK.
+
+**3. Facoltativo, dopo la campagna finale:** lo stesso con la v2 in locale (localhost), con le
+impostazioni scelte per la produzione, così le due tabelle sono fatte nello stesso modo.
+
 ## 4. Prove dal frontend
 
 **Come si avvia:** VS Code → **Run and Debug** → **«CV v2»** → avvia; poi nel browser
 `http://localhost:3000`. **Costa:** qualche centesimo per ciclo. Le targhe escono sempre
-WARNING (dal PC il database delle macchine non si raggiunge): è normale.
+N/A (dal PC il database delle macchine non si raggiunge; prima del 27-11 uscivano WARNING): è
+normale.
 
 Le prove, in ordine:
 
@@ -589,35 +628,10 @@ uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --er
 
 ### 6.1 Domande
 
-P1-P9 chiuse il 26-11, P10 il 27-11 (decise da Copilot sui dati, con la **regola prudente**:
+P1-P9 chiuse il 26-11, P10 e P11 il 27-11 (decise da Copilot sui dati, con la **regola prudente**:
 dove i dati non bastano, WARNING e mai ERRATO). Le risposte e cosa cambiano sono in
 `MEMORIA.md` (note del 26-11 e del 27-11), `MIGLIORIE.md` (7.3) ed `eval/errori-noti.yaml`. Se una persona che conosce cicli e manuali dice altro, scrivilo
 a Claude a parole, senza codici veri.
-
-**👉 P11 (27-11): la stampa A1 dello stadio 6, dalle prove dal frontend.** La versione in QA
-segna ERRORE sulla scheda dell'operazione 040 (dice che il task scritto accanto alla scheda non
-esiste e ne propone un altro, con la classe); la v2 dice OK. E la v2 legge la nota della
-testata prendendo il primo task: va capito com'è fatta. Copilot **in modalità Ask** (non
-Agent), incolla:
-
-```text
-Sono in app_cycle_validation_v2. Non modificare nessun file e non creare file, nemmeno
-temporanei. Le stampe si riconoscono dall'impronta: i primi 8 caratteri, minuscoli, dello
-SHA-256 del PDF (Get-FileHash); i percorsi sono in runs\prove-grande\cicli.txt.
-Prendi la stampa con impronta 2d724fba (dimmi se è un ciclo MOS con riparazione A1 sullo
-stadio 6; se non lo è, cerca nella lista quella che lo è e dammi la sua impronta).
-1. Operazione 040 (attacco chimico): accanto al codice della scheda c'è un task del capitolo
-   70. Quel task esiste nei documenti di riferimento che puoi leggere (SPM)? La classe
-   dell'etchant scritta nella descrizione è quella che chiede il documento? Rispondi: GIUSTO,
-   SBAGLIATO o NON SO, con una riga di spiegazione.
-2. La riga RIPARAZIONE in testata, a destra del codice della riparazione: descrivi la sua forma
-   a parole, senza codici (per esempio «parola, codice di un manuale SPM, TASK, task del
-   capitolo 70, codice del manuale del motore, TASK, task con il terzo gruppo 200»).
-Non scrivere codici di manuali, part number, serial number, numeri DR o codici di ciclo: usa
-le parole o le impronte.
-```
-
-**Mandami:** la foto della risposta.
 
 ### 6.2 Messaggio per il collega del frontend
 

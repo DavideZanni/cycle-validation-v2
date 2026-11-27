@@ -50,6 +50,10 @@ class Reason(StrEnum):
     CAMPO_ASSENTE = "CAMPO_ASSENTE"
     ESCLUSO_DA_REGOLA = "ESCLUSO_DA_REGOLA"
     NON_VERIFICATO_PER_PROFILO = "NON_VERIFICATO_PER_PROFILO"
+    # il controllo è spento per configurazione (registro delle macchine non collegato sul PC)
+    CONTROLLO_SPENTO = "CONTROLLO_SPENTO"
+    # il testo di riferimento non tratta il tipo di operazione: niente da confrontare (I16)
+    FUORI_TEMA = "FUORI_TEMA"
 
 
 _ERRATO = (
@@ -64,6 +68,8 @@ _NON_APPLICABILE = (
     Reason.CAMPO_ASSENTE,
     Reason.ESCLUSO_DA_REGOLA,
     Reason.NON_VERIFICATO_PER_PROFILO,
+    Reason.CONTROLLO_SPENTO,
+    Reason.FUORI_TEMA,
 )
 
 

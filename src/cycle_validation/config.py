@@ -114,6 +114,13 @@ class AgentSettings(_Strict):
     # manuale del motore, la v2 confrontava con il «3 volte» generico dell'SPM e dava ERRATO.
     # Variante `fonte_ispezione` (I8, 27-11-2026).
     inspection_source: bool = False
+    # Il modello può rispondere `fuori_tema` quando il testo di riferimento non tratta affatto
+    # il tipo di operazione (presa in carico, versamento, preservazione, documenti): esito N/A
+    # FUORI_TEMA con la spiegazione, invece di WARNING EVIDENZA_NON_TROVATA. Nasce dalle prove
+    # dal frontend del 27-11-2026: 6 operazioni su 9 WARNING «il testo non ne parla», dove la
+    # v1 dice OK senza controllare. Non trova e non toglie errori: cambia come si mostra
+    # «non c'è niente da confrontare». Dentro la variante `finale` (I16).
+    out_of_scope: bool = False
     # Una contraddizione (ERRATO) si conferma con altrettante sessioni uguali: resta ERRATO
     # solo se la ritrovano tutte, altrimenti WARNING GIUDIZIO_INSTABILE. Su un ciclo DR vero
     # lo stesso confronto dava ERRATO 3 volte su 6 (21-11-2026). Costa solo sugli ERRATO.

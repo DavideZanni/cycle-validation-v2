@@ -8,7 +8,7 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Protocol
 
-from cycle_validation.errors import ConfigError, SourceUnavailableError
+from cycle_validation.errors import CheckDisabledError, ConfigError, SourceUnavailableError
 from cycle_validation.text import normalize_code
 
 
@@ -30,10 +30,16 @@ class StaticMachineRegistry:
 
 
 class UnavailableMachineRegistry:
-    def __init__(self, reason: str) -> None:
+    """Registro che non risponde. `disabled`: non è un guasto, è spento per configurazione
+    (nessun registro sul PC): il controllo delle targhe esce N/A invece di WARNING."""
+
+    def __init__(self, reason: str, *, disabled: bool = False) -> None:
         self._reason = reason
+        self._disabled = disabled
 
     def is_active(self, tag: str) -> bool:
+        if self._disabled:
+            raise CheckDisabledError(self._reason)
         raise SourceUnavailableError(self._reason)
 
 
@@ -88,7 +94,9 @@ class LazyMachineRegistry:
 def load_machine_registry(path: Path | None) -> MachineRegistry:
     """File JSON: una lista di targhe, oppure `{"active": [...]}`."""
     if path is None:
-        return UnavailableMachineRegistry("Registro delle macchine attive non configurato.")
+        return UnavailableMachineRegistry(
+            "Registro delle macchine attive non configurato.", disabled=True
+        )
     try:
         loaded = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:

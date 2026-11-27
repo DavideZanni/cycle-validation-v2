@@ -818,3 +818,26 @@ def test_an_inspection_gets_the_engine_inspection_task_cited_with_its_full_code(
     off, _ = plan_operation_checks(context, SETTINGS, "s")
     off_job = next(job for job in off if "FPI" in job.request.prompt)
     assert [item.document.key for item in off_job.locations] == ["SPM_DEMO"]
+
+
+# --- «fuori tema» (`agent.out_of_scope`, I16) ---
+
+
+def test_out_of_scope_is_not_applicable_only_with_the_setting() -> None:
+    def outcome(output: dict[str, Any]) -> SessionOutcome:
+        return SessionOutcome(status=SessionStatus.OK, output=output, usage=ONE_CALL, attempts=1)
+
+    on = SETTINGS.model_copy(update={"out_of_scope": True})
+    job = job_for(op("PRESA IN CARICO DA PERIZIA"), on)
+    assert "`fuori_tema`" in job.request.prompt
+    assert "fuori_tema" in judgement_schema(True)["properties"]["judgement"]["enum"]
+    assert "fuori_tema" not in judgement_schema()["properties"]["judgement"]["enum"]
+    off = job_for(op("PRESA IN CARICO DA PERIZIA"))
+    assert "fuori_tema" not in off.request.prompt
+    output = answer("fuori_tema", [], "il testo parla solo della raccordatura")
+    result, _ = decide_operation(job, outcome(output), on)
+    assert (result.reason, result.verdict) == (Reason.FUORI_TEMA, Verdict.NON_APPLICABILE)
+    assert "raccordatura" in result.rationale
+    # senza l'impostazione, un `fuori_tema` vale come «non verificabile» (WARNING)
+    result, _ = decide_operation(off, outcome(output), SETTINGS)
+    assert (result.reason, result.verdict) == (Reason.EVIDENZA_NON_TROVATA, Verdict.WARNING)

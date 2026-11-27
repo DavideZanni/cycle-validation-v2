@@ -175,6 +175,17 @@ def test_machine_registry_unavailable_is_a_warning() -> None:
     assert results[3].reason is Reason.CAMPO_ASSENTE
 
 
+def test_machine_registry_switched_off_is_not_applicable() -> None:
+    """Sul PC (`MACHINES_SOURCE=nessuna`) il registro è spento: N/A, non WARNING."""
+    off = UnavailableMachineRegistry("non collegato", disabled=True)
+    results = check_machine_tags(_ctx(machines=off))
+    assert (results[0].reason, results[0].verdict) == (
+        Reason.CONTROLLO_SPENTO,
+        Verdict.NON_APPLICABILE,
+    )
+    assert "non collegato" in results[0].rationale
+
+
 def test_process_sheets() -> None:
     results = check_process_sheets(_ctx())
     assert _reasons(results) == [

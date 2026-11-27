@@ -22,6 +22,8 @@ class Judgement(StrEnum):
     COERENTE = "coerente"
     CONTRADDETTO = "contraddetto"
     NON_VERIFICABILE = "non_verificabile"
+    # solo con `agent.out_of_scope` (I16): il testo non tratta il tipo di operazione
+    FUORI_TEMA = "fuori_tema"
 
 
 class OperationJudgement(BaseModel):
@@ -32,14 +34,16 @@ class OperationJudgement(BaseModel):
     citations: list[Citation] = Field(default_factory=list)
 
 
-def judgement_schema() -> dict[str, Any]:
-    """Schema JSON dell'output: chiuso, senza campi opzionali, adatto all'output strutturato."""
+def judgement_schema(out_of_scope: bool = False) -> dict[str, Any]:
+    """Schema JSON dell'output: chiuso, senza campi opzionali, adatto all'output strutturato.
+    `fuori_tema` si può rispondere solo con `out_of_scope` (`agent.out_of_scope`, I16)."""
+    allowed = [item.value for item in Judgement if out_of_scope or item is not Judgement.FUORI_TEMA]
     return {
         "type": "object",
         "additionalProperties": False,
         "required": ["judgement", "rationale", "citations"],
         "properties": {
-            "judgement": {"type": "string", "enum": [item.value for item in Judgement]},
+            "judgement": {"type": "string", "enum": allowed},
             "rationale": {"type": "string"},
             "citations": {
                 "type": "array",
@@ -229,6 +233,17 @@ INSPECTION_NOTE = (
 )
 
 
+OUT_OF_SCOPE_NOTE = (
+    "Se il testo di riferimento **non tratta affatto il tipo di operazione** descritto (per "
+    "esempio la descrizione è una presa in carico, una movimentazione, un versamento, una "
+    "preservazione o la compilazione di documenti, e il testo parla di una lavorazione o di "
+    "un'ispezione), rispondi `fuori_tema`: non c'è niente da confrontare. Nella spiegazione "
+    "scrivi di che cosa parla il testo. Usa invece `non_verificabile` se il testo parla della "
+    "stessa lavorazione o della stessa ispezione ma non basta per decidere un elemento. Mai "
+    "`fuori_tema` se il testo dice qualcosa di incompatibile con la descrizione."
+)
+
+
 def _header(
     cycle: Cycle,
     operation: Operation,
@@ -239,6 +254,7 @@ def _header(
     general_definitions: bool = False,
     dr_procedure: bool = False,
     inspection: bool = False,
+    out_of_scope: bool = False,
 ) -> list[str]:
     lines = [
         f"Operazione {operation.operation_number}",
@@ -255,6 +271,8 @@ def _header(
         lines.append(DR_PROCEDURE_NOTE)
     if inspection:
         lines.append(INSPECTION_NOTE)
+    if out_of_scope:
+        lines.append(OUT_OF_SCOPE_NOTE)
     if operation.task_codes:
         lines.append(f"Task code citati: {', '.join(operation.task_codes)}")
     if missing_tasks:
@@ -315,6 +333,7 @@ def build_operation_prompt(
         general_definitions=settings.general_definitions_note,
         dr_procedure=dr_procedure,
         inspection=inspection,
+        out_of_scope=settings.out_of_scope,
     )
     if second_search:
         lines.append(SECOND_SEARCH_NOTE)

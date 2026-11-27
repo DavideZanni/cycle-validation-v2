@@ -427,6 +427,7 @@ EJ200: i documenti citati interi, in ordine RDR, EF, RN.
 | Il modello dice | Citazioni ritrovate | Esito |
 |---|---|---|
 | `non_verificabile` | — | WARNING `EVIDENZA_NON_TROVATA` |
+| `fuori_tema` (solo con `agent.out_of_scope`, I16) | — | N/A `FUORI_TEMA` («Niente da confrontare: …»); senza l'impostazione vale come `non_verificabile` |
 | `coerente` o `contraddetto` | nessuna | WARNING `CITAZIONE_NON_VERIFICATA` |
 | `contraddetto` | almeno una | ERRATO `CONTRADDIZIONE` (da confermare, sotto) |
 | `coerente` | almeno una | CORRETTO `VERIFICATO` |
@@ -506,6 +507,16 @@ to exceed» valgono «al massimo»; un intervallo con minimo e massimo non ha ve
 conferma G1 come sopra. Nasce dalla campagna del 26-27-11: `lingue_tra_loro` trovava circa 10
 errori in più ma prendeva per errore le traduzioni libere (11-13 falsi errori a prova).
 
+**«Fuori tema» (`agent.out_of_scope`, spenta nella base; dentro la variante `finale`, 27-11;
+I16).** Lo schema della risposta ammette `fuori_tema` e la domanda ha una nota
+(`OUT_OF_SCOPE_NOTE`): se il testo di riferimento non tratta affatto il tipo di operazione (presa
+in carico, movimentazione, versamento, preservazione, documenti, mentre il testo parla di una
+lavorazione), il modello risponde `fuori_tema` e l'esito è N/A `FUORI_TEMA` con la spiegazione;
+`non_verificabile` resta per un testo che parla della stessa lavorazione ma non basta. Mai
+`fuori_tema` se il testo dice qualcosa di incompatibile. Nel frontend un N/A con il testo esce
+come bollino azzurro «Info». Nasce dalle prove dal frontend del 27-11: 6 operazioni su 9 WARNING
+«il testo non ne parla», dove la v1 dice OK senza aver controllato niente.
+
 **Conferma degli ERRATO (regola G1).** Ogni `CONTRADDIZIONE` si rifà con
 `confirm_contradiction` sessioni uguali (2). Resta ERRATO solo se **tutte** ritrovano la
 contraddizione. Se una la smentisce: WARNING `GIUDIZIO_INSTABILE` («contraddizione ritrovata in
@@ -570,6 +581,8 @@ Ogni motivo ha un solo esito (`domain/check.py`).
 | **N/A** | `CAMPO_ASSENTE` | il campo non c'è |
 | | `ESCLUSO_DA_REGOLA` | escluso da una regola (prefissi delle schede) |
 | | `NON_VERIFICATO_PER_PROFILO` | il controllo non vale per questo tipo di ciclo |
+| | `CONTROLLO_SPENTO` | controllo spento per configurazione: registro delle macchine non collegato (`MACHINES_SOURCE=nessuna`, sul PC), dal 27-11 |
+| | `FUORI_TEMA` | il testo di riferimento non tratta il tipo di operazione: niente da confrontare (I16, con `agent.out_of_scope`) |
 
 ---
 
@@ -797,7 +810,7 @@ prima colonna la targa, filtro `work_center_usage_cd = 'TO'`. Su Redshift non si
 | `diretta` | `redshift_connector`, con host, porta, utente e password del secret della v1 (riletto a ogni aggiornamento), database da `REDSHIFT_DATABASE`, query da `MACHINES_QUERY`, 20 s per collegarsi | **in servizio** |
 | `data_api` | Redshift Data API (HTTPS), con workgroup o cluster | alternativa |
 | `file` | `MACHINES_FILE`: JSON con una lista di targhe o `{"active": [...]}` | prove |
-| `nessuna` | ogni targa WARNING «non verificabile» | **sul PC**: dal PC Redshift non si raggiunge |
+| `nessuna` | ogni targa N/A `CONTROLLO_SPENTO` (dal 27-11; prima WARNING) | **sul PC**: dal PC Redshift non si raggiunge |
 
 In servizio l'elenco si rilegge ogni 15 minuti (`MACHINES_TTL_S` = 900). Sul PC il comando
 `macchine` prova a scaricarlo in un file, ma oggi la Data API e la connessione diretta sono
@@ -837,6 +850,7 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.compare_languages` | `false` | una sessione corta per ogni operazione scritta in due lingue: il modello confronta l'italiano e l'inglese **tra loro**, senza manuale. Una differenza (negazione, limite, materiale, valore) con le citazioni ritrovate e confermata è ERRATO `INCOERENZA_LINGUE`. Variante `lingue_tra_loro` (26-11 sera) |
 | `agent.special_process_sheet` | `true` (dal 27-11) | processo speciale senza scheda: WARNING `SCHEDA_FORSE_MANCANTE` invece di N/A (sezione 6.4). Regola P6, I9 |
 | `agent.inspection_source` | `false` | nelle ispezioni anche la sezione INSPECTION o i task d'ispezione (gruppo 200) del manuale del motore, con una nota (sezione 6.5). Variante `fonte_ispezione` (I8, 27-11) |
+| `agent.out_of_scope` | `false` | il modello può rispondere `fuori_tema`: N/A `FUORI_TEMA` invece di WARNING quando il testo non tratta il tipo di operazione (sezione 6.5). Variante `finale` (I16, 27-11) |
 | `agent.compare_languages_strict` | `false` | con `compare_languages`: solo negazioni e limiti al contrario, ritrovati dal codice nelle parole copiate (sezione 6.5). Variante `finale` (I15, 27-11) |
 | `agent.dr_procedure_always` | `true` (dal 27-11) | nei cicli DR la procedura della D.R. va al modello insieme ai task trovati, con una nota: per quel pezzo vale più del manuale. Variante `procedura_dr` (26-11 sera), nella base dopo la campagna del 26-27-11 |
 | `agent.confirm_contradiction` | 2 | sessioni di conferma per ogni ERRATO del modello |
@@ -1019,7 +1033,7 @@ frontend manda lì `/cycle_validation/`: la v2 si avvia sulla 8003 **al posto** 
 
 Perché: con un `CV_ENV_SECRET` diverso dalla v1 la v2 non parte (`ResourceNotFoundException`);
 senza `FRONTEND_URL` locale la libreria rifiuta ogni POST con 403 `Origine non ammessa.`;
-dal PC Redshift non si raggiunge (`nessuna`: targhe WARNING); EJ200 spento perché la sua
+dal PC Redshift non si raggiunge (`nessuna`: targhe N/A); EJ200 spento perché la sua
 conoscenza non deve arrivare sul PC. Aperta direttamente, `http://127.0.0.1:8003/` risponde
 401 `Login richiesto.`: è giusto, la prova passa da `http://localhost:3000` dopo il login.
 
@@ -1476,7 +1490,8 @@ in 10-20 secondi; la concordanza del golden set; `1 passed`. Se **tutte** le ope
 
 - alcuni manuali e capitoli non sono nella conoscenza: le righe che ne hanno bisogno escono
   WARNING `FONTE_ASSENTE`, ed è giusto;
-- sul PC le macchine attive non si leggono: le targhe escono WARNING e il ciclo `parziale`;
+- sul PC le macchine attive non si leggono: le targhe escono N/A `CONTROLLO_SPENTO` (dal 27-11;
+  prima WARNING e il ciclo `parziale`);
 - EJ200 non è mai stato provato con i servizi veri: va fatto dentro AWS;
 - il modello non risponde sempre uguale sullo stesso testo: per questo c'è la conferma degli
   ERRATO e le prove si ripetono almeno 2 volte.

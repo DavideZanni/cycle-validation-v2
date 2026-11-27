@@ -33,6 +33,11 @@ class SourceUnavailableError(CycleValidationError):
     """Una sorgente non risponde durante un controllo: l'esito diventa un warning."""
 
 
+class CheckDisabledError(SourceUnavailableError):
+    """La sorgente è spenta per configurazione (per esempio `MACHINES_SOURCE=nessuna` sul PC):
+    il controllo non si fa e l'esito è N/A, non un warning."""
+
+
 class SelectionError(CycleValidationError):
     """La scelta iniziale (civile o militare, MOS o DR) è mancante o incoerente."""
 

@@ -213,7 +213,7 @@ def plan_operation_checks(
     """Decide per ogni operazione se serve una sessione e come costruirla."""
     jobs: list[OperationJob] = []
     immediate: list[CheckResult] = []
-    schema = judgement_schema()
+    schema = judgement_schema(settings.out_of_scope)
     for index, operation in enumerate(ctx.cycle.operations):
         target = Target.operation(index, operation)
         if not operation.operation_description:
@@ -451,7 +451,10 @@ def decide_operation(
             evidence.append(verified)
 
     rationale = judgement.rationale
-    if judgement.judgement is Judgement.NON_VERIFICABILE:
+    if judgement.judgement is Judgement.FUORI_TEMA and settings.out_of_scope:
+        reason = Reason.FUORI_TEMA
+        rationale = f"Niente da confrontare: {judgement.rationale}"
+    elif judgement.judgement in (Judgement.NON_VERIFICABILE, Judgement.FUORI_TEMA):
         reason = Reason.EVIDENZA_NON_TROVATA
     elif not evidence:
         reason = Reason.CITAZIONE_NON_VERIFICATA
