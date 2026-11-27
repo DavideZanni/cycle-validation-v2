@@ -18,15 +18,16 @@ rimasta aperta alla fine della pagina prima. Un blocco di testo senza numero che
 nulla è un errore di estrazione (mai righe perse in silenzio), tranne il blocco dopo il banner
 di fine pagina `*** C O N T I N U A ***`: nelle stampe vere è il seguito di un'operazione della
 pagina rimasta a metà frase (solo la prima riga in tabella, senza la parte in inglese), e va a
-quella se è una sola (vedi `_truncated`). Il piè
-dell'ultima pagina riporta `RIP: <riparazione> OEM: <manuale>`.
+quella se è una sola (vedi `_truncated`). Il piè dell'ultima pagina riporta
+`RIP: <riparazione> OEM: <manuale>`.
 
 Cosa si assume (da confermare sui PDF veri): la colonna TARGA è la targa macchina (la riga
 `NOTE` non ne ha una), la seconda riga della colonna (centro responsabile) non si
 estrae (la targa si legge solo sulla riga che porta il numero), il codice di riparazione
 dell'operazione è la `RIPARAZIONE :` della testata della pagina dove l'operazione compare,
-la riga `SCHEDA :` in fondo al blocco può non avere gli asterischi di colonna, il manuale di un ciclo civile è l'OEM del piè e il task sta in `NOTE`, i riferimenti
-EJ200 sono le RDR, RN ed EF citate nel testo. I glifi d'asterisco ammessi sono in `_STAR_GLYPHS`.
+la riga `SCHEDA :` in fondo al blocco può non avere gli asterischi di colonna, il manuale di
+un ciclo civile è l'OEM del piè e il task sta in `NOTE`, i riferimenti EJ200 sono le RDR, RN
+ed EF citate nel testo. I glifi d'asterisco ammessi sono in `_STAR_GLYPHS`.
 """
 
 import re
@@ -85,13 +86,13 @@ _CODE = r"(?=[A-Z0-9-]*\d)[A-Z0-9]+(?:-[A-Z0-9]+)*"
 _REFERENCE = re.compile(rf"\b(?:RDR|RN|EF)\s+({_CODE})|\b(RN-{_CODE}|EF\d[A-Z0-9]*(?:-[A-Z0-9]+)*)")
 # Punto della fonte citato accanto al codice: "RDR EJ00010X-01 PAR. 1.1" oppure
 # "AL PAR. 1.1 DELLA RDR EJ00010X-01". "RIF. SD S00/00000" è un riferimento di richiesta, non un punto.
-_SECTION = (
+_POINT = (
     r"(?:PAR(?:AGRAFO|A)?|FIG(?:URA)?|TAB(?:ELLA)?|SEZ(?:IONE)?|STEP|PUNTO)\.?\s*"
     r"\d+(?:\.\d+)*[A-Z]?\b"
 )
-_SECTION_AFTER = re.compile(rf"^[\s,;:(]*(?:(?:AL|ALLA|DEL|DELLA)\s+)?({_SECTION})")
+_SECTION_AFTER = re.compile(rf"^[\s,;:(]*(?:(?:AL|ALLA|DEL|DELLA)\s+)?({_POINT})")
 _SECTION_BEFORE = re.compile(
-    rf"({_SECTION})[\s,]*(?:(?:DEL|DELLA|DELLE|DELL')\s*)?(?:(?:RDR|RN|EF)\s+)?$"
+    rf"({_POINT})[\s,]*(?:(?:DEL|DELLA|DELLE|DELL')\s*)?(?:(?:RDR|RN|EF)\s+)?$"
 )
 _FOOTER = re.compile(r"^\s*RIP\s*:\s*(?P<repair>\S+)\s+OEM\s*:\s*(?P<oem>\S+)", re.IGNORECASE)
 # Task nella colonna NOTE della testata, accanto alla riparazione: «72-00-00 REPAIR 001»,
@@ -123,6 +124,7 @@ def note_task(note: str | None) -> str | None:
     return match["section"]
 
 
+# segnaposto tra le parti della descrizione (la riga di asterischi tra italiano e inglese)
 _SECTION = "\x00"
 
 
@@ -145,7 +147,11 @@ class _Op:
             else:
                 self.sp_fiat = self.sp_fiat or match["code"]
 
-    def merge_codes(self, other: "_Op") -> None:
+    def absorb(self, other: "_Op") -> None:
+        """Prende testo, scheda e codici di un blocco senza numero (scheda e codici: il primo
+        trovato resta)."""
+        self.text.extend(other.text)
+        self.sheet = self.sheet or other.sheet
         self.sp_orig = self.sp_orig or other.sp_orig
         self.sp_fiat = self.sp_fiat or other.sp_fiat
 
@@ -242,10 +248,7 @@ def _settle(pending: _Op, after_banner: bool, candidates: list[_Op]) -> None:
     è un errore (nessuna supposizione se i candidati sono zero o più di uno)."""
     has_content = bool(pending.text or pending.sheet or pending.sp_orig or pending.sp_fiat)
     if after_banner and has_content and len(candidates) == 1:
-        target = candidates[0]
-        target.text.extend(pending.text)
-        target.sheet = target.sheet or pending.sheet
-        target.merge_codes(pending)
+        candidates[0].absorb(pending)
         return
     _no_orphan(pending)
 
@@ -441,9 +444,7 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
                 )
                 current.text.extend(heading)
                 heading.clear()
-                current.text.extend(pending.text)
-                current.merge_codes(pending)
-                current.sheet = current.sheet or pending.sheet
+                current.absorb(pending)
                 pending = _Op("", page.number)
             target = current if current is not None else pending
             if (sheet := _SHEET.match(left)) is not None:

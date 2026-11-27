@@ -6,9 +6,7 @@ un warning "targa sconosciuta": di solito è scritta in un altro modo o l'elenco
 Una targa attiva ma assente dai dati TM è anch'essa un warning.
 """
 
-from functools import partial
-
-from cycle_validation.checks.base import CheckContext, guarded, make_result
+from cycle_validation.checks.base import CheckContext, make_result, per_operation
 from cycle_validation.checks.uncertainty import describe, is_doubtful
 from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reason, Target
 from cycle_validation.domain.cycle import Operation
@@ -56,8 +54,4 @@ def _check_one(ctx: CheckContext, target: Target, operation: Operation) -> Check
 
 
 def check_machine_tags(ctx: CheckContext) -> list[CheckResult]:
-    results: list[CheckResult] = []
-    for index, operation in enumerate(ctx.cycle.operations):
-        target = Target.operation(index, operation)
-        results.append(guarded(CHECK, target, partial(_check_one, ctx, target, operation)))
-    return results
+    return per_operation(ctx, CHECK, _check_one)

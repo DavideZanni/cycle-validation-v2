@@ -12,17 +12,14 @@ class FallbackCycleExtractor:
     def __init__(self, primary: CycleExtractor, fallback: CycleExtractor) -> None:
         self._primary = primary
         self._fallback = fallback
-        self.last_used: str = ""
 
     async def extract(self, pdf: PdfDocument) -> tuple[Cycle, Usage]:
         usage = Usage()
         try:
             cycle, usage = await self._primary.extract(pdf)
             if cycle.operations:
-                self.last_used = "primary"
                 return cycle, usage
         except ExtractionError:
             pass
-        self.last_used = "fallback"
         fallback_cycle, fallback_usage = await self._fallback.extract(pdf)
         return fallback_cycle, usage + fallback_usage

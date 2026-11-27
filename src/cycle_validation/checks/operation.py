@@ -124,7 +124,7 @@ def _facts(ctx: CheckContext, operation: Operation) -> list[str]:
             if sheet is not None and treatment:
                 facts.append(f"Scheda {sheet.code}: {treatment}")
     except SourceUnavailableError:
-        return facts
+        pass  # una sorgente che non risponde: restano i fatti trovati fin qui
     return facts
 
 
@@ -149,6 +149,11 @@ def _locations(
             whole_document(document) for document in procedures if document.key not in present
         )
     return locations
+
+
+def _languages(operation: Operation, settings: AgentSettings) -> tuple[str, str] | None:
+    """Le due parti della descrizione, se vanno giudicate separatamente."""
+    return language_parts(operation.operation_description) if settings.separate_languages else None
 
 
 def _has_dr_procedure(locations: Sequence[TaskLocation]) -> bool:
@@ -244,11 +249,7 @@ def plan_operation_checks(
             inline=inline,
             settings=settings,
             missing_tasks=missing_tasks,
-            languages=(
-                language_parts(operation.operation_description)
-                if settings.separate_languages
-                else None
-            ),
+            languages=_languages(operation, settings),
             dr_procedure=settings.dr_procedure_always and _has_dr_procedure(locations),
         )
         request = SessionRequest(
@@ -343,9 +344,7 @@ def wider_job(
         inline=False,
         settings=settings,
         missing_tasks=_missing_tasks(ctx, operation, settings),
-        languages=(
-            language_parts(operation.operation_description) if settings.separate_languages else None
-        ),
+        languages=_languages(operation, settings),
         second_search=True,
     )
     request = SessionRequest(
@@ -406,9 +405,9 @@ def decide_operation(
         if verified is not None and verified not in evidence:
             evidence.append(verified)
 
+    rationale = judgement.rationale
     if judgement.judgement is Judgement.NON_VERIFICABILE:
         reason = Reason.EVIDENZA_NON_TROVATA
-        rationale = judgement.rationale
     elif not evidence:
         reason = Reason.CITAZIONE_NON_VERIFICATA
         rationale = (
@@ -417,10 +416,8 @@ def decide_operation(
         )
     elif judgement.judgement is Judgement.CONTRADDETTO:
         reason = Reason.CONTRADDIZIONE
-        rationale = judgement.rationale
     else:
         reason = Reason.VERIFICATO
-        rationale = judgement.rationale
     result = make_result(
         CHECK,
         job.target,
@@ -471,6 +468,14 @@ def confirm_contradiction(first: CheckResult, confirmations: Sequence[CheckResul
         decided_by="agent",
         usage=usage,
     )
+
+
+def _repeated(request: SessionRequest, repeats: int) -> list[SessionRequest]:
+    """Le copie di una sessione per le verifiche di conferma: `<id>-conferma-1`, `-2`, ..."""
+    return [
+        request.model_copy(update={"session_id": f"{request.session_id}-conferma-{k}"})
+        for k in range(1, repeats + 1)
+    ]
 
 
 def _validate(output: dict[str, object]) -> object:
@@ -586,17 +591,9 @@ async def check_operations(
     for job, outcome in zip(language_jobs, language_outcomes, strict=True):
         language_usage[job.index] = language_usage.get(job.index, Usage()) + outcome.usage
     if repeats and (doubtful or different):
-        requests = [
-            jobs[i].request.model_copy(
-                update={"session_id": f"{jobs[i].request.session_id}-conferma-{k}"}
-            )
-            for i in doubtful
-            for k in range(1, repeats + 1)
-        ]
+        requests = [copy for i in doubtful for copy in _repeated(jobs[i].request, repeats)]
         language_requests = [
-            job.request.model_copy(update={"session_id": f"{job.request.session_id}-conferma-{k}"})
-            for job, _ in different
-            for k in range(1, repeats + 1)
+            copy for job, _ in different for copy in _repeated(job.request, repeats)
         ]
         if stats is not None:
             stats["conferma"] = len(requests) + len(language_requests)

@@ -114,12 +114,12 @@ def test_fallback_is_used_only_when_primary_fails_or_is_empty() -> None:
     primary, backup = _Fixed(good), _Fixed(good)
     chain = FallbackCycleExtractor(primary, backup)
     assert asyncio.run(chain.extract(PDF))[0] is good
-    assert (chain.last_used, backup.calls) == ("primary", 0)
+    assert backup.calls == 0
     for broken in (_Fixed(None), _Fixed(Cycle())):
         backup = _Fixed(good, Usage(sessions=1))
         chain = FallbackCycleExtractor(broken, backup)
         cycle, usage = asyncio.run(chain.extract(PDF))
-        assert cycle is good and chain.last_used == "fallback" and usage.sessions == 1
+        assert cycle is good and backup.calls == 1 and usage.sessions == 1
 
 
 # --- ciclo da file -------------------------------------------------------------------------
