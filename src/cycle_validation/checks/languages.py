@@ -449,10 +449,13 @@ def extreme_mismatch(description: str) -> tuple[str, str] | None:
 # MG47: un'azione diversa nelle due lingue («VERIFICARE CHE SIA STATO RIMOSSO» contro «HAS BEEN
 # BLENDED»). Conta solo se ogni lingua ha un'azione che l'altra non ha: una frase in più in una
 # lingua non basta. Sulle 14 stampe della v1: e9b74c84 040 e 298bc28e 035, nessun falso errore.
+# Sui cicli veri del grande (P15, 27-11 notte) 4 falsi errori, tutti dallo stesso testo:
+# «sabbiatura» in una condizione e «ripristinare» tradotto «replace». Corretti tutti e due.
 _ACTIONS: dict[str, tuple[str, str]] = {
     "rimuovere": (r"rimuov\w*|rimoss\w*|rimozion\w*|asport\w*", r"remov\w*"),
     "raccordare": (r"raccord\w*", r"blend\w*"),
-    "sostituire": (r"sostitu\w*", r"replac\w*"),
+    # «ripristinare le protezioni» = «replace the masks» (P15)
+    "sostituire": (r"sostitu\w*|ripristin\w*", r"replac\w*"),
     "lucidare": (r"lucid\w*", r"polish\w*"),
     "sabbiare": (r"sabbi\w*", r"(?:grit\s*)?blast\w*"),
     "saldare": (r"sald\w*", r"weld\w*"),
@@ -467,8 +470,18 @@ _ACTION = {
 }
 
 
+# Un'azione dopo «durante», «dopo», «prima di» è una condizione, non un'azione da fare («SE
+# DANNEGGIATE DURANTE LA SABBIATURA», P15: 4 falsi errori sui cicli veri del grande).
+_CONDITION = re.compile(
+    r"\b(?:durante|dopo|prima\s+d\w*|during|after|before|prior\s+to)\s+"
+    r"(?:(?:la|il|lo|le|i|gli|l'|the|a|an)\s*)?(?:grit\s+|sand\s+)?\w+",
+    re.IGNORECASE,
+)
+
+
 def actions(text: str, language: str) -> set[str]:
-    """Le azioni del testo (nomi italiani di `_ACTIONS`)."""
+    """Le azioni del testo (nomi italiani di `_ACTIONS`), senza quelle delle condizioni."""
+    text = _CONDITION.sub(" ", text)
     return {action for action, rule in _ACTION[language].items() if rule.search(text)}
 
 

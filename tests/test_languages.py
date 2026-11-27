@@ -262,6 +262,11 @@ def test_an_action_changed_in_one_language_is_found_by_the_code() -> None:
         "RACCORDARE I DIFETTI / BLEND THE DEFECTS AND POLISH",
         "COLLAUDO DELLA RIMOZIONE / INSPECTION OF THE METAL REMOVAL",
         "PULIRE IL PEZZO",
+        # P15: «sabbiatura» è la condizione, «replace» traduce «ripristinare»
+        "SE DANNEGGIATE DURANTE LA SABBIATURA RIPRISTINARE LE PROTEZIONI DELLE AREE. SOFFIARE "
+        "IL PARTICOLARE / REPLACE THE MASKS OF THE AREAS IF THESE ARE DAMAGED. BLOW THE PART "
+        "WITH COMPRESSED AIR",
+        "SE DANNEGGIATE DURANTE LA SABBIATURA RIPARARE LE AREE / REPAIR THE DAMAGED AREAS",
     ],
 )
 def test_no_action_mismatch(description: str) -> None:
@@ -296,3 +301,12 @@ def test_no_extreme_mismatch(description: str) -> None:
     from cycle_validation.checks.languages import extreme_mismatch
 
     assert extreme_mismatch(description) is None
+
+
+def test_an_action_inside_a_condition_is_not_an_action() -> None:
+    # P15 (27-11 notte): «se danneggiate durante la sabbiatura» non chiede di sabbiare
+    from cycle_validation.checks.languages import actions
+
+    assert actions("SE DANNEGGIATE DURANTE LA SABBIATURA", "it") == set()
+    assert actions("IF DAMAGED DURING GRIT BLASTING", "en") == set()
+    assert actions("DOPO LA SABBIATURA PULIRE", "it") == {"pulire"}

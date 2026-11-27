@@ -462,7 +462,10 @@ Le voci incerte dell'indice (`DATO_INCERTO`) non danno mai questi ERRATO.
      di un elenco («5)») no. ERRATO `INCOERENZA_LINGUE`;
    - **azione diversa** (MG47, stessa impostazione): rimuovere, raccordare, sostituire,
      lucidare, sabbiare, saldare, pulire. ERRATO solo se ogni lingua ha un'azione che l'altra non
-     ha («rimosso» contro «blended»): un'azione in più in una lingua sola non basta;
+     ha («rimosso» contro «blended»): un'azione in più in una lingua sola non basta.
+     Un'azione dopo «durante», «dopo», «prima di» (during, after, before) è una condizione e
+     non conta («se danneggiate durante la sabbiatura»); «ripristinare» vale «sostituire»
+     («replace the masks»). Così i 4 falsi errori della P15;
    - **massimo contro minimo** (MG81, stessa impostazione): una lingua dice «massimo» (massimo,
      max, maximum) e l'altra «minimo» (minimo, min, minimum), anche senza un numero
      («profondità massima dei difetti» contro «min depth of defects»). Conta solo se ogni lingua
@@ -473,7 +476,8 @@ Le voci incerte dell'indice (`DATO_INCERTO`) non danno mai questi ERRATO.
 
    Sul testo delle 14 stampe della v1 (`tests/test_real_prints.py`) queste regole trovano 7
    errori in più e nessun ERRATO fuori dagli errori noti. Sul PC, senza modello (27-11 notte):
-   0 falsi errori, ma 4 ERRATO da verificare nei cicli veri del grande (domanda P15);
+   0 falsi errori; i 4 ERRATO da verificare nei cicli veri del grande erano falsi errori di
+   MG47 (P15), corretti;
 4. si cercano i **testi di riferimento** (`context_locations`, sotto); se la sorgente non
    risponde: WARNING `ERRORE_TECNICO`;
 5. task citati che il manuale non ha: WARNING `FONTE_ASSENTE` subito, senza modello

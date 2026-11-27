@@ -20,7 +20,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | ✅ | Errori trovati sulle 19 operazioni della v1 | ≥ 15 | 16, dal solo codice (prova senza modello) |
 | ✅ | Errori stabili, piccolo | ≥ 70% | 79% (34/43) |
 | ✅ | Errori stabili, grande | ≥ 60% | 79% (23/29) |
-| 🔶 | ERRATO da verificare | 0 | senza modello 4, tutti nei cicli veri del grande: 64752871 050, 9a66895e 090, d8f8a3bd 100 e 150 (domanda P15) |
+| 🔶 | ERRATO da verificare | 0 | senza modello 4 nei cicli veri del grande: falsi errori di MG47 (P15), corretti. Atteso 0 |
 | ✅ | Stampe lette | 14/14 | 14/14 |
 | ✅ | Costo per ciclo | ≤ 0,05 $ | 0,011-0,018 $ |
 | ✅ | Tempo per ciclo | ≤ 2 min | 16-24 s |
@@ -129,12 +129,12 @@ Le 6 stampe con errori che la v1 valida. ✔ trovato · — mancato.
 
 | Stampa | v2 |
 |---|---|
-| 22f586bb, 895167b9 (DR) | senza modello 030, 050, 060 trovati (030: un altro DR, MG76); 010 mancato dal codice, 🔶 con MG81 («massima» contro «min») |
+| 22f586bb, 895167b9 (DR) | senza modello trovati tutti: 010 («massima» contro «min», MG81), 030 (un altro DR, MG76), 050, 060 |
 | 737dec71 060; 414d85ca, 477abec8, ffadfe16 060 | errore vero; senza modello trovati tutti e quattro, sempre (MG75) |
 | 298bc28e 035 | senza modello trovato: la riga cambiata ora si legge (MG77), azione diversa (MG47) |
-| 64752871 050, 9a66895e 090, d8f8a3bd 100 e 150 (cicli veri) | ERRATO dal codice, senza modello: errori veri o falsi? (P15) |
+| 64752871 050, 9a66895e 090, d8f8a3bd 100 e 150 (cicli veri) | falsi errori del codice (P15: «sabbiatura» in una condizione, «replace» per «ripristinare»), corretti in MG47 |
 | 8d3c673c 070 | errore vero (P13): una targa cambiata, trovato |
 | 8d3c673c 060, b1261d11 060 | falsi errori del codice (P13), tolti (MG78) |
 
-*Aggiornato il 27-11 notte, dopo la prova senza modello (piccolo 39 su 45, grande 29 su 31, 0
-falsi errori) e MG81-MG82. Prossimo: dopo la P15 e la campagna del passo 4h.*
+*Aggiornato il 27-11 notte, dopo la seconda prova senza modello (piccolo 41 su 45, grande 31 su
+31, 0 falsi errori) e la P15. Prossimo: dopo la campagna del passo 4h.*

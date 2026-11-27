@@ -14,10 +14,14 @@ provano prima gratis (`eval senza-modello`, MG79), poi con una campagna sola (CO
 **27-11 notte, prova senza modello sul PC:** solo il codice trova 39 errori su 45 (piccolo) e
 29 su 31 (grande), 0 falsi errori; 4 ERRATO da verificare sui cicli veri del grande (domanda
 P15). Dopo: MG81 (le due 010 mancate) e MG82 (il motivo accanto agli ERRATO in più).
+Seconda prova: piccolo 41 su 45, grande 31 su 31, 0 falsi errori. P15: i 4 da verificare erano
+falsi errori di MG47, tutti dallo stesso testo («sabbiatura» in una condizione, «replace» per
+«ripristinare»): corretti, attesi 0.
 
 **Prossime, in ordine (guadagno più alto prima):**
 
-1. P15, poi la campagna `quasi_finale` (passo 4h): chiude il cancello A di `V1_CONTRO_V2.md`.
+1. La campagna `quasi_finale` (passo 4h), dopo una prova senza modello con 0 e 0: chiude il
+   cancello A di `V1_CONTRO_V2.md`.
 2. MG73 grande ingestion: la classe dell'acido (f355dc3c 040, 5ff17062 040, gli unici errori
    della v1 che la v2 non trova) e meno WARNING `FONTE_ASSENTE`.
 3. MG83 meno avvisi per ciclo: serve al cancello C (≤ 5 per ciclo). Si parte dalla tabella
@@ -76,7 +80,7 @@ P15). Dopo: MG81 (le due 010 mancate) e MG82 (il motivo accanto agli ERRATO in p
 | MG44 | EJ200 rotta non ferma il civile | una conoscenza EJ200 non valida spegne solo EJ200, MOS e DR partono; si riprova alla richiesta dopo | ✅ | 5 | B7 |
 | MG45 | Fuori tema più prudente | mai N/A se la descrizione ha un limite o una negazione: WARNING e seconda ricerca (tocca il modello: si misura con la campagna) | 🔶 | 4 | F3 |
 | MG46 | Materiale tra le lingue | materiale diverso tra italiano e inglese, dal codice | ⬜ | 4 | F1 |
-| MG47 | Azione diversa tra le lingue | dal codice: rimuovere, raccordare, sostituire, lucidare, sabbiare, saldare, pulire (e9b74c84 040, 298bc28e 035) | ✅ | 4 | F1 |
+| MG47 | Azione diversa tra le lingue | dal codice: rimuovere, raccordare, sostituire, lucidare, sabbiare, saldare, pulire (e9b74c84 040, 298bc28e 035). P15: un'azione in una condizione («durante la sabbiatura») non conta; «ripristinare» = «replace» | ✅ | 4 | F1 |
 | MG48 | Task di un altro stadio | il task cita un pezzo diverso da quello del ciclo | ⬜ | 3 | F2 |
 | MG49 | Errori più stabili | errori che escono 2 volte su 3 | ⬜ | 3 | F4 |
 | MG50 | DR senza serial | la procedura DR dal numero «D.R. CASE #» della stampa (P14); le recommendation restano da decidere con le persone | 🔶 | 3 | F5 |

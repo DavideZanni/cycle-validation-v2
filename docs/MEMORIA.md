@@ -51,7 +51,9 @@ sezione 1 di `COPILOT.md`):
 | 7e6 | Claude: versione quasi finale (MG44, MG45, MG47, MG50, MG53, MG75-MG80), comando `eval senza-modello`, test sulle 14 stampe vere | Claude | ✅ 27-11 notte |
 | 7e7 | Aggiornare, ricalcolare, prova senza modello (0 $) | COPILOT passo 4h | ✅ 27-11 notte: piccolo 39 su 45, grande 29 su 31, 0 falsi errori, 4 ERRATO da verificare nei cicli veri del grande |
 | 7e8 | Claude: MG81 (massimo contro minimo), MG82 (motivo degli ERRATO in più), domanda P15 | Claude | ✅ 27-11 notte |
-| 7e9 | Aggiornare, di nuovo senza modello, P15; campagna `quasi_finale` solo dopo la risposta di Claude alla P15 | COPILOT passo 4h | da fare |
+| 7e9 | Aggiornare, di nuovo senza modello, P15 | COPILOT passo 4h | ✅ 27-11 notte: piccolo 41 su 45, grande 31 su 31, 0 falsi errori; i 4 da verificare falsi errori di MG47 |
+| 7e10 | Claude: MG47 corretta (condizioni, «ripristinare») | Claude | ✅ 27-11 notte |
+| 7e11 | Aggiornare, senza modello (0 e 0 attesi), poi subito la campagna `quasi_finale` | COPILOT passo 4h | da fare |
 | 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
 | 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |
 | 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
@@ -1591,6 +1593,16 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   sempre prima di una campagna. Domanda P15 a Copilot; la campagna dopo la risposta (se sono
   falsi errori del codice, una campagna lanciata prima andrebbe rifatta). Per capirlo subito la
   prossima volta: MG82, il motivo accanto a ogni ERRATO in più (a schermo e nel riepilogo).
+- **27-11 notte, seconda prova senza modello e P15 (Copilot).** Con MG81: piccolo 41 su 45,
+  grande 31 su 31, 0 falsi errori; ancora i 4 da verificare, tutti `INCOERENZA_LINGUE`. P15:
+  tutti falsi errori di MG47, dallo stesso testo (in 64752871, 9a66895e, d8f8a3bd): «se
+  danneggiate durante la sabbiatura ripristinare le protezioni» contro «replace the masks if
+  damaged». Il codice leggeva «sabbiatura» come azione (è la condizione) e «replace» come
+  «sostituire» (traduce «ripristinare»). Corretto: le azioni dopo «durante», «dopo», «prima
+  di» non contano; «ripristinare» vale «sostituire». Decisione: se la prossima prova senza
+  modello dà 0 falsi errori e 0 da verificare, la campagna parte subito, senza aspettare
+  Claude. Lezione: un sinonimo che manca in una regola delle lingue fa un falso errore su
+  tutti i cicli con lo stesso testo; `eval senza-modello` sui cicli veri lo vede gratis.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 
@@ -1978,4 +1990,5 @@ campagna `quasi_finale` (COPILOT passo 4h).
 errori, 4 ERRATO da verificare nei cicli veri del grande (P15). Decisione: la campagna
 `quasi_finale` aspetta la P15. Considerazioni: il codice da solo trova più della v1 (16 contro
 15 sulle sue 19 operazioni); il modello serve ancora per le copie cieche e per dire OK con la
-frase del manuale.
+frase del manuale. Seconda prova con MG81: piccolo 41 su 45, grande 31 su 31; i 4 da
+verificare erano falsi errori di MG47 (P15), corretti.
