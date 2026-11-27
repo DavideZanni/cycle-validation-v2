@@ -1,231 +1,135 @@
 # v1 contro v2
 
-Il confronto tra la v1 (quella in QA e in produzione) e la v2, aspetto per aspetto. Serve a
-vedere sempre dove la v2 è già meglio, dove è ancora peggio e che cosa migliorare.
+Numeri: v1 da `CONFRONTO_V1_14_CICLI.md`; v2 dalla campagna 4d (3 prove, 27-11). La v1 ha
+documenti che la v2 non ha ancora: per ogni errore mancato si dice se manca il **documento** o
+il **controllo**. Claude aggiorna il file dopo ogni campagna.
 
-- **Da dove vengono i numeri.** v1: `docs/CONFRONTO_V1_14_CICLI.md` (la v1 sulle 14 stampe note,
-  27-11). v2: la campagna del passo 4d (base nuova, 3 prove, 27-11 sera) e i riepiloghi
-  ricalcolati con gli errori noti di adesso.
-- **Attenzione.** La v1 ha nella conoscenza documenti che la v2 non ha ancora (l'indice delle
-  schede con materiale e motore, una parte del capitolo 70 dell'SPM con le classi dell'acido).
-  Quando la v2 manca un errore, la colonna «perché» dice se manca **il documento** (si chiude
-  con la grande ingestion) o **il controllo** (si chiude con il codice).
-- **Si aggiorna** dopo ogni campagna e dopo la grande ingestion: Claude cambia le righe toccate
-  e scrive la data in fondo.
+✅ v2 meglio · ❌ v2 peggio · ➖ pari · 🔶 in prova · ⬜ non misurato
 
-**Simboli:** ✅ meglio · ➖ pari · ❌ peggio · 🔶 in prova.
+## 1. Pronti per il passo dopo?
 
-**Si può passare al passo dopo?** Lo dice la lista della sezione 5: tre cancelli (QA, EJ200 in
-QA, produzione), ognuno con le sue soglie.
+Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 
----
+**A · QA**
 
-## 1. Il riassunto
+| | Cosa | Soglia | Oggi |
+|:-:|---|---|---|
+| ❌ | Falsi errori sulle stampe giuste | 0 | 1 (04ecaabe 050) |
+| ❌ | Errori trovati sulle 19 operazioni della v1 | ≥ 15 | 13 + 1 avviso |
+| ✅ | Errori stabili, piccolo | ≥ 70% | 70% (30/43) |
+| ✅ | Errori stabili, grande | ≥ 60% | 62% (18/29) |
+| ❌ | ERRATO da verificare | 0 | 3 (P13) |
+| ✅ | Stampe lette | 14/14 | 14/14 |
+| ✅ | Costo per ciclo | ≤ 0,05 $ | 0,011-0,019 $ |
+| ✅ | Tempo per ciclo | ≤ 2 min | 16-26 s |
+| ✅ | Test | 0 `failed` | 0 |
+| ⬜ | `kb-check` dopo la grande ingestion | nessun `Errore:` | — |
+| ⬜ | Prova di controllo sul grande | 0 falsi errori, errori stabili non in calo | — |
+| ✅ | Avvio con 2900 documenti | ≤ 2 min | 4,2 s (finto) |
 
-| | v1 | v2 (27-11 sera) |
-|---|---|---|
-| Falsi errori sulle 4 stampe giuste che la v1 valida | **6** | **1-2** (04ecaabe 050 in 2 prove su 3; 2d724fba 050, stesso testo): li deve togliere la regola «almeno N» (passo 4e) |
-| Errori trovati nelle 6 stampe con errori che la v1 valida (19 operazioni) | **15 su 19** | **13 su 19**, più c5ff3cd6 030 come avviso «Scheda mancante» |
-| Stampe lette (su 14) | 10 | **14** |
-| Lingue lette | inglese | **italiano e inglese**, anche tra loro |
-| Ogni errore ha la frase del manuale ritrovata dal programma | no | **sì** |
-| Dice quello che non ha potuto controllare | no (scrive OK) | **sì**, `[non controllabile]` |
-| Stabilità misurata (stessa stampa, più prove) | mai misurata | **misurata**: errori stabili in 3 prove su 3 |
-| Costo e tempo a ciclo | non misurati | **0,011-0,019 $, 16-26 s** |
-| Avvisi (WARNING) per ciclo | **1-2** | 6-9 (sul PC molti sono «non controllabile»: registro delle macchine e documenti che mancano) |
+**B · EJ200 in QA**
 
-**In una frase:** la v2 dà molti meno errori falsi, legge tutte le stampe e tutte e due le
-lingue, e ogni errore ha la prova; la v1 trova ancora 2 errori in più (schede e una parola
-cambiata in inglese) e scrive meno avvisi. Se il controllo delle schede (H18, passo 4e)
-funziona, la v2 arriva a 15 su 19 come la v1; con i documenti della grande ingestion a 17.
+| | Cosa | Soglia | Oggi |
+|:-:|---|---|---|
+| ❌ | Cancello A | tutto ✅ | no |
+| ⬜ | `prova-ej200`: stampe validate | tutte | — |
+| ⬜ | `prova-ej200`: cartella temporanea cancellata | sempre | — |
+| ⬜ | ERRATO EJ200 visti da un esperto | 0 falsi | — |
+| ❌ | EJ200 rotta non ferma MOS e DR (B7) | sì | no |
 
----
+**C · Produzione**
+
+| | Cosa | Soglia | Oggi |
+|:-:|---|---|---|
+| ❌ | Cancelli A (e B, se va EJ200) | tutto ✅ | no |
+| ⬜ | QA: un MOS e un DR veri, con e senza serial | nessun errore tecnico | — |
+| ⬜ | QA: targhe vere (Redshift) | 0 targhe giuste ERRATO | — |
+| ⬜ | Esperto su 5-10 risultati QA | 0 falsi, ≥ 80% trovati | — |
+| ⬜ | Avvisi per ciclo in QA | ≤ 5, `[da guardare]` ≤ 2 | 6-9 sul PC |
+| ⬜ | Accessi EJ200 in QA | solo `cv_ej200` e `all` | ok nei test |
+| ⬜ | Ritorno alla v1 (`qa --torna-alla-v1`) | provato | — |
 
 ## 2. Aspetto per aspetto
 
-### 2.1 Errori falsi e fiducia
-
-| Aspetto | Chi è meglio | v1 | v2 | Da fare |
-|---|---|---|---|---|
-| Falsi errori sulle stampe giuste | ✅ **v2** | 6 su 4 stampe giuste: la fonte giusta segnata sbagliata (2 volte), la scheda (2), due frasi con la stessa istruzione scritta in modo diverso (2) | 1-2, sempre la stessa frase (`almeno 4 volte` contro `more than 4 times`) | variante `schede_e_limiti` (regola «almeno N»), passo 4e |
-| Falsi errori su stampe con errori | 🔶 da capire | 2 su 8d3c673c (060 e 070) | anche la v2 dà ERRATO su 8d3c673c 060 e 070, 3 prove su 3 | domanda P13: se sono errori veri, la v1 aveva ragione |
-| La prova di quello che dice | ✅ **v2** | testo libero del modello, a volte si contraddice («typo» su un codice giusto) | la frase citata la ritrova il programma nel manuale; senza la frase niente ERRATO | — |
-| Conferma degli errori | ✅ **v2** | un solo giudizio | un ERRATO del modello si conferma con una seconda domanda | — |
-| Stessa risposta ogni volta | ✅ **v2** | mai misurata | misurata con 3 prove: gli errori «stabili» escono 3 volte su 3 | alcuni escono 2 volte su 3 (22f586bb 060, 414d85ca 060): F4 |
-| «OK» vuol dire | ✅ **v2** | «non ho trovato contraddizioni» (anche se non ha controllato) | «ho controllato con il manuale» | — |
-| Quello che non ha potuto controllare | ✅ **v2** | non lo dice | WARNING `[non controllabile]` (manca il documento, il registro, la DR) separato da `[da guardare]` (un dubbio vero) | il frontend può mostrarli diversi (F7) |
-| Quanti avvisi | ❌ v2 | 1-2 per ciclo | 6-9 per ciclo; in produzione meno (registro delle macchine acceso, più documenti) | misurare in QA |
-
-### 2.2 Errori trovati, per tipo
-
-| Tipo di errore | Chi è meglio | v1 | v2 | Da fare |
-|---|---|---|---|---|
-| **Codice di task sbagliato** (una cifra cambiata, un task che il manuale non ha) | ✅ **v2** | lo trova con il modello, a volte con la correzione giusta, a volte dà «codice incompleto» su codici giusti | lo trova **il codice, senza modello**: il codice non c'è nel manuale ma ci sono i suoi fratelli (`TASK_INESISTENTE`), con l'elenco dei fratelli. Sempre uguale, gratis | — |
-| Task accanto all'operazione diverso da quello della testata | ➖ pari | lo trova | lo trova il codice (H17, dal 27-11 sera) | — |
-| Task di un altro pezzo (stadio 6 invece di 7) | ❌ v2 | lo trova (8d3c673c 140, con il nome del motivo) | trova la 140 per un altro motivo (un numero in una lingua) | F2 |
-| Numeri cambiati in una lingua sola | ✅ **v2** | non li trova se sono in italiano (5ff17062 010, f355dc3c 010) | li trova il codice, confrontando i numeri delle due lingue | — |
-| Limiti cambiati in una lingua (la 010 su più pagine) | ✅ **v2** | in parte | li trova il codice (dal 27-11 sera) | — |
-| Negazione tolta o frase che dice il contrario | ✅ **v2** | solo in inglese | in tutte e due le lingue; trova anche 2 errori veri in stampe che si credevano giuste (737dec71 060, 04ecaabe 030) | una negazione tolta in **tutte e due** le lingue è finita N/A «fuori tema» in una copia cieca (F3) |
-| Limite al contrario («al massimo» invece di «almeno») | 🔶 da capire | non misurato | lo trova tra le lingue; una copia cieca con il limite invertito in tutte e due le lingue è uscita CORRETTO | guardare le copie cieche della campagna 4e |
-| Una parola cambiata in una lingua (non numero, non negazione) | ❌ v2 | la trova (e9b74c84 040, «raccordato» invece di «rimosso») | non la trova | F1 |
-| Materiale cambiato in una lingua | ❌ v2 | non misurato (895167b9 è una A6: la v1 non la legge) | 895167b9 050 esce CORRETTO | F1 |
-| **Scheda di processo sbagliata** (altro motore, altro materiale) | ❌ v2, 🔶 in prova | la trova: ha l'indice delle schede con materiale e motore | oggi controlla solo che la scheda esista; H18 (stesso controllo, dal codice) è nella variante `schede_e_limiti` | passo 4e; poi l'indice delle schede con il materiale nella grande ingestion |
-| Scheda tolta in un processo speciale | ➖ pari | errore | avviso «Scheda mancante» (regola decisa dall'utente il 27-11) | — |
-| Macchina che non esiste o non è attiva | ➖ pari (in produzione) | registro delle macchine attive (Redshift) | lo stesso registro in produzione; sul PC è spento (N/A) | provarlo in QA |
-| La stessa operazione con due macchine su due pagine | ✅ **v2** | non sempre | lo trova il codice (H19, dal 27-11 sera) | — |
-| Classe dell'acido (una lettera) | ❌ v2 (documento) | la trova: ha il capitolo dell'SPM | manca il documento (f355dc3c 040, 5ff17062 040 in attesa) | grande ingestion |
-| Errori nelle stampe DR | ✅ **v2** | si ferma senza serial e condition | le legge; usa la procedura della DR come deroga (`procedura_dr`) | DR senza serial: F5 |
-
-### 2.3 Stampe, lingue, documenti
-
-| Aspetto | Chi è meglio | v1 | v2 |
-|---|---|---|---|
-| Stampe DR senza serial o condition (A6) | ✅ **v2** | si ferma (3 stampe su 14) | le legge; il serial, se c'è, lo prende dalla stampa |
-| Stampe che si caricano | ✅ **v2** | una non si carica (298bc28e) | 14 su 14 |
-| Lettura della stampa | ✅ **v2** | modello | parser PVRM320 senza modello (gratis, sempre uguale); il modello solo se il layout non si riconosce |
-| Italiano | ✅ **v2** | legge l'inglese | legge le due lingue e le confronta |
-| Documenti nella conoscenza | ❌ v2 | più documenti (indice delle schede con materiale, parte dell'SPM) | 75 documenti oggi; la grande ingestion li porta a circa 2900 |
-| Come trova il testo del manuale | ✅ **v2** (in teoria) | ricerca per somiglianza (indice OpenSearch, i primi K pezzi) | ricerca per codice esatto: il manuale citato, il task citato, le sue righe |
-| Con 2900 documenti | ✅ **v2** (misurato in finto) | non misurato: con più documenti la ricerca per somiglianza può prendere pezzi di altri manuali | il modello riceve lo stesso testo di oggi; avvio 4,2 s, 164 MB, ricerca di un task 6-9 µs con 2900 documenti finti (`eval scala`) |
-
-### 2.4 Servizio, costo, sicurezza
-
-| Aspetto | Chi è meglio | v1 | v2 |
-|---|---|---|---|
-| Costo per ciclo | ✅ **v2** (misurato) | non misurato | 0,011-0,019 $ |
-| Tempo per ciclo | ✅ **v2** (misurato) | non misurato | 16-26 s |
-| Prove automatiche (campagne, copie cieche, errori noti) | ✅ **v2** | nessuna | campagne con varianti, copie cieche, gruppo nascosto, riepiloghi ricalcolati |
-| Test del codice | ✅ **v2** | pochi | più di 1000 test, controlli di tipo e di stile prima di ogni salvataggio |
-| Frontend | ➖ pari | — | stesso payload e stesse rotte della v1 (`Warning:` davanti al testo) |
-| Accessi (chi vede EJ200) | ➖ pari | `cv`, `cv_ej200`, `all` | le stesse regole |
-| Conoscenza aggiornata senza riavvio | ✅ **v2** | — | ogni 5 minuti rilegge il puntatore; una versione rotta non sostituisce quella buona |
-| Una conoscenza rotta all'avvio | ❌ v2 | — | il servizio non parte (B7): per questo EJ200 si accende dopo il civile |
-| **EJ200** | ❌ v2 (per ora) | in produzione | mai provata con i dati veri: dal 27-11 si prova sul PC con `prova-ej200` (passo 4f), poi in QA |
-
----
+| Aspetto | | v1 | v2 |
+|---|:-:|---|---|
+| Falsi errori, stampe giuste | ✅ | 6 | 1-2 (stessa frase, «almeno 4» contro «more than 4») |
+| Errori trovati (19 op.) | ❌ | 15 | 13 + 1 avviso; 15 se H18 funziona, 17 con la grande ingestion |
+| Prova di ogni errore | ✅ | testo libero | frase del manuale ritrovata dal programma |
+| «OK» vuol dire | ✅ | nessuna contraddizione vista | controllato con il manuale |
+| Cosa non ha controllato | ✅ | non lo dice | `[non controllabile]` separato da `[da guardare]` |
+| Avvisi per ciclo | ❌ | 1-2 | 6-9 (sul PC registro spento e documenti mancanti) |
+| Stabilità | ✅ | non misurata | misurata su 3 prove |
+| **Codici di task sbagliati** | ✅ | col modello, a volte «incompleto» su codici giusti | dal codice, senza modello: codice assente e fratelli presenti |
+| Task dell'operazione contro la testata | ➖ | sì | sì (H17) |
+| Task di un altro stadio | ❌ | sì | no (F2) |
+| Numeri o limiti cambiati in una lingua | ✅ | solo inglese | due lingue, dal codice |
+| Negazioni e frasi al contrario | ✅ | solo inglese | due lingue; 2 errori veri trovati in stampe «giuste» |
+| Parola o materiale cambiati in una lingua | ❌ | la parola sì | no (F1) |
+| Scheda sbagliata (motore, materiale) | ❌ 🔶 | sì (indice schede) | H18 in prova (4e) |
+| Scheda tolta | ➖ | errore | avviso «Scheda mancante» (regola decisa) |
+| Macchine non attive | ➖ | registro | stesso registro in produzione |
+| Due macchine per un'operazione | ✅ | non sempre | sì (H19) |
+| Classe dell'acido | ❌ | sì | manca il documento |
+| Stampe DR senza serial (A6) | ✅ | si ferma | le legge |
+| Stampe lette | ✅ | 10/14 | 14/14 |
+| Lettura della stampa | ✅ | modello | parser, gratis e sempre uguale |
+| Ricerca nel manuale | ✅ | per somiglianza (OpenSearch) | per codice esatto |
+| 2900 documenti | ✅ | non misurato | stesso testo al modello; 4,2 s, 164 MB (finto) |
+| Costo e tempo | ✅ | non misurati | 0,011-0,019 $, 16-26 s |
+| Prove automatiche e test | ✅ | no | campagne, copie cieche, oltre 1000 test |
+| Frontend e accessi | ➖ | — | stesso payload, stesse regole |
+| Conoscenza nuova senza riavvio | ✅ | — | sì, ogni 5 minuti |
+| Conoscenza rotta all'avvio | ❌ | — | il servizio non parte (B7) |
+| EJ200 | ❌ | in produzione | mai provata (passo 4f) |
 
 ## 3. Errore per errore
 
-Le 6 stampe con errori che la v1 valida, 19 operazioni. «✔» trovato, «—» non trovato,
-«avviso» WARNING al posto dell'ERRATO.
+Le 6 stampe con errori che la v1 valida. ✔ trovato · — mancato.
 
-| Stampa · op. | Che errore è | v1 | v2 | Se la v2 lo manca, perché |
+| Stampa · op. | Errore | v1 | v2 | Manca |
 |---|---|:-:|:-:|---|
-| c5ff3cd6 030 | scheda tolta | ✔ | avviso | regola decisa: avviso «Scheda mancante» |
-| c5ff3cd6 040 | un numero cambiato | ✔ | ✔ | |
-| f355dc3c 010 | tre numeri cambiati (in italiano) | — | ✔ | |
-| f355dc3c 030 | numeri e parole cambiati | ✔ | ✔ | |
-| f355dc3c 040 | una lettera cambiata (la classe) | — | — | **documento** (in attesa) |
-| f355dc3c 050 | una frase che dice il contrario (in italiano) | — | ✔ | |
-| 38960731 010 | limiti cambiati in inglese | ✔ | ✔ | |
-| 38960731 030 | task cambiato (una cifra) | ✔ | ✔ | |
-| 38960731 040 | macchina cambiata in una pagina, scheda e suo task | ✔ | ✔ | |
-| 38960731 050 | un numero, una parola al contrario, la scheda | ✔ | ✔ | |
-| 5ff17062 010 | tre numeri cambiati (in italiano) | — | ✔ | |
-| 5ff17062 030 | numeri in una lingua, parole nell'altra | ✔ | ✔ | |
-| 5ff17062 040 | la classe cambiata | ✔ | — | **documento** (in attesa) |
-| 5ff17062 050 | frase dei limiti sostituita, negazioni tolte | ✔ | ✔ | |
-| 8d3c673c 100 | scheda e suo task cambiati | ✔ | — | **controllo**: H18 in prova (passo 4e) |
-| 8d3c673c 110 | scheda e suo task cambiati | ✔ | — | **controllo**: H18 in prova (passo 4e) |
-| 8d3c673c 140 | un numero in una lingua (la v1: task di un altro stadio) | ✔ | ✔ | |
-| e9b74c84 025 | un numero in una lingua, task cambiato | ✔ | ✔ | |
-| e9b74c84 040 | una parola cambiata in inglese | ✔ | — | **controllo**: F1 |
-| **Totale** | | **15** | **13** + 1 avviso | 2 documento, 3 controllo |
+| c5ff3cd6 030 | scheda tolta | ✔ | avviso | regola |
+| c5ff3cd6 040 | un numero | ✔ | ✔ | |
+| f355dc3c 010 | tre numeri, in italiano | — | ✔ | |
+| f355dc3c 030 | numeri e parole | ✔ | ✔ | |
+| f355dc3c 040 | la classe | — | — | documento |
+| f355dc3c 050 | frase al contrario, in italiano | — | ✔ | |
+| 38960731 010 | limiti in inglese | ✔ | ✔ | |
+| 38960731 030 | task, una cifra | ✔ | ✔ | |
+| 38960731 040 | macchina, scheda, task | ✔ | ✔ | |
+| 38960731 050 | numero, parola, scheda | ✔ | ✔ | |
+| 5ff17062 010 | tre numeri, in italiano | — | ✔ | |
+| 5ff17062 030 | numeri e parole | ✔ | ✔ | |
+| 5ff17062 040 | la classe | ✔ | — | documento |
+| 5ff17062 050 | limiti e negazioni | ✔ | ✔ | |
+| 8d3c673c 100 | scheda e task | ✔ | — | controllo (H18) |
+| 8d3c673c 110 | scheda e task | ✔ | — | controllo (H18) |
+| 8d3c673c 140 | numero in una lingua | ✔ | ✔ | |
+| e9b74c84 025 | numero e task | ✔ | ✔ | |
+| e9b74c84 040 | una parola in inglese | ✔ | — | controllo (F1) |
+| **Totale** | | **15** | **13** | 2 documento, 3 controllo |
 
-**Falsi errori sulle stampe giuste** (04ecaabe, 4e64d49a, 8bdb25d5, 2d724fba):
+**Falsi errori sulle stampe giuste**
 
-| Stampa · op. | v1 | v2 | Nota |
+| Stampa · op. | v1 | v2 | Perché è falso |
 |---|:-:|:-:|---|
-| 04ecaabe fonte | errore | — | il testo dice che la fonte è giusta |
-| 04ecaabe 040 (scheda) | errore | — | |
-| 04ecaabe 050 | — | errore in 2 prove su 3 | «almeno 4» contro «più di 4»: non è un errore (regola dell'utente) |
-| 4e64d49a fonte | errore | — | come 04ecaabe |
-| 8bdb25d5 030 | errore | — | «coating» e «lubrificante applicato» sono la stessa cosa |
-| 2d724fba 030 | errore | — | la stessa regola scritta in due modi |
-| 2d724fba 040 (scheda) | errore | — | |
-| 2d724fba 050 | — | da contare (era in attesa) | stesso testo di 04ecaabe 050 |
-| **Totale** | **6** | **1-2** | |
+| 04ecaabe fonte | ✘ | | il testo dice che è giusta |
+| 04ecaabe 040 | ✘ | | scheda giusta |
+| 04ecaabe 050 | | ✘ 2/3 | «almeno 4» = «più di 4» (regola) |
+| 4e64d49a fonte | ✘ | | come 04ecaabe |
+| 8bdb25d5 030 | ✘ | | stessa istruzione |
+| 2d724fba 030 | ✘ | | stessa regola |
+| 2d724fba 040 | ✘ | | scheda giusta |
+| 2d724fba 050 | | da contare | come 04ecaabe 050 |
 
-**Fuori dal confronto** (la v1 non dà risultati):
+**Fuori dal confronto** (la v1 non dà risultati)
 
-| Stampa | Perché la v1 no | v2 |
-|---|---|---|
-| 22f586bb, 895167b9 (A6, DR) | si ferma: serial e condition | trova una parte dei 4 errori; 22f586bb 030 e 050 «manca la fonte» (DR senza serial, F5); 895167b9 050 CORRETTO (F1) |
-| 737dec71 (A6, giusta) | si ferma | trova l'errore vero della 060 («superiore» contro «not to exceed») |
-| 298bc28e | non si carica | 035 diventa N/A «fuori tema» (F3) |
-| 414d85ca, 477abec8, ffadfe16 (cicli veri) | non provati | trovano la stessa 060 sbagliata di 737dec71 (errore vero, P12) |
-| b1261d11 (ciclo vero) | non provato | ERRATO sulla 060 da verificare (P13) |
+| Stampa | v2 |
+|---|---|
+| 22f586bb, 895167b9 (DR senza serial) | parte degli errori; mancati per DR senza serial (F5) e materiale (F1) |
+| 737dec71 060; 414d85ca, 477abec8, ffadfe16 060 | errore vero trovato |
+| 298bc28e 035 | N/A «fuori tema» (F3) |
+| b1261d11 060 | da verificare (P13) |
 
----
-
-## 4. Cosa migliorare, in ordine
-
-| # | Cosa | Chiude | Quando |
-|---|---|---|---|
-| 1 | Regola «almeno N» (variante `schede_e_limiti`) | i falsi errori di 04ecaabe 050 e 2d724fba 050 | passo 4e |
-| 2 | H18, la scheda coerente con l'operazione | 8d3c673c 100 e 110 | passo 4e |
-| 3 | Grande ingestion (indice delle schede con il materiale, capitolo 70 dell'SPM) | f355dc3c 040, 5ff17062 040; meno avvisi «manca la fonte» | passo 5 |
-| 4 | P13: 8d3c673c 060 e 070, b1261d11 060 | sapere se la v1 aveva ragione | passo 4e |
-| 5 | Una parola o un materiale cambiati in una lingua (F1) | e9b74c84 040, 895167b9 050 | da decidere |
-| 6 | «Fuori tema» più prudente (F3) | 298bc28e 035, la copia cieca con la negazione | da decidere |
-| 7 | Task di un altro pezzo (F2) | la v1 lo trova per il motivo giusto | da decidere |
-| 8 | Meno avvisi per ciclo | la v1 ne scrive meno | in QA, con il registro delle macchine |
-| 9 | EJ200 provata (passo 4f, poi QA) | la v1 è in produzione su EJ200 | dopo l'ingestion EJ200 |
-
----
-
-## 5. Pronto? La lista per passare al passo dopo
-
-Ogni riga ha una **soglia**. Si passa al passo dopo solo quando **tutte** le righe del suo
-cancello sono ✅; basta un ❌ per aspettare. ⬜ = non ancora misurato. Le soglie le ha proposte
-Claude il 27-11 notte: se ne vuoi altre, dimmelo e le cambio qui.
-
-**Come si legge «errori stabili».** Un errore conta se la v2 lo trova in **tutte** le prove
-della campagna (3 su 3). I numeri vengono dal `riepilogo.md` di ogni insieme.
-
-### 5.1 Cancello A · pronto per la QA (pull request verso `develop`)
-
-| # | Cosa si misura | Soglia | Oggi (27-11 notte) | |
-|---|---|---|---|:-:|
-| A1 | Falsi errori sulle stampe giuste, in tutte le prove, piccolo e grande | **0** | 1 (04ecaabe 050, 2 prove su 3) | ❌ |
-| A2 | Errori trovati sulle 19 operazioni che la v1 valida | **almeno 15** (come la v1) | 13, più 1 avviso | ❌ |
-| A3 | Errori stabili sul piccolo | **almeno il 70%** | 30 su 43 (70%) | ✅ |
-| A4 | Errori stabili sul grande | **almeno il 60%** | 18 su 29 (62%) | ✅ |
-| A5 | ERRATO «da verificare» senza una risposta (domanda a Copilot) | **0** | 3 (P13) | ❌ |
-| A6 | Stampe lette senza errore tecnico | **14 su 14** | 14 su 14 | ✅ |
-| A7 | Costo per ciclo | **al massimo 0,05 $** | 0,011-0,019 $ | ✅ |
-| A8 | Tempo per ciclo; nessun ciclo oltre 10 minuti | **al massimo 2 minuti** | 16-26 s | ✅ |
-| A9 | Test sul PC (Aggiornare) | **0 `failed`** | 0 | ✅ |
-| A10 | `kb-check` della conoscenza della grande ingestion | **nessuna riga `Errore:`** | non fatta | ⬜ |
-| A11 | Prova di controllo della base sul grande, con la conoscenza nuova | **0 falsi errori** e errori stabili **non meno** di prima | non fatta | ⬜ |
-| A12 | Avvio con la conoscenza grande (misura finta `eval scala`, poi vera in QA) | **al massimo 2 minuti** | 4,2 s in finto | ✅ |
-
-**Cosa manca:** A1 e A2 dovrebbero diventare ✅ con la variante `schede_e_limiti` (passo 4e),
-A5 con la risposta alla P13, A10 e A11 con la grande ingestion (passo 5).
-
-### 5.2 Cancello B · pronto per accendere EJ200 in QA
-
-| # | Cosa si misura | Soglia | Oggi | |
-|---|---|---|---|:-:|
-| B1 | Cancello A | **tutto ✅** | no | ❌ |
-| B2 | `prova-ej200` sul PC: stampe validate | **tutte** (nessuna riga «non validato», niente «prova non partita») | non fatta | ⬜ |
-| B3 | `prova-ej200`: la cartella temporanea si cancella | **sempre** («Cartella temporanea cancellata») | non fatta | ⬜ |
-| B4 | ERRATO EJ200 guardati da una persona che conosce i cicli militari | **0 falsi errori** | non fatta | ⬜ |
-| B5 | Una conoscenza EJ200 rotta non ferma MOS e DR (B7) | **sì** | no: oggi il servizio non parte | ❌ |
-
-### 5.3 Cancello C · pronto per la produzione (`develop` → `main`)
-
-| # | Cosa si misura | Soglia | Oggi | |
-|---|---|---|---|:-:|
-| C1 | Cancello A (e B, se in produzione va anche EJ200) | **tutto ✅** | no | ❌ |
-| C2 | In QA, dal frontend: un MOS e un DR veri, con e senza serial | **validati, nessun errore tecnico** | non fatta | ⬜ |
-| C3 | In QA: targhe vere dal registro delle macchine (Redshift) | **0 targhe giuste segnate ERRATO** | non fatta | ⬜ |
-| C4 | Una persona che conosce cicli e manuali guarda 5-10 risultati di QA | **0 falsi errori** e **almeno l'80%** degli errori che vede lei trovati | non fatta | ⬜ |
-| C5 | Avvisi per ciclo in QA | **al massimo 5**, di cui `[da guardare]` **al massimo 2** | sul PC 6-9 (registro spento) | ⬜ |
-| C6 | Accessi: chi non ha `cv_ej200` non vede EJ200 | **sì** | sì nei test, da vedere in QA | ⬜ |
-| C7 | Come tornare alla v1 se qualcosa va male (`qa --torna-alla-v1`) | **provato una volta** | non provato | ⬜ |
-
----
-
-*Ultimo aggiornamento: 27-11 notte, dopo la campagna del passo 4d. Prossimo: dopo la campagna
-del passo 4e e la risposta alla P13.*
+*Aggiornato il 27-11 notte, dopo il 4d. Prossimo: dopo il 4e e la P13.*

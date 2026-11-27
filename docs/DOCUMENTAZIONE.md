@@ -787,14 +787,11 @@ La prepara e la pubblica **knowledge-index** su S3. Il formato completo, con ese
 | fonte con la sola sezione | tutti i task di quella sezione, in ogni documento del manuale |
 | codice sbagliato o documento mancante | sbagliato se il codice non c'è da nessuna parte e ci sono i fratelli della stessa famiglia |
 
-**Con molti documenti.** La ricerca di un task è un dizionario (manuale, codice): non rallenta
-con il numero di documenti. Le ricerche che leggono il testo tengono una cache per documento,
-finché il file non cambia: le righe (`kb/documents.py`, 256 documenti), i codici di task completi
-scritti nel documento (`full_task_codes`, 512) e il testo pulito per cercare un codice con gli
-spazi (`resolve/civil.py`, 512). Così la ricerca dei fratelli di un codice sbagliato del capitolo
-70, che guarda il manuale e **tutti** i documenti SPM, legge gli SPM una volta sola (27-11 notte:
-da 0,7 s a 0,07 s a codice con 30 SPM finti da 3000 righe). La misura con 2900 documenti finti
-è il comando `eval scala` (sezione 14.3); i numeri sono nella sezione 20.
+**Con molti documenti.** La ricerca di un task è un dizionario: non rallenta. Le ricerche nel
+testo tengono una cache per documento finché il file non cambia: righe (`kb/documents.py`, 256),
+codici di task completi (`full_task_codes`, 512), testo pulito (`resolve/civil.py`, 512). Così i
+fratelli di un codice sbagliato del capitolo 70 leggono gli SPM una volta sola. Misura:
+`eval scala` (14.3), numeri nella sezione 20.
 
 ### 10.4 Il formato, con esempi inventati
 
@@ -1156,7 +1153,7 @@ opzioni.
 | `eval classifica` | mette in classifica le varianti |
 | `eval mutazioni` | copie dei casi rivisti con difetti noti o modifiche innocue |
 | `eval pipeline` | tutto insieme: verifiche del codice, baseline, varianti, classifica |
-| `eval scala` | scrive una conoscenza finta di molti documenti in una cartella temporanea, la carica come il servizio e misura avvio, disco, memoria e ricerche; poi la cancella. `--documenti` (2900), `--righe` (3000), `--task` (30), `--spm` (30), `--senza-righe` (manifest senza il numero di righe). Gratis |
+| `eval scala` | conoscenza finta di molti documenti in una cartella temporanea: misura avvio, disco, memoria e ricerche, poi la cancella. `--documenti` (2900), `--righe` (3000), `--task` (30), `--spm` (30), `--senza-righe`. Gratis |
 
 ### 14.4 Azienda
 
@@ -1164,7 +1161,7 @@ opzioni.
 |---|---|
 | `macchine` | scarica le macchine attive da Redshift in `data/macchine_attive.json` (stampa solo il numero) |
 | `qa` | prepara la pubblicazione in QA (sezione 16); `--torna-alla-v1` la annulla |
-| `prova-ej200 <pdf o cartelle>…` | valida cicli EJ200 sul PC **senza lasciare tracce** (autorizzazione dell'utente del 27-11): legge catalogo e testi da S3 con il puntatore `--conoscenza-ej200` (`--bucket`, `--regione`), scrive i testi usati in una cartella temporanea `cv-ej200-…` cancellata alla fine (anche dopo un errore o Ctrl+C; quelle rimaste da una prova chiusa con forza si cancellano alla prova dopo), niente `runs/`, niente report, niente transcript, log spento. Le targhe vengono dalla conoscenza civile (`--targhe`, vuoto = ultima fotografia), le macchine da `--machines`. A schermo solo l'impronta della stampa, stato, conteggi, motivi e costo; un errore si stampa con il tipo, mai con il messaggio (`evaluation/ej200_local.py`) |
+| `prova-ej200 <pdf o cartelle>…` | cicli EJ200 sul PC senza tracce (autorizzato dal 27-11): catalogo e testi da S3 (`--conoscenza-ej200`, `--bucket`, `--regione`), testi in una cartella temporanea `cv-ej200-…` cancellata alla fine (quelle rimaste si cancellano alla prova dopo); niente `runs/`, report, transcript, log. Targhe da `--targhe` (vuoto = ultima fotografia), macchine da `--machines`. A schermo solo impronta, stato, conteggi, motivi, costo; un errore solo con il tipo (`evaluation/ej200_local.py`) |
 
 ---
 
@@ -1577,16 +1574,20 @@ in 10-20 secondi; la concordanza del golden set; `1 passed`. Se **tutte** le ope
 - il modello non risponde sempre uguale sullo stesso testo: per questo c'è la conferma degli
   ERRATO e le prove si ripetono almeno 2 volte.
 
-**Con 2900 documenti (misura del 27-11 notte, `eval scala`, conoscenza finta, disco locale del
-container di Claude; sul PC e in AWS i tempi cambiano).** 2900 documenti da 3000 righe e 30 task
-(87.000 task, 30 SPM): 559 MB in 2902 file. Avvio, cioè copia e lettura come fa il servizio:
-4,2 s (7,7 s se il manifest non scrive le righe dei documenti: allora li apre tutti); riavvio con
-la versione già su disco 1,0 s (2,5 s); memoria della conoscenza letta 164 MB (248 MB). Un task
-dell'indice: 6-9 µs. Un task che l'indice non ha (ricerca nel testo): 25 ms. I fratelli di un
-codice sbagliato del capitolo 70: 0,7 s la prima volta, 0,07 s dopo. Con 75 documenti: 0,1 s,
-14 MB, 4 MB. Quello che la misura non dice: il tempo per scaricare 560 MB da S3 (in AWS pochi
-secondi o decine di secondi, dal PC di più), e la qualità dell'ingestion (task tagliati male
-nei manuali nuovi portano falsi errori nuovi: per questo la prova di controllo sul grande).
+**Con 2900 documenti** (`eval scala`, conoscenza finta, 27-11; sul PC e in AWS i tempi cambiano):
+
+| | 75 documenti | 2900 documenti | 2900, manifest senza righe |
+|---|---|---|---|
+| Disco | 14 MB | 559 MB | 559 MB |
+| Avvio (copia e lettura) | 0,1 s | 4,2 s | 7,7 s |
+| Riavvio con la versione su disco | 0,0 s | 1,0 s | 2,5 s |
+| Memoria | 4 MB | 164 MB | 248 MB |
+| Task dell'indice | 3 µs | 6-9 µs | 6-9 µs |
+| Task fuori indice (testo) | 18 ms | 25 ms | 25 ms |
+| Fratelli di un codice del capitolo 70 | | 0,7 s la prima volta, 0,07 s dopo | |
+
+Non misurati: il download da S3 e la qualità dell'ingestion (task tagliati male portano falsi
+errori: per questo la prova di controllo sul grande).
 
 **Regole scelte senza tutti i dati veri, da rivedere con chi conosce i cicli:**
 

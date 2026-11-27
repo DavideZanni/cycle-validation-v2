@@ -102,53 +102,31 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 ## 1. Cosa fare adesso
 
-### Le tappe
+| | Tappa | Stato |
+|---|---|---|
+| ✅ | 1-2 · Preparare, prima campagna | 24-11 |
+| 👉 | 3 · Migliorie | base di oggi: `finale` + tre controlli del codice (4d). In prova: `schede_e_limiti` (4e) |
+| 👉 | 4 · Prove dal frontend (sezione 4) | A3 e A1 fatte |
+| ⬜ | 5 · Grande ingestion, prova di controllo, QA | dopo il 4e |
+| ⬜ | 6 · Produzione (`develop` → `main`) | quando i cancelli di `V1_CONTRO_V2.md` sono ✅ |
 
-| | Tappa | Cosa si fa | Quando |
-|---|---|---|---|
-| ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, copie cieche | 24-11 |
-| ✅ | **2. Prima campagna** | tutte le impostazioni, Haiku e Sonnet | 24-11 sera |
-| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` e `definizioni_generali` non entrano; corretto il controllo dei numeri tra le lingue. 27-11: `procedura_dr` nella base, `lingue_tra_loro` scartata; campagna finale: vince `finale` (I8 + I15 + I16); la v1 sugli stessi cicli. Adesso: riepiloghi ricalcolati e P12, poi `finale` nella base | 26-27-11 |
-| 👉 | **4. Prove dal frontend** | la v2 dalla pagina web (sezione 4): A3 e A1 fatte il 27-11, le altre dopo `finale` nella base | 27-11 → |
-| ⬜ | **5. Conoscenza e QA** | la tua grande ingestion, una prova di controllo, Salvare, QA | dopo la 4 |
-| ⬜ | **6. Produzione** | `develop` → `main` | dopo QA |
-
-Tempo e costo (B1, B4...) non servono per la produzione: oggi 15 s e 0,01 $ a ciclo. Si fanno
-dopo, se serve. Risultati e decisioni: `MIGLIORIE.md`, sezioni 7 e 13.
-
-### 👉 Adesso: finire le migliorie (27-11)
-
-**Decisione del 26-11 sera.** Niente altri manuali da chiedere: si va in produzione anche senza
-il capitolo 70-23 dell'SPM, i due REPAIR e M4 (li aggiungeranno poi, a mano). La conoscenza del
-servizio la scegli tu: una grande ingestion di tutti i documenti civili.
-
-| | Passo | Chi | Quando · costo |
-|---|---|---|---|
-| ✅ | **1 · Campagna** base contro `lingue_tra_loro` e `procedura_dr` | tu | finita il 27-11 alle 11:17: `procedura_dr` nella base, `lingue_tra_loro` scartata (`MIGLIORIE.md`, sezione 13) |
-| ✅ | **2 · Migliorie per la campagna finale** | Claude | scritte il 27-11 |
-| ✅ | **3 · Aggiornare, prove dal frontend, domande a Copilot** | tu | 27-11 (restano le altre prove dal frontend, sezione 4) |
-| ✅ | **4 · Campagna finale e v1 sugli stessi cicli** | tu | 27-11: vince `finale`; la v1 in `docs/CONFRONTO_V1_14_CICLI.md` |
-| ✅ | **4c · Riepiloghi ricalcolati e domanda P12** | tu | 27-11 sera: la v2 mancava tutte e 6 le operazioni aggiunte; P12: i 3 ERRATO dei cicli veri sono errori veri |
-| ✅ | **4d · La base nuova** (`finale` più tre controlli del codice) | tu | 27-11 sera: 30 su 43 stabili sul piccolo, 18 su 29 sul grande; un falso errore, la 050 di 04ecaabe (la regola «almeno N» del 4e lo deve togliere) |
-| 👉 | **4e · Schede e regole** (variante `schede_e_limiti`: H18 e la regola «almeno N») e **domanda P13** | tu | adesso · circa 2,5 $ · 1 ora |
-| ⬜ | **4f · EJ200 sul PC** (comando nuovo `prova-ej200`, senza tracce) | tu | dopo l'ingestion EJ200 · pochi centesimi a ciclo |
-| ⬜ | **5 · Grande ingestion, prova di controllo, Salvare, QA** | tu | dopo |
+| | Passo | Quando · costo |
+|---|---|---|
+| ✅ | 1-4d · campagne, v1 sugli stessi cicli, base nuova | 27-11: 30/43 stabili sul piccolo, 18/29 sul grande |
+| 👉 | **4e · Schede e regole**, domanda P13 | adesso · 2,5 $ · 1 ora |
+| ⬜ | **4f · EJ200 sul PC** | dopo l'ingestion EJ200 · centesimi |
+| ⬜ | **5 · Grande ingestion e QA** | dopo |
 
 ---
 
-**👉 Passo 4e · Schede e regole** (adesso, circa 2,5 $, 1 ora)
+**👉 Passo 4e · Schede e regole**
 
-**Fatto il 27-11 sera:** le due regole sono decise (scheda mancante = avviso con il commento
-«Scheda mancante»; «almeno 4 volte» contro «più di 4 volte» non è un errore: un ERRATO sulla
-050 di 04ecaabe adesso conta come falso errore). Claude ha scritto la variante
-**`schede_e_limiti`**: il controllo delle schede del codice (H18: scheda di un altro motore, di
-un altro materiale, task della scheda che il manuale non ha, scheda che l'indice non ha) e la
-regola «almeno N». In più i WARNING ora dicono il loro tipo (H15): `[da guardare]` o
-`[non controllabile]`.
+La variante `schede_e_limiti` prova H18 (scheda coerente con l'operazione) e la regola «almeno
+N» (non è un errore). Un ERRATO sulla 050 di 04ecaabe o di 2d724fba ora è un falso errore.
 
-1. **Aggiornare** (2.1). **Non archiviare**: le prove della base del passo 4d restano.
+1. Quando la campagna è finita: **Aggiornare** (2.1). Non archiviare.
    - **Deve uscire:** `... passed`, nessun `failed`.
-2. **Ricalcolare** i riepiloghi con gli errori noti nuovi:
+2. **Ricalcolare** i riepiloghi (gratis):
 
    ```powershell
    $env:UV_PYTHON = "3.14"
@@ -156,72 +134,47 @@ regola «almeno N». In più i WARNING ora dicono il loro tipo (H15): `[da guard
    ```
 
    - **Deve uscire:** due volte `Ricalcolati con gli errori noti di adesso: N cicli cambiati`.
-     Sul piccolo un ERRATO sulla 050 di 04ecaabe ora è un falso errore della base.
-3. **`aws sso login`**, poi **il piano** (3.5).
-   - **Deve uscire:** per ogni insieme `base` `fatte 3` e `schede_e_limiti` `3 da fare`.
-4. **La campagna** (3.5): solo le 3 prove della variante, sul piccolo e sul grande.
-   - **Deve uscire:** 0 falsi errori; più errori stabili della base (8d3c673c 100 e 110,
-     almeno in parte); nessun ERRATO sulla 050 di 04ecaabe; costo quasi uguale alla base.
-   - **Mandami:** la riga finale, `runs\campagna.md` e i due `riepilogo.md` (classifica,
-     «Errore per errore», «ERRATO da verificare»).
-5. **Ricalcolare di nuovo** (gratis), se hai aggiornato **dopo** le 23 del 27-11: il blocco del
-   punto 2. Da allora anche la 050 di 2d724fba non è più in attesa: dice «almeno 4 volte» in
-   italiano e «more than 4 times» in inglese, come la 050 di 04ecaabe, quindi un ERRATO lì è un
-   falso errore. Se la campagna gira, aspetta che finisca.
-   - **Deve uscire:** due volte `Ricalcolati con gli errori noti di adesso: N cicli cambiati`.
-6. **Domanda P13 a Copilot** (in **Ask**, non in Agent; si può fare anche mentre gira la
-   campagna, Copilot legge soltanto): copia il testo qui sotto.
+3. Se la campagna non è ancora partita: `aws sso login`, **il piano** e **la campagna** (3.5).
+   - **Deve uscire:** nel piano `base` `fatte 3` e `schede_e_limiti` `3 da fare`; alla fine 0
+     falsi errori e più errori stabili della base (8d3c673c 100 e 110).
+4. **Mandami:** la riga finale, `runs\campagna.md` e i due `riepilogo.md` (classifica, «Errore
+   per errore», «ERRATO da verificare»).
+5. **Domanda P13 a Copilot** (in **Ask**; anche mentre gira la campagna):
 
 ```text
-Modalità Ask: leggi soltanto, non modificare e non creare file e non lanciare comandi.
+Modalità Ask: leggi soltanto, non modificare, non creare file, non lanciare comandi.
 
-Nelle cartelle runs/prove-piccolo e runs/prove-grande ci sono tre prove «base» del 27-11 sera
-(le ultime tre cartelle che finiscono con -base). La v2 dà ERRATO 3 volte su 3 su queste
-operazioni, che non sono nella lista degli errori noti:
-- ciclo 8d3c673c, operazioni 060 e 070 (piccolo e grande);
-- ciclo b1261d11, operazione 060 (grande; è un ciclo vero).
+In runs/prove-piccolo e runs/prove-grande, nelle ultime tre cartelle che finiscono con -base,
+la v2 dà ERRATO 3 volte su 3 su: 8d3c673c 060 e 070 (piccolo e grande); b1261d11 060 (grande,
+ciclo vero). Per ogni operazione, in un solo report.json (runs/prove-<insieme>/<prova>/<impronta>/):
+1) controllo (check) e motivo (reason) dell'ERRATO;
+2) la spiegazione (rationale), in una frase;
+3) il testo in italiano e in inglese: dicono la stessa cosa? 8d3c673c 060: «opposing» o
+   «opposite»? 8d3c673c 070: le targhe sono le stesse in tutte le pagine? b1261d11 060:
+   «superiore a 4X» contro «not to exceed 4X», come 737dec71 060?
+4) errore vero della stampa o falso errore della v2?
 
-Per ogni operazione guarda runs/prove-<insieme>/<prova>/<impronta>/report.json, in una prova
-sola:
-1) quale controllo dà ERRATO (check: operation_description, machine_tag, task_code o altro) e
-   con quale motivo (reason);
-2) che cosa dice la spiegazione (rationale), in una frase;
-3) il testo dell'operazione in italiano e in inglese (cycle, poi operations): dicono la stessa
-   cosa? Per 8d3c673c 060: l'inglese dice «opposing blends», il manuale «opposite»? Per 8d3c673c
-   070: le targhe dell'operazione sono le stesse in tutte le pagine della stampa? Per b1261d11
-   060: l'italiano dice «superiore a 4X» e l'inglese «not to exceed 4X», come la 060 di 737dec71?
-4) la conclusione: errore vero della stampa o falso errore della v2?
-
-Rispondi in italiano semplice con una tabella: ciclo, operazione, controllo e motivo,
-spiegazione, italiano, inglese, conclusione. Delle stampe copia solo le frasi di queste
-operazioni e le targhe; non copiare testo dei manuali.
+Rispondi con una tabella: ciclo, operazione, controllo e motivo, spiegazione, italiano,
+inglese, conclusione. Copia solo le frasi di queste operazioni e le targhe, niente manuali.
 ```
 
-   - **Deve uscire:** la tabella con 3 righe.
+   - **Deve uscire:** una tabella con 3 righe.
    - **Mandami:** la foto della risposta.
-7. **Ricordati:** Copilot sempre in **Ask**.
 
 ---
 
-**⬜ Passo 4f · EJ200 sul PC** (dopo l'ingestion EJ200, pochi centesimi a ciclo)
+**⬜ Passo 4f · EJ200 sul PC**
 
-**Da sapere.** Hai l'autorizzazione a provare EJ200 sul PC. Il comando `prova-ej200` è fatto
-per non lasciare niente: legge catalogo e testi EJ200 da S3 (AWS EU), mette i testi delle
-pubblicazioni usate in una cartella temporanea che cancella alla fine (anche dopo un errore o
-Ctrl+C), non scrive in `runs\` e non salva le sessioni. A schermo stampa solo l'impronta della
-stampa, i conteggi e i motivi: mai descrizioni, fonti o codici EJ200. Per questo a Claude si
-manda **solo la foto dello schermo** e a Copilot **non si chiede niente** sui cicli EJ200.
+`prova-ej200` non lascia niente: legge la conoscenza EJ200 da S3, tiene i testi in una cartella
+temporanea che cancella alla fine, non scrive in `runs\`. A schermo solo impronte e conteggi.
+A Claude solo la foto dello schermo; a Copilot niente di EJ200.
 
-1. **I documenti su S3 e l'ingestion EJ200** (come fai per il civile, con knowledge-index).
-   La v2 conosce i tipi **RDR, EF e RN**. Se un tipo di documento ha un'altra sigla (per
-   esempio «RI»), **dimmelo a parole prima**: va aggiunto. Le copie dei documenti sul PC
-   tienile fuori da `ProgettoDocumenti` e dalle cartelle git, e cancellale dopo il caricamento.
-   - **Mandami:** a parole, la chiave S3 del `current.json` della conoscenza EJ200 (senza il
-     nome del bucket), e i conteggi dell'ingestion.
-2. **Le stampe EJ200** in una cartella **fuori** da `app_cycle_validation_v2` e da ogni
-   cartella git (per esempio una cartella nuova sul Desktop). Al posto di `<cartella EJ200>`
-   scrivi il suo percorso; al posto della chiave scrivi quella del punto 1 (questa è quella
-   di prova).
+1. **Documenti su S3 e ingestion EJ200** (knowledge-index). La v2 conosce RDR, EF e RN: un'altra
+   sigla (per esempio «RI») dimmela prima. Le copie sul PC: fuori da `ProgettoDocumenti` e dalle
+   cartelle git, cancellate dopo il caricamento.
+   - **Mandami:** a parole, la chiave del `current.json` EJ200 (senza bucket) e i conteggi.
+2. **Le stampe EJ200** in una cartella fuori da ogni cartella git. Sostituisci
+   `<cartella EJ200>` e, se è diversa, la chiave:
 
 ```powershell
 $env:UV_PYTHON = "3.14"
@@ -230,43 +183,22 @@ aws sso login
 uv run cycle-validation prova-ej200 "<cartella EJ200>" --bucket (Get-Content data/bucket.txt) --conoscenza-ej200 "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/ej200/current.json" --regione eu-south-1
 ```
 
-   - **Deve uscire:** `Conoscenza EJ200 <versione>: pubblicazioni N, issue M, targhe K`; poi
-     per ogni stampa una riga `<impronta>: <stato> · ... corretti, ... errati, ... da guardare,
-     ... non controllabili, ... N/A · ... $ · ... s` e sotto i motivi (`ERRATO · controllo ·
-     MOTIVO: n`); alla fine `Totale: ...` e `Cartella temporanea cancellata; niente in runs.`
-     Se esce `prova non partita (...)`: mandami la foto, dice solo il tipo dell'errore.
-   - **Mandami:** la foto dello **schermo** e basta.
-3. **Ricordati:** non aprire con Copilot né la cartella EJ200 né i documenti EJ200.
+   - **Deve uscire:** `Conoscenza EJ200 ...`, una riga per stampa con i conteggi, `Totale: ...`,
+     `Cartella temporanea cancellata; niente in runs.` (oppure `prova non partita (...)`).
+   - **Mandami:** la foto dello schermo.
 
 ---
 
-**⬜ Passo 5 · Grande ingestion, prova di controllo, Salvare, QA**
+**⬜ Passo 5 · Grande ingestion e QA**
 
-1. **Ingestion** di tutti i documenti civili (EJ200 a parte: passo 4f).
-   Dentro anche le 2 schede LEAP di M5.
-2. Sezione [5](#5-dopo-una-nuova-ingestion) blocco A (fotografia e `kb-check`), poi cicli veri
-   (3.2) e **una prova della base sul grande** (3.7, circa 0,25 $): i manuali nuovi non devono
-   portare falsi errori. Foto della riga finale e del riepilogo.
-3. Dimmi a parole il puntatore della conoscenza scelta: Claude aggiorna il blocco `qa`
-   (sezione 7).
-4. Salvare (2.2), poi QA (sezione 7).
+1. Ingestion di tutti i documenti civili, con le 2 schede LEAP di M5.
+2. Sezione [5](#5-dopo-una-nuova-ingestion) blocco A, cicli veri (3.2) e una prova della base sul
+   grande (3.7, 0,25 $).
+   - **Mandami:** riga finale e riepilogo.
+3. Dimmi il puntatore della conoscenza scelta; poi Salvare (2.2) e QA (sezione 7).
 
-### ⬜ Anche da fare, quando hai tempo
-
-| | Cosa | Dove |
-|---|---|---|
-| ⬜ | **Unit test per il collega:** dimmi se la guida la vuoi in Markdown o in Word, e Claude la scrive | a parole |
-| ⬜ | **Messaggio al collega del frontend**, se non l'hai già mandato | sezione [6.2](#62-messaggio-per-il-collega-del-frontend) |
-| ⬜ | **Gruppo nascosto**: una decina di stampe con errori messi a mano. Per contare nella campagna finale va fatto prima del passo 4 | sezione [3.4](#34-il-gruppo-nascosto-facoltativo) |
-
-### ⬜ Le tappe dopo
-
-- **Tappa 6 · QA e produzione** (sezione 7): pull request verso `develop`, prova con un MOS e
-  un DR (targhe vere da Redshift), poi i cicli militari. Prima di `main`: una persona che
-  conosce cicli e manuali guarda 5-10 risultati di QA. Quando il ramo arriva su `main` anche
-  la produzione passa alla v2.
-- **Dopo la produzione:** i manuali che mancano (li aggiunge l'azienda), tempo e costo
-  (`MIGLIORIE.md` 7.4).
+**Quando hai tempo:** dimmi se la guida agli unit test la vuoi in Markdown o in Word; manda il
+messaggio al collega del frontend (6.2).
 
 ---
 
