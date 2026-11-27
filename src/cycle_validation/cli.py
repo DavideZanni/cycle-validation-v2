@@ -47,7 +47,7 @@ from cycle_validation.evaluation.draft import draft_case
 from cycle_validation.evaluation.leaderboard import build_leaderboard, render_leaderboard
 from cycle_validation.evaluation.metrics import measure
 from cycle_validation.evaluation.mutations import mutate_cases
-from cycle_validation.evaluation.run import load_suites, run_variant
+from cycle_validation.evaluation.run import Suite, load_suites, run_variant
 from cycle_validation.evaluation.snapshot import snapshot_version, take_snapshot
 from cycle_validation.evaluation.trials import (
     BASE_NAME,
@@ -66,7 +66,7 @@ from cycle_validation.evaluation.trials import (
     write_summary,
     write_trial,
 )
-from cycle_validation.evaluation.variant import load_variant
+from cycle_validation.evaluation.variant import Variant, load_variant
 from cycle_validation.extract.base import CycleExtractor
 from cycle_validation.extract.factory import make_pdf_extractor
 from cycle_validation.extract.from_file import FileCycleExtractor
@@ -762,6 +762,32 @@ def _summary(name: str, path: Path) -> str:
     return "\n".join(lines)
 
 
+def _run_variant(
+    variant: Variant,
+    suites: list[Suite],
+    repetitions: int,
+    cases: Path,
+    results_dir: Path,
+    runs: Path | None,
+    environment: str | None,
+) -> Path:
+    """Una variante su tutti i casi (`eval esegui`, `eval pipeline`): il file dei risultati."""
+    return asyncio.run(
+        run_variant(
+            variant,
+            suites,
+            repetitions=repetitions,
+            results_dir=results_dir,
+            session_factory=_session_for(variant.session),
+            project_root=Path.cwd(),
+            runs_dir=runs or variant.settings.paths.runs_dir,
+            environment=environment,
+            cases_label=cases.as_posix(),
+            progress=typer.echo,
+        )
+    )
+
+
 @eval_app.command("esegui")
 def eval_run(
     variante: Annotated[Path, typer.Option(help="File YAML della variante.")],
@@ -786,20 +812,7 @@ def eval_run(
     try:
         variant = load_variant(variante, config_override=config)
         suites = load_suites(casi)
-        path = asyncio.run(
-            run_variant(
-                variant,
-                suites,
-                repetitions=ripetizioni,
-                results_dir=risultati,
-                session_factory=_session_for(variant.session),
-                project_root=Path.cwd(),
-                runs_dir=runs or variant.settings.paths.runs_dir,
-                environment=ambiente,
-                cases_label=casi.as_posix(),
-                progress=typer.echo,
-            )
-        )
+        path = _run_variant(variant, suites, ripetizioni, casi, risultati, runs, ambiente)
         summary = _summary(variant.name, path)
     except CycleValidationError as error:
         raise _fail(error) from error
@@ -1076,6 +1089,13 @@ def _run_trial(
     return trial, folder
 
 
+def _proposal(variant: Variant) -> Proposal:
+    """La proposta scritta nella variante: cosa cambia, perché, cosa ci si aspetta."""
+    return Proposal(
+        change=variant.description, hypothesis=variant.hypothesis, expected=variant.expected
+    )
+
+
 @eval_app.command("prova")
 def eval_trial(
     pdfs: Annotated[
@@ -1113,11 +1133,7 @@ def eval_trial(
             loaded = load_variant(variante, config_override=config)
             settings = loaded.settings
             nome = nome or loaded.name
-            proposal = Proposal(
-                change=loaded.description,
-                hypothesis=loaded.hypothesis,
-                expected=loaded.expected,
-            )
+            proposal = _proposal(loaded)
         else:
             settings = load_settings(config)
         if not nome:
@@ -1203,9 +1219,7 @@ def _campaign_settings(
     else:
         loaded = load_variant(Path("eval/varianti") / f"{name}.yaml", config_override=config)
         settings = loaded.settings
-        proposal = Proposal(
-            change=loaded.description, hypothesis=loaded.hypothesis, expected=loaded.expected
-        )
+        proposal = _proposal(loaded)
     if model_id:
         agent = settings.agent.model_copy(update={"model": model_id})
         settings = settings.model_copy(update={"agent": agent})
@@ -1946,20 +1960,7 @@ def eval_pipeline(
         )
         for number, variant in enumerate(loaded, 1):
             echo(f"--- variante {number}/{len(loaded)}: {variant.name} ({variant.description})")
-            path = asyncio.run(
-                run_variant(
-                    variant,
-                    suites,
-                    repetitions=ripetizioni,
-                    results_dir=risultati,
-                    session_factory=_session_for(variant.session),
-                    project_root=Path.cwd(),
-                    runs_dir=runs or variant.settings.paths.runs_dir,
-                    environment=ambiente,
-                    cases_label=casi.as_posix(),
-                    progress=echo,
-                )
-            )
+            path = _run_variant(variant, suites, ripetizioni, casi, risultati, runs, ambiente)
             echo(_summary(variant.name, path))
         echo("3. Classifica")
         out = risultati / "classifica.md"
