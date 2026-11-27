@@ -21,11 +21,11 @@ from cycle_validation import __version__
 from cycle_validation.agent.prompt import OPERATION_PROMPT_FILE, load_prompt, prompt_version
 from cycle_validation.agent.session import AgentSession
 from cycle_validation.config import AgentSettings, Settings, load_profile
-from cycle_validation.domain.check import Reason
 from cycle_validation.domain.cycle import Cycle
 from cycle_validation.domain.report import Report
 from cycle_validation.errors import ConfigError, CycleValidationError
 from cycle_validation.evaluation.faults import FaultyKnowledge, FaultySession
+from cycle_validation.evaluation.metrics import TECHNICAL_REASONS
 from cycle_validation.evaluation.snapshot import snapshot_version
 from cycle_validation.evaluation.variant import Variant
 from cycle_validation.extract.base import CycleExtractor
@@ -280,10 +280,8 @@ def compare_extraction(extracted: Cycle, reference: Cycle) -> dict[str, list[int
     def source(item: Any) -> tuple[str, str]:
         return (normalize_code(item.manual), normalize_code(item.task or ""))
 
-    got_ops = {operation(op)[0]: operation(op) for op in extracted.operations}
-    same_ops = sum(
-        1 for op in reference.operations if got_ops.get(operation(op)[0]) == operation(op)
-    )
+    got_ops = {key[0]: key for key in map(operation, extracted.operations)}
+    same_ops = sum(1 for key in map(operation, reference.operations) if got_ops.get(key[0]) == key)
     got_sources = {source(item) for item in extracted.sources}
     same_sources = sum(1 for item in reference.sources if source(item) in got_sources)
     return {
@@ -434,18 +432,11 @@ async def run_variant(
     return path
 
 
-_TECHNICAL = {
-    Reason.ERRORE_TECNICO.value,
-    Reason.BUDGET_ESAURITO.value,
-    Reason.ESTRAZIONE_NON_CONFERMATA.value,
-}
-
-
 def _progress_line(done: int, total: int, record: dict[str, Any]) -> str:
     where = f"[{done}/{total}] rip. {record['ripetizione']} {record['suite']}/{record['caso']}"
     seconds = record["tempi_ms"].get("total", 0) / 1000
     if record["guasto"]:
         return f"{where}: GUASTO {record['guasto']}"
-    technical = sum(1 for row in record["ottenuti"] if row["reason"] in _TECHNICAL)
+    technical = sum(1 for row in record["ottenuti"] if row["reason"] in TECHNICAL_REASONS)
     note = f", {technical} esiti tecnici" if technical else ""
     return f"{where}: {seconds:.1f} s{note}"
