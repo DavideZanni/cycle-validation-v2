@@ -226,8 +226,8 @@ type _Found = tuple[str | None, str | None, str | None]
 
 
 def _database_in(trees: list[ast.Module]) -> _Found:
-    """(testo nel codice, chiave): la chiave, se c'è, vale più del testo (che è il suo valore
-    predefinito, come in `.get("K", "predefinito")`)."""
+    """(testo nel codice, chiave, come la v1 legge la chiave): la chiave, se c'è, vale più del
+    testo (che è il suo valore predefinito, come in `.get("K", "predefinito")`)."""
     functions = {
         node.name: node
         for tree in trees
@@ -250,6 +250,12 @@ def _text(node: ast.AST | None) -> str | None:
     return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None
 
 
+def _call_name(call: ast.Call) -> str:
+    """Il nome della funzione chiamata: `f(...)` e `x.f(...)` danno `f`."""
+    func = call.func
+    return func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
+
+
 def _resolve(node: ast.AST, scope: ast.AST, functions: dict[str, Any], depth: int) -> _Found:
     if depth > 6:
         return None, None, None
@@ -263,9 +269,7 @@ def _resolve(node: ast.AST, scope: ast.AST, functions: dict[str, Any], depth: in
                 return _resolve(entry, scope, functions, depth + 1)
         return None, key, "[...]"
     if isinstance(node, ast.Call) and node.args and (key := _text(node.args[0])) is not None:
-        name = (
-            node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", "")
-        )
+        name = _call_name(node)
         if name in {"get", "getenv"}:
             return (_text(node.args[1]) if len(node.args) > 1 else None), key, f".{name}()"
     if isinstance(node, ast.Name):
@@ -309,12 +313,7 @@ def _from_tuple(
     if isinstance(value, ast.Tuple) and index < len(value.elts):
         return _resolve(value.elts[index], scope, functions, depth + 1)
     if isinstance(value, ast.Call):
-        name = (
-            value.func.attr
-            if isinstance(value.func, ast.Attribute)
-            else getattr(value.func, "id", "")
-        )
-        function = functions.get(name)
+        function = functions.get(_call_name(value))
         if function is not None:
             for node in ast.walk(function):
                 if isinstance(node, ast.Return) and node.value is not None:
@@ -371,11 +370,10 @@ def data_api_target(
             f"Manca il nome del database: non è nel secret (campi presenti: {fields}) né "
             "nel codice della v1. Indicalo con --database."
         )
-    region = re.search(r"\.([a-z]{2}(?:-[a-z]+)+-\d)\.redshift", host)
     parameters = {"Database": database, "SecretArn": secret_arn}
     if "redshift-serverless" in host:
         parameters["WorkgroupName"] = host.split(".")[0]
     else:
         cluster = values.get("dbClusterIdentifier") or host.split(".")[0]
         parameters["ClusterIdentifier"] = str(cluster)
-    return (region[1] if region else None), parameters
+    return host_region(host), parameters
