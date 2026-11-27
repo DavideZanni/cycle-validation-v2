@@ -40,12 +40,26 @@ class Identity:
     services: frozenset[str]
 
 
+def _valid_user(user: str) -> bool:
+    return _USER.fullmatch(user) is not None and set(user) != {"."}
+
+
+def _is_ej200(path: str) -> bool:
+    return path == EJ200_PREFIX or path.startswith(f"{EJ200_PREFIX}/")
+
+
+def _without_identity(request: Request) -> bool:
+    """Richieste che non portano un utente: preflight CORS, rotte pubbliche, fuori dal servizio."""
+    path = request.url.path
+    return request.method == "OPTIONS" or path in PUBLIC_PATHS or not path.startswith(PREFIX)
+
+
 def identity_from_headers(
     headers: Mapping[str, str], user_header: str, services_header: str
 ) -> Identity | None:
     """None se l'utente manca o ha una forma che potrebbe uscire dalla sua cartella."""
     user = headers.get(user_header, "").strip()
-    if not _USER.fullmatch(user) or set(user) == {"."}:
+    if not _valid_user(user):
         return None
     raw = headers.get(services_header, "")
     services = frozenset(part.strip() for part in raw.split(",") if part.strip())
@@ -54,7 +68,7 @@ def identity_from_headers(
 
 def required_services(path: str) -> frozenset[str]:
     """Servizi che aprono la rotta: EJ200 è più restrittivo del civile."""
-    if path == EJ200_PREFIX or path.startswith(f"{EJ200_PREFIX}/"):
+    if _is_ej200(path):
         return frozenset({SERVICE_EJ200, SERVICE_ALL})
     return frozenset({SERVICE_CIVIL, SERVICE_EJ200, SERVICE_ALL})
 
@@ -68,13 +82,12 @@ class IdentityMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
-        path = request.url.path
-        if request.method == "OPTIONS" or path in PUBLIC_PATHS or not path.startswith(PREFIX):
+        if _without_identity(request):
             return await call_next(request)
         identity = identity_from_headers(request.headers, self._user_header, self._services_header)
         if identity is None:
             return JSONResponse({"detail": "Utente mancante o non valido."}, 401)
-        if not identity.services & required_services(path):
+        if not identity.services & required_services(request.url.path):
             return JSONResponse({"detail": "Permesso insufficiente per il servizio."}, 403)
         request.state.identity = identity
         return await call_next(request)
@@ -112,13 +125,12 @@ class SdkIdentityMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
-        path = request.url.path
-        if request.method == "OPTIONS" or path in PUBLIC_PATHS or not path.startswith(PREFIX):
+        if _without_identity(request):
             return await call_next(request)
         sso = str(getattr(self._current_user(request), "sso", "") or "").strip()
-        if not _USER.fullmatch(sso) or set(sso) == {"."}:
+        if not _valid_user(sso):
             return JSONResponse({"detail": "Utente non valido."}, 403)
-        ej200 = path == EJ200_PREFIX or path.startswith(f"{EJ200_PREFIX}/")
+        ej200 = _is_ej200(request.url.path)
         request.state.identity = Identity(
             sso, frozenset({SERVICE_EJ200} if ej200 else {SERVICE_CIVIL})
         )
