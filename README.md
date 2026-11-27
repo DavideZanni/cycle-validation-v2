@@ -29,5 +29,5 @@ Documenti (in `docs/`, scritti in modo semplice):
   lanciare, le domande per Copilot e per chi conosce i cicli;
 - `docs/MEMORIA.md`: tutto quello che sappiamo già: PC, regole, come funziona la v2, frontend,
   problemi già visti, decisioni prese;
-- `docs/MIGLIORIE.md`: cosa migliorare, in che ordine, e il registro delle prove;
+- `docs/MIGLIORIE.md`: tutte le migliorie, provate e da fare, in una tabella;
 

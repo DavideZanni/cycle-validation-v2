@@ -121,8 +121,8 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 **👉 Passo 4e · Schede e regole**
 
-La variante `schede_e_limiti` prova H18 (scheda coerente con l'operazione) e la regola «almeno
-N» (non è un errore). Un ERRATO sulla 050 di 04ecaabe o di 2d724fba ora è un falso errore.
+La variante `schede_e_limiti` prova MG40 (scheda coerente con l'operazione) e MG41 (la regola
+«almeno N» non è un errore). Un ERRATO sulla 050 di 04ecaabe o di 2d724fba ora è un falso errore.
 
 1. Quando la campagna è finita: **Aggiornare** (2.1). Non archiviare.
    - **Deve uscire:** `... passed`, nessun `failed`.
@@ -322,7 +322,7 @@ Le prove si confrontano solo dentro lo stesso insieme e con le stesse copie ciec
 | Riepilogo di una cartella | `<cartella>\riepilogo.md`: scelta migliore, classifica, tutte le prove, errore per errore |
 | Report della campagna | `runs\campagna.md` |
 
-**Come si decide** (da solo, nel riepilogo; dettagli in `MIGLIORIE.md`, sezione 6): una variante
+**Come si decide** (da solo, nel riepilogo; dettagli in `DOCUMENTAZIONE.md` 15.3): una variante
 è **scartata** con un solo falso errore, un ciclo non eseguito, un ciclo oltre 10 minuti o un
 costo oltre il doppio della base. **Si tiene** se trova più errori **stabili** (trovati in tutte
 le prove) della base senza perdere errori mai visti, oppure gli stessi errori con un risparmio
@@ -621,7 +621,7 @@ uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --er
 
 P1-P9 chiuse il 26-11, P10 e P11 il 27-11 (decise da Copilot sui dati, con la **regola prudente**:
 dove i dati non bastano, WARNING e mai ERRATO). Le risposte e cosa cambiano sono in
-`MEMORIA.md` (note del 26-11 e del 27-11), `MIGLIORIE.md` (7.3) ed `eval/errori-noti.yaml`. Se una persona che conosce cicli e manuali dice altro, scrivilo
+`MEMORIA.md` (note del 26-11 e del 27-11), `MIGLIORIE.md` ed `eval/errori-noti.yaml`. Se una persona che conosce cicli e manuali dice altro, scrivilo
 a Claude a parole, senza codici veri.
 
 ### 6.2 Messaggio per il collega del frontend

@@ -217,7 +217,7 @@ def render_campaign(
     lines += _warning_section([(m, t) for m, t in bases if t is not None])
     lines += [
         "Dettagli di ogni insieme: `riepilogo.md` nella sua cartella. Le considerazioni le scrive "
-        "Claude nel registro di `docs/MIGLIORIE.md`.",
+        "Claude nel registro di `docs/MEMORIA.md`.",
         "",
     ]
     return "\n".join(lines)

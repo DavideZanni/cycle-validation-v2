@@ -1522,6 +1522,13 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   Poi l'utente ha chiesto una lista «pronto per il passo dopo» con soglie: è in
   `docs/V1_CONTRO_V2.md`, sezione 5 (cancelli A QA, B EJ200 in QA, C produzione; soglie
   proposte da Claude, da confermare). Si aggiorna con il resto del file dopo ogni campagna.
+- **27-11 notte, documenti più corti e MIGLIORIE in una tabella (l'utente).** «Meno testo, solo
+  lo stretto necessario.» Accorciati `V1_CONTRO_V2.md`, la sezione 1 di COPILOT e le parti nuove
+  di DOCUMENTAZIONE. `MIGLIORIE.md` era fatto di molte tabelle con sigle diverse (A, B, D, E, F,
+  G, H, I, T, N) che non coincidevano: ora è **una tabella sola** con una sigla unica
+  (`MG01`…`MG74`, in ordine di quando sono nate), cosa fa, stato, importanza (1-5) e il nome di
+  prima. Il registro degli esperimenti è passato qui, sezione 16. Nei documenti nuovi si usano
+  le sigle `MGxx`; i nomi vecchi restano nelle note di prima e nei commenti del codice.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 
@@ -1592,3 +1599,301 @@ stessa targa compare in tre righe (pagine 14, 17, 18) con funzioni diverse. Come
   vengono dalla recommendation.
 - Stampe EJ200 (viste solo nel frontend della v1): descrizioni in italiano maiuscolo, fonti
   RDR/RN/EF, schede `PG …`.
+
+## 16. Registro degli esperimenti (da `MIGLIORIE.md`, 27-11)
+
+Una riga per ogni prova decisa, confrontata con la base dello stesso giro.
+
+- **Decisione:** si tiene, scartata o da ripetere (dal riepilogo).
+- **Considerazioni:** cosa si è capito, perché è andata così, cosa fare dopo.
+- La proposta (cosa cambia, ipotesi, atteso) sta nel file della variante e compare in cima a
+  `prestazioni.md` e nel riepilogo.
+- Le considerazioni le scrive Claude qui, dalle foto, quando la variante è decisa.
+- Fino al 27-11 stava in `MIGLIORIE.md`, con i nomi vecchi delle migliorie (A1, I8, H17…):
+  la tabella di `MIGLIORIE.md` dice a quale sigla `MGxx` corrisponde ognuno.
+
+**Sintesi del 24-11 (campagna Haiku, piccolo).** Nessuna impostazione migliora la base. Gli
+errori visti sono identici in tutte le prove, quindi le differenze tra le varianti sono solo
+sugli errori mai visti per il modello, dove 1 o 2 su 21 è rumore (una copia trovata o no). Il
+limite non sta nelle impostazioni ma nel metodo: il modello confronta la descrizione con il
+manuale e non vede un «non» tolto in una lingua sola (18 dei 21 mai visti). Prossimi passi: la
+prova con Sonnet (dice se è il modello) e la tappa 3 con una miglioria sul metodo. Con
+differenze così piccole conviene alzare le ripetizioni a 3 o avere più errori mai visti
+(gruppo nascosto). Queste righe sono con le copie cieche e il conteggio di prima della
+rianalisi del 24-11 sera (visti su 12, mai visti su 21): non si confrontano con le prove dopo.
+
+| Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
+|---|---|---|---|---|---|---|---|
+| 2026-11-14 | `effort: low` (prova veloce, una volta sola) | — | MOS 18-19 su 19 | -30% | -27% per sessione | da ripetere | una prova sola non basta: rifatta con il metodo sopra |
+| 2026-11-14 | `effort: low`, casi sintetici, 3 ripetizioni, login locale | `effort_low` | 99,5% (come baseline) | -22% | -9% | ammessa | più veloce; da confermare su Bedrock con casi veri |
+| 2026-11-14 | concorrenza 12 | `concorrenza_12` | 99,0% | -17% | uguale | scartata | concordanza più bassa; da rifare dopo B1 |
+| 2026-11-14 | modello Sonnet | `sonnet` | 98,6% | ×10 | -17% | scartata | concordanza più bassa e costo troppo alto |
+| 2026-11-14 | `effort: low`, un ciclo MOS di prova letto dal PDF, 2 ripetizioni | `effort_low` | 97,6% (baseline 100%) | -22% | -11% | scartata | un ERRATO falso ("Targa -" letta come targa) ed estrazione 87,5%; causa corretta nel codice, da rimisurare |
+| 2026-11-15 | giro 3, stesso ciclo di prova, 2 ripetizioni, login locale | `effort_low` | 100% | -33% | +25% | ammessa | il "-" letto come targa c'è ancora, ma ora vale "targa assente"; tempi su un caso solo troppo rumorosi per decidere |
+| 2026-11-15 | come sopra | `effort_low_controlli` | 100% | -31% | +26% | ammessa | non legge più il "-"; da misurare in azienda contro `effort_low` |
+| 2026-11-15 | come sopra | `prompt_task_mancante` | 100% | -30% | +66% | ammessa | il tempo è rumore (cambia una sola sessione); serve `fonte_e_codice_assenti` con più ripetizioni |
+| 2026-11-15 | come sopra | `guasti` | — | — | — | regge | 0 ERRATO falsi, 4,5 esiti tecnici per ripetizione |
+| 2026-11-21 | ciclo DR vero, Bedrock Haiku 5.5, sottoinsieme della conoscenza: ciclo letto dal modello contro ciclo letto dal parser, 2 condition Repair | parser | parser: due run identici (5 corretti, 0 errati); modello: run diversi tra loro e un ERRATO (op. 060) che col parser è CORRETTO | parser 0,006-0,010 USD contro 0,023-0,037 | — | parser per le stampe PVRM320 | la descrizione 060 è letta uguale nei due run: l'ERRATO dipende dal documento di confronto (da capire) |
+| 2026-11-21 | stessa operazione (060, ciclo DR vero), stesso documento e stessa pagina, 3 ripetizioni per ognuna delle due letture del ciclo | — | ERRATO 2 volte su 3 con la lettura del modello, 1 su 3 con quella del parser | 0,007-0,010 USD per run | — | G1: un ERRATO deve essere confermato | il modello oscilla, l'ingresso conta poco |
+| 2026-11-21 | G1 sul PC: op. 060 del ciclo DR vero, condition 3, ciclo letto dal parser, 3 run | — | CORRETTO, CORRETTO, WARNING `GIUDIZIO_INSTABILE`; 0 ERRATO | 0,007-0,011 USD per run | — | G1 confermata | la conferma aggiunge 2 sessioni solo dove serve |
+| 2026-11-24 | campagna, Haiku, insieme piccolo (41 cicli e copie), 2 prove | `base` | visti stabili 19 su 43 (tutti i 12 visti: 8 sempre, 4 mai); mai visti per il modello 2 su 21 | 0,16 $ a prova | 5 min 10 s a prova | riferimento | i visti sono identici in tutte le 13 prove della campagna: 8 trovati sempre, 4 mai (298bc28e 035, c5ff3cd6 030 = P6, f355dc3c 010 e 040 = documenti mancanti). Le varianti si distinguono solo sui mai visti |
+| 2026-11-24 | come sopra | `effort_medio` | stabili 18 (trovati 19 e 18); mai visti 1 su 21 | 0,19-0,20 $ (+20%) | 6 min | non si tiene | più ragionamento non fa trovare le negazioni tolte in una lingua; costa di più |
+| 2026-11-24 | come sopra | `conferme_1` | stabili 18 (19 e 19, ma uno diverso); mai visti 1 su 21 | 0,15-0,16 $ | 5 min | non si tiene | stesso costo; la differenza dalla base è una sola copia cieca trovata in una prova su due: rumore |
+| 2026-11-24 | come sopra | `testo_lungo` | stabili 18; mai visti 1 su 21 | 0,15-0,16 $ | 5 min | non si tiene | più testo del manuale non aiuta: le negazioni mancate non dipendono dal contesto |
+| 2026-11-24 | come sopra | `effort_pieno` | stabili 18; mai visti 1 su 21; da verificare 0 in una prova | 0,19 $ (+20%) | 6 min 20 s | non si tiene | conferma B2: con `low` nei controlli non si perde niente, si spende meno. B2 resta |
+| 2026-11-24 | come sopra | `prompt_task_mancante` | stabili 19; mai visti 2 su 21 (come la base) | 0,16-0,17 $ | 5 min 20 s | non si tiene | stessi errori, ma più WARNING per ciclo senza errori (14,7 contro 14,2): B6 resta |
+| 2026-11-24 | come sopra | `concorrenza_12` | 19; mai visti 2 su 21 (1 prova) | 0,15 $ | 4 min 33 s (-12%) | da ripetere | prima prova: stessi errori e più veloce. Se la seconda conferma, si tiene (solo tempo) |
+
+**Sintesi del 24-11 sera (campagna Haiku e Sonnet, piccolo, copie cieche nuove).** Insieme
+piccolo di 49 cicli e copie (39 copie diverse, non 41: due erano doppie, ora corretto); errori
+da trovare 49: visti 10, mai visti per il modello 29, controlli del codice 10. Risultati:
+1. **Le due migliorie sul metodo funzionano con Haiku**: `elementi_uno_per_uno` 21 stabili e
+   mai visti 4 su 29, `lingue_separate` 20 e 4 su 29, contro 19 e 2 su 29 della base. Sono le
+   uniche con più errori stabili; 0 falsi errori, costo uguale.
+2. **Sonnet non è meglio di Haiku** e costa circa 12 volte tanto (0,043 $ contro 0,0035 $ a
+   ciclo): base 18 stabili e mai visti 1 su 29, più instabile (`f355dc3c` 050 trovato 14 volte
+   su 18). Su `298bc28e` 035 risponde CORRETTO VERIFICATO. Solo `lingue_separate` lo porta a 19.
+3. **Le impostazioni non contano**: effort, conferme, testo lungo, concorrenza, prompt del task
+   mancante danno gli stessi errori della base o meno. Con la regola vecchia quattro
+   «si tenevano» per differenze piccole (0,2 WARNING, 3% di costo): ora sono «pari alla base».
+4. **I visti mancati sono un problema di testo, non di giudizio**: `298bc28e` 035 e
+   `f355dc3c` 010 escono in tutte le 36 prove con WARNING `EVIDENZA_NON_TROVATA` (Haiku): il
+   modello non trova nel testo che riceve il passo del manuale da confrontare.
+5. **Mai visti ancora bassi** (4 su 29 nel migliore): il prossimo passo si sceglie dalla
+   tabella «Errori mai visti per tipo» di `campagna-haiku.md` (cosa risponde la v2 sui
+   mancati).
+
+| Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
+|---|---|---|---|---|---|---|---|
+| 2026-11-24 sera | campagna, Haiku, piccolo (49 cicli e copie), 2 prove | `base` | stabili 19 su 49: visti 8 su 10, mai visti per il modello 2 su 29, codice 9 su 10; 0 falsi errori; 1 da verificare | 0,0034 $ a ciclo, 0,17 $ a prova | 8 s a ciclo, 6 min 45 s a prova | riferimento | uguale nelle due prove; visti mancati sempre 298bc28e 035 e f355dc3c 010 (`EVIDENZA_NON_TROVATA`) |
+| 2026-11-24 sera | come sopra | `elementi_uno_per_uno` | stabili 21 (21 e 21); mai visti 4 su 29 | 0,0037 $ (+9%) | 8 s | si tiene (più errori stabili) | la migliore: due errori in più in tutte e due le prove, nessun falso errore. Da provare sul grande e insieme a `lingue_separate` |
+| 2026-11-24 sera | come sopra | `lingue_separate` | stabili 20 (21 e 20); mai visti 4 su 29 | 0,0038 $ (+12%) | 9 s | si tiene (più errori stabili) | aiuta come atteso; un errore trovato in una prova sola. f355dc3c 050 mancato nella seconda prova |
+| 2026-11-24 sera | come sopra | `testo_lungo` | stabili 19 (20 e 19); mai visti 2 su 29 | 0,0035 $ | 8 s | pari alla base (prima «si tiene») | una copia in più in una prova sola: rumore. Il testo in più non fa trovare i visti mancati: il passo che manca non è vicino |
+| 2026-11-24 sera | come sopra | `prompt_task_mancante` | stabili 19; mai visti 2 su 29 | 0,0035 $ | 9 s | pari alla base (prima «si tiene») | 13,7 WARNING per ciclo contro 14,5: meno di 1 |
+| 2026-11-24 sera | come sopra | `concorrenza_12` | stabili 19; mai visti 2 su 29 | 0,0036 $ | 8 s (massimo 1 min 34 s) | pari alla base (prima «si tiene») | non più veloce a ciclo con due campagne insieme; un ciclo lento. Da rimisurare da sola nella tappa 4 |
+| 2026-11-24 sera | come sopra | `conferme_1` | stabili 19; mai visti 2 su 29 | 0,0033 $ (-3%) | 9 s | pari alla base (prima «si tiene») | risparmio troppo piccolo per contare |
+| 2026-11-24 sera | come sopra | `effort_medio` | stabili 18; mai visti 1 su 29 | 0,0037 $ | 9 s | non si tiene | come il 24-11: più ragionamento non aiuta |
+| 2026-11-24 sera | come sopra | `effort_pieno` | stabili 17; mai visti 1 su 29 | 0,0038 $ | 8 s | non si tiene | B2 confermata un'altra volta |
+| 2026-11-24 sera | campagna, Sonnet, piccolo, 2 prove | `base` | stabili 18 su 49 (19 e 18); mai visti 1 su 29; 0 falsi errori | 0,043 $ a ciclo (×12 Haiku), 2,10 $ a prova | 8 s a ciclo | riferimento Sonnet | peggio di Haiku a ×12 il costo. Più instabile (f355dc3c 050 14 su 18 prove; ERRATO su 04ecaabe 050, P7, solo 6 su 18 contro 14 di Haiku) |
+| 2026-11-24 sera | come sopra | `lingue_separate` | stabili 19 (19 e 19); mai visti 2 su 29 | 0,049 $ (+15%) | 9 s | si tiene (più errori stabili) | l'unica che aiuta anche Sonnet; arriva al livello della base Haiku |
+| 2026-11-24 sera | come sopra | `prompt_task_mancante`, `concorrenza_12`, `conferme_1` | stabili 18; mai visti 1 su 29 | 0,040-0,043 $ | 7-8 s | pari alla base (prima «si tiene») | differenze di rumore |
+| 2026-11-24 sera | come sopra | `testo_lungo`, `elementi_uno_per_uno`, `effort_medio`, `effort_pieno` | stabili 18, 17, 17, 16 | 0,042-0,048 $ | 7-8 s | non si tiene | `elementi_uno_per_uno` con Sonnet trova 18 per prova ma non sempre gli stessi |
+
+**25-11 (campagna Haiku, 3 prove per variante; stesse copie cieche del 24-11 sera).**
+
+- **Mattina, prova non valida.** La campagna è partita con l'accesso AWS della sera prima
+  scaduto: la prova `base` è uscita con `costo 0.00 $`, visti 7 su 10 (solo quelli che trova il
+  codice), mai visti per il modello 0 su 29, WARNING `ERRORE_TECNICO` come ultimo esito. Contava
+  come fatta. Corretto nel codice (sezione 9): una prova così non conta e si rifà. **Lezione:**
+  prima di ogni campagna `aws sso login`, e dopo la prima prova si guarda che il costo non sia
+  0.
+- **Le prove del 24-11 di Haiku sono state cancellate per sbaglio.** Al rilancio delle 10 la
+  regola nuova «la prova non vale» le ha prese per prove senza risposte: per le prove vecchie
+  contava tutti i WARNING per errore tecnico, e sul PC le targhe ne danno circa 8 per ciclo.
+  Le prove di Sonnet non sono state toccate. I loro numeri restano nel registro qui sopra; i
+  confronti del 25-11 sono tutti tra prove dello stesso giorno, quindi valgono. Regola corretta
+  il 26-11 (sezione 6).
+- **Piccolo** (49 cicli e copie, 3 prove per variante, dalle 10:19 alle 12:22; 4,13 $ in tutto
+  con il grande). Errore per errore: i visti trovati sempre sono gli stessi 7 in tutte le 18
+  prove; `298bc28e` 035 e `f355dc3c` 010 mai (WARNING `EVIDENZA_NON_TROVATA`, **anche con la
+  seconda ricerca**: l'ipotesi della variante non si è avverata su questi due); `f355dc3c` 050
+  (frase al contrario) 12 su 18, instabile, ma 3 su 3 con `tutto_insieme`.
+- **Errori mai visti per tipo** (ultima base): limite invertito 0 su 8 (FONTE_ASSENTE 7),
+  negazione in due lingue 0 su 9 (FONTE_ASSENTE 9), negazione in una lingua 0 su 9
+  (FONTE_ASSENTE 6, EVIDENZA_NON_TROVATA 2), numero del manuale 1 su 3; codice: numero in una
+  lingua 4 su 5, task inesistente 5 su 5. **22 dei 26 mancati del modello erano su operazioni
+  senza task nella conoscenza**: corretto il 26-11 (sezione 3).
+- **WARNING per ciclo senza errori noti** (ultima base): 7,7 `ERRORE_TECNICO` (sul PC: le targhe,
+  Redshift non raggiungibile), 6,7 `EVIDENZA_NON_TROVATA`, 0,3 `FONTE_ASSENTE`. In produzione i
+  primi non ci sono: restano circa 7 WARNING per ciclo, quasi tutti «evidenza non trovata».
+- **Grande** (23 cicli: i 10 noti e 13 veri; 3 prove per variante, dalle 15:17 alle 16:49): tutte
+  le varianti trovano gli stessi 8 visti su 10 (stessi mancati del piccolo); `lingue_separate`
+  perde `f355dc3c` 050 in 2 prove su 3. Gli ERRATO da verificare (sui cicli veri) salgono con
+  i metodi nuovi: base 2, `seconda_ricerca` 2, `elementi_uno_per_uno` 3, `lingue_separate` 3,
+  `elementi_e_lingue` 4. Possono essere errori veri o falsi errori: dal 26-11 il riepilogo li
+  elenca (ciclo e operazione) per farli guardare a una persona.
+- **Decisione:** `elementi_e_lingue` nella base (la scelta migliore della regola: +2 stabili,
+  +2 mai visti, 0 falsi errori, +15% di costo). Prossimo giro: `seconda_ricerca` sopra la base
+  nuova (cioè `tutto_insieme`), con copie cieche nuove solo su operazioni confrontabili.
+
+| Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
+|---|---|---|---|---|---|---|---|
+| 2026-11-25 mattina | campagna, Haiku, piccolo, accesso AWS scaduto | `base` (prova 3) | visti 7 su 10, mai visti 0 su 29: il modello non ha risposto | 0,00 $ | — | **non valida** (tolta) | da qui la regola «la prova non vale» (sezione 6) |
+| 2026-11-25 | campagna, Haiku, piccolo (49 cicli e copie), 3 prove | `base` | stabili 17 su 49 (19, 19, 17); mai visti 1 su 29 (2, 2, 1); 0 falsi errori; precisione 94% | 0,0034 $ a ciclo, 0,16-0,17 $ a prova | 7 s a ciclo (massimo 37 s) | riferimento | la terza prova perde 2 errori: con 3 prove la base è più bassa che con 2 (19 il 24-11) |
+| 2026-11-25 | come sopra | `elementi_e_lingue` | stabili **19** (21, 20, 20); mai visti 3 (4, 3, 4); 0 falsi; 14 WARNING per ciclo | 0,0039 $ (+15%) | 7 s (46 s) | **si tiene, scelta migliore → nella base dal 26-11** | le due migliorie del 24-11 insieme non si sommano molto: come `lingue_separate` da sola, un po' più stabile. Sul grande: 8 su 10 come la base ma 4 da verificare contro 2 |
+| 2026-11-25 | come sopra | `lingue_separate` | stabili 19 (19, 20, 20); mai visti 3 | 0,0037 $ | 7 s (35 s) | si tiene | sul grande perde `f355dc3c` 050 in 2 prove su 3 (7 stabili contro 8): non si tiene lì |
+| 2026-11-25 | come sopra | `elementi_uno_per_uno` | stabili 18 (21, 20, 19); mai visti 2 | 0,0039 $ | 8 s (55 s) | si tiene | il 24-11 era la migliore (21 su 2 prove): con la terza prova scende |
+| 2026-11-25 | come sopra | `seconda_ricerca` | stabili 18 (19, 18, 19); mai visti 1 | 0,0065 $ (×1,9) | 12 s (1 min 19 s) | si tiene (di poco) | da sola non trova i due visti che doveva trovare; sul grande costa ×2,3 (scartata lì) |
+| 2026-11-25 | come sopra | `tutto_insieme` | stabili **22** (22, 22, 22); mai visti **5** (5, 5, 5); 0 falsi; 13,6 WARNING | 0,0074 $ (×2,2) | 13 s (1 min 18 s) | scartata: costo oltre 2 volte la base | la migliore in errori e la più stabile: la seconda ricerca aiuta solo insieme a elementi e lingue. Sulla base nuova costa 1,9 volte: si riprova come `seconda_ricerca` |
+| 2026-11-25 | campagna, Haiku, grande (23 cicli), 3 prove | `base` | 8 su 10 in tutte le prove; 1-2 da verificare; precisione 80%; 19,9 WARNING per ciclo | 0,0086 $ a ciclo, 0,18-0,22 $ a prova | 13 s (39 s) | riferimento | sui cicli veri una prova dura meno di 5 minuti per 23 cicli |
+| 2026-11-25 | come sopra | `elementi_e_lingue` | 8 su 10; 3-4 da verificare; precisione 67% | 0,0111 $ (+29%) | 17 s (1 min) | pari alla base | gli ERRATO in più sui cicli veri sono da far guardare a una persona |
+| 2026-11-25 | come sopra | `elementi_uno_per_uno`, `lingue_separate` | 8 e 7 su 10; 2-3 da verificare | 0,0101-0,0103 $ | 14 s | pari alla base; non si tiene | come sopra |
+| 2026-11-25 | come sopra | `seconda_ricerca` | 8 su 10; 2 da verificare; 19,0 WARNING | 0,0198 $ (×2,3) | 32 s (1 min 05 s) | scartata: costo | sui cicli veri la seconda ricerca parte spesso (molte operazioni «non verificabili»): costa molto più che sul piccolo |
+
+**26-11 (campagna Haiku, 3 prove per variante; base con elementi e lingue; copie cieche del
+seme 2: 15, di cui 5 dei tipi del modello).** Due riavvii del PC: la campagna è ripartita da
+sola dalle prove mancanti. Spesa 1,53 $ per le ultime 3 prove; in tutto circa 3 $.
+
+- **Piccolo** (25 cicli e copie; errori da trovare 25: visti 10, mai visti per il modello 5,
+  codice 10). Visti: gli stessi 7 sempre, **tutti con `INCOERENZA_LINGUE`** (il controllo del
+  codice); 298bc28e 035 e f355dc3c 010 mai (`EVIDENZA_NON_TROVATA`); f355dc3c 050 4 prove su 6
+  (base 2 su 3, `seconda_ricerca` 2 su 3). Mai visti per tipo (ultima base): limite invertito
+  0 su 1 (`CORRETTO VERIFICATO`: il modello vede il passo e non la differenza), negazione in due
+  lingue 0 su 1, numero del manuale 0 su 1, negazione in una lingua 1 su 2 (tutti i mancati
+  `EVIDENZA_NON_TROVATA`); codice: task inesistente 5 su 5, **numero in una lingua 1 su 5**
+  (`FONTE_ASSENTE` 3, `EVIDENZA_NON_TROVATA` 1: il controllo delle lingue non le ha viste,
+  corretto con I10). WARNING per ciclo senza errori noti: 7,7 `ERRORE_TECNICO` (targhe), 7,0
+  `EVIDENZA_NON_TROVATA`, 0,3 `FONTE_ASSENTE`. Da verificare: solo 5ff17062 050, che per la P9 è
+  un errore vero (in lista dal giro dopo).
+- **Grande** (23 cicli): visti 7 su 10 stabili per tutte e due (f355dc3c 050 3 su 6). ERRATO da
+  verificare: 895167b9 010 (base 2 su 3, `seconda_ricerca` 3 su 3), 030 (3 e 3), 060 (solo
+  `seconda_ricerca`, 3 su 3); 2d724fba 050 (3 e 1); 5ff17062 050 (3 e 3, errore vero). In attesa:
+  04ecaabe 050 (falso errore P7) ERRATO in 4 prove su 6 sul piccolo e 2 su 6 sul grande.
+- **Decisione:** la base resta; `seconda_ricerca` non entra. **Lezione:** il vantaggio di
+  `tutto_insieme` del 25-11 (22 contro 19) non si è ripetuto con le copie nuove: era in parte
+  sulle copie non confrontabili e su f355dc3c 050, che è instabile. Il modello oggi aggiunge
+  poco agli errori trovati: il limite è il testo del manuale che riceve (conoscenza che manca,
+  passo giusto in un altro task), non come giudica.
+- **26-11 sera, gli ERRATO da verificare del grande (Copilot in Ask, confrontando con la stampa
+  originale e i documenti):** 895167b9 non è un ciclo vero, è una copia modificata: 010 errore
+  vero trovato per il motivo sbagliato (la v2 dice che il manuale vieta la raccordatura; il
+  difetto vero è un limite cambiato in inglese), 030 errore vero per lo stesso motivo
+  sbagliato, 060 errore vero per il motivo giusto (negazione tolta in inglese), e la 050
+  (materiale cambiato in inglese) la v2 la dava per corretta. 2d724fba 050 **falso errore**: il
+  ciclo dice «4 volte la larghezza» come la D.R. e la stampa giusta, la v2 confronta con la
+  definizione generica dell'SPM («3 volte»), che vale solo senza limiti specifici e rimanda al
+  manuale d'ispezione. 5ff17062 050 errore vero, ma quasi sempre per il motivo «3 o 4 volte»:
+  solo 2 prove su 6 vedono la negazione tolta. **Conseguenze:** 895167b9 e 2d724fba in
+  `eval/errori-noti.yaml`; variante `definizioni_generali` (I11). La precisione del grande della
+  base era 64%: con queste risposte 4 dei 5 ERRATO da verificare sono errori veri. Ma un
+  errore «trovato» può esserlo per il motivo sbagliato: oggi la misura non lo vede (lo vede solo
+  chi legge il report).
+- **26-11 sera, tutte le copie modificate della lista (Copilot):** 895167b9 è 22f586bb con il
+  serial nella 005, e 22f586bb è la stampa giusta 737dec71 con 010, 030, 050 e 060 cambiate
+  (nella 050 e 060 anche il codice della scheda). Tutte e tre erano nella lista del grande come
+  cicli veri: ora 22f586bb è un ciclo con errori e 737dec71 una stampa giusta. Le altre copie
+  (f355dc3c, 5ff17062, 298bc28e, c5ff3cd6) erano già in lista con le stesse operazioni. Sul
+  grande del 26-11 nessun ERRATO da verificare su 22f586bb, mentre su 895167b9 sì: da guardare
+  nella campagna (instabilità o effetto della 005).
+
+| Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
+|---|---|---|---|---|---|---|---|
+| 2026-11-26 | campagna, Haiku, piccolo (25 cicli e copie, seme 2), 3 prove | `base` | stabili 14 su 25 (16, 15, 14); mai visti 1 su 5; 0 falsi; 1 da verificare (5ff17062 050, vero); precisione 93%; 14,7 WARNING | 0,0073 $ a ciclo, 0,17-0,19 $ a prova | 12 s (1 min 03 s) | riferimento | il costo a ciclo è più alto del 25-11 perché le copie (che costano poco) sono meno: non si confronta con il 25-11 |
+| 2026-11-26 | come sopra | `seconda_ricerca` | stabili 14 (15, 14, 15); mai visti 1 su 5; 0 falsi; 13,1 WARNING | 0,0140 $ (×1,9) | 21 s (1 min 02 s) | si tiene sul piccolo (solo WARNING -1,6) | stessi errori della base: l'ipotesi «come `tutto_insieme`, 22 e 5» non si è avverata |
+| 2026-11-26 | campagna, Haiku, grande (23 cicli), 3 prove | `base` | 7 su 10 stabili (7, 7, 8); 3-4 da verificare; precisione 64%; 19,7 WARNING | 0,0106 $, 0,23-0,25 $ a prova | 14 s (55 s) | riferimento | gli ERRATO da verificare vanno guardati (Copilot, COPILOT sezione 1) |
+| 2026-11-26 | come sopra | `seconda_ricerca` | 7 su 10 (7, 8, 8); 4-5 da verificare (895167b9 060 in più); 18,9 WARNING | 0,0221 $ (×2,1) | 26 s (1 min 14 s) | **scartata: costo** | sui cicli veri la seconda sessione parte spesso; non trova errori in più. Chiusa: si riprende solo se la conoscenza cambia molto |
+
+**26-11 sera (campagna Haiku, 3 prove per variante; base del 26-11 con I10; copie cieche del
+seme 2; lista nuova degli errori noti: 14 cicli noti, 20 errori che contano).** Dalle 14:31
+alle 15:39, 12 prove, 2,77 $.
+
+- **Piccolo** (29 cicli e copie; errori da trovare 35: visti 20, mai visti per il modello 5,
+  codice 10). Base 15 stabili (19, 16, 17 trovati), `definizioni_generali` 14 (14, 14, 15). Visti
+  trovati sempre da tutte e due: 298bc28e 005, 38960731 050, 5ff17062 030, 8d3c673c 140,
+  c5ff3cd6 040, e9b74c84 025, f355dc3c 030, **tutti con `INCOERENZA_LINGUE`** (il codice).
+  5ff17062 050: base 3 su 3, `definizioni_generali` 0 su 3 (era trovato per il motivo
+  sbagliato). 895167b9 010 e 030: 2 prove su 6, instabili. Mai: 22f586bb 010, 030, 050, 060
+  (`FONTE_ASSENTE`: DR senza serial, la v2 non sa quali documenti usare), 298bc28e 035,
+  5ff17062 010, 895167b9 050 e 060, f355dc3c 010 (`EVIDENZA_NON_TROVATA`). f355dc3c 050 2 su 6
+  (solo base).
+- **Mai visti per tipo** (ultima base): limite invertito 0 su 1, negazione in due lingue 0 su 1,
+  numero del manuale 0 su 1, negazione in una lingua 1 su 2 (mancati `EVIDENZA_NON_TROVATA`);
+  codice: task inesistente 5 su 5, **numero in una lingua ancora 1 su 5** (`FONTE_ASSENTE` 3,
+  `GIUDIZIO_INSTABILE` 1): I10 non bastava. Provando le copie del codice su descrizioni di
+  esempio: il controllo non confrontava i codici (part number di 5 cifre o più, che le copie
+  cambiano) e perdeva il numero vicino a una conversione scritta prima («248 °F (120 °C)»).
+  Corretto (I13).
+- **WARNING per ciclo senza errori noti** (ultima base, piccolo): 7,8 `ERRORE_TECNICO` (targhe),
+  5,2 `EVIDENZA_NON_TROVATA`, 2,0 `FONTE_ASSENTE`, 0,2 `DR_NON_VERIFICATA`.
+- **Grande** (23 cicli, 20 errori). Base 10 stabili (10, 10, 11), `definizioni_generali` 8 (8,
+  8, 8): perde 5ff17062 050 e 895167b9 030, tutti e due trovati per il motivo sbagliato.
+  895167b9 010 qui 6 su 6 (sul piccolo 2 su 6: lo stesso PDF, giudizio instabile). 0 falsi
+  errori. ERRATO da verificare: solo 895167b9 005 (il serial aggiunto; base 1 su 3 sul grande,
+  `definizioni_generali` 1 su 3 sul piccolo e 2 su 3 sul grande). **Copilot (16:20): falso
+  errore.** Il testo della 005 è uguale a 22f586bb e a 737dec71; il manuale dice che per quel
+  difetto il pezzo va sostituito, ma vale solo senza deroga, e la deroga citata nella stessa
+  005 autorizza la raccordatura (e ha anche quel serial). La v2 stessa scriveva che il
+  documento di deroga non le era stato dato: la procedura della D.R. arriva al modello solo se
+  nessun task si trova. Da qui `procedura_dr` (I14). Il serial è scritto solo in inglese: non è
+  la causa e il controllo dei codici (I13) non lo conta (un codice in più in una lingua sola).
+- **In attesa**: 04ecaabe 050 ERRATO in 2 prove su 6 sul piccolo e 1 su 6 sul grande; 2d724fba
+  050 in 2 su 6 e 2 su 6. Il riepilogo non dice di quale variante: la nota non toglie del tutto
+  il falso errore, o lo toglie solo a volte.
+- **Decisione:** `definizioni_generali` non si tiene; la base resta. **Lezione:** dire al modello
+  che cosa non è un errore toglie anche gli errori veri trovati per il motivo sbagliato, e non
+  gli fa trovare il motivo giusto. Il motivo giusto (una negazione, un limite, un materiale
+  cambiati in una lingua) non dipende dal manuale: si vede confrontando le due lingue tra loro.
+  Da qui `lingue_tra_loro` (I12). Il controllo dei numeri del codice ora prende anche codici e
+  conversioni (I13): la base cambia, le prove si archiviano.
+
+| Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
+|---|---|---|---|---|---|---|---|
+| 2026-11-26 sera | campagna, Haiku, piccolo (29 cicli e copie, seme 2, 14 cicli noti), 3 prove | `base` | stabili 15 su 35 (19, 16, 17); mai visti 1 su 5; 0 falsi; 0 da verificare; precisione 100%; 15,2 WARNING | 0,0078 $ a ciclo, 0,22-0,23 $ a prova | 16 s (1 min 24 s) | riferimento | il primo giro con la lista verificata da Copilot |
+| 2026-11-26 sera | come sopra | `definizioni_generali` | stabili 14 (14, 14, 15); mai visti 1 su 5; 0 falsi; 1 da verificare; 15,5 WARNING | 0,0074 $ | 12 s (34 s) | **non si tiene** | perde 5ff17062 050 (trovato per il motivo sbagliato); più veloce perché meno ERRATO da confermare |
+| 2026-11-26 sera | campagna, Haiku, grande (23 cicli), 3 prove | `base` | stabili 10 su 20 (10, 10, 11); 0 falsi; 1 da verificare (895167b9 005); precisione 91%; 19,9 WARNING | 0,0107 $, 0,23-0,26 $ a prova | 15 s (1 min 19 s) | riferimento | |
+| 2026-11-26 sera | come sopra | `definizioni_generali` | stabili 8 (8, 8, 8); 0 falsi; 1 da verificare; precisione 89%; 20,2 WARNING | 0,0102 $ | 13 s (44 s) | **non si tiene** | perde 5ff17062 050 e 895167b9 030 |
+
+**27-11 (campagna Haiku, 3 prove per variante; base del 26-11 sera con I13; copie cieche del
+seme 2).** Iniziata il 26-11 alle 17:18, interrotta (accesso AWS scaduto: la prova senza
+risposte buttata da sola) e finita il 27-11 alle 11:17. Nell'ultimo pezzo 5 prove, 1,83 $.
+
+- **Piccolo** (29 cicli e copie, 35 errori). Base 20 stabili (21, 20, 21), mai visti 1 su 5, 0
+  falsi errori, 1 da verificare, 0,0078 $ e 13 s a ciclo. `lingue_tra_loro` 30 stabili (31, 31,
+  31), mai visti 3-4 su 5, **11 falsi errori in ogni prova**, 13-14 da verificare, 0,0136 $ e 22
+  s. `procedura_dr` 20 stabili (20, 20, 20), mai visti 1 su 5, 0 falsi, 0 da verificare,
+  0,0073 $ e 12 s.
+- **Mai visti per tipo** (ultima base): numero in una lingua **4 su 5** (prima 1 su 5: I13
+  funziona; il mancato `FONTE_ASSENTE`), task inesistente 5 su 5, negazione in una lingua 1 su
+  2, limite invertito 0 su 1 (CORRETTO VERIFICATO), negazione in due lingue 0 su 1 e numero del
+  manuale 0 su 1 (`EVIDENZA_NON_TROVATA`). WARNING per ciclo senza errori: 7,8 `ERRORE_TECNICO`
+  (targhe), 4,8 `EVIDENZA_NON_TROVATA`, 2,0 `FONTE_ASSENTE`, 0,2 `DR_NON_VERIFICATA`.
+- **Grande** (23 cicli, 20 errori). Base 9 stabili (9, 11, 10), 0 falsi, 1 da verificare
+  (895167b9 005, 1 su 3), 0,0109 $ e 15 s. `lingue_tra_loro` 14 stabili (17, 16, 17), **12-13
+  falsi errori**, 31-37 da verificare, 0,0239 $ e 39 s. `procedura_dr` 9 stabili (10, 10, 9), 0
+  falsi, **0 da verificare**, 0,0107 $ e 15 s.
+- **Cosa trova in più `lingue_tra_loro`** (grande): 22f586bb 010, 030, 050, 060 (limite,
+  numero di documento, materiale, negazione cambiati in una lingua: nella base `FONTE_ASSENTE`),
+  298bc28e 035, 895167b9 050 e 060, f355dc3c 050 sempre. **I suoi falsi errori**: titoli e frasi
+  di presa in carico tradotti liberamente («presa in carico da perizia» e «handling of the part
+  to the repair area», «collaudo finale, documentale e versamento» e «general visual
+  inspection», «prelievo ed identificazione della pala» e «identification of the blade»), un
+  codice con o senza la lettera davanti, «carta abrasiva» e «crocus cloth». Tre casi sono da
+  far guardare a Copilot perché potrebbero essere **differenze vere** nelle stampe giuste:
+  «larghezza» contro «length» (04ecaabe 030, 2d724fba 030), «superiore a 4X» contro «not to
+  exceed 4X» (737dec71 060), «sul lubrificante applicato» contro «on the coating» (8bdb25d5
+  040). Anche c5ff3cd6 030 e f355dc3c 040 (in attesa) escono ERRATO 3 su 3.
+- **Cosa fa `procedura_dr`** (grande): 895167b9 005 non è più ERRATO (era il falso errore
+  visto da Copilot); 895167b9 010 e 030 non più trovati (`EVIDENZA_NON_TROVATA`: erano trovati
+  per il motivo «il manuale vieta la raccordatura», che la deroga toglie); 895167b9 060 trovato
+  3 su 3 (nella base 0 su 3). È quello che la proposta si aspettava.
+- **In attesa**: 04ecaabe 050 ERRATO 3 su 3 con tutte (P7: lo toglie I8); 2d724fba 050 2-3 su 3.
+- **Decisione:** `procedura_dr` **entra nella base** anche se la regola dice «pari alla base»:
+  toglie un falso errore confermato e trova gli errori per il motivo giusto (eccezione scritta
+  qui). `lingue_tra_loro` **scartata**. **Lezione:** confrontare le due lingue tra loro trova
+  proprio gli errori che mancavano, ma Haiku prende per errore ogni traduzione non letterale.
+  Da qui I15: solo negazioni, numeri e limiti al contrario, con un controllo del codice sulle
+  parole copiate; il resto al massimo WARNING.
+
+| Data | Esperimento | Variante | Concordanza | Costo | Tempo | Decisione | Considerazioni |
+|---|---|---|---|---|---|---|---|
+| 2026-11-27 | campagna, Haiku, piccolo (29 cicli e copie, seme 2), 3 prove | `base` | stabili 20 su 35 (21, 20, 21); mai visti 1 su 5; 0 falsi; 1 da verificare; precisione 95%; 15,0 WARNING | 0,0078 $ a ciclo | 13 s (45 s) | riferimento | I13 nella base: numero in una lingua 4 su 5 |
+| 2026-11-27 | come sopra | `lingue_tra_loro` | stabili 30 (31, 31, 31); mai visti 3 su 5; **33 falsi**; 14 da verificare; precisione 55% | 0,0136 $ | 22 s (57 s) | **scartata** | traduzioni libere prese per errori |
+| 2026-11-27 | come sopra | `procedura_dr` | stabili 20; mai visti 1 su 5; 0 falsi; 0 da verificare; precisione 100% | 0,0073 $ | 12 s (1 min 03 s) | **nella base** (pari, ma toglie un falso errore) | |
+| 2026-11-27 | campagna, Haiku, grande (23 cicli), 3 prove | `base` | stabili 9 su 20 (9, 11, 10); 0 falsi; 1 da verificare (895167b9 005); precisione 90%; 19,9 WARNING | 0,0109 $ | 15 s (50 s) | riferimento | |
+| 2026-11-27 | come sopra | `lingue_tra_loro` | stabili 14 (17, 16, 17); **38 falsi**; 37 da verificare; precisione 26% | 0,0239 $ | 39 s (1 min 13 s) | **scartata** | |
+| 2026-11-27 | come sopra | `procedura_dr` | stabili 9 (10, 10, 9); 0 falsi; 0 da verificare; precisione 100% | 0,0107 $ | 15 s (43 s) | **nella base** | perde 895167b9 010 e 030 (motivo sbagliato), trova 060 |
+| 2026-11-27 | campagna finale, Haiku, piccolo (28 cicli e copie, seme 3), 3 prove (14:05-15:13) | `base` | stabili 20 su 34 (20, 20, 21); mai visti 1 su 4; 0 falsi; 0 da verificare; precisione 100%; 7,7 WARNING | 0,0077 $ | 16 s (50 s) | riferimento | targhe N/A: i WARNING per ciclo scendono da 15 a 7,7 |
+| 2026-11-27 | come sopra | `fonte_ispezione` | stabili 20 (22, 22, 20); mai visti 1 su 4; 0 falsi; 0 da verificare; 7,7 WARNING | 0,0087 $ | 17 s (59 s) | non si tiene (pari) | non toglie il falso errore P7: 04ecaabe 050 e 2d724fba 050 ERRATO 3 su 3 |
+| 2026-11-27 | come sopra | `finale` | stabili **23** (24, 23, 24); mai visti 1 su 4; 0 falsi; 0 da verificare; **5,5 WARNING** | 0,0120 $ | 22 s (1 min 17 s) | **si tiene** | trova in più 22f586bb 010 e 060 (negazione e limite in una lingua); 737dec71 060 ERRATO 3 su 3 (errore vero della stampa, P10) |
+| 2026-11-27 | campagna finale, Haiku, grande (23 cicli), 3 prove (16:03-17:02) | `base` | stabili 10 su 20 (10, 10, 10); 0 falsi; 0 da verificare; precisione 100%; 10,8 WARNING | 0,0110 $ | 15 s (47 s) | riferimento | |
+| 2026-11-27 | come sopra | `fonte_ispezione` | stabili 9 (9, 10, 10); 0 falsi; 0 da verificare; 10,8 WARNING | 0,0123 $ | 16 s (1 min 04 s) | non si tiene | qui toglie 04ecaabe 050 (0 su 3) ma non 2d724fba 050 (2 su 3): sul piccolo nessun effetto. Da capire (P12) |
+| 2026-11-27 | come sopra | `finale` | stabili **12** (12, 13, 13); 0 falsi; **3 da verificare** (060 di tre cicli veri: 2, 2 e 3 prove su 3); precisione 80%; 9,3 WARNING | 0,0193 $ | 28 s (1 min 16 s) | **si tiene** | 298bc28e 035 diventa N/A `FUORI_TEMA` (era un errore da trovare: da guardare); i 3 da verificare forse sono l'errore vero di 737dec71 060 nella stessa stampa tipo (P12) |
+
+**Sintesi della campagna finale (27-11).** `finale` è la configurazione per la produzione,
+appena la P12 dice che i 3 ERRATO dei cicli veri sono errori veri. `fonte_ispezione` da sola
+non serve, e il falso errore P7 (raccordatura «4 volte») resta anche con `finale`: in
+produzione la v2 lo darà sulle stampe A1 (da correggere dopo, H16 e P12). Attenzione: quasi
+tutto il guadagno di `finale` viene dal codice che confronta le lingue (I15), non dal modello.
+Dalla v1 sugli stessi cicli (sera): la lista degli errori noti era incompleta su 38960731,
+8d3c673c ed e9b74c84 (cambi di codici, schede, macchine: H17-H19); 6 operazioni aggiunte,
+le prove si ricalcolano senza rifarle.

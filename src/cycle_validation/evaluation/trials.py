@@ -619,7 +619,7 @@ def _render_proposal(proposal: Proposal) -> list[str]:
         *(f"| {label} | {_cell(text or '-')} |" for label, text in rows),
         "",
         "La decisione (si tiene o no) è nel riepilogo; le considerazioni nel registro di "
-        "`docs/MIGLIORIE.md`.",
+        "`docs/MEMORIA.md`.",
         "",
     ]
 
@@ -1126,7 +1126,7 @@ def render_summary(trials: Sequence[Trial]) -> str:
         "## Le proposte e la decisione",
         "",
         "Cosa voleva provare ogni variante (dal suo file in `eval/varianti/`) accanto a quello "
-        "che è successo. Le considerazioni si scrivono nel registro di `docs/MIGLIORIE.md`.",
+        "che è successo. Le considerazioni si scrivono nel registro di `docs/MEMORIA.md`.",
         "",
         "| Variante | Cosa cambia | Perché (ipotesi) | Cosa ci si aspetta | Decisione |",
         "|---|---|---|---|---|",

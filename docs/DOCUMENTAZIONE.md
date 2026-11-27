@@ -14,7 +14,7 @@ Gli altri documenti in `docs/`:
 | `DOCUMENTAZIONE.md` | questo file: com'è fatto e come funziona tutto il progetto |
 | `COPILOT.md` | il lavoro sul PC aziendale: cosa fare adesso, i blocchi PowerShell da lanciare |
 | `MEMORIA.md` | la storia: cosa si è visto, i problemi già risolti, le decisioni prese |
-| `MIGLIORIE.md` | cosa migliorare, in che ordine, metriche e registro delle prove |
+| `MIGLIORIE.md` | tutte le migliorie, provate e da fare, in una tabella (sigle MG01…) |
 | `CONFRONTO_V1_14_CICLI.md` | i risultati della v1 sui 14 cicli con errori noti e il testo originale delle stampe (dati veri: vedi sotto) |
 
 Il repository è pubblico: qui ci sono **solo valori inventati**. Unica eccezione:
@@ -388,7 +388,7 @@ si controlla.
 - Nessuna scheda: N/A `CAMPO_ASSENTE`. Ma se la descrizione è di un **processo speciale**
   (lubrificante secco, rivestimento, attacco chimico, liquidi penetranti, FPI, in italiano o in
   inglese: `special_process`) è WARNING `SCHEDA_FORSE_MANCANTE` («Scheda mancante: …»), mai
-  ERRATO (`agent.special_process_sheet`, accesa nella base dal 27-11; regola P6, MIGLIORIE I9;
+  ERRATO (`agent.special_process_sheet`, accesa nella base dal 27-11; regola P6, MIGLIORIE MG31;
   confermata dall'utente il 27-11 sera: un avviso con il commento «scheda mancante»).
 - EJ200: N/A `NON_VERIFICATO_PER_PROFILO`.
 - Prefissi esclusi (`SWJ`, `SSS`, `SPS`): N/A `ESCLUSO_DA_REGOLA`.
@@ -1307,7 +1307,7 @@ di ogni variante sono usciti. Solo impronta, operazione e numeri, senza testo: s
 una persona guarda quelle operazioni sul ciclo (errore vero o falso errore).
 
 Le **considerazioni** (cosa si è capito, cosa fare dopo) le scrive Claude nel registro di
-`MIGLIORIE.md`, colonna «Considerazioni», quando la variante è decisa. Così proposta, risultati
+`MEMORIA.md` (sezione 16), quando la variante è decisa. Così proposta, risultati
 e decisione stanno sul PC in `runs/` (che git ignora), e nel repository restano solo la
 proposta e le conclusioni, senza dati veri.
 
@@ -1421,7 +1421,7 @@ base, si guarda nel report la tabella «Errori mai visti, per tipo» (trovati pe
 mancati, cosa ha risposto la v2: solo esito e motivo contati, per esempio `CORRETTO 12`, mai
 l'operazione o la spiegazione) e si sceglie una miglioria
 per il tipo «modello» trovato peggio. Le varianti pronte sono in `eval/varianti/`; la lista è
-in `MIGLIORIE.md`, «Da provare».
+in `MIGLIORIE.md` (stato ⬜).
 
 ---
 

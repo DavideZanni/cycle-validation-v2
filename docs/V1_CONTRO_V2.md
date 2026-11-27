@@ -35,7 +35,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | ⬜ | `prova-ej200`: stampe validate | tutte | — |
 | ⬜ | `prova-ej200`: cartella temporanea cancellata | sempre | — |
 | ⬜ | ERRATO EJ200 visti da un esperto | 0 falsi | — |
-| ❌ | EJ200 rotta non ferma MOS e DR (B7) | sì | no |
+| ❌ | EJ200 rotta non ferma MOS e DR (MG44) | sì | no |
 
 **C · Produzione**
 
@@ -54,22 +54,22 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | Aspetto | | v1 | v2 |
 |---|:-:|---|---|
 | Falsi errori, stampe giuste | ✅ | 6 | 1-2 (stessa frase, «almeno 4» contro «more than 4») |
-| Errori trovati (19 op.) | ❌ | 15 | 13 + 1 avviso; 15 se H18 funziona, 17 con la grande ingestion |
+| Errori trovati (19 op.) | ❌ | 15 | 13 + 1 avviso; 15 se MG40 funziona, 17 con la grande ingestion |
 | Prova di ogni errore | ✅ | testo libero | frase del manuale ritrovata dal programma |
 | «OK» vuol dire | ✅ | nessuna contraddizione vista | controllato con il manuale |
 | Cosa non ha controllato | ✅ | non lo dice | `[non controllabile]` separato da `[da guardare]` |
 | Avvisi per ciclo | ❌ | 1-2 | 6-9 (sul PC registro spento e documenti mancanti) |
 | Stabilità | ✅ | non misurata | misurata su 3 prove |
 | **Codici di task sbagliati** | ✅ | col modello, a volte «incompleto» su codici giusti | dal codice, senza modello: codice assente e fratelli presenti |
-| Task dell'operazione contro la testata | ➖ | sì | sì (H17) |
-| Task di un altro stadio | ❌ | sì | no (F2) |
+| Task dell'operazione contro la testata | ➖ | sì | sì (MG36) |
+| Task di un altro stadio | ❌ | sì | no (MG48) |
 | Numeri o limiti cambiati in una lingua | ✅ | solo inglese | due lingue, dal codice |
 | Negazioni e frasi al contrario | ✅ | solo inglese | due lingue; 2 errori veri trovati in stampe «giuste» |
-| Parola o materiale cambiati in una lingua | ❌ | la parola sì | no (F1) |
-| Scheda sbagliata (motore, materiale) | ❌ 🔶 | sì (indice schede) | H18 in prova (4e) |
+| Parola o materiale cambiati in una lingua | ❌ | la parola sì | no (MG46, MG47) |
+| Scheda sbagliata (motore, materiale) | ❌ 🔶 | sì (indice schede) | MG40 in prova (4e) |
 | Scheda tolta | ➖ | errore | avviso «Scheda mancante» (regola decisa) |
 | Macchine non attive | ➖ | registro | stesso registro in produzione |
-| Due macchine per un'operazione | ✅ | non sempre | sì (H19) |
+| Due macchine per un'operazione | ✅ | non sempre | sì (MG37) |
 | Classe dell'acido | ❌ | sì | manca il documento |
 | Stampe DR senza serial (A6) | ✅ | si ferma | le legge |
 | Stampe lette | ✅ | 10/14 | 14/14 |
@@ -80,7 +80,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | Prove automatiche e test | ✅ | no | campagne, copie cieche, oltre 1000 test |
 | Frontend e accessi | ➖ | — | stesso payload, stesse regole |
 | Conoscenza nuova senza riavvio | ✅ | — | sì, ogni 5 minuti |
-| Conoscenza rotta all'avvio | ❌ | — | il servizio non parte (B7) |
+| Conoscenza rotta all'avvio | ❌ | — | il servizio non parte (MG44) |
 | EJ200 | ❌ | in produzione | mai provata (passo 4f) |
 
 ## 3. Errore per errore
@@ -103,11 +103,11 @@ Le 6 stampe con errori che la v1 valida. ✔ trovato · — mancato.
 | 5ff17062 030 | numeri e parole | ✔ | ✔ | |
 | 5ff17062 040 | la classe | ✔ | — | documento |
 | 5ff17062 050 | limiti e negazioni | ✔ | ✔ | |
-| 8d3c673c 100 | scheda e task | ✔ | — | controllo (H18) |
-| 8d3c673c 110 | scheda e task | ✔ | — | controllo (H18) |
+| 8d3c673c 100 | scheda e task | ✔ | — | controllo (MG40) |
+| 8d3c673c 110 | scheda e task | ✔ | — | controllo (MG40) |
 | 8d3c673c 140 | numero in una lingua | ✔ | ✔ | |
 | e9b74c84 025 | numero e task | ✔ | ✔ | |
-| e9b74c84 040 | una parola in inglese | ✔ | — | controllo (F1) |
+| e9b74c84 040 | una parola in inglese | ✔ | — | controllo (MG47) |
 | **Totale** | | **15** | **13** | 2 documento, 3 controllo |
 
 **Falsi errori sulle stampe giuste**
@@ -127,9 +127,9 @@ Le 6 stampe con errori che la v1 valida. ✔ trovato · — mancato.
 
 | Stampa | v2 |
 |---|---|
-| 22f586bb, 895167b9 (DR senza serial) | parte degli errori; mancati per DR senza serial (F5) e materiale (F1) |
+| 22f586bb, 895167b9 (DR senza serial) | parte degli errori; mancati per DR senza serial (MG50) e materiale (MG46) |
 | 737dec71 060; 414d85ca, 477abec8, ffadfe16 060 | errore vero trovato |
-| 298bc28e 035 | N/A «fuori tema» (F3) |
+| 298bc28e 035 | N/A «fuori tema» (MG45) |
 | b1261d11 060 | da verificare (P13) |
 
 *Aggiornato il 27-11 notte, dopo il 4d. Prossimo: dopo il 4e e la P13.*
