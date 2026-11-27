@@ -5,8 +5,8 @@
       "check": "process_sheet",
       "kind": "operation",
       "index": 0,
-      "verdict": "WARNING",
-      "reason": "EVIDENZA_NON_TROVATA"
+      "verdict": "ERRATO",
+      "reason": "SCHEDA_ALTRO_MOTORE"
     },
     {
       "check": "process_sheet",

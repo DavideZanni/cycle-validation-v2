@@ -104,49 +104,45 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 | | Tappa | Stato |
 |---|---|---|
-| ✅ | 1-2 · Preparare, prima campagna | 24-11 |
-| 👉 | 3 · Migliorie | base di oggi: `finale` + tre controlli del codice (4d). In prova: `schede_e_limiti` (4e) |
+| ✅ | 1-3 · Preparare, campagne, migliorie | 27-11: base con `schede_e_limiti`, 0 falsi errori, 34/43 e 23/29 stabili |
 | 👉 | 4 · Prove dal frontend (sezione 4) | A3 e A1 fatte |
-| ⬜ | 5 · Grande ingestion, prova di controllo, QA | dopo il 4e |
+| ⬜ | 5 · Grande ingestion, prova di controllo, QA | dopo la P13 |
 | ⬜ | 6 · Produzione (`develop` → `main`) | quando i cancelli di `V1_CONTRO_V2.md` sono ✅ |
 
 | | Passo | Quando · costo |
 |---|---|---|
-| ✅ | 1-4d · campagne, v1 sugli stessi cicli, base nuova | 27-11: 30/43 stabili sul piccolo, 18/29 sul grande |
-| 👉 | **4e · Schede e regole**, domanda P13 | adesso · 2,5 $ · 1 ora |
+| ✅ | 1-4e · campagne, v1 sugli stessi cicli, base nuova, schede e regole | 27-11 |
+| 👉 | **4g · Aggiornare, ricalcolare, domanda P13** | adesso · gratis |
 | ⬜ | **4f · EJ200 sul PC** | dopo l'ingestion EJ200 · centesimi |
 | ⬜ | **5 · Grande ingestion e QA** | dopo |
 
 ---
 
-**👉 Passo 4e · Schede e regole**
+**👉 Passo 4g · Aggiornare, ricalcolare, domanda P13** (gratis)
 
-La variante `schede_e_limiti` prova MG40 (scheda coerente con l'operazione) e MG41 (la regola
-«almeno N» non è un errore). Un ERRATO sulla 050 di 04ecaabe o di 2d724fba ora è un falso errore.
+`schede_e_limiti` è nella base. Le prove di oggi restano: non archiviare.
 
-1. Quando la campagna è finita: **Aggiornare** (2.1). Non archiviare.
+1. **Aggiornare** (2.1).
    - **Deve uscire:** `... passed`, nessun `failed`.
-2. **Ricalcolare** i riepiloghi (gratis):
+2. **Ricalcolare** i riepiloghi (da ora anche la 050 di 2d724fba conta):
 
    ```powershell
    $env:UV_PYTHON = "3.14"
    "piccolo", "grande" | ForEach-Object { uv run cycle-validation eval riepilogo --cartella "runs/prove-$_" --attesi eval/errori-noti.yaml }
    ```
 
-   - **Deve uscire:** due volte `Ricalcolati con gli errori noti di adesso: N cicli cambiati`.
-3. Se la campagna non è ancora partita: `aws sso login`, **il piano** e **la campagna** (3.5).
-   - **Deve uscire:** nel piano `base` `fatte 3` e `schede_e_limiti` `3 da fare`; alla fine 0
-     falsi errori e più errori stabili della base (8d3c673c 100 e 110).
-4. **Mandami:** la riga finale, `runs\campagna.md` e i due `riepilogo.md` (classifica, «Errore
-   per errore», «ERRATO da verificare»).
-5. **Domanda P13 a Copilot** (in **Ask**; anche mentre gira la campagna):
+   - **Deve uscire:** due volte `Ricalcolati con gli errori noti di adesso: N cicli cambiati`;
+     nel riepilogo del grande `schede_e_limiti` sempre con 0 falsi errori.
+   - **Mandami:** la classifica dei due `riepilogo.md`.
+3. **Domanda P13 a Copilot** (in **Ask**):
 
 ```text
 Modalità Ask: leggi soltanto, non modificare, non creare file, non lanciare comandi.
 
-In runs/prove-piccolo e runs/prove-grande, nelle ultime tre cartelle che finiscono con -base,
-la v2 dà ERRATO 3 volte su 3 su: 8d3c673c 060 e 070 (piccolo e grande); b1261d11 060 (grande,
-ciclo vero). Per ogni operazione, in un solo report.json (runs/prove-<insieme>/<prova>/<impronta>/):
+In runs/prove-piccolo e runs/prove-grande, nelle ultime tre cartelle che finiscono con
+-schede_e_limiti, la v2 dà ERRATO 3 volte su 3 su: 8d3c673c 060 e 070 (piccolo e grande);
+b1261d11 060 (grande, ciclo vero). Per ogni operazione, in un solo report.json
+(runs/prove-<insieme>/<prova>/<impronta>/):
 1) controllo (check) e motivo (reason) dell'ERRATO;
 2) la spiegazione (rationale), in una frase;
 3) il testo in italiano e in inglese: dicono la stessa cosa? 8d3c673c 060: «opposing» o

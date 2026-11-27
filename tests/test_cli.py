@@ -91,7 +91,7 @@ def test_run_writes_the_outputs(pdf: Path, tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     assert "completo" in result.output
     payload = json.loads((out / "payload.json").read_text(encoding="utf-8"))
-    assert payload["cycle_errors_count"] == 2
+    assert payload["cycle_errors_count"] == 3
 
 
 def test_run_with_skip_check(pdf: Path, tmp_path: Path) -> None:
@@ -147,7 +147,7 @@ def test_run_without_cycle_json_extracts_with_the_model(
     assert result.exit_code == 0, result.output
     payload = json.loads((out / "payload.json").read_text(encoding="utf-8"))
     assert payload["cycleCode"] == "CICLO-DEMO-001"
-    assert payload["cycle_errors_count"] == 2
+    assert payload["cycle_errors_count"] == 3
 
 
 def test_golden_command() -> None:

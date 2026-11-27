@@ -49,7 +49,7 @@ def test_sessions_start_while_a_slow_deterministic_check_is_still_running(pdf: P
         Reason.MACCHINA_NON_ATTIVA,
         Reason.CAMPO_ASSENTE,
     ]
-    assert report.counts.errato == 2  # stessi esiti di test_mos_end_to_end
+    assert report.counts.errato == 3  # stessi esiti di test_mos_end_to_end
 
 
 class RecordingKnowledge:

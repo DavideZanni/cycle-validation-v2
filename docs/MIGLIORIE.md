@@ -8,8 +8,8 @@ Tutte le migliorie della v2, provate e da fare, in una tabella sola.
 - Come si prova e come si decide: `DOCUMENTAZIONE.md` 15.3. La storia delle prove: `MEMORIA.md`
   sezione 16. Se si è pronti per la produzione: `V1_CONTRO_V2.md` sezione 1.
 
-**Prossime, in ordine:** MG40 e MG41 (campagna 4e) · MG73 grande ingestion · MG44 · MG42 prova
-EJ200 · MG45 · MG46.
+**Prossime, in ordine:** MG43 domanda P13 · MG44 · MG45 · MG75 e MG46 (una campagna) · MG73
+grande ingestion · MG42 prova EJ200.
 
 | Sigla | Miglioria | Cosa fa | Stato | Imp. | Era |
 |---|---|---|:-:|:-:|---|
@@ -52,8 +52,8 @@ EJ200 · MG45 · MG46.
 | MG37 | Due macchine | la stessa operazione con due targhe su due pagine: ERRATO dal codice | ✅ | 4 | H19 |
 | MG38 | Limiti su più pagine | i limiti della 010 cambiati in una lingua, anche su pagine diverse | ✅ | 4 | — |
 | MG39 | Codici e 2900 documenti | cache dei codici per documento; misura `eval scala` | ✅ | 4 | N5 |
-| MG40 | Scheda coerente | scheda di un altro motore o materiale, task della scheda inesistente: ERRATO | 🔶 | 5 | H18 |
-| MG41 | Regola «almeno N» | «almeno 4» contro «più di 4» non è un errore | 🔶 | 5 | N1, N2 |
+| MG40 | Scheda coerente | scheda di un altro motore o materiale, task della scheda inesistente: ERRATO (campagna 4e: +4 stabili sul piccolo, +5 sul grande) | ✅ | 5 | H18 |
+| MG41 | Regola «almeno N» | «almeno 4» contro «più di 4» non è un errore (toglie gli ultimi 2 falsi errori) | ✅ | 5 | N1, N2 |
 | MG42 | EJ200 sul PC | `prova-ej200`: conoscenza da S3, niente tracce sul PC | 🔶 | 5 | N4 |
 | MG43 | Domanda P13 | 8d3c673c 060 e 070, b1261d11 060: errori veri o falsi? | 🔶 | 5 | N3 |
 | MG44 | EJ200 rotta non ferma il civile | una conoscenza EJ200 non valida spegne solo EJ200, MOS e DR partono | ⬜ | 5 | B7 |
@@ -87,3 +87,4 @@ EJ200 · MG45 · MG46.
 | MG72 | Pulizia | golden in parallelo; togliere le rotte storiche quando il frontend è pronto | ⬜ | 1 | B8, D |
 | MG73 | Grande ingestion | tutti i documenti civili, con quelli che ha la v1 (schede con materiale, SPM) | ⬜ | 5 | — |
 | MG74 | Indice (knowledge-index) | nomi dei manuali (`aliases.json`), intervalli dei task, voci RDR «OTHER» | ⬜ | 3 | — |
+| MG75 | Limiti al contrario tra le lingue, dal codice | «superiore a N» contro «not to exceed N»: oggi lo trova il modello, 3-4 volte su 6 | ⬜ | 4 | — |

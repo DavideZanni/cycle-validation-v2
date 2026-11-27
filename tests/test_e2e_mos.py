@@ -45,7 +45,7 @@ def test_mos_end_to_end(pdf: Path, tmp_path: Path) -> None:
         Reason.VERIFICATO,
         Reason.ESCLUSO_DA_REGOLA,
         Reason.CAMPO_ASSENTE,
-        Reason.EVIDENZA_NON_TROVATA,  # SP-0202 è LEAP, il motore è GENX
+        Reason.SCHEDA_ALTRO_MOTORE,  # SP-0202 è LEAP, il motore è GENX (H18, nella base)
     ]
     sources = by(report, CheckName.SOURCE)
     assert [r.reason for r in sources] == [
@@ -56,7 +56,7 @@ def test_mos_end_to_end(pdf: Path, tmp_path: Path) -> None:
     codes = by(report, CheckName.TASK_CODE)
     assert codes[3].reason is Reason.FONTE_ASSENTE
 
-    assert report.counts.errato == 2
+    assert report.counts.errato == 3
     assert report.status.value == "completo"
     assert report.meta.knowledge_version == "sintetico-2026-11"
     assert report.meta.profile == "mos"
@@ -70,7 +70,7 @@ def test_mos_end_to_end(pdf: Path, tmp_path: Path) -> None:
     assert payload["operations"][2]["targaCRespFeedback"].startswith("Error found:")
     assert payload["operations"][0]["operationFeedback"] == "No errors found."
     assert payload["sources"][2]["sourceFeedback"].startswith("Warning:")
-    assert payload["cycle_errors_count"] == 2
+    assert payload["cycle_errors_count"] == 3
     assert (run_dir / "report.md").read_text(encoding="utf-8").startswith("# Validazione")
 
 
@@ -112,7 +112,7 @@ def test_technical_failure_does_not_become_a_content_error(pdf: Path) -> None:
     assert [r.reason for r in ops] == [Reason.ERRORE_TECNICO] * 3 + [Reason.FONTE_ASSENTE]
     assert len(report.pipeline_errors) == 3
     assert report.status.value == "parziale"
-    assert report.counts.errato == 1  # solo la macchina non attiva
+    assert report.counts.errato == 2  # la macchina non attiva e la scheda LEAP
 
 
 def test_inactive_profile_is_refused(pdf: Path) -> None:

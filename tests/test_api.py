@@ -121,7 +121,7 @@ def test_civil_upload_matches_the_recorded_shape_and_records_cost(env: Env) -> N
     assert not same_shape(body, recorded("upload_success_civil.json"))
     assert body["state"] == "succeeded" and body["result"]["file_name"] == "ciclo.pdf"
     payload = body["result"]["payload"]
-    assert payload["cycle_errors_count"] == 2 and 0 <= payload["cycle_errors_count_perc"] <= 1
+    assert payload["cycle_errors_count"] == 3 and 0 <= payload["cycle_errors_count_perc"] <= 1
     assert set(payload["operations"][0]) >= {
         "operationFeedback",
         "targaCRespFeedback",

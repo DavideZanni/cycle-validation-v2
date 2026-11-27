@@ -192,16 +192,22 @@ def test_process_sheets() -> None:
         Reason.VERIFICATO,
         Reason.ESCLUSO_DA_REGOLA,
         Reason.CAMPO_ASSENTE,
-        Reason.EVIDENZA_NON_TROVATA,
+        Reason.SCHEDA_ALTRO_MOTORE,  # H18 nella base dal 27-11 notte
     ]
     assert "LEAP" in results[3].rationale
 
 
 def test_process_sheet_unknown() -> None:
+    """Una scheda che l'indice non ha: ERRATO se l'indice ha altre schede con le stesse lettere
+    (H18, nella base dal 27-11 notte), altrimenti WARNING (forse manca dalla conoscenza)."""
     cycle = Cycle.model_validate(
         {"operations": [{"operation_number": "1", "process_sheet": "SP-9999"}]}
     )
-    assert _reasons(check_process_sheets(_ctx(cycle))) == [Reason.FONTE_ASSENTE]
+    assert _reasons(check_process_sheets(_ctx(cycle))) == [Reason.SCHEDA_INESISTENTE]
+    other = Cycle.model_validate(
+        {"operations": [{"operation_number": "1", "process_sheet": "QZ-9999"}]}
+    )
+    assert _reasons(check_process_sheets(_ctx(other))) == [Reason.FONTE_ASSENTE]
 
 
 def test_a_special_process_without_sheet_is_a_warning_never_an_error() -> None:

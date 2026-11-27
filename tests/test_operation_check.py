@@ -853,7 +853,7 @@ def test_out_of_scope_is_not_applicable_only_with_the_setting() -> None:
 
 def test_at_least_against_more_than_is_not_a_contradiction_only_with_the_setting() -> None:
     """Regola dell'utente (27-11 sera, P12): «almeno N» contro «più di N» non è un errore."""
-    on = SETTINGS.model_copy(update={"boundary_limits_note": True})
+    off = SETTINGS.model_copy(update={"boundary_limits_note": False})
     text = "ALMENO 4 VOLTE LA LARGHEZZA / MORE THAN 4 TIMES THE WIDTH"
-    assert "«almeno N»" in job_for(op(text), on).request.prompt
-    assert "«almeno N»" not in job_for(op(text)).request.prompt
+    assert "«almeno N»" in job_for(op(text)).request.prompt  # nella base dal 27-11 notte
+    assert "«almeno N»" not in job_for(op(text), off).request.prompt

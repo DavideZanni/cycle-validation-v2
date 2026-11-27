@@ -394,12 +394,13 @@ si controlla.
 - Prefissi esclusi (`SWJ`, `SSS`, `SPS`): N/A `ESCLUSO_DA_REGOLA`.
 - I codici si confrontano senza spazi, trattini né maiuscole (`CPEC 100-BR` = `CPEC100BR`).
   `PG 300` è un codice a sé.
-- Non trovata: WARNING `FONTE_ASSENTE`.
-- Trovata ma non per la famiglia del motore (GENX, LEAP): WARNING `EVIDENZA_NON_TROVATA`.
+- Non trovata: WARNING `FONTE_ASSENTE` (ERRATO se l'indice ha schede con le stesse lettere: H18).
+- Trovata ma non per la famiglia del motore (GENX, LEAP): ERRATO `SCHEDA_ALTRO_MOTORE` (H18;
+  con H18 spenta WARNING `EVIDENZA_NON_TROVATA`).
 - Trovata: CORRETTO. Se la scheda non elenca famiglie o la famiglia non si riconosce, il testo
   dice «applicabilità non verificata».
 
-**La scheda coerente con l'operazione (H18, `agent.sheet_consistency`, spenta nella base;
+**La scheda coerente con l'operazione (H18, `agent.sheet_consistency`, accesa nella base dal 27-11 notte;
 variante `schede_e_limiti`, 27-11 sera).** Tutto deciso dal codice, senza modello. Nelle stampe
 con errori messi a mano la v1 trova le schede cambiate (un'altra lega, un altro motore, una
 cifra del task); nelle stampe giuste dello stesso pezzo la coppia scheda e task è sempre la
@@ -920,8 +921,8 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.general_definitions_note` | `false` | nella domanda al modello: una differenza solo con una **definizione generale** del manuale di pratiche standard (per esempio «indicazione lineare = 3 volte la larghezza») dà `non_verificabile`, non `contraddetto`; resta `contraddetto` con un limite specifico o con una lingua diversa dall'altra. Variante `definizioni_generali` (26-11) |
 | `agent.compare_languages` | `true` (dal 27-11 sera, con la versione stretta) | una sessione corta per ogni operazione scritta in due lingue: il modello confronta l'italiano e l'inglese **tra loro**, senza manuale. Una differenza (negazione, limite, materiale, valore) con le citazioni ritrovate e confermata è ERRATO `INCOERENZA_LINGUE`. Variante `lingue_tra_loro` (26-11 sera) |
 | `agent.special_process_sheet` | `true` (dal 27-11) | processo speciale senza scheda: WARNING `SCHEDA_FORSE_MANCANTE` («Scheda mancante») invece di N/A (sezione 6.4). Regola P6, I9 |
-| `agent.sheet_consistency` | `false` | la scheda coerente con l'operazione, deciso dal codice: altro motore, altro materiale, task della scheda inesistente, scheda inesistente tra altre con lo stesso prefisso danno ERRATO (sezione 6.4). Variante `schede_e_limiti` (H18, 27-11 sera) |
-| `agent.boundary_limits_note` | `false` | nella domanda al modello: «almeno N» contro «più di N» (solo il caso uguale a N) non è una contraddizione. Regola decisa dall'utente il 27-11 sera (P12). Variante `schede_e_limiti` |
+| `agent.sheet_consistency` | `true` | la scheda coerente con l'operazione, deciso dal codice: altro motore, altro materiale, task della scheda inesistente, scheda inesistente tra altre con lo stesso prefisso danno ERRATO (sezione 6.4). Variante `schede_e_limiti` (H18, 27-11 sera) |
+| `agent.boundary_limits_note` | `true` | nella domanda al modello: «almeno N» contro «più di N» (solo il caso uguale a N) non è una contraddizione. Regola decisa dall'utente il 27-11 sera (P12). Variante `schede_e_limiti` |
 | `agent.inspection_source` | `true` (dal 27-11 sera) | nelle ispezioni anche la sezione INSPECTION o i task d'ispezione (gruppo 200) del manuale del motore, con una nota (sezione 6.5). Variante `fonte_ispezione` (I8, 27-11) |
 | `agent.out_of_scope` | `true` (dal 27-11 sera) | il modello può rispondere `fuori_tema`: N/A `FUORI_TEMA` invece di WARNING quando il testo non tratta il tipo di operazione (sezione 6.5). Variante `finale` (I16, 27-11) |
 | `agent.compare_languages_strict` | `true` (dal 27-11 sera) | con `compare_languages`: solo negazioni e limiti al contrario, ritrovati dal codice nelle parole copiate (sezione 6.5). Variante `finale` (I15, 27-11) |

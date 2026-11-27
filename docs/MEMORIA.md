@@ -46,7 +46,8 @@ sezione 1 di `COPILOT.md`):
 | 7b | Aggiornare, riepiloghi ricalcolati con gli errori aggiunti dal testo delle stampe (gratis), domanda P12 a Copilot | COPILOT passo 4c | ✅ 27-11 sera |
 | 7c | Claude: `finale` nella base e tre controlli del codice (H17, H19, la 010 in più parti) | Claude | ✅ 27-11 sera |
 | 7d | Aggiornare, archiviare, campagna della sola base nuova | COPILOT passo 4d | ✅ 27-11 sera: 30 su 43 stabili sul piccolo, 18 su 29 sul grande; falso errore 04ecaabe 050 in 2 prove su 3 |
-| 7e2 | Campagna della variante `schede_e_limiti` (H18, regola «almeno N»), riepiloghi ricalcolati, domanda P13 (8d3c673c 060 e 070, b1261d11 060) | COPILOT passo 4e | in corso |
+| 7e2 | Campagna della variante `schede_e_limiti` (H18, regola «almeno N») | COPILOT passo 4e | ✅ 27-11 notte: vince, nella base |
+| 7e5 | Aggiornare, ricalcolare, domanda P13 (8d3c673c 060 e 070, b1261d11 060) | COPILOT passo 4g | da fare |
 | 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
 | 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |
 | 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
@@ -1529,6 +1530,23 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   (`MG01`…`MG74`, in ordine di quando sono nate), cosa fa, stato, importanza (1-5) e il nome di
   prima. Il registro degli esperimenti è passato qui, sezione 16. Nei documenti nuovi si usano
   le sigle `MGxx`; i nomi vecchi restano nelle note di prima e nei commenti del codice.
+- **27-11 notte, campagna 4e: `schede_e_limiti` (MG40 + MG41) vince, nella base.** Piccolo
+  34/43 stabili contro 30 (min/medio 34/35), 0 falsi errori contro 2, mai visti 1 su 4 come la
+  base, 5,4 WARNING per ciclo contro 5,8, 0,0110 $ e 16 s. Grande 23/29 contro 18 (24/24,3), 0
+  falsi contro 2, 8,7 WARNING contro 8,9, 0,0180 $ e 24 s. Trovati in più, dal codice: 8d3c673c
+  100 (`SCHEDA_MATERIALE_DIVERSO`) e 110 (`SCHEDA_ALTRO_MOTORE`), 22f586bb e 895167b9 050
+  (`SCHEDA_INESISTENTE`) 3 su 3; 04ecaabe 050 e 2d724fba 050 senza ERRATO. **Sulle 19
+  operazioni della v1 la v2 arriva a 15, come la v1, con 0 falsi errori contro 6.** Restano:
+  ERRATO da verificare 8d3c673c 060 e 070 e b1261d11 060 (3 su 3 in tutte e due: P13); mancati
+  22f586bb 030 (DR senza serial), 895167b9 030, 298bc28e 035, e9b74c84 040 (una parola), le 060
+  dei cicli veri instabili (414d85ca 4 su 6, ffadfe16 3 su 6, 737dec71 2 su 3: il limite al
+  contrario tra le lingue lo trova il modello, non sempre → MG75, dal codice); copie cieche
+  `limite_invertito` (CORRETTO), `negazione_due_lingue` (N/A fuori tema), `numero_manuale`
+  (non trovato). WARNING della base sul piccolo: `EVIDENZA_NON_TROVATA` 3,0 per ciclo,
+  `FONTE_ASSENTE` 1,8, `SCHEDA_FORSE_MANCANTE` 0,6, `DR_NON_VERIFICATA` 0,2. Nella base i
+  valori predefiniti `sheet_consistency` e `boundary_limits_note` (veri); i casi inventati
+  aggiornati (scheda LEAP su un ciclo GENX ora ERRATO; la copia «scheda inesistente» usa
+  lettere che l'indice non ha).
 
 ## 13. Da correggere nell'indice (knowledge-index)
 
@@ -1897,3 +1915,11 @@ tutto il guadagno di `finale` viene dal codice che confronta le lingue (I15), no
 Dalla v1 sugli stessi cicli (sera): la lista degli errori noti era incompleta su 38960731,
 8d3c673c ed e9b74c84 (cambi di codici, schede, macchine: H17-H19); 6 operazioni aggiunte,
 le prove si ricalcolano senza rifarle.
+
+**Campagna 4e (27-11 notte, seme 3, 3 prove): base contro `schede_e_limiti` (MG40 + MG41).**
+Decisione: **si tiene**, nella base. Considerazioni: è il salto più grande da quando ci sono i
+controlli del codice (+4 stabili sul piccolo, +5 sul grande) e toglie gli ultimi falsi errori
+(la regola «almeno N»); il costo non sale perché le schede le controlla il codice. Le 060 dei
+cicli veri restano instabili: il confronto stretto tra le lingue dipende dal modello. Prossimo:
+P13, poi MG75 (limiti al contrario tra le lingue dal codice) e MG46 (materiale tra le lingue)
+in una campagna.

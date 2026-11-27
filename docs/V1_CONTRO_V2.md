@@ -1,8 +1,8 @@
 # v1 contro v2
 
-Numeri: v1 da `CONFRONTO_V1_14_CICLI.md`; v2 dalla campagna 4d (3 prove, 27-11). La v1 ha
-documenti che la v2 non ha ancora: per ogni errore mancato si dice se manca il **documento** o
-il **controllo**. Claude aggiorna il file dopo ogni campagna.
+Numeri: v1 da `CONFRONTO_V1_14_CICLI.md`; v2 dalla campagna 4e (base con `schede_e_limiti`, 3
+prove, 27-11). La v1 ha documenti che la v2 non ha ancora: per ogni errore mancato si dice se
+manca il **documento** o il **controllo**. Claude aggiorna il file dopo ogni campagna.
 
 ✅ v2 meglio · ❌ v2 peggio · ➖ pari · 🔶 in prova · ⬜ non misurato
 
@@ -14,14 +14,14 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 
 | | Cosa | Soglia | Oggi |
 |:-:|---|---|---|
-| ❌ | Falsi errori sulle stampe giuste | 0 | 1 (04ecaabe 050) |
-| ❌ | Errori trovati sulle 19 operazioni della v1 | ≥ 15 | 13 + 1 avviso |
-| ✅ | Errori stabili, piccolo | ≥ 70% | 70% (30/43) |
-| ✅ | Errori stabili, grande | ≥ 60% | 62% (18/29) |
+| ✅ | Falsi errori sulle stampe giuste | 0 | 0 |
+| ✅ | Errori trovati sulle 19 operazioni della v1 | ≥ 15 | 15 + 1 avviso |
+| ✅ | Errori stabili, piccolo | ≥ 70% | 79% (34/43) |
+| ✅ | Errori stabili, grande | ≥ 60% | 79% (23/29) |
 | ❌ | ERRATO da verificare | 0 | 3 (P13) |
 | ✅ | Stampe lette | 14/14 | 14/14 |
-| ✅ | Costo per ciclo | ≤ 0,05 $ | 0,011-0,019 $ |
-| ✅ | Tempo per ciclo | ≤ 2 min | 16-26 s |
+| ✅ | Costo per ciclo | ≤ 0,05 $ | 0,011-0,018 $ |
+| ✅ | Tempo per ciclo | ≤ 2 min | 16-24 s |
 | ✅ | Test | 0 `failed` | 0 |
 | ⬜ | `kb-check` dopo la grande ingestion | nessun `Errore:` | — |
 | ⬜ | Prova di controllo sul grande | 0 falsi errori, errori stabili non in calo | — |
@@ -45,7 +45,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | ⬜ | QA: un MOS e un DR veri, con e senza serial | nessun errore tecnico | — |
 | ⬜ | QA: targhe vere (Redshift) | 0 targhe giuste ERRATO | — |
 | ⬜ | Esperto su 5-10 risultati QA | 0 falsi, ≥ 80% trovati | — |
-| ⬜ | Avvisi per ciclo in QA | ≤ 5, `[da guardare]` ≤ 2 | 6-9 sul PC |
+| ⬜ | Avvisi per ciclo in QA | ≤ 5, `[da guardare]` ≤ 2 | 5,4-8,7 sul PC |
 | ⬜ | Accessi EJ200 in QA | solo `cv_ej200` e `all` | ok nei test |
 | ⬜ | Ritorno alla v1 (`qa --torna-alla-v1`) | provato | — |
 
@@ -53,12 +53,12 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 
 | Aspetto | | v1 | v2 |
 |---|:-:|---|---|
-| Falsi errori, stampe giuste | ✅ | 6 | 1-2 (stessa frase, «almeno 4» contro «more than 4») |
-| Errori trovati (19 op.) | ❌ | 15 | 13 + 1 avviso; 15 se MG40 funziona, 17 con la grande ingestion |
+| Falsi errori, stampe giuste | ✅ | 6 | 0 |
+| Errori trovati (19 op.) | ➖ | 15 | 15 + 1 avviso; 17 con la grande ingestion |
 | Prova di ogni errore | ✅ | testo libero | frase del manuale ritrovata dal programma |
 | «OK» vuol dire | ✅ | nessuna contraddizione vista | controllato con il manuale |
 | Cosa non ha controllato | ✅ | non lo dice | `[non controllabile]` separato da `[da guardare]` |
-| Avvisi per ciclo | ❌ | 1-2 | 6-9 (sul PC registro spento e documenti mancanti) |
+| Avvisi per ciclo | ❌ | 1-2 | 5,4 piccolo, 8,7 grande (sul PC registro spento, documenti mancanti) |
 | Stabilità | ✅ | non misurata | misurata su 3 prove |
 | **Codici di task sbagliati** | ✅ | col modello, a volte «incompleto» su codici giusti | dal codice, senza modello: codice assente e fratelli presenti |
 | Task dell'operazione contro la testata | ➖ | sì | sì (MG36) |
@@ -66,7 +66,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | Numeri o limiti cambiati in una lingua | ✅ | solo inglese | due lingue, dal codice |
 | Negazioni e frasi al contrario | ✅ | solo inglese | due lingue; 2 errori veri trovati in stampe «giuste» |
 | Parola o materiale cambiati in una lingua | ❌ | la parola sì | no (MG46, MG47) |
-| Scheda sbagliata (motore, materiale) | ❌ 🔶 | sì (indice schede) | MG40 in prova (4e) |
+| Scheda sbagliata (motore, materiale, codice) | ➖ | sì (indice schede) | sì, dal codice (MG40); anche nelle stampe DR che la v1 non legge |
 | Scheda tolta | ➖ | errore | avviso «Scheda mancante» (regola decisa) |
 | Macchine non attive | ➖ | registro | stesso registro in produzione |
 | Due macchine per un'operazione | ✅ | non sempre | sì (MG37) |
@@ -76,7 +76,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | Lettura della stampa | ✅ | modello | parser, gratis e sempre uguale |
 | Ricerca nel manuale | ✅ | per somiglianza (OpenSearch) | per codice esatto |
 | 2900 documenti | ✅ | non misurato | stesso testo al modello; 4,2 s, 164 MB (finto) |
-| Costo e tempo | ✅ | non misurati | 0,011-0,019 $, 16-26 s |
+| Costo e tempo | ✅ | non misurati | 0,011-0,018 $, 16-24 s |
 | Prove automatiche e test | ✅ | no | campagne, copie cieche, oltre 1000 test |
 | Frontend e accessi | ➖ | — | stesso payload, stesse regole |
 | Conoscenza nuova senza riavvio | ✅ | — | sì, ogni 5 minuti |
@@ -103,12 +103,12 @@ Le 6 stampe con errori che la v1 valida. ✔ trovato · — mancato.
 | 5ff17062 030 | numeri e parole | ✔ | ✔ | |
 | 5ff17062 040 | la classe | ✔ | — | documento |
 | 5ff17062 050 | limiti e negazioni | ✔ | ✔ | |
-| 8d3c673c 100 | scheda e task | ✔ | — | controllo (MG40) |
-| 8d3c673c 110 | scheda e task | ✔ | — | controllo (MG40) |
+| 8d3c673c 100 | scheda e task | ✔ | ✔ | |
+| 8d3c673c 110 | scheda e task | ✔ | ✔ | |
 | 8d3c673c 140 | numero in una lingua | ✔ | ✔ | |
 | e9b74c84 025 | numero e task | ✔ | ✔ | |
 | e9b74c84 040 | una parola in inglese | ✔ | — | controllo (MG47) |
-| **Totale** | | **15** | **13** | 2 documento, 3 controllo |
+| **Totale** | | **15** | **15** | 2 documento, 1 controllo |
 
 **Falsi errori sulle stampe giuste**
 
@@ -116,20 +116,20 @@ Le 6 stampe con errori che la v1 valida. ✔ trovato · — mancato.
 |---|:-:|:-:|---|
 | 04ecaabe fonte | ✘ | | il testo dice che è giusta |
 | 04ecaabe 040 | ✘ | | scheda giusta |
-| 04ecaabe 050 | | ✘ 2/3 | «almeno 4» = «più di 4» (regola) |
+| 04ecaabe 050 | | tolto (era 2/3) | «almeno 4» = «più di 4» (regola) |
 | 4e64d49a fonte | ✘ | | come 04ecaabe |
 | 8bdb25d5 030 | ✘ | | stessa istruzione |
 | 2d724fba 030 | ✘ | | stessa regola |
 | 2d724fba 040 | ✘ | | scheda giusta |
-| 2d724fba 050 | | da contare | come 04ecaabe 050 |
+| 2d724fba 050 | | tolto (era 2/3) | come 04ecaabe 050 |
 
 **Fuori dal confronto** (la v1 non dà risultati)
 
 | Stampa | v2 |
 |---|---|
-| 22f586bb, 895167b9 (DR senza serial) | parte degli errori; mancati per DR senza serial (MG50) e materiale (MG46) |
-| 737dec71 060; 414d85ca, 477abec8, ffadfe16 060 | errore vero trovato |
-| 298bc28e 035 | N/A «fuori tema» (MG45) |
+| 22f586bb, 895167b9 (DR senza serial) | 010, 050, 060 trovati; 030 mancato (MG50) |
+| 737dec71 060; 414d85ca, 477abec8, ffadfe16 060 | errore vero; stabile solo su 477abec8 (MG49) |
+| 298bc28e 035 | mancato |
 | b1261d11 060 | da verificare (P13) |
 
-*Aggiornato il 27-11 notte, dopo il 4d. Prossimo: dopo il 4e e la P13.*
+*Aggiornato il 27-11 notte, dopo il 4e. Prossimo: dopo la P13 e la grande ingestion.*

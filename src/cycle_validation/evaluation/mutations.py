@@ -69,7 +69,9 @@ def _defect(check: str, field: str, verdict: str, reason: str | None) -> Apply:
                     continue
                 operation["process_sheet"] = {
                     **operation["process_sheet"],
-                    "code": operation["process_sheet"]["code"] + SUFFIX,
+                    # lettere iniziali che l'indice non ha: una scheda sconosciuta (WARNING).
+                    # Con le stesse lettere di altre schede sarebbe ERRATO (H18, MG40)
+                    "code": "QZ" + operation["process_sheet"]["code"] + SUFFIX,
                 }
             else:
                 if not operation.get(field):
@@ -118,7 +120,7 @@ MUTATIONS: dict[str, Mutation] = {
     ),
     "scheda_inesistente": Mutation(
         "difetto",
-        "la scheda di un'operazione diventa una scheda che non esiste: atteso WARNING",
+        "la scheda di un'operazione diventa una scheda di una famiglia che l'indice non ha: atteso WARNING",
         _defect("process_sheet", "process_sheet", "WARNING", "FONTE_ASSENTE"),
     ),
     "spazi_doppi": Mutation(
