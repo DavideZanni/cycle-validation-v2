@@ -7,6 +7,7 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from time import perf_counter
+from typing import Any
 
 from cycle_validation import __version__
 from cycle_validation.agent.session import AgentSession
@@ -113,6 +114,11 @@ def _check_selectors(profile: ProfileConfig, selectors: DrSelectors | None) -> D
     return selectors
 
 
+def _selector_fields(selectors: DrSelectors) -> dict[str, Any]:
+    """Serial number e condition come stanno nel ciclo (`dr_record`) e nei metadati del run."""
+    return {"serial_number": selectors.serial_number, "conditions": list(selectors.conditions)}
+
+
 async def _run_sync(checks: Collection[CheckName], ctx: CheckContext) -> list[CheckResult]:
     batches = await asyncio.gather(
         *(asyncio.to_thread(SYNC_CHECKS[check], ctx) for check in checks)
@@ -160,11 +166,7 @@ async def arun_validation(
         selectors = with_serial_from_text(
             selectors, pdf.text, lambda serial: bool(kb.find_dr_recommendations(serial))
         )
-        record = {
-            **(cycle.dr_record or {}),
-            "serial_number": selectors.serial_number,
-            "conditions": list(selectors.conditions),
-        }
+        record = {**(cycle.dr_record or {}), **_selector_fields(selectors)}
         cycle = cycle.model_copy(update={"dr_record": record})
     timings["extract"] = _ms(mark)
 
@@ -193,8 +195,7 @@ async def arun_validation(
         # dell'agente non dipendono gli uni dalle altre: procedono insieme.
         sync_rest = [c for c in rest if c in SYNC_CHECKS]
         sync_task = asyncio.ensure_future(_run_sync(sync_rest, ctx))
-        operation_task: asyncio.Future[tuple[list[CheckResult], list[PipelineError]]] | None
-        operation_task = None
+        operation_task: asyncio.Future[tuple[list[CheckResult], list[PipelineError]]] | None = None
         if CheckName.OPERATION_DESCRIPTION in rest:
             operation_task = asyncio.ensure_future(
                 check_operations(
@@ -227,14 +228,7 @@ async def arun_validation(
         pdf_name=pdf.name,
         pdf_sha256=pdf.sha256,
         profile=profile.name,
-        selectors=(
-            {
-                "serial_number": selectors.serial_number,
-                "conditions": list(selectors.conditions),
-            }
-            if selectors
-            else {}
-        ),
+        selectors=_selector_fields(selectors) if selectors is not None else {},
         knowledge_version=deps.kb.version,
         model=deps.settings.agent.model,
         prompt_version=deps.prompt_version,
