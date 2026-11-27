@@ -31,6 +31,12 @@ class Reason(StrEnum):
     TASK_DIVERSO_DALLA_TESTATA = "TASK_DIVERSO_DALLA_TESTATA"
     # la stessa operazione ha targhe diverse su pagine diverse (H19, 27-11 sera)
     MACCHINE_DIVERSE = "MACCHINE_DIVERSE"
+    # la scheda è di un'altra famiglia di motore (H18, `sheet_consistency`)
+    SCHEDA_ALTRO_MOTORE = "SCHEDA_ALTRO_MOTORE"
+    # il materiale del trattamento della scheda non è quello della descrizione (H18)
+    SCHEDA_MATERIALE_DIVERSO = "SCHEDA_MATERIALE_DIVERSO"
+    # la scheda non è nell'indice, che ha altre schede con lo stesso prefisso (H18)
+    SCHEDA_INESISTENTE = "SCHEDA_INESISTENTE"
 
     EVIDENZA_NON_TROVATA = "EVIDENZA_NON_TROVATA"
     FONTE_ASSENTE = "FONTE_ASSENTE"
@@ -46,7 +52,8 @@ class Reason(StrEnum):
     # proseguono, la recommendation va guardata a mano
     DR_NON_VERIFICATA = "DR_NON_VERIFICATA"
     ESTRAZIONE_NON_CONFERMATA = "ESTRAZIONE_NON_CONFERMATA"
-    # operazione di processo speciale senza scheda: forse la scheda manca (P6, 27-11)
+    # operazione di processo speciale senza scheda: scheda mancante, un avviso e mai un errore
+    # (P6, 27-11; regola confermata dall'utente il 27-11 sera)
     SCHEDA_FORSE_MANCANTE = "SCHEDA_FORSE_MANCANTE"
     BUDGET_ESAURITO = "BUDGET_ESAURITO"
     ERRORE_TECNICO = "ERRORE_TECNICO"
@@ -70,6 +77,9 @@ _ERRATO = (
     Reason.INCOERENZA_LINGUE,
     Reason.TASK_DIVERSO_DALLA_TESTATA,
     Reason.MACCHINE_DIVERSE,
+    Reason.SCHEDA_ALTRO_MOTORE,
+    Reason.SCHEDA_MATERIALE_DIVERSO,
+    Reason.SCHEDA_INESISTENTE,
 )
 _NON_APPLICABILE = (
     Reason.CAMPO_ASSENTE,
@@ -91,6 +101,33 @@ def _verdict_of(reason: Reason) -> Verdict:
 
 
 REASON_VERDICT: dict[Reason, Verdict] = {reason: _verdict_of(reason) for reason in Reason}
+
+
+class WarningKind(StrEnum):
+    """Due tipi di WARNING (H15, 27-11 sera). «Da guardare»: un dubbio vero, che una persona
+    deve guardare (citazione non ritrovata, giudizio instabile, scheda mancante, dato
+    incerto). «Non controllabile»: il programma non ha potuto controllare (manca il documento,
+    il testo non ne parla, errore tecnico). Non cambia l'esito: cambia come si mostra."""
+
+    DA_GUARDARE = "da_guardare"
+    NON_CONTROLLABILE = "non_controllabile"
+
+
+_NOT_CHECKABLE = (
+    Reason.FONTE_ASSENTE,
+    Reason.EVIDENZA_NON_TROVATA,
+    Reason.PUBBLICAZIONE_PARZIALE,
+    Reason.DR_NON_VERIFICATA,
+    Reason.BUDGET_ESAURITO,
+    Reason.ERRORE_TECNICO,
+)
+
+
+def warning_kind(reason: Reason) -> WarningKind | None:
+    """Il tipo di WARNING del motivo; None se il motivo non dà un WARNING."""
+    if REASON_VERDICT[reason] is not Verdict.WARNING:
+        return None
+    return WarningKind.NON_CONTROLLABILE if reason in _NOT_CHECKABLE else WarningKind.DA_GUARDARE
 
 
 class CheckName(StrEnum):

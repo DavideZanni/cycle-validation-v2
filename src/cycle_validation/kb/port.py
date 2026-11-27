@@ -76,6 +76,12 @@ class DrRecommendation(_Entry):
     uncertain: tuple[str, ...] = ()
 
 
+def process_sheets(kb: object) -> list[ProcessSheetEntry]:
+    """Le schede dell'indice, se la conoscenza sa elencarle (EJ200 e i doppi dei test no)."""
+    method = getattr(kb, "process_sheets", None)
+    return list(method()) if callable(method) else []
+
+
 class KnowledgeBase(Protocol):
     """Ogni metodo può sollevare SourceUnavailableError se la sorgente non risponde."""
 

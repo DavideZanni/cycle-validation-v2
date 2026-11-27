@@ -18,10 +18,11 @@ cicli:
     errori:
       "030": scheda tolta
       "040": un numero cambiato (spessore)
-    # P6 (26-11): in un processo speciale senza scheda la regola dà WARNING «scheda forse
-    # mancante», mai ERRATO: l'errore resta fuori dal conteggio degli ERRATO
+    # P6 (26-11): in un processo speciale senza scheda la regola dà WARNING «scheda mancante»,
+    # mai ERRATO: l'errore resta fuori dal conteggio degli ERRATO. Regola confermata
+    # dall'utente il 27-11 sera: un avviso, con il commento «scheda mancante»
     in_attesa:
-      "030": "P6: scheda mancante = WARNING, non ERRATO (regola da scrivere)"
+      "030": "P6: scheda mancante = avviso (WARNING «Scheda mancante»), mai ERRATO (regola decisa)"
   f355dc3c:
     errori:
       "010": tre numeri cambiati
@@ -107,8 +108,8 @@ cicli:
       # P12 (27-11 sera, Copilot): con fonte_ispezione la v2 cita la sezione d'ispezione del
       # manuale del motore; l'ERRATO (3 su 3 nel piccolo, 0 nel grande) dice che l'italiano
       # «almeno 4 volte la larghezza» comprende il caso uguale a 4, l'inglese e il manuale «più
-      # di 4»: una differenza vera ma piccola tra le lingue. Resta in attesa: un dubbio
-      "050": "P7 e P12: «almeno 4 volte» contro «più di 4 volte» tra le lingue (dubbio)"
+      # di 4». 27-11 sera, regola dell'utente: non è un errore. La 050 non è più in attesa: un
+      # ERRATO qui è un falso errore (la variante `schede_e_limiti` lo deve togliere)
   737dec71:
     # 26-11 sera (Copilot): la stampa giusta da cui vengono 22f586bb e 895167b9
     giusto: true

@@ -12,7 +12,15 @@ Come il frontend legge i testi (risposta di Copilot sul codice del frontend, 22-
 
 from typing import Any
 
-from cycle_validation.domain.check import CheckName, CheckResult, Reason, TargetKind, Verdict
+from cycle_validation.domain.check import (
+    CheckName,
+    CheckResult,
+    Reason,
+    TargetKind,
+    Verdict,
+    WarningKind,
+    warning_kind,
+)
 from cycle_validation.domain.cycle import Source
 from cycle_validation.domain.report import Report
 from cycle_validation.text import normalize_code
@@ -37,7 +45,10 @@ def feedback_text(result: CheckResult | None) -> str:
         case Verdict.ERRATO:
             return f"Error found: {result.rationale}"
         case Verdict.WARNING:
-            return f"Warning: {result.rationale}"
+            # H15: «Warning:» resta all'inizio, come lo legge il frontend; il tipo subito dopo
+            if warning_kind(result.reason) is WarningKind.NON_CONTROLLABILE:
+                return f"Warning: [non controllabile] {result.rationale}"
+            return f"Warning: [da guardare] {result.rationale}"
         case Verdict.NON_APPLICABILE:
             return f"N/A - {result.rationale}"
 

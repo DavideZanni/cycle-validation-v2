@@ -87,6 +87,9 @@ class RemoteKnowledgeBase:
     def find_process_sheet(self, code: str) -> ProcessSheetEntry | None:
         return self._ensure().find_process_sheet(code)
 
+    def process_sheets(self) -> list[ProcessSheetEntry]:
+        return self._ensure().process_sheets()
+
     def find_dr_recommendations(self, serial_number: str) -> list[DrRecommendation]:
         return self._ensure().find_dr_recommendations(serial_number)
 

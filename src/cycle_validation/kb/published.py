@@ -29,6 +29,7 @@ from cycle_validation.kb.port import (
     MachineTagEntry,
     ProcessSheetEntry,
     TaskLocation,
+    process_sheets,
 )
 from cycle_validation.kb.snapshot import sync_snapshot
 from cycle_validation.kb.stores import ObjectStore
@@ -191,6 +192,9 @@ class PublishedKnowledgeBase:
 
     def find_process_sheet(self, code: str) -> ProcessSheetEntry | None:
         return self.current().find_process_sheet(code)
+
+    def process_sheets(self) -> list[ProcessSheetEntry]:
+        return process_sheets(self.current())
 
     def find_dr_recommendations(self, serial_number: str) -> list[DrRecommendation]:
         return self.current().find_dr_recommendations(serial_number)

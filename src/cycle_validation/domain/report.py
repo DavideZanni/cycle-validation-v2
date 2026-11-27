@@ -45,6 +45,9 @@ class Counts(_Strict):
     total: int = 0
     corretto: int = 0
     warning: int = 0
+    # i WARNING divisi per tipo (H15): «da guardare» + «non controllabili» = `warning`
+    warning_da_guardare: int = 0
+    warning_non_controllabili: int = 0
     errato: int = 0
     non_applicabile: int = 0
     errors_ratio: float = 0.0

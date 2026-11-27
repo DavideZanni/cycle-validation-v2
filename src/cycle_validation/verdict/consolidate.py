@@ -13,6 +13,8 @@ from cycle_validation.domain.check import (
     Target,
     TargetKind,
     Verdict,
+    WarningKind,
+    warning_kind,
 )
 from cycle_validation.domain.cycle import Cycle
 from cycle_validation.domain.report import Counts, CycleStatus, PipelineError
@@ -90,6 +92,12 @@ def compute_counts(results: Sequence[CheckResult]) -> Counts:
         total=len(rows),
         corretto=tally[Verdict.CORRETTO],
         warning=tally[Verdict.WARNING],
+        warning_da_guardare=sum(
+            1 for item in rows if warning_kind(item.reason) is WarningKind.DA_GUARDARE
+        ),
+        warning_non_controllabili=sum(
+            1 for item in rows if warning_kind(item.reason) is WarningKind.NON_CONTROLLABILE
+        ),
         errato=wrong,
         non_applicabile=tally[Verdict.NON_APPLICABILE],
         errors_ratio=wrong / applicable if applicable else 0.0,

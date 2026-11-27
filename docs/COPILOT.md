@@ -130,6 +130,7 @@ servizio la scegli tu: una grande ingestion di tutti i documenti civili.
 | ✅ | **4 · Campagna finale e v1 sugli stessi cicli** | tu | 27-11: vince `finale`; la v1 in `docs/CONFRONTO_V1_14_CICLI.md` |
 | ✅ | **4c · Riepiloghi ricalcolati e domanda P12** | tu | 27-11 sera: la v2 mancava tutte e 6 le operazioni aggiunte; P12: i 3 ERRATO dei cicli veri sono errori veri |
 | 👉 | **4d · La base nuova** (`finale` più tre controlli del codice) | tu | adesso · circa 2,5 $ · 1 ora |
+| ⬜ | **4e · Schede e regole** (variante `schede_e_limiti`: H18 e la regola «almeno N») | tu | dopo il 4d · circa 2,5 $ · 1 ora |
 | ⬜ | **5 · Grande ingestion, prova di controllo, Salvare, QA** | tu | dopo |
 
 ---
@@ -159,6 +160,41 @@ nuova.
    - **Mandami:** la riga finale, `runs\campagna.md` e i due `riepilogo.md` (classifica,
      «Errore per errore», «ERRATO da verificare», «In attesa»).
 5. **Ricordati:** Copilot sempre in **Ask** (nella foto della P12 era in Agent con «Allow all»).
+
+Se hai aggiornato **dopo** le 22 del 27-11, nel piano del punto 3 c'è anche una seconda riga,
+`schede_e_limiti`, `3 da fare`: va bene, la campagna fa le due insieme (circa 5 $, 2 ore). Poi
+salta al punto 3 del passo 4e.
+
+---
+
+**👉 Passo 4e · Schede e regole** (dopo il 4d, circa 2,5 $, 1 ora)
+
+**Fatto il 27-11 sera:** le due regole sono decise (scheda mancante = avviso con il commento
+«Scheda mancante»; «almeno 4 volte» contro «più di 4 volte» non è un errore: un ERRATO sulla
+050 di 04ecaabe adesso conta come falso errore). Claude ha scritto la variante
+**`schede_e_limiti`**: il controllo delle schede del codice (H18: scheda di un altro motore, di
+un altro materiale, task della scheda che il manuale non ha, scheda che l'indice non ha) e la
+regola «almeno N». In più i WARNING ora dicono il loro tipo (H15): `[da guardare]` o
+`[non controllabile]`.
+
+1. **Aggiornare** (2.1). **Non archiviare**: le prove della base del passo 4d restano.
+   - **Deve uscire:** `... passed`, nessun `failed`.
+2. **Ricalcolare** i riepiloghi con gli errori noti nuovi:
+
+   ```powershell
+   $env:UV_PYTHON = "3.14"
+   "piccolo", "grande" | ForEach-Object { uv run cycle-validation eval riepilogo --cartella "runs/prove-$_" --attesi eval/errori-noti.yaml }
+   ```
+
+   - **Deve uscire:** due volte `Ricalcolati con gli errori noti di adesso: N cicli cambiati`.
+     Sul piccolo un ERRATO sulla 050 di 04ecaabe ora è un falso errore della base.
+3. **`aws sso login`**, poi **il piano** (3.5).
+   - **Deve uscire:** per ogni insieme `base` `fatte 3` e `schede_e_limiti` `3 da fare`.
+4. **La campagna** (3.5): solo le 3 prove della variante, sul piccolo e sul grande.
+   - **Deve uscire:** 0 falsi errori; più errori stabili della base (8d3c673c 100 e 110,
+     almeno in parte); nessun ERRATO sulla 050 di 04ecaabe; costo quasi uguale alla base.
+   - **Mandami:** la riga finale, `runs\campagna.md` e i due `riepilogo.md` (classifica,
+     «Errore per errore», «ERRATO da verificare»).
 
 ---
 

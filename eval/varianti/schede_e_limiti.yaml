@@ -1,0 +1,8 @@
+nome: schede_e_limiti
+descrizione: la scheda coerente con l'operazione, decisa dal codice (H18 - un altro motore, un altro materiale, il task della scheda che il manuale non ha, la scheda che l'indice non ha tra altre con lo stesso prefisso) e la regola «almeno N contro più di N non è una contraddizione» nel prompt dell'operazione
+ipotesi: "La v1 trova le schede cambiate a mano (38960731 040 e 050, 8d3c673c 100 e 110: una scheda di un'altra lega o di un altro motore, una cifra del task cambiata), la v2 controlla solo che la scheda esista. Nelle 14 stampe del file v1 le stampe giuste hanno sempre la stessa coppia scheda e task (la scheda dell'attacco chimico sempre con lo stesso task, quella dei liquidi penetranti sempre con il suo). P12: l'unica differenza tra «almeno 4 volte» e «più di 4 volte» è il caso uguale a 4, e per l'utente (27-11 sera) non è un errore"
+atteso: "falsi errori 0; 8d3c673c 100 e 110 trovate almeno in parte (materiale, motore o task della scheda), il resto come la base; 04ecaabe 050 senza ERRATO; costo uguale alla base (i controlli delle schede non chiamano il modello)"
+base: baseline
+agent:
+  sheet_consistency: true
+  boundary_limits_note: true

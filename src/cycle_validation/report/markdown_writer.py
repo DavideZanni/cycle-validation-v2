@@ -1,6 +1,13 @@
 """report.md: riepilogo, tabella delle fonti, tabella delle operazioni, dettaglio con fonte."""
 
-from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Verdict
+from cycle_validation.domain.check import (
+    CheckName,
+    CheckResult,
+    Evidence,
+    Verdict,
+    WarningKind,
+    warning_kind,
+)
 from cycle_validation.domain.report import Report
 
 _SYMBOL = {
@@ -18,7 +25,11 @@ _COLUMNS = (
 
 
 def _cell(result: CheckResult | None) -> str:
-    return "—" if result is None else _SYMBOL[result.verdict]
+    if result is None:
+        return "—"
+    if warning_kind(result.reason) is WarningKind.NON_CONTROLLABILE:
+        return "NON CONTROLLABILE"
+    return _SYMBOL[result.verdict]
 
 
 def _cite(evidence: Evidence) -> str:
@@ -44,7 +55,9 @@ def render_markdown(report: Report) -> str:
         "",
         f"- Profilo: {meta.profile}",
         f"- Stato del ciclo: **{report.status.value}**",
-        f"- Esiti: {counts.corretto} corretti, {counts.warning} warning, "
+        f"- Esiti: {counts.corretto} corretti, {counts.warning} warning "
+        f"({counts.warning_da_guardare} da guardare, {counts.warning_non_controllabili} non "
+        "controllabili), "
         f"{counts.errato} errati, {counts.non_applicabile} non applicabili "
         f"(quota errori {counts.errors_ratio:.0%})",
         f"- PDF: {meta.pdf_name} (sha256 {meta.pdf_sha256[:12]})",

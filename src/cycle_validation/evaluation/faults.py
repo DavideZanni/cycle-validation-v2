@@ -46,6 +46,7 @@ from cycle_validation.kb.port import (
     MachineTagEntry,
     ProcessSheetEntry,
     TaskLocation,
+    process_sheets,
 )
 
 
@@ -143,6 +144,9 @@ class FaultyKnowledge:
     def find_process_sheet(self, code: str) -> ProcessSheetEntry | None:
         self._maybe_fail("schede", code)
         return self._inner.find_process_sheet(code)
+
+    def process_sheets(self) -> list[ProcessSheetEntry]:
+        return process_sheets(self._inner)
 
     def find_dr_recommendations(self, serial_number: str) -> list[DrRecommendation]:
         self._maybe_fail("recommendation DR", serial_number)

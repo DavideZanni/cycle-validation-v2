@@ -21,7 +21,10 @@
 # avesse un falso errore per via delle lingue.
 # 27-11 sera: `finale` e i controlli H17, H19 e la 010 sono nella base. Si misura la base
 # nuova da sola (prima si archiviano le prove vecchie, COPILOT 3.8)
-varianti: []
+# 27-11 sera, dopo: `schede_e_limiti` (H18, la scheda coerente con l'operazione decisa dal
+# codice, e la regola «almeno N contro più di N non è un errore»). La base è già fatta: si
+# fanno solo le 3 prove della variante, sul piccolo e sul grande
+varianti: [schede_e_limiti]
 
 # Prove per variante: tre (le differenze sono di uno o due errori).
 ripetizioni: 3

@@ -89,7 +89,7 @@ def test_feedback_prefixes() -> None:
     ok = RESULTS[0]
     assert feedback_text(ok) == "No errors found."
     assert feedback_text(RESULTS[2]) == "Error found: TM-1 non attiva"
-    assert feedback_text(RESULTS[1]) == "Warning: T2 assente"
+    assert feedback_text(RESULTS[1]) == "Warning: [non controllabile] T2 assente"
     # campo assente: `N/A` esatto (grigio nel frontend, come nella v1)
     assert feedback_text(RESULTS[3]) == "N/A"
     excluded = res(CheckName.PROCESS_SHEET, op(0), Reason.NON_VERIFICATO_PER_PROFILO, "EJ200")
@@ -182,7 +182,7 @@ def test_dr_outcome_goes_in_the_source_that_cites_the_dr() -> None:
     payload = _dr_payload(Reason.DR_NON_VERIFICATA, "m1")
     (source,) = payload["sources"]  # type: ignore[misc]
     assert source["DRCase"] == "M1" and source["serialNumber"] == "SN-1"
-    assert source["sourceFeedback"] == "Warning: motivo DR"
+    assert source["sourceFeedback"] == "Warning: [non controllabile] motivo DR"
 
 
 def test_dr_error_comes_first_and_keeps_the_source_warning() -> None:
@@ -200,7 +200,7 @@ def test_dr_error_comes_first_and_keeps_the_source_warning() -> None:
         META, CYCLE, [*cycle_results, dr], timings_ms={}, pipeline_errors=[], blocked=True
     )
     (source,) = build_legacy_payload(built)["sources"]
-    assert source["sourceFeedback"] == "Error found: Reject | Warning: manca"
+    assert source["sourceFeedback"] == "Error found: Reject | Warning: [non controllabile] manca"
 
 
 def test_dr_outcome_gets_its_own_row_when_no_source_cites_the_dr() -> None:
@@ -303,3 +303,27 @@ def test_ej200_payload_has_the_columns_of_the_results_table() -> None:
         "taskCodeFeedback": "N/A",
         "schedaFeedback": "N/A - Schede EJ200 non verificate.",
     }
+
+
+def test_warnings_are_split_in_two_kinds() -> None:
+    """H15: «da guardare» (un dubbio vero) e «non controllabile» (il programma non ha potuto
+    controllare). L'esito resta WARNING."""
+    from cycle_validation.domain.check import WarningKind, warning_kind
+
+    assert warning_kind(Reason.FONTE_ASSENTE) is WarningKind.NON_CONTROLLABILE
+    assert warning_kind(Reason.EVIDENZA_NON_TROVATA) is WarningKind.NON_CONTROLLABILE
+    assert warning_kind(Reason.GIUDIZIO_INSTABILE) is WarningKind.DA_GUARDARE
+    assert warning_kind(Reason.SCHEDA_FORSE_MANCANTE) is WarningKind.DA_GUARDARE
+    assert warning_kind(Reason.CONTRADDIZIONE) is None
+    assert warning_kind(Reason.VERIFICATO) is None
+    doubt = res(CheckName.TASK_CODE, op(0), Reason.GIUDIZIO_INSTABILE, "una volta sì")
+    assert feedback_text(doubt) == "Warning: [da guardare] una volta sì"
+    built = build_report(
+        META, CYCLE, [*RESULTS, doubt], timings_ms={}, pipeline_errors=[], blocked=False
+    )
+    counts = built.counts
+    assert (counts.warning, counts.warning_da_guardare, counts.warning_non_controllabili) == (
+        2,
+        1,
+        1,
+    )

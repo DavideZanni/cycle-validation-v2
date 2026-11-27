@@ -94,7 +94,7 @@ risposta. Quindi, in ordine di importanza:
 | 2 | trovare almeno gli errori che trova la v1 | 15 su 19 | circa 13 su 19 dopo i controlli del 27-11 sera (da misurare, passo 4d): mancano schede (H18), una parola cambiata in inglese, un documento |
 | 3 | leggere tutte le stampe (MOS, DR con e senza serial, stampe modificate) e le due lingue | 10 su 14, solo inglese | 14 su 14, due lingue ✅ |
 | 4 | dire dove e perché, con la frase del manuale ritrovata | testo libero, a volte si contraddice | citazione ritrovata dal programma ✅ |
-| 5 | dire cosa non ha potuto controllare, senza confondere con i dubbi veri | OK anche senza controllo | WARNING tutti uguali: da dividere (H15) |
+| 5 | dire cosa non ha potuto controllare, senza confondere con i dubbi veri | OK anche senza controllo | ✅ dal 27-11 sera: `[da guardare]` e `[non controllabile]` (H15) |
 | 6 | dare la stessa risposta ogni volta, in tempo, a poco costo | mai misurata | misurata: stabile, 15-30 s e 0,01-0,02 $ a ciclo ✅ |
 
 Da migliorare, in ordine: H18 (schede); il registro delle macchine in QA; nella grande
@@ -103,6 +103,27 @@ H15 (due tipi di WARNING); le differenze di significato in una lingua sola che n
 negazioni né limiti (una parola cambiata); due regole da decidere con le persone (scheda
 mancante in un processo speciale: errore o avviso? «almeno 4 volte» contro «più di 4»:
 errore?).
+
+**Decisioni dell'utente (27-11 sera, dopo questo ragionamento):**
+
+- **scheda mancante** in un processo speciale: **avviso**, con il commento «Scheda mancante»
+  (la regola P6 di oggi; cambiato solo il testo). c5ff3cd6 030 resta in attesa;
+- **«almeno 4 volte» contro «più di 4 volte»: non è un errore.** 04ecaabe 050 non è più in
+  attesa: un ERRATO lì conta come falso errore. Regola nel prompt (`boundary_limits_note`);
+- **nel confronto con la v1 tenere conto della conoscenza:** la v1 aveva documenti che la v2
+  non ha ancora (l'indice delle schede con materiale e motore, le classi dell'acido dell'SPM,
+  forse altri). Una parte dei mancati della v2 viene da lì e si chiude con la grande
+  ingestion, non con il codice. Nella tabella finale va scritto quali mancati sono «manca il
+  documento» e quali «manca il controllo»;
+- **lavorare subito su tutto**, mentre l'utente lancia il passo 4d: fatti H15 (nella base,
+  cambia solo come si mostra) e H18 più la regola «almeno N» (variante `schede_e_limiti`,
+  spenta nella base per non cambiare la campagna in corso; passo 4e).
+
+**Previsione data all'utente (27-11 sera):** la v2 migliore della v1 sui 10 cicli che la v1
+valida in 2-3 giorni di lavoro (due campagne: 4d e 4e); «perfetta» (tutti gli errori noti
+trovati, 0 falsi errori) in circa 2 settimane, soprattutto per la grande ingestion: 2-3 errori
+si trovano solo con documenti che oggi la v2 non ha. Perfetta del tutto mai: ogni stampa
+nuova può avere un tipo di errore non visto.
 
 **Come l'utente vuole le risposte** (detto il 27-11): le cose da fare scritte in modo preciso e
 puntuale, in ordine, ognuna con il paragrafo di `COPILOT.md`, *Deve uscire* e *Mandami*.
@@ -1453,6 +1474,19 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   operazioni in più, 0 falsi errori** sulle stampe giuste. Il testo dell'appendice non è
   identico a quello che legge il PC (per esempio 5ff17062 030 lì è rovinato): la misura vera
   è la campagna della base nuova (COPILOT passo 4d).
+
+- **27-11 sera, regole decise, H15 e H18.** L'utente: scheda mancante = avviso con il commento
+  «Scheda mancante»; «almeno 4» contro «più di 4» non è un errore; nel confronto con la v1
+  contare che la v1 ha documenti che la v2 non ha ancora. Fatti mentre l'utente lancia il 4d:
+  **H15** nella base (`warning_kind`: «da guardare» o «non controllabile», nel testo del
+  feedback dopo `Warning:` e nei conteggi); **H18** e la regola «almeno N» nella variante
+  **`schede_e_limiti`** (spenta nella base, così la campagna del 4d resta quella attesa).
+  H18 nasce da un fatto visto sulle 14 stampe del file v1 (parser della v2 sull'appendice):
+  le stampe giuste hanno sempre la stessa coppia scheda e task (la scheda dell'attacco
+  chimico sempre con lo stesso task, quella dei liquidi penetranti sempre con il suo); le
+  stampe con errori 38960731 e 8d3c673c hanno un'altra scheda o un'altra cifra del task. Il
+  controllo usa l'indice delle schede della conoscenza (trattamento, famiglie di motore), che
+  qui non si vede: per questo si misura (COPILOT passo 4e).
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

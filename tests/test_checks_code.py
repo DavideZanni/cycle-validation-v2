@@ -834,3 +834,113 @@ def test_the_header_task_of_another_repair_is_not_compared() -> None:
     other = cycle.operations[0].model_copy(update={"repair_code": "A3"})
     results = check_task_codes(_ctx(cycle.model_copy(update={"operations": [other]})))
     assert results[0].reason is Reason.CAMPO_ASSENTE
+
+
+# H18 (27-11 sera): la scheda coerente con l'operazione, con `sheet_consistency`. Codici e
+# trattamenti inventati.
+def _sheet_ctx(cycle: Cycle, kb: KnowledgeBase, *, strict: bool = True) -> CheckContext:
+    from cycle_validation.config import AgentSettings
+
+    return CheckContext(
+        cycle=cycle,
+        kb=kb,
+        machines=ACTIVE,
+        profile=profile("mos"),
+        agent=AgentSettings(sheet_consistency=strict),
+    )
+
+
+def _sheet_cycle(description: str, sheet: str, task: str | None = None) -> Cycle:
+    return Cycle.model_validate(
+        {
+            "engine_model": "GENX-1B",
+            "sources": [{"manual": "MAN-X", "task": "70-11-00-350-001"}],
+            "operations": [
+                {
+                    "operation_number": "040",
+                    "operation_description": description,
+                    "process_sheet": sheet,
+                    "original_task": task,
+                }
+            ],
+        }
+    )
+
+
+SHEETS = [
+    ProcessSheetEntry(code="ZZ100-AA", treatment="etch gamma TiAl class I", engine_families=()),
+    ProcessSheetEntry(code="ZZ105-AA", treatment="etch nickel-based alloys", engine_families=()),
+    ProcessSheetEntry(code="QQ-05", treatment="penetrant level 3", engine_families=("GENX",)),
+    ProcessSheetEntry(code="QQ-06", treatment="penetrant level 4", engine_families=("LEAP",)),
+]
+ETCH = "ATTACCO CHIMICO A TAMPONE. MATERIALE BASE: GAMMA TIAL / SWAB ETCH. BASE MATERIAL: TIAL"
+
+
+def test_a_sheet_for_another_material_is_an_error() -> None:
+    kb = IndexedKnowledgeBase("t", process_sheets=SHEETS)
+    [right] = check_process_sheets(_sheet_ctx(_sheet_cycle(ETCH, "ZZ100-AA"), kb))
+    assert right.reason is Reason.VERIFICATO
+    [wrong] = check_process_sheets(_sheet_ctx(_sheet_cycle(ETCH, "ZZ105-AA"), kb))
+    assert wrong.reason is Reason.SCHEDA_MATERIALE_DIVERSO
+    assert wrong.verdict is Verdict.ERRATO
+    assert "nichel" in wrong.rationale and "gamma TiAl" in wrong.rationale
+    # spento (la base oggi): solo la presenza
+    [off] = check_process_sheets(_sheet_ctx(_sheet_cycle(ETCH, "ZZ105-AA"), kb, strict=False))
+    assert off.reason is Reason.VERIFICATO
+
+
+def test_the_material_counts_only_where_the_description_states_it() -> None:
+    kb = IndexedKnowledgeBase("t", process_sheets=SHEETS)
+    other = "ATTACCO CHIMICO. NON USARE ATTREZZI IN ACCIAIO / SWAB ETCH"
+    [result] = check_process_sheets(_sheet_ctx(_sheet_cycle(other, "ZZ105-AA"), kb))
+    assert result.reason is Reason.VERIFICATO
+
+
+def test_a_sheet_for_another_engine_is_an_error() -> None:
+    kb = IndexedKnowledgeBase("t", process_sheets=SHEETS)
+    fpi = "FPI LOCALE / LOCAL FPI"
+    [right] = check_process_sheets(_sheet_ctx(_sheet_cycle(fpi, "QQ-05"), kb))
+    assert right.reason is Reason.VERIFICATO
+    [wrong] = check_process_sheets(_sheet_ctx(_sheet_cycle(fpi, "QQ-06"), kb))
+    assert wrong.reason is Reason.SCHEDA_ALTRO_MOTORE
+    [off] = check_process_sheets(_sheet_ctx(_sheet_cycle(fpi, "QQ-06"), kb, strict=False))
+    assert off.reason is Reason.EVIDENZA_NON_TROVATA
+
+
+def test_a_sheet_missing_among_others_with_the_same_prefix_is_an_error() -> None:
+    kb = IndexedKnowledgeBase("t", process_sheets=SHEETS)
+    [wrong] = check_process_sheets(_sheet_ctx(_sheet_cycle(ETCH, "ZZ101-AA"), kb))
+    assert wrong.reason is Reason.SCHEDA_INESISTENTE
+    assert "ZZ100-AA" in wrong.rationale
+    [unknown] = check_process_sheets(_sheet_ctx(_sheet_cycle(ETCH, "WW-01"), kb))
+    assert unknown.reason is Reason.FONTE_ASSENTE
+
+
+def test_a_sheet_task_the_manual_does_not_have_is_an_error(tmp_path: Path) -> None:
+    path = tmp_path / "man.md"
+    path.write_text(
+        "<!-- page 1 -->\nTASK 70-11-00-350-001\n1. a\nTASK 70-91-00-110-001\n2. b\n", "utf-8"
+    )
+    document = DocumentInfo(key="MAN_X", path=path, code="MAN-X", version="1")
+    task = TaskLocation(
+        manual_key="MAN_X", task="70-91-00-110-001", document=document, line_start=4, line_end=5
+    )
+    kb = IndexedKnowledgeBase("t", documents=[document], tasks=[task], process_sheets=SHEETS)
+    good = _sheet_cycle(ETCH, "ZZ100-AA", "70-91-00-110-001")
+    assert _reasons(check_process_sheets(_sheet_ctx(good, kb))) == [Reason.VERIFICATO]
+    bad = _sheet_cycle(ETCH, "ZZ100-AA", "70-91-00-110-009")
+    [wrong] = check_process_sheets(_sheet_ctx(bad, kb))
+    assert wrong.reason is Reason.TASK_INESISTENTE
+    assert "70-91-00-110-001" in wrong.rationale
+    # un'altra famiglia, che il manuale non ha per niente: non si giudica
+    other = _sheet_cycle(ETCH, "ZZ100-AA", "70-99-00-110-001")
+    assert _reasons(check_process_sheets(_sheet_ctx(other, kb))) == [Reason.VERIFICATO]
+
+
+def test_a_missing_sheet_says_it_is_missing() -> None:
+    cycle = Cycle.model_validate(
+        {"operations": [{"operation_number": "1", "operation_description": "FPI / FPI"}]}
+    )
+    [result] = check_process_sheets(_ctx(cycle))
+    assert result.verdict is Verdict.WARNING
+    assert result.rationale.startswith("Scheda mancante")

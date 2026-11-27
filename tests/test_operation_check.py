@@ -849,3 +849,11 @@ def test_out_of_scope_is_not_applicable_only_with_the_setting() -> None:
     # senza l'impostazione, un `fuori_tema` vale come «non verificabile» (WARNING)
     result, _ = decide_operation(off, outcome(output), SETTINGS)
     assert (result.reason, result.verdict) == (Reason.EVIDENZA_NON_TROVATA, Verdict.WARNING)
+
+
+def test_at_least_against_more_than_is_not_a_contradiction_only_with_the_setting() -> None:
+    """Regola dell'utente (27-11 sera, P12): «almeno N» contro «più di N» non è un errore."""
+    on = SETTINGS.model_copy(update={"boundary_limits_note": True})
+    text = "ALMENO 4 VOLTE LA LARGHEZZA / MORE THAN 4 TIMES THE WIDTH"
+    assert "«almeno N»" in job_for(op(text), on).request.prompt
+    assert "«almeno N»" not in job_for(op(text)).request.prompt

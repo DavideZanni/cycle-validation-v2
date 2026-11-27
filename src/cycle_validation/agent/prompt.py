@@ -233,6 +233,15 @@ INSPECTION_NOTE = (
 )
 
 
+BOUNDARY_NOTE = (
+    "Un limite scritto con «almeno N» (at least N) in un punto e con «più di N» (more than N) "
+    "in un altro, cioè una differenza **solo sul caso uguale a N**, non è una contraddizione: "
+    "giudica gli altri elementi come se dicessero la stessa cosa. Resta `contraddetto` se il "
+    "numero è diverso o se il limite è al contrario (almeno contro al massimo, più di contro "
+    "meno di)."
+)
+
+
 OUT_OF_SCOPE_NOTE = (
     "Se il testo di riferimento **non tratta affatto il tipo di operazione** descritto (per "
     "esempio la descrizione è una presa in carico, una movimentazione, un versamento, una "
@@ -255,6 +264,7 @@ def _header(
     dr_procedure: bool = False,
     inspection: bool = False,
     out_of_scope: bool = False,
+    boundary: bool = False,
 ) -> list[str]:
     lines = [
         f"Operazione {operation.operation_number}",
@@ -273,6 +283,8 @@ def _header(
         lines.append(INSPECTION_NOTE)
     if out_of_scope:
         lines.append(OUT_OF_SCOPE_NOTE)
+    if boundary:
+        lines.append(BOUNDARY_NOTE)
     if operation.task_codes:
         lines.append(f"Task code citati: {', '.join(operation.task_codes)}")
     if missing_tasks:
@@ -334,6 +346,7 @@ def build_operation_prompt(
         dr_procedure=dr_procedure,
         inspection=inspection,
         out_of_scope=settings.out_of_scope,
+        boundary=settings.boundary_limits_note,
     )
     if second_search:
         lines.append(SECOND_SEARCH_NOTE)

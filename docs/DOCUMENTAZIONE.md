@@ -387,8 +387,9 @@ si controlla.
 
 - Nessuna scheda: N/A `CAMPO_ASSENTE`. Ma se la descrizione è di un **processo speciale**
   (lubrificante secco, rivestimento, attacco chimico, liquidi penetranti, FPI, in italiano o in
-  inglese: `special_process`) è WARNING `SCHEDA_FORSE_MANCANTE`, mai ERRATO
-  (`agent.special_process_sheet`, accesa nella base dal 27-11; regola P6, MIGLIORIE I9).
+  inglese: `special_process`) è WARNING `SCHEDA_FORSE_MANCANTE` («Scheda mancante: …»), mai
+  ERRATO (`agent.special_process_sheet`, accesa nella base dal 27-11; regola P6, MIGLIORIE I9;
+  confermata dall'utente il 27-11 sera: un avviso con il commento «scheda mancante»).
 - EJ200: N/A `NON_VERIFICATO_PER_PROFILO`.
 - Prefissi esclusi (`SWJ`, `SSS`, `SPS`): N/A `ESCLUSO_DA_REGOLA`.
 - I codici si confrontano senza spazi, trattini né maiuscole (`CPEC 100-BR` = `CPEC100BR`).
@@ -397,6 +398,27 @@ si controlla.
 - Trovata ma non per la famiglia del motore (GENX, LEAP): WARNING `EVIDENZA_NON_TROVATA`.
 - Trovata: CORRETTO. Se la scheda non elenca famiglie o la famiglia non si riconosce, il testo
   dice «applicabilità non verificata».
+
+**La scheda coerente con l'operazione (H18, `agent.sheet_consistency`, spenta nella base;
+variante `schede_e_limiti`, 27-11 sera).** Tutto deciso dal codice, senza modello. Nelle stampe
+con errori messi a mano la v1 trova le schede cambiate (un'altra lega, un altro motore, una
+cifra del task); nelle stampe giuste dello stesso pezzo la coppia scheda e task è sempre la
+stessa. Con l'impostazione accesa, in quest'ordine:
+
+1. il task scritto accanto alla scheda (colonna SP.ORIG) non c'è nei manuali collegati (per il
+   capitolo 70 anche l'SPM), che hanno però task della stessa famiglia: ERRATO
+   `TASK_INESISTENTE`;
+2. la scheda non c'è nell'indice, che ha altre schede con le stesse lettere iniziali (per
+   esempio `ZZ101-AA` tra `ZZ100-AA` e `ZZ105-AA`): ERRATO `SCHEDA_INESISTENTE`. Con un prefisso
+   che l'indice non conosce resta WARNING `FONTE_ASSENTE`;
+3. la scheda è di un'altra famiglia di motore: ERRATO `SCHEDA_ALTRO_MOTORE` (spenta: WARNING
+   `EVIDENZA_NON_TROVATA`);
+4. il materiale scritto nella descrizione dopo «materiale base:» o «base material:» (gamma
+   TiAl, titanio, nichel, cobalto, alluminio, acciaio) non ha niente in comune con quello del
+   trattamento della scheda: ERRATO `SCHEDA_MATERIALE_DIVERSO`. Gamma TiAl e titanio vanno
+   d'accordo. Se uno dei due non dice il materiale, non si giudica.
+
+Le voci incerte dell'indice (`DATO_INCERTO`) non danno mai questi ERRATO.
 
 ### 6.5 `operation_description`: la descrizione è d'accordo con il manuale (`checks/operation.py`)
 
@@ -589,6 +611,9 @@ Ogni motivo ha un solo esito (`domain/check.py`).
 | | `INCOERENZA_LINGUE` | italiano e inglese con numeri o codici diversi; con `agent.compare_languages` anche istruzioni diverse (controllo del modello) |
 | | `TASK_DIVERSO_DALLA_TESTATA` | il task accanto all'operazione è della stessa famiglia di quello della testata, ma diverso (H17, 27-11 sera) |
 | | `MACCHINE_DIVERSE` | la stessa operazione ha targhe diverse su pagine diverse (H19, 27-11 sera) |
+| | `SCHEDA_ALTRO_MOTORE` | la scheda è di un'altra famiglia di motore (H18, con `agent.sheet_consistency`) |
+| | `SCHEDA_MATERIALE_DIVERSO` | il materiale della scheda non è quello della descrizione (H18) |
+| | `SCHEDA_INESISTENTE` | la scheda non è nell'indice, che ha altre schede con lo stesso prefisso (H18) |
 | **WARNING** | `FONTE_ASSENTE` | documento, task, targa o scheda non nella conoscenza |
 | | `TARGA_SCONOSCIUTA` | targa né nei dati TM né tra le attive |
 | | `EVIDENZA_NON_TROVATA` | il testo non basta per decidere |
@@ -599,7 +624,7 @@ Ogni motivo ha un solo esito (`domain/check.py`).
 | | `CITAZIONE_NON_VERIFICATA` | la citazione del modello non è nel file |
 | | `GIUDIZIO_INSTABILE` | una verifica di conferma smentisce la contraddizione |
 | | `DR_NON_VERIFICATA` | mancano serial number o condition per scegliere |
-| | `SCHEDA_FORSE_MANCANTE` | processo speciale senza scheda di processo (regola P6) |
+| | `SCHEDA_FORSE_MANCANTE` | processo speciale senza scheda di processo: «Scheda mancante» (regola P6) |
 | | `ESTRAZIONE_NON_CONFERMATA` | il valore letto non compare nel PDF |
 | | `BUDGET_ESAURITO` | la sessione ha finito i passi |
 | | `ERRORE_TECNICO` | guasto: modello, rete, sorgente, tempo |
@@ -609,6 +634,16 @@ Ogni motivo ha un solo esito (`domain/check.py`).
 | | `NON_VERIFICATO_PER_PROFILO` | il controllo non vale per questo tipo di ciclo |
 | | `CONTROLLO_SPENTO` | controllo spento per configurazione: registro delle macchine non collegato (`MACHINES_SOURCE=nessuna`, sul PC), dal 27-11 |
 | | `FUORI_TEMA` | il testo di riferimento non tratta il tipo di operazione: niente da confrontare (I16, con `agent.out_of_scope`) |
+
+**Due tipi di WARNING (H15, dal 27-11 sera; `warning_kind` in `domain/check.py`).** L'esito
+resta WARNING, cambia come si mostra:
+
+- **non controllabile**: il programma non ha potuto controllare (`FONTE_ASSENTE`,
+  `EVIDENZA_NON_TROVATA`, `PUBBLICAZIONE_PARZIALE`, `DR_NON_VERIFICATA`, `BUDGET_ESAURITO`,
+  `ERRORE_TECNICO`). Di solito manca un documento nella conoscenza;
+- **da guardare**: tutti gli altri WARNING, un dubbio vero che una persona deve guardare
+  (citazione non ritrovata, giudizio instabile, scheda mancante, dato incerto, targa scritta
+  in un altro modo, issue diversa).
 
 ---
 
@@ -621,8 +656,10 @@ Ogni motivo ha un solo esito (`domain/check.py`).
   Sul PC è quasi sempre così, perché le macchine attive non si raggiungono;
 - `completo`: altrimenti.
 
-**Conteggi:** totale, corretti, warning, errati, N/A, e quota di errori (errati / righe non
-N/A). Le righe di integrità non si contano.
+**Conteggi:** totale, corretti, warning (divisi in `warning_da_guardare` e
+`warning_non_controllabili`, H15), errati, N/A, e quota di errori (errati / righe non N/A). Le
+righe di integrità non si contano. Nel `report.md` la cella di un WARNING non controllabile
+dice `NON CONTROLLABILE`.
 
 **Metadati del run** (`RunMeta`): id del run, data, nome e SHA-256 del PDF, profilo,
 selettori DR, versione della conoscenza, modello, impronta dei prompt (`prompt_version`),
@@ -874,7 +911,9 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.search_when_unverifiable` | `false` | dopo un `non_verificabile`, una seconda sessione cerca in tutti i documenti citati dal ciclo, con i tool. Variante `seconda_ricerca` |
 | `agent.general_definitions_note` | `false` | nella domanda al modello: una differenza solo con una **definizione generale** del manuale di pratiche standard (per esempio «indicazione lineare = 3 volte la larghezza») dà `non_verificabile`, non `contraddetto`; resta `contraddetto` con un limite specifico o con una lingua diversa dall'altra. Variante `definizioni_generali` (26-11) |
 | `agent.compare_languages` | `true` (dal 27-11 sera, con la versione stretta) | una sessione corta per ogni operazione scritta in due lingue: il modello confronta l'italiano e l'inglese **tra loro**, senza manuale. Una differenza (negazione, limite, materiale, valore) con le citazioni ritrovate e confermata è ERRATO `INCOERENZA_LINGUE`. Variante `lingue_tra_loro` (26-11 sera) |
-| `agent.special_process_sheet` | `true` (dal 27-11) | processo speciale senza scheda: WARNING `SCHEDA_FORSE_MANCANTE` invece di N/A (sezione 6.4). Regola P6, I9 |
+| `agent.special_process_sheet` | `true` (dal 27-11) | processo speciale senza scheda: WARNING `SCHEDA_FORSE_MANCANTE` («Scheda mancante») invece di N/A (sezione 6.4). Regola P6, I9 |
+| `agent.sheet_consistency` | `false` | la scheda coerente con l'operazione, deciso dal codice: altro motore, altro materiale, task della scheda inesistente, scheda inesistente tra altre con lo stesso prefisso danno ERRATO (sezione 6.4). Variante `schede_e_limiti` (H18, 27-11 sera) |
+| `agent.boundary_limits_note` | `false` | nella domanda al modello: «almeno N» contro «più di N» (solo il caso uguale a N) non è una contraddizione. Regola decisa dall'utente il 27-11 sera (P12). Variante `schede_e_limiti` |
 | `agent.inspection_source` | `true` (dal 27-11 sera) | nelle ispezioni anche la sezione INSPECTION o i task d'ispezione (gruppo 200) del manuale del motore, con una nota (sezione 6.5). Variante `fonte_ispezione` (I8, 27-11) |
 | `agent.out_of_scope` | `true` (dal 27-11 sera) | il modello può rispondere `fuori_tema`: N/A `FUORI_TEMA` invece di WARNING quando il testo non tratta il tipo di operazione (sezione 6.5). Variante `finale` (I16, 27-11) |
 | `agent.compare_languages_strict` | `true` (dal 27-11 sera) | con `compare_languages`: solo negazioni e limiti al contrario, ritrovati dal codice nelle parole copiate (sezione 6.5). Variante `finale` (I15, 27-11) |
@@ -966,7 +1005,7 @@ In alto: `cycleCode`, `cycleDescription`, `engineModel`, `operationType`, `repai
 |---|---|---|
 | CORRETTO | `No errors found.` | OK verde |
 | ERRATO | `Error found: <motivazione>` | Error rosso |
-| WARNING | `Warning: <motivazione>` | Warning giallo |
+| WARNING | `Warning: [da guardare] <motivazione>` oppure `Warning: [non controllabile] <motivazione>` (H15, dal 27-11 sera) | Warning giallo; il tipo tra parentesi quadre il frontend lo può mostrare a parte |
 | N/A per campo assente o blocco DR | `N/A` | N/A grigio |
 | altro N/A | `N/A - <motivazione>` | Info azzurro |
 

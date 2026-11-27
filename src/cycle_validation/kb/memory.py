@@ -112,6 +112,11 @@ class IndexedKnowledgeBase:
     def find_process_sheet(self, code: str) -> ProcessSheetEntry | None:
         return self._sheets.get(sheet_key(code))
 
+    def process_sheets(self) -> list[ProcessSheetEntry]:
+        """Tutte le schede dell'indice (H18: una scheda che manca, tra altre con lo stesso
+        prefisso)."""
+        return list(self._sheets.values())
+
     def find_dr_recommendations(self, serial_number: str) -> list[DrRecommendation]:
         return list(self._dr.get(normalize_code(serial_number), ()))
 

@@ -126,6 +126,16 @@ class AgentSettings(_Strict):
     # «non c'è niente da confrontare». Dentro la variante `finale` (I16); nella base dal
     # 27-11-2026 sera.
     out_of_scope: bool = True
+    # «Almeno N» contro «più di N» (solo il caso uguale a N) non è una contraddizione: una nota
+    # nel prompt dell'operazione. Regola decisa dall'utente il 27-11-2026 sera (P12: 04ecaabe
+    # 050, l'italiano «almeno 4 volte», l'inglese e il manuale «più di 4»). Variante
+    # `schede_e_limiti`.
+    boundary_limits_note: bool = False
+    # La scheda coerente con l'operazione (H18, 27-11-2026 sera), decisa dal codice: scheda di
+    # un altro motore, materiale della scheda diverso da quello della descrizione, task della
+    # scheda che il manuale non ha (ma ne ha della stessa famiglia), scheda che l'indice non ha
+    # (ma ne ha con lo stesso prefisso): ERRATO. Variante `schede_e_limiti`.
+    sheet_consistency: bool = False
     # Una contraddizione (ERRATO) si conferma con altrettante sessioni uguali: resta ERRATO
     # solo se la ritrovano tutte, altrimenti WARNING GIUDIZIO_INSTABILE. Su un ciclo DR vero
     # lo stesso confronto dava ERRATO 3 volte su 6 (21-11-2026). Costa solo sugli ERRATO.
