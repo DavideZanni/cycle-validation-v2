@@ -143,7 +143,9 @@ servizio la scegli tu: una grande ingestion di tutti i documenti civili.
 **⬜ Passo 2 · `fonte_ispezione` e regola della scheda** (lo fa Claude)
 
 Claude decide quali varianti entrano nella base, poi scrive `fonte_ispezione` (I8: toglie il
-falso errore «4 volte contro 3 volte») e la regola della scheda (I9).
+falso errore «4 volte contro 3 volte») e la regola della scheda (I9). Corregge anche i difetti
+trovati nella revisione del codice del 27-11 (`MEMORIA.md`, sezione 12), prima della campagna
+finale.
 
 ---
 

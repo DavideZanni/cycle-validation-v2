@@ -1175,6 +1175,19 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   accorcia: traccia tutto quello che è stato fatto. Il codice lo rivedono quattro agenti di
   revisione, una zona ciascuno, con la regola «funziona come prima» (formati delle prove,
   impostazioni, prompt, rotte e testi citati in `COPILOT.md` intoccabili).
+  Fatto il 27-11: tolte le copie della stessa logica in tutte e quattro le zone (`cli.py`:
+  `leggi` ed `eval campagna` spezzati in funzioni corte; `trials.py`, `blind.py`, controlli,
+  servizio, ingest, Redshift). Verificato vecchio contro nuovo: `--help` dei 21 comandi, uscite di
+  `leggi` e `confronta`, circa 150 prove inventate (report identici byte per byte), 4000 copie
+  cieche, PDF dei test. Una sola correzione che cambia il comportamento: negli esperimenti con
+  conoscenza remota (`eval pipeline`) i documenti per tipo (SPM) non si trovavano mai; la
+  campagna e il servizio non c'entrano. **Difetti trovati, da correggere dopo la campagna, con un
+  test:** (1) `Trial.unusable`: una prova con un ciclo «non eseguito» e il modello che non ha
+  risposto non viene buttata e rifatta (il ciclo fallito ha `model_checks=None` e fa usare la
+  regola vecchia): la variante risulta scartata; (2) parser: `RIPARAZIONE :` vuoto nella testata
+  prende la parola della riga dopo (`\s*` attraversa l'a capo); (3) una sessione con la ricerca
+  accesa e nessun file ammesso avrebbe Read e Grep senza il limite ai file (oggi non succede);
+  (4) `_summary` di `eval esegui`: il punto diventa virgola anche nel nome della variante.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

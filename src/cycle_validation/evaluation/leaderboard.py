@@ -258,7 +258,7 @@ def render_leaderboard(boards: list[Board], now: datetime | None = None) -> str:
         "# Classifica degli esperimenti",
         "",
         f"Scritta da `cycle-validation eval classifica` il {stamp}: non modificare a mano.",
-        "Si confrontano solo prove dello stesso ambiente. Come leggerla: `docs/AZIENDA.md`, punto 12.",
+        "Si confrontano solo prove dello stesso ambiente. Come leggerla: `docs/DOCUMENTAZIONE.md`, sezione 15.2.",
         "",
     ]
     if not boards:
