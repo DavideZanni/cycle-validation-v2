@@ -12,41 +12,38 @@ def _escape(text: str) -> str:
 
 def build_pdf(pages: list[str]) -> bytes:
     """PDF con una pagina per elemento. Stringa vuota = pagina senza testo."""
-    objects: list[bytes] = []
-    kids = " ".join(f"{4 + 2 * index} 0 R" for index in range(len(pages)))
-    objects.append(b"<< /Type /Catalog /Pages 2 0 R >>")
-    objects.append(f"<< /Type /Pages /Kids [{kids}] /Count {len(pages)} >>".encode())
-    objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
-    for index, text in enumerate(pages):
+    streams: list[bytes] = []
+    for text in pages:
         operators = ["BT", "/F1 10 Tf", "40 760 Td", "12 TL"]
         operators += [f"({_escape(line)}) Tj T*" for line in text.split("\n")]
         operators.append("ET")
-        stream = "\n".join(operators).encode("latin-1") if text else b""
-        page = (
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
-            f"/Resources << /Font << /F1 3 0 R >> >> /Contents {5 + 2 * index} 0 R >>"
-        )
-        objects.append(page.encode())
-        objects.append(b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream")
-
-    return _assemble(objects)
+        streams.append("\n".join(operators).encode("latin-1") if text else b"")
+    return _document(streams, "Helvetica")
 
 
 def build_positioned_pdf(pages: list[list[tuple[int, int, str]]]) -> bytes:
     """PDF con testo a posizioni fisse, in Courier 10 (6 punti per carattere, 12 per riga).
     Ogni pezzo è (riga, colonna, testo) e i pezzi finiscono nel PDF nell'ordine dato: così
     si imita una stampa modificata a mano, dove le righe toccate finiscono in fondo."""
-    objects: list[bytes] = []
-    kids = " ".join(f"{4 + 2 * index} 0 R" for index in range(len(pages)))
-    objects.append(b"<< /Type /Catalog /Pages 2 0 R >>")
-    objects.append(f"<< /Type /Pages /Kids [{kids}] /Count {len(pages)} >>".encode())
-    objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>")
-    for index, pieces in enumerate(pages):
+    streams: list[bytes] = []
+    for pieces in pages:
         operators = ["BT", "/F1 10 Tf"]
         for row, column, text in pieces:
             operators.append(f"1 0 0 1 {20 + 6 * column} {780 - 12 * row} Tm ({_escape(text)}) Tj")
         operators.append("ET")
-        stream = "\n".join(operators).encode("latin-1")
+        streams.append("\n".join(operators).encode("latin-1"))
+    return _document(streams, "Courier")
+
+
+def _document(streams: list[bytes], font: str) -> bytes:
+    """Catalogo, elenco delle pagine, un font e, per ogni pagina, la pagina e il suo testo."""
+    kids = " ".join(f"{4 + 2 * index} 0 R" for index in range(len(streams)))
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        f"<< /Type /Pages /Kids [{kids}] /Count {len(streams)} >>".encode(),
+        f"<< /Type /Font /Subtype /Type1 /BaseFont /{font} >>".encode(),
+    ]
+    for index, stream in enumerate(streams):
         page = (
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
             f"/Resources << /Font << /F1 3 0 R >> >> /Contents {5 + 2 * index} 0 R >>"
