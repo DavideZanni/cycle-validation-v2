@@ -1519,6 +1519,9 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   più occasioni di falsi errori): li misura la prova di controllo sul grande dopo la grande
   ingestion. L'utente vuole poi ragionare su quali migliorie «dopo la produzione» si possono
   fare prima.
+  Poi l'utente ha chiesto una lista «pronto per il passo dopo» con soglie: è in
+  `docs/V1_CONTRO_V2.md`, sezione 5 (cancelli A QA, B EJ200 in QA, C produzione; soglie
+  proposte da Claude, da confermare). Si aggiorna con il resto del file dopo ogni campagna.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

@@ -15,6 +15,9 @@ vedere sempre dove la v2 è già meglio, dove è ancora peggio e che cosa miglio
 
 **Simboli:** ✅ meglio · ➖ pari · ❌ peggio · 🔶 in prova.
 
+**Si può passare al passo dopo?** Lo dice la lista della sezione 5: tre cancelli (QA, EJ200 in
+QA, produzione), ognuno con le sue soglie.
+
 ---
 
 ## 1. Il riassunto
@@ -168,6 +171,59 @@ Le 6 stampe con errori che la v1 valida, 19 operazioni. «✔» trovato, «—»
 | 7 | Task di un altro pezzo (F2) | la v1 lo trova per il motivo giusto | da decidere |
 | 8 | Meno avvisi per ciclo | la v1 ne scrive meno | in QA, con il registro delle macchine |
 | 9 | EJ200 provata (passo 4f, poi QA) | la v1 è in produzione su EJ200 | dopo l'ingestion EJ200 |
+
+---
+
+## 5. Pronto? La lista per passare al passo dopo
+
+Ogni riga ha una **soglia**. Si passa al passo dopo solo quando **tutte** le righe del suo
+cancello sono ✅; basta un ❌ per aspettare. ⬜ = non ancora misurato. Le soglie le ha proposte
+Claude il 27-11 notte: se ne vuoi altre, dimmelo e le cambio qui.
+
+**Come si legge «errori stabili».** Un errore conta se la v2 lo trova in **tutte** le prove
+della campagna (3 su 3). I numeri vengono dal `riepilogo.md` di ogni insieme.
+
+### 5.1 Cancello A · pronto per la QA (pull request verso `develop`)
+
+| # | Cosa si misura | Soglia | Oggi (27-11 notte) | |
+|---|---|---|---|:-:|
+| A1 | Falsi errori sulle stampe giuste, in tutte le prove, piccolo e grande | **0** | 1 (04ecaabe 050, 2 prove su 3) | ❌ |
+| A2 | Errori trovati sulle 19 operazioni che la v1 valida | **almeno 15** (come la v1) | 13, più 1 avviso | ❌ |
+| A3 | Errori stabili sul piccolo | **almeno il 70%** | 30 su 43 (70%) | ✅ |
+| A4 | Errori stabili sul grande | **almeno il 60%** | 18 su 29 (62%) | ✅ |
+| A5 | ERRATO «da verificare» senza una risposta (domanda a Copilot) | **0** | 3 (P13) | ❌ |
+| A6 | Stampe lette senza errore tecnico | **14 su 14** | 14 su 14 | ✅ |
+| A7 | Costo per ciclo | **al massimo 0,05 $** | 0,011-0,019 $ | ✅ |
+| A8 | Tempo per ciclo; nessun ciclo oltre 10 minuti | **al massimo 2 minuti** | 16-26 s | ✅ |
+| A9 | Test sul PC (Aggiornare) | **0 `failed`** | 0 | ✅ |
+| A10 | `kb-check` della conoscenza della grande ingestion | **nessuna riga `Errore:`** | non fatta | ⬜ |
+| A11 | Prova di controllo della base sul grande, con la conoscenza nuova | **0 falsi errori** e errori stabili **non meno** di prima | non fatta | ⬜ |
+| A12 | Avvio con la conoscenza grande (misura finta `eval scala`, poi vera in QA) | **al massimo 2 minuti** | 4,2 s in finto | ✅ |
+
+**Cosa manca:** A1 e A2 dovrebbero diventare ✅ con la variante `schede_e_limiti` (passo 4e),
+A5 con la risposta alla P13, A10 e A11 con la grande ingestion (passo 5).
+
+### 5.2 Cancello B · pronto per accendere EJ200 in QA
+
+| # | Cosa si misura | Soglia | Oggi | |
+|---|---|---|---|:-:|
+| B1 | Cancello A | **tutto ✅** | no | ❌ |
+| B2 | `prova-ej200` sul PC: stampe validate | **tutte** (nessuna riga «non validato», niente «prova non partita») | non fatta | ⬜ |
+| B3 | `prova-ej200`: la cartella temporanea si cancella | **sempre** («Cartella temporanea cancellata») | non fatta | ⬜ |
+| B4 | ERRATO EJ200 guardati da una persona che conosce i cicli militari | **0 falsi errori** | non fatta | ⬜ |
+| B5 | Una conoscenza EJ200 rotta non ferma MOS e DR (B7) | **sì** | no: oggi il servizio non parte | ❌ |
+
+### 5.3 Cancello C · pronto per la produzione (`develop` → `main`)
+
+| # | Cosa si misura | Soglia | Oggi | |
+|---|---|---|---|:-:|
+| C1 | Cancello A (e B, se in produzione va anche EJ200) | **tutto ✅** | no | ❌ |
+| C2 | In QA, dal frontend: un MOS e un DR veri, con e senza serial | **validati, nessun errore tecnico** | non fatta | ⬜ |
+| C3 | In QA: targhe vere dal registro delle macchine (Redshift) | **0 targhe giuste segnate ERRATO** | non fatta | ⬜ |
+| C4 | Una persona che conosce cicli e manuali guarda 5-10 risultati di QA | **0 falsi errori** e **almeno l'80%** degli errori che vede lei trovati | non fatta | ⬜ |
+| C5 | Avvisi per ciclo in QA | **al massimo 5**, di cui `[da guardare]` **al massimo 2** | sul PC 6-9 (registro spento) | ⬜ |
+| C6 | Accessi: chi non ha `cv_ej200` non vede EJ200 | **sì** | sì nei test, da vedere in QA | ⬜ |
+| C7 | Come tornare alla v1 se qualcosa va male (`qa --torna-alla-v1`) | **provato una volta** | non provato | ⬜ |
 
 ---
 
