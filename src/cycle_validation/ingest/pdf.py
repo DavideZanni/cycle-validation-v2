@@ -42,6 +42,13 @@ class PdfDocument(BaseModel):
     size_bytes: int
     pages: tuple[PdfPage, ...]
 
+    @classmethod
+    def of(cls, data: bytes, name: str, pages: tuple[PdfPage, ...]) -> "PdfDocument":
+        """Il documento letto da `data`: impronta e peso sono quelli del file."""
+        return cls(
+            name=name, sha256=hashlib.sha256(data).hexdigest(), size_bytes=len(data), pages=pages
+        )
+
     @property
     def text(self) -> str:
         return "\n".join(page.text for page in self.pages)
@@ -90,9 +97,14 @@ def _segments(textpage: Any) -> list[_Segment]:
     return segments
 
 
+def _tolerance(segments: list[_Segment]) -> float:
+    """Quanto possono differire le altezze di due pezzi della stessa riga."""
+    return max(2.0, 0.4 * sorted(s.height for s in segments)[len(segments) // 2])
+
+
 def _rows(segments: list[_Segment]) -> list[list[_Segment]]:
     """Segmenti raggruppati per riga visiva, dall'alto in basso (y del PDF che scende)."""
-    tolerance = max(2.0, 0.4 * sorted(s.height for s in segments)[len(segments) // 2])
+    tolerance = _tolerance(segments)
     rows: list[list[_Segment]] = []
     for segment in sorted(segments, key=lambda s: -s.bottom):
         if rows and abs(rows[-1][0].bottom - segment.bottom) <= tolerance:
@@ -105,7 +117,7 @@ def _rows(segments: list[_Segment]) -> list[list[_Segment]]:
 def _in_reading_order(segments: list[_Segment]) -> bool:
     if len(segments) < 2:
         return True
-    tolerance = max(2.0, 0.4 * sorted(s.height for s in segments)[len(segments) // 2])
+    tolerance = _tolerance(segments)
     return all(later.bottom <= earlier.bottom + tolerance for earlier, later in pairwise(segments))
 
 
@@ -138,22 +150,36 @@ def _page_text(document: Any, index: int, reorder: bool = True) -> tuple[str, bo
     return "\n".join(line.rstrip() for line in lines).strip(), reordered
 
 
+def is_pdf(data: bytes) -> bool:
+    """La firma `%PDF-` è nel primo kilobyte."""
+    return _HEADER in data[:_HEADER_WINDOW]
+
+
+def check_size(data: bytes, name: str, limits: FileLimits) -> None:
+    if limits.max_bytes is not None and len(data) > limits.max_bytes:
+        megabytes = limits.max_bytes / (1024 * 1024)
+        raise IngestError(f"Il file {name} supera il limite di {megabytes:.0f} MB.", 413)
+
+
+def open_pdf(data: bytes, name: str) -> Any:
+    """Il documento PDFium. Da chiamare con `PDFIUM_LOCK` preso."""
+    try:
+        return pdfium.PdfDocument(data)
+    except pdfium.PdfiumError as exc:
+        raise IngestError(f"Il PDF {name} non è leggibile: {exc}") from exc
+
+
 def read_pdf_bytes(
     data: bytes, name: str, limits: FileLimits, *, reorder: bool = True
 ) -> PdfDocument:
     """Valida e legge un PDF già in memoria. Solleva IngestError con il codice HTTP adatto."""
     if not data:
         raise IngestError(f"Il file {name} è vuoto.", http_status=400)
-    if limits.require_pdf_header and _HEADER not in data[:_HEADER_WINDOW]:
+    if limits.require_pdf_header and not is_pdf(data):
         raise IngestError(f"Il file {name} non è un PDF.", http_status=415)
-    if limits.max_bytes is not None and len(data) > limits.max_bytes:
-        megabytes = limits.max_bytes / (1024 * 1024)
-        raise IngestError(f"Il file {name} supera il limite di {megabytes:.0f} MB.", 413)
+    check_size(data, name, limits)
     with PDFIUM_LOCK:
-        try:
-            document = pdfium.PdfDocument(data)
-        except pdfium.PdfiumError as exc:
-            raise IngestError(f"Il PDF {name} non è leggibile: {exc}") from exc
+        document = open_pdf(data, name)
         try:
             n_pages = len(document)
             if limits.max_pages is not None and n_pages > limits.max_pages:
@@ -167,9 +193,7 @@ def read_pdf_bytes(
         PdfPage(number=number, text=text, reordered=reordered)
         for number, (text, reordered) in enumerate(texts, 1)
     )
-    result = PdfDocument(
-        name=name, sha256=hashlib.sha256(data).hexdigest(), size_bytes=len(data), pages=pages
-    )
+    result = PdfDocument.of(data, name, pages)
     if result.n_chars < limits.min_chars:
         raise NoTextLayerError(
             f"Il PDF {name} contiene meno di {limits.min_chars} caratteri di testo "
