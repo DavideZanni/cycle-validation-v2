@@ -113,7 +113,7 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 |---|---|---|
 | ✅ | 1-4e · campagne, v1 sugli stessi cicli, base nuova, schede e regole | 27-11 |
 | ✅ | 4g · Domande P13 e P14 | 27-11 notte |
-| 👉 | **4h · Versione quasi finale: senza modello, poi campagna** | adesso · 0 $, poi circa 2,5 $ |
+| 👉 | **4h · Versione quasi finale: senza modello (fatto una volta), P15, poi campagna** | adesso · 0 $, poi circa 2,5 $ |
 | ⬜ | **4f · EJ200 sul PC** | dopo l'ingestion EJ200 · centesimi |
 | ⬜ | **5 · Grande ingestion e QA** | dopo |
 
@@ -121,23 +121,16 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 **👉 Passo 4h · Versione quasi finale: prima gratis, poi una campagna** (0 $, poi circa 2,5 $)
 
-Claude ha messo nella base tante migliorie insieme (MIGLIORIE: MG44, MG45, MG47, MG50, MG53,
-MG75-MG80) e le ha provate sul testo delle 14 stampe. Ora si provano sul PC: prima solo i
-controlli del codice (gratis, pochi minuti), poi, se va bene, una campagna sola.
+Fatti il 27-11 notte: aggiornare, ricalcolare, prima prova senza modello. Solo il codice
+trova 39 errori su 45 nel piccolo e 29 su 31 nel grande, con 0 falsi errori, ma dà 4 ERRATO
+da verificare sui cicli veri del grande: 64752871 050, 9a66895e 090, d8f8a3bd 100 e 150.
+Claude ha aggiunto MG81 (le due 010 mancate) e il motivo accanto agli `ERRATO in più` (MG82).
+La campagna si lancia solo dopo la risposta di Claude alla P15: se quei 4 sono falsi errori
+del codice, una campagna lanciata adesso andrebbe rifatta.
 
 1. **Aggiornare** (2.1).
    - **Deve uscire:** `... passed`, nessun `failed`.
-2. **Ricalcolare** i riepiloghi: da ora contano anche 737dec71 060 e 8d3c673c 070 (P13).
-
-   ```powershell
-   $env:UV_PYTHON = "3.14"
-   "piccolo", "grande" | ForEach-Object { uv run cycle-validation eval riepilogo --cartella "runs/prove-$_" --attesi eval/errori-noti.yaml }
-   ```
-
-   - **Deve uscire:** due volte `Ricalcolati con gli errori noti di adesso: N cicli cambiati`.
-3. **Prova senza modello** (0 $, pochi minuti): gli stessi cicli della campagna, solo i
-   controlli del codice. Le prove vanno in `runs\senza-modello-piccolo` e
-   `runs\senza-modello-grande`, fuori dalla campagna.
+2. **Prova senza modello, di nuovo** (0 $, pochi minuti):
 
    ```powershell
    $env:UV_PYTHON = "3.14"
@@ -145,13 +138,36 @@ controlli del codice (gratis, pochi minuti), poi, se va bene, una campagna sola.
    uv run cycle-validation eval senza-modello
    ```
 
-   - **Deve uscire:** una riga per ciclo e, per ogni insieme, `Senza modello, <insieme>: errori
-     trovati dal codice N su M · falsi errori 0 · da verificare ... · costo 0.00 $`. I WARNING
-     qui non contano: tutto quello che fa il modello esce WARNING.
+   - **Deve uscire:** `Senza modello, grande: errori trovati dal codice 31 su 31 · falsi errori
+     0 · ...` (22f586bb e 895167b9 trovano anche la 010). Accanto a ogni `ERRATO in più` ora
+     c'è il motivo, per esempio `050 (INCOERENZA_LINGUE)`.
    - **Mandami:** la foto delle due righe `Senza modello, ...` e delle righe dei cicli con
      `ERRATO in più`.
-4. **Solo se i falsi errori sono 0: la campagna** (3 prove di `quasi_finale`, piccolo e grande;
-   la base è già fatta e si salta). Prima il piano (3.5), poi:
+3. **Domanda P15** a Copilot, in **Ask** (non Agent):
+
+```text
+Modalità Ask: leggi soltanto, non modificare, non creare file, non lanciare comandi.
+
+In runs/senza-modello-grande, nell'ultima cartella di prova, la v2 dà ERRATO dal solo codice
+(senza modello) su quattro operazioni di cicli veri: 64752871 050, 9a66895e 090, d8f8a3bd 100
+e d8f8a3bd 150. Per ogni operazione, nel report.json (runs/senza-modello-grande/<prova>/<impronta>/):
+1) controllo (check) e motivo (reason) dell'ERRATO;
+2) la spiegazione (rationale), in una frase;
+3) il testo in italiano e in inglese: dicono la stessa cosa? Guarda soprattutto i limiti
+   (massimo, minimo, superiore, non oltre), le azioni (rimuovere, raccordare, sostituire,
+   lucidare, sabbiare, saldare, pulire), i numeri e i rimandi (operazione, figura, pagina)
+   e il numero del DR («D.R. CASE #»);
+4) errore vero della stampa o falso errore della v2? Se è falso: quale parola ha ingannato
+   il codice?
+
+Rispondi con una tabella: ciclo, operazione, controllo e motivo, spiegazione, italiano,
+inglese, conclusione. Copia solo le frasi di queste operazioni, niente manuali.
+```
+
+   - **Deve uscire:** una tabella con 4 righe.
+   - **Mandami:** la foto della risposta.
+4. **La campagna, solo dopo la mia risposta alla P15** (3 prove di `quasi_finale`, piccolo e
+   grande; la base è già fatta e si salta). Prima il piano (3.5), poi:
 
    ```powershell
    $env:UV_PYTHON = "3.14"
@@ -162,8 +178,8 @@ controlli del codice (gratis, pochi minuti), poi, se va bene, una campagna sola.
 
    - **Deve uscire:** nel piano `quasi_finale: 3 da fare` per piccolo e grande; alla fine
      `Campagna finita. Prove fatte ora: 6 · spesa ... $.`
-   - **Mandami:** la riga finale e la classifica dei due `riepilogo.md` (`runs\prove-piccolo`,
-     `runs\prove-grande`).
+   - **Mandami:** la riga finale, la classifica e la tabella «ERRATO da verificare» dei due
+     `riepilogo.md` (`runs\prove-piccolo`, `runs\prove-grande`).
 
 ---
 

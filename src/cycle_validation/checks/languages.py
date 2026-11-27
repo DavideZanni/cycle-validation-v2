@@ -415,6 +415,37 @@ def limit_mismatches(description: str) -> list[tuple[str, str]]:
     return found
 
 
+# MG81: «massimo» in una lingua e «minimo» nell'altra, anche senza un numero («PROFONDITA'
+# MASSIMA DEI DIFETTI» contro «MIN DEPTH OF DEFECTS»: 22f586bb e 895167b9 010). Conta solo se
+# ogni lingua ha una parola sola delle due: «5 MIN» (minuti) non conta. Sulle 14 stampe della
+# v1: solo quelle due; nelle altre 14 operazioni con queste parole le lingue sono d'accordo.
+_MINUTES_NOT = r"(?<!\d)(?<!\d\s)"  # «5 MIN» sono minuti
+_EXTREMES = {
+    "it": {"max": r"\bmassim[oaie]\b|\bmax\b", "min": rf"\bminim[oaie]\b|{_MINUTES_NOT}\bmin\b"},
+    "en": {"max": r"\bmaximum\b|\bmax\b", "min": rf"\bminimum\b|{_MINUTES_NOT}\bmin\b"},
+}
+
+
+def _extreme(text: str, language: str) -> str | None:
+    """`max` o `min` se il testo ha una sola delle due parole, altrimenti None."""
+    words = [
+        kind for kind, rule in _EXTREMES[language].items() if re.search(rule, text, re.IGNORECASE)
+    ]
+    return words[0] if len(words) == 1 else None
+
+
+def extreme_mismatch(description: str) -> tuple[str, str] | None:
+    """(parola italiana, parola inglese) se una lingua dice «massimo» e l'altra «minimo»."""
+    parts = language_blocks(description)
+    if parts is None:
+        return None
+    italian, english = _extreme(parts[0], "it"), _extreme(parts[1], "en")
+    if italian is None or english is None or italian == english:
+        return None
+    names = {"max": "massimo", "min": "minimo"}
+    return names[italian], names[english]
+
+
 # MG47: un'azione diversa nelle due lingue («VERIFICARE CHE SIA STATO RIMOSSO» contro «HAS BEEN
 # BLENDED»). Conta solo se ogni lingua ha un'azione che l'altra non ha: una frase in più in una
 # lingua non basta. Sulle 14 stampe della v1: e9b74c84 040 e 298bc28e 035, nessun falso errore.

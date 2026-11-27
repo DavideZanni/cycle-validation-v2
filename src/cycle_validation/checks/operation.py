@@ -48,6 +48,7 @@ from cycle_validation.checks.dr_recommendation import (
 )
 from cycle_validation.checks.languages import (
     action_mismatches,
+    extreme_mismatch,
     has_negation,
     language_parts,
     limit_direction,
@@ -133,7 +134,7 @@ def _other_dr(ctx: CheckContext, settings: AgentSettings) -> dict[int, str]:
 
 
 def _language_difference(operation: Operation) -> str | None:
-    """Un limite al contrario (MG75) o un'azione diversa (MG47) tra le due lingue, trovati dal
+    """Un limite al contrario (MG75), «massimo» contro «minimo» (MG81) o un'azione diversa (MG47) tra le due lingue, trovati dal
     codice: la spiegazione dell'ERRATO, None se le lingue sono d'accordo."""
     description = operation.operation_description
     if limits := limit_mismatches(description):
@@ -141,6 +142,12 @@ def _language_difference(operation: Operation) -> str | None:
         return (
             "La descrizione italiana e quella inglese danno lo stesso limite al contrario "
             f"(italiano contro inglese: {pairs}): una delle due è sbagliata."
+        )
+    if extremes := extreme_mismatch(description):
+        return (
+            "La descrizione italiana dice «"
+            f"{extremes[0]}» e quella inglese «{extremes[1]}» sulla stessa grandezza: una delle "
+            "due è sbagliata."
         )
     if verbs := action_mismatches(description):
         italian, english = verbs[0]

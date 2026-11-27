@@ -49,7 +49,9 @@ sezione 1 di `COPILOT.md`):
 | 7e2 | Campagna della variante `schede_e_limiti` (H18, regola «almeno N») | COPILOT passo 4e | ✅ 27-11 notte: vince, nella base |
 | 7e5 | Aggiornare, ricalcolare, domande P13 e P14 | COPILOT passo 4g | ✅ 27-11 notte: P13 8d3c673c 070 errore vero, le due 060 falsi errori del codice; P14 il numero del DR è in `reference` |
 | 7e6 | Claude: versione quasi finale (MG44, MG45, MG47, MG50, MG53, MG75-MG80), comando `eval senza-modello`, test sulle 14 stampe vere | Claude | ✅ 27-11 notte |
-| 7e7 | Aggiornare, ricalcolare, prova senza modello (0 $), poi campagna `quasi_finale` | COPILOT passo 4h | da fare |
+| 7e7 | Aggiornare, ricalcolare, prova senza modello (0 $) | COPILOT passo 4h | ✅ 27-11 notte: piccolo 39 su 45, grande 29 su 31, 0 falsi errori, 4 ERRATO da verificare nei cicli veri del grande |
+| 7e8 | Claude: MG81 (massimo contro minimo), MG82 (motivo degli ERRATO in più), domanda P15 | Claude | ✅ 27-11 notte |
+| 7e9 | Aggiornare, di nuovo senza modello, P15; campagna `quasi_finale` solo dopo la risposta di Claude alla P15 | COPILOT passo 4h | da fare |
 | 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
 | 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |
 | 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
@@ -1577,6 +1579,18 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   giuste: conversioni). In più MG44 (EJ200 rotta spegne solo EJ200), MG45 (fuori tema prudente,
   tocca il modello), MG53 (480 s per le sessioni di un ciclo). Stima: piccolo circa 39-40 su 45,
   grande 25-26 su 29, 16 su 19 contro la v1, 0 falsi, 0 da verificare.
+- **27-11 notte, prima prova senza modello sul PC (`eval senza-modello`, 0 $).** Ricalcolati
+  i riepiloghi (piccolo: base 32-34 su 45, `schede_e_limiti` 36-38; grande: base 20-23 su 31,
+  `schede_e_limiti` 26). Solo il codice: piccolo 39 su 45, grande 29 su 31, 0 falsi errori;
+  16 delle 19 operazioni della v1 (la v1 ne trova 15). Mancate dal codice nel grande: 22f586bb
+  e 895167b9 010 («profondità massima» in italiano, «min depth» in inglese, senza numero) →
+  MG81, provata sulle 14 stampe: solo quelle due. Ma 4 ERRATO da verificare nei cicli veri del
+  grande (64752871 050, 9a66895e 090, d8f8a3bd 100 e 150): non erano ERRATO nella 4e, quindi
+  vengono dalle regole nuove (MG75, MG47, MG76, i rimandi di MG78 o la riga di MG77), che sulle 14 stampe non
+  davano niente. Lezione: le 14 stampe non bastano, `eval senza-modello` sui cicli veri serve
+  sempre prima di una campagna. Domanda P15 a Copilot; la campagna dopo la risposta (se sono
+  falsi errori del codice, una campagna lanciata prima andrebbe rifatta). Per capirlo subito la
+  prossima volta: MG82, il motivo accanto a ogni ERRATO in più (a schermo e nel riepilogo).
 
 ## 13. Da correggere nell'indice (knowledge-index)
 
@@ -1959,3 +1973,9 @@ provate sul testo delle 14 stampe (`tests/test_real_prints.py`): 5 errori in pi�
 298bc28e 035, 895167b9 030, 737dec71 060, più la 060 sempre sui cicli veri), 0 ERRATO fuori
 dagli errori noti, 8d3c673c 060 tolto. Da misurare sul PC: `eval senza-modello`, poi la
 campagna `quasi_finale` (COPILOT passo 4h).
+
+**Prova senza modello (27-11 notte, sul PC, 0 $).** Piccolo 39 su 45, grande 29 su 31, 0 falsi
+errori, 4 ERRATO da verificare nei cicli veri del grande (P15). Decisione: la campagna
+`quasi_finale` aspetta la P15. Considerazioni: il codice da solo trova più della v1 (16 contro
+15 sulle sue 19 operazioni); il modello serve ancora per le copie cieche e per dire OK con la
+frase del manuale.

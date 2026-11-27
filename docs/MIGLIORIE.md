@@ -11,8 +11,22 @@ Tutte le migliorie della v2, provate e da fare, in una tabella sola.
 **27-11 notte, versione quasi finale:** MG44, MG45, MG47, MG50, MG53, MG75-MG80 insieme. Si
 provano prima gratis (`eval senza-modello`, MG79), poi con una campagna sola (COPILOT passo 4h).
 
-**Prossime, in ordine:** passo 4h (senza modello, poi campagna) · MG73 grande ingestion · MG42
-prova EJ200.
+**27-11 notte, prova senza modello sul PC:** solo il codice trova 39 errori su 45 (piccolo) e
+29 su 31 (grande), 0 falsi errori; 4 ERRATO da verificare sui cicli veri del grande (domanda
+P15). Dopo: MG81 (le due 010 mancate) e MG82 (il motivo accanto agli ERRATO in più).
+
+**Prossime, in ordine (guadagno più alto prima):**
+
+1. P15, poi la campagna `quasi_finale` (passo 4h): chiude il cancello A di `V1_CONTRO_V2.md`.
+2. MG73 grande ingestion: la classe dell'acido (f355dc3c 040, 5ff17062 040, gli unici errori
+   della v1 che la v2 non trova) e meno WARNING `FONTE_ASSENTE`.
+3. MG83 meno avvisi per ciclo: serve al cancello C (≤ 5 per ciclo). Si parte dalla tabella
+   «WARNING per motivo» del riepilogo della campagna.
+4. MG42 prova EJ200 (cancello B).
+5. MG48 task di un altro stadio (l'unico controllo che la v1 fa e la v2 no): prima una domanda
+   a Copilot su come l'indice scrive lo stadio nei titoli dei task.
+6. MG62 `kb-check` nell'ingestion e MG54 chiamata diretta a Bedrock (produzione: sicurezza e
+   metà del tempo).
 
 | Sigla | Miglioria | Cosa fa | Stato | Imp. | Era |
 |---|---|---|:-:|:-:|---|
@@ -96,3 +110,6 @@ prova EJ200.
 | MG78 | Rimandi a operazioni e figure | «operazione 70» contro «figure 903» non è un numero cambiato (2 falsi errori della P13) | ✅ | 5 | — |
 | MG79 | Prova senza modello | `eval senza-modello`: i controlli del codice su piccolo e grande, 0 $, pochi minuti | ✅ | 4 | — |
 | MG80 | Test sulle 14 stampe vere | le regole del codice sul testo di `CONFRONTO_V1_14_CICLI.md`, a ogni `pytest` | ✅ | 4 | — |
+| MG81 | Massimo contro minimo tra le lingue | «profondità massima» in italiano, «min depth» in inglese, anche senza un numero: ERRATO dal codice (22f586bb e 895167b9 010) | ✅ | 4 | — |
+| MG82 | Motivo degli ERRATO in più | a schermo e nel riepilogo, accanto a ogni ERRATO da verificare, il motivo (quale controllo): si capisce subito da dove viene | ✅ | 3 | — |
+| MG83 | Meno avvisi per ciclo | tagliare le cause più frequenti dei WARNING (tabella «WARNING per motivo»), per il cancello C | ⬜ | 4 | — |

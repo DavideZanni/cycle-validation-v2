@@ -1,7 +1,8 @@
 # v1 contro v2
 
 Numeri: v1 da `CONFRONTO_V1_14_CICLI.md`; v2 dalla campagna 4e (base con `schede_e_limiti`, 3
-prove, 27-11). La v1 ha documenti che la v2 non ha ancora: per ogni errore mancato si dice se
+prove, 27-11) e dalla prova senza modello del 27-11 notte (solo i controlli del codice: quello
+che trovano lo trovano sempre). La v1 ha documenti che la v2 non ha ancora: per ogni errore mancato si dice se
 manca il **documento** o il **controllo**. Claude aggiorna il file dopo ogni campagna.
 
 ✅ v2 meglio · ❌ v2 peggio · ➖ pari · 🔶 in prova (atteso con le migliorie del 27-11 notte, da
@@ -16,10 +17,10 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | | Cosa | Soglia | Oggi |
 |:-:|---|---|---|
 | ✅ | Falsi errori sulle stampe giuste | 0 | 0 |
-| ✅ | Errori trovati sulle 19 operazioni della v1 | ≥ 15 | 15 + 1 avviso (16 atteso, MG47) |
+| ✅ | Errori trovati sulle 19 operazioni della v1 | ≥ 15 | 16, dal solo codice (prova senza modello) |
 | ✅ | Errori stabili, piccolo | ≥ 70% | 79% (34/43) |
 | ✅ | Errori stabili, grande | ≥ 60% | 79% (23/29) |
-| 🔶 | ERRATO da verificare | 0 | 3 nella 4e; P13: 2 falsi errori del codice (tolti, MG78), 1 errore vero (ora tra gli errori noti). Atteso 0 |
+| 🔶 | ERRATO da verificare | 0 | senza modello 4, tutti nei cicli veri del grande: 64752871 050, 9a66895e 090, d8f8a3bd 100 e 150 (domanda P15) |
 | ✅ | Stampe lette | 14/14 | 14/14 |
 | ✅ | Costo per ciclo | ≤ 0,05 $ | 0,011-0,018 $ |
 | ✅ | Tempo per ciclo | ≤ 2 min | 16-24 s |
@@ -55,7 +56,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | Aspetto | | v1 | v2 |
 |---|:-:|---|---|
 | Falsi errori, stampe giuste | ✅ | 6 | 0 |
-| Errori trovati (19 op.) | ➖ | 15 | 15 + 1 avviso; 17 con la grande ingestion |
+| Errori trovati (19 op.) | ✅ | 15 | 16 dal solo codice; 18 con la grande ingestion (la classe) |
 | Prova di ogni errore | ✅ | testo libero | frase del manuale ritrovata dal programma |
 | «OK» vuol dire | ✅ | nessuna contraddizione vista | controllato con il manuale |
 | Cosa non ha controllato | ✅ | non lo dice | `[non controllabile]` separato da `[da guardare]` |
@@ -66,7 +67,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | Task di un altro stadio | ❌ | sì | no (MG48) |
 | Numeri o limiti cambiati in una lingua | ✅ | solo inglese | due lingue, dal codice |
 | Negazioni e frasi al contrario | ✅ | solo inglese | due lingue; 2 errori veri trovati in stampe «giuste» |
-| Parola o materiale cambiati in una lingua | 🔶 | la parola sì | azione diversa dal codice (MG47); materiale no (MG46) |
+| Parola o materiale cambiati in una lingua | ➖ | la parola sì | azione diversa e «massimo» contro «minimo» dal codice (MG47, MG81); il materiale lo trova la scheda |
 | Scheda sbagliata (motore, materiale, codice) | ➖ | sì (indice schede) | sì, dal codice (MG40); anche nelle stampe DR che la v1 non legge |
 | Scheda tolta | ➖ | errore | avviso «Scheda mancante» (regola decisa) |
 | Macchine non attive | ➖ | registro | stesso registro in produzione |
@@ -108,8 +109,8 @@ Le 6 stampe con errori che la v1 valida. ✔ trovato · — mancato.
 | 8d3c673c 110 | scheda e task | ✔ | ✔ | |
 | 8d3c673c 140 | numero in una lingua | ✔ | ✔ | |
 | e9b74c84 025 | numero e task | ✔ | ✔ | |
-| e9b74c84 040 | una parola in inglese | ✔ | 🔶 | azione diversa, dal codice (MG47) |
-| **Totale** | | **15** | **15** (16 atteso) | 2 documento |
+| e9b74c84 040 | una parola in inglese | ✔ | ✔ | azione diversa, dal codice (MG47) |
+| **Totale** | | **15** | **16** | 2 documento |
 
 **Falsi errori sulle stampe giuste**
 
@@ -128,10 +129,12 @@ Le 6 stampe con errori che la v1 valida. ✔ trovato · — mancato.
 
 | Stampa | v2 |
 |---|---|
-| 22f586bb, 895167b9 (DR) | 010, 050, 060 trovati; 895167b9 030 🔶 (un altro DR, MG76); 22f586bb 030 mancato (MG50) |
-| 737dec71 060; 414d85ca, 477abec8, ffadfe16 060 | errore vero; nella 4e stabile solo su 477abec8; 🔶 sempre, dal codice (MG75) |
-| 298bc28e 035 | 🔶: la riga cambiata ora si legge (MG77), azione diversa (MG47) |
+| 22f586bb, 895167b9 (DR) | senza modello 030, 050, 060 trovati (030: un altro DR, MG76); 010 mancato dal codice, 🔶 con MG81 («massima» contro «min») |
+| 737dec71 060; 414d85ca, 477abec8, ffadfe16 060 | errore vero; senza modello trovati tutti e quattro, sempre (MG75) |
+| 298bc28e 035 | senza modello trovato: la riga cambiata ora si legge (MG77), azione diversa (MG47) |
+| 64752871 050, 9a66895e 090, d8f8a3bd 100 e 150 (cicli veri) | ERRATO dal codice, senza modello: errori veri o falsi? (P15) |
 | 8d3c673c 070 | errore vero (P13): una targa cambiata, trovato |
 | 8d3c673c 060, b1261d11 060 | falsi errori del codice (P13), tolti (MG78) |
 
-*Aggiornato il 27-11 notte, dopo il 4e, la P13 e le migliorie MG75-MG80. Prossimo: dopo il passo 4h.*
+*Aggiornato il 27-11 notte, dopo la prova senza modello (piccolo 39 su 45, grande 29 su 31, 0
+falsi errori) e MG81-MG82. Prossimo: dopo la P15 e la campagna del passo 4h.*

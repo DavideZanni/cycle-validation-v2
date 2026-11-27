@@ -1035,6 +1035,7 @@ def _render_to_check(trials: Sequence[Trial]) -> list[str]:
     `elementi_e_lingue` ne dava 4 contro 2 della base, e non si sapeva quali)."""
     groups = _by_name(trials)
     found: dict[tuple[str, str, str], dict[str, int]] = {}
+    reasons: dict[tuple[str, str, str], set[str]] = {}
     for trial in trials:
         for cycle in trial.cycles:
             if cycle.kind == "giusto":
@@ -1043,26 +1044,28 @@ def _render_to_check(trials: Sequence[Trial]) -> list[str]:
                 key = (cycle.fingerprint, cycle.kind, finding.op)
                 counts = found.setdefault(key, {})
                 counts[trial.name] = counts.get(trial.name, 0) + 1
+                reasons.setdefault(key, set()).add(finding.reason)
     lines = [
         "",
         "## ERRATO da verificare",
         "",
         "ERRATO fuori dalla lista degli errori noti, nei cicli veri e nei cicli con errori: "
         "possono essere errori veri che nessuno conosceva o falsi errori. Si guardano sul ciclo "
-        "(per variante: in quante delle sue prove).",
+        "(per variante: in quante delle sue prove). Il motivo dice quale controllo lo dà.",
         "",
     ]
     if not found:
         return [*lines, "Nessuno."]
     lines += [
-        "| Ciclo | Tipo | Op | " + " | ".join(_cell(n) for n in groups) + " |",
-        "|---|---|---|" + "---|" * len(groups),
+        "| Ciclo | Tipo | Op | Motivo | " + " | ".join(_cell(n) for n in groups) + " |",
+        "|---|---|---|---|" + "---|" * len(groups),
     ]
     for (fingerprint, kind, op), counts in sorted(found.items()):
         cells = " | ".join(
             f"{counts[n]} su {len(runs)}" if counts.get(n) else "-" for n, runs in groups.items()
         )
-        lines.append(f"| {fingerprint} | {kind} | {op} | {cells} |")
+        why = ", ".join(f"`{r}`" for r in sorted(reasons[fingerprint, kind, op]))
+        lines.append(f"| {fingerprint} | {kind} | {op} | {why} | {cells} |")
     return lines
 
 

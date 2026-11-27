@@ -463,12 +463,17 @@ Le voci incerte dell'indice (`DATO_INCERTO`) non danno mai questi ERRATO.
    - **azione diversa** (MG47, stessa impostazione): rimuovere, raccordare, sostituire,
      lucidare, sabbiare, saldare, pulire. ERRATO solo se ogni lingua ha un'azione che l'altra non
      ha («rimosso» contro «blended»): un'azione in più in una lingua sola non basta;
+   - **massimo contro minimo** (MG81, stessa impostazione): una lingua dice «massimo» (massimo,
+     max, maximum) e l'altra «minimo» (minimo, min, minimum), anche senza un numero
+     («profondità massima dei difetti» contro «min depth of defects»). Conta solo se ogni lingua
+     ha una parola sola delle due; «5 MIN» sono minuti. ERRATO `INCOERENZA_LINGUE`;
    - **lo stesso DR** (MG76, `agent.dr_consistency`): ogni «D.R. CASE #…» citato deve essere il
      DR del ciclo, quello delle recommendation del serial number (`reference`, P14) o, senza,
      il primo citato nella stampa. Un altro: ERRATO `DR_DIVERSO`.
 
-   Sul testo delle 14 stampe della v1 (`tests/test_real_prints.py`) queste regole trovano 5
-   errori in più e nessun ERRATO fuori dagli errori noti;
+   Sul testo delle 14 stampe della v1 (`tests/test_real_prints.py`) queste regole trovano 7
+   errori in più e nessun ERRATO fuori dagli errori noti. Sul PC, senza modello (27-11 notte):
+   0 falsi errori, ma 4 ERRATO da verificare nei cicli veri del grande (domanda P15);
 4. si cercano i **testi di riferimento** (`context_locations`, sotto); se la sorgente non
    risponde: WARNING `ERRORE_TECNICO`;
 5. task citati che il manuale non ha: WARNING `FONTE_ASSENTE` subito, senza modello
@@ -634,7 +639,7 @@ Ogni motivo ha un solo esito (`domain/check.py`).
 | | `DR_NON_APPLICABILE` | la DR dice `Reject` o `Accept as is` |
 | | `DR_NESSUNA_CORRISPONDENZA` | nessuna recommendation per serial number e condition |
 | | `TASK_INESISTENTE` | codice completo che non c'è, mentre ci sono i suoi fratelli |
-| | `INCOERENZA_LINGUE` | italiano e inglese con numeri o codici diversi, un limite al contrario o un'azione diversa (dal codice); con `agent.compare_languages` anche negazioni e limiti visti dal modello |
+| | `INCOERENZA_LINGUE` | italiano e inglese con numeri o codici diversi, un limite al contrario, «massimo» contro «minimo» o un'azione diversa (dal codice); con `agent.compare_languages` anche negazioni e limiti visti dal modello |
 | | `TASK_DIVERSO_DALLA_TESTATA` | il task accanto all'operazione è della stessa famiglia di quello della testata, ma diverso (H17, 27-11 sera) |
 | | `MACCHINE_DIVERSE` | la stessa operazione ha targhe diverse su pagine diverse (H19, 27-11 sera) |
 | | `DR_DIVERSO` | l'operazione cita un DR diverso da quello del ciclo (MG76, 27-11 notte) |
@@ -958,7 +963,7 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.out_of_scope` | `true` (dal 27-11 sera) | il modello può rispondere `fuori_tema`: N/A `FUORI_TEMA` invece di WARNING quando il testo non tratta il tipo di operazione (sezione 6.5). Variante `finale` (I16, 27-11) |
 | `agent.compare_languages_strict` | `true` (dal 27-11 sera) | con `compare_languages`: solo negazioni e limiti al contrario, ritrovati dal codice nelle parole copiate (sezione 6.5). Variante `finale` (I15, 27-11) |
 | `agent.dr_procedure_always` | `true` (dal 27-11) | nei cicli DR la procedura della D.R. va al modello insieme ai task trovati, con una nota: per quel pezzo vale più del manuale. Variante `procedura_dr` (26-11 sera), nella base dopo la campagna del 26-27-11 |
-| `agent.languages_from_code` | `true` (dal 27-11 notte) | limiti al contrario e azioni diverse tra le lingue, dal codice: ERRATO `INCOERENZA_LINGUE` (MG75, MG47; sezione 6.5) |
+| `agent.languages_from_code` | `true` (dal 27-11 notte) | limiti al contrario, «massimo» contro «minimo» e azioni diverse tra le lingue, dal codice: ERRATO `INCOERENZA_LINGUE` (MG75, MG81, MG47; sezione 6.5) |
 | `agent.dr_consistency` | `true` (dal 27-11 notte) | tutte le operazioni citano lo stesso DR: un altro è ERRATO `DR_DIVERSO` (MG76; sezione 6.5) |
 | `agent.prudent_out_of_scope` | `true` (dal 27-11 notte) | `fuori_tema` non vale se la descrizione ha una negazione o un limite: WARNING e una seconda ricerca (MG45) |
 | `agent.validation_timeout_s` | 480 | tempo massimo delle sessioni di un ciclo (MG53; sezione 9) |
@@ -1340,8 +1345,11 @@ repository abbia tutti e tre i campi. `eval prova --variante` copia la proposta 
 
 Il `riepilogo.md` ha anche (dal 26-11) la tabella **«ERRATO da verificare»**: gli ERRATO fuori
 dalla lista nei cicli veri e nei cicli con errori, per ciclo e operazione, con in quante prove
-di ogni variante sono usciti. Solo impronta, operazione e numeri, senza testo: si fotografa, e
-una persona guarda quelle operazioni sul ciclo (errore vero o falso errore).
+di ogni variante sono usciti e il motivo (dal 27-11 notte, MG82: per esempio
+`INCOERENZA_LINGUE`, `DR_DIVERSO`). Solo impronta, operazione, motivo e numeri, senza testo: si
+fotografa, e una persona guarda quelle operazioni sul ciclo (errore vero o falso errore). Anche
+a schermo, nella riga di ogni ciclo, accanto a ogni `ERRATO in più` c'è il motivo:
+`ERRATO in più 050 (INCOERENZA_LINGUE)`.
 
 Le **considerazioni** (cosa si è capito, cosa fare dopo) le scrive Claude nel registro di
 `MEMORIA.md` (sezione 16), quando la variante è decisa. Così proposta, risultati

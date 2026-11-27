@@ -1116,7 +1116,7 @@ def _run_trial(
             f"{fingerprint} {score.kind} ({chosen.upper()}): trovati "
             f"{', '.join(f.op for f in score.found) or '-'}"
             f" · mancati {', '.join(m.op for m in score.missed) or '-'}"
-            f" · ERRATO in più {', '.join(f.op for f in score.extra) or '-'}"
+            f" · ERRATO in più {', '.join(f'{f.op} ({f.reason})' for f in score.extra) or '-'}"
             + (f" · in attesa {', '.join(f.op for f in score.pending)}" if score.pending else "")
         )
     trial = build_trial(nome, started, reports, scores, proposal)

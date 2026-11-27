@@ -29,12 +29,12 @@ PRINTS = ROOT / "docs" / "CONFRONTO_V1_14_CICLI.md"
 # Gli ERRATO che il codice trova da solo sulla descrizione (27-11 notte). Se una regola ne
 # trova di più, va bene solo se sono errori noti: il test lo dice e questa lista si aggiorna.
 EXPECTED = {
-    "22f586bb": {"060"},  # limite al contrario (MG75)
+    "22f586bb": {"010", "060"},  # «massima» contro «min» (MG81); limite al contrario (MG75)
     "298bc28e": {"035"},  # azione diversa (MG47), con la riga accanto a «continua» (MG77)
     "38960731": {"010", "050"},  # numeri
     "5ff17062": {"010"},
     "737dec71": {"060"},  # limite al contrario (MG75)
-    "895167b9": {"030", "060"},  # un altro DR (MG76); limite al contrario (MG75)
+    "895167b9": {"010", "030", "060"},  # MG81; un altro DR (MG76); limite al contrario (MG75)
     "8d3c673c": {"140"},  # numeri (la 060 non più: rimando a un'operazione, MG78)
     "e9b74c84": {"025", "040"},  # numeri; azione diversa (MG47)
     "f355dc3c": {"010", "030"},  # numeri

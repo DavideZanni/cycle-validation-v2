@@ -268,3 +268,31 @@ def test_no_action_mismatch(description: str) -> None:
     from cycle_validation.checks.languages import action_mismatches
 
     assert action_mismatches(description) == []
+
+
+def test_maximum_in_one_language_and_minimum_in_the_other_is_found() -> None:
+    # MG81 (27-11 notte): come 22f586bb e 895167b9 010, senza un numero
+    from cycle_validation.checks.languages import extreme_mismatch
+
+    assert extreme_mismatch(
+        "RIPORTARE LA PROFONDITA' MASSIMA DEI DIFETTI / RECORD THE MIN DEPTH OF DEFECTS"
+    ) == ("massimo", "minimo")
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "PROFONDITA' MASSIMA / MAXIMUM DEPTH",
+        "SPESSORE MINIMO / MIN THICKNESS",
+        # «5 MIN» sono minuti, non un minimo
+        "ASCIUGARE PER MASSIMO 5 MINUTI / DRY FOR 5 MIN",
+        # tutte e due le parole in una lingua: un intervallo, non si confronta
+        "MINIMO 2 MASSIMO 4 / MAX 4",
+        # la parola in una lingua sola
+        "PROFONDITA' MASSIMA / DEPTH",
+    ],
+)
+def test_no_extreme_mismatch(description: str) -> None:
+    from cycle_validation.checks.languages import extreme_mismatch
+
+    assert extreme_mismatch(description) is None
