@@ -18,30 +18,44 @@ Seconda prova: piccolo 41 su 45, grande 31 su 31, 0 falsi errori. P15: i 4 da ve
 falsi errori di MG47, tutti dallo stesso testo («sabbiatura» in una condizione, «replace» per
 «ripristinare»): corretti, attesi 0.
 
-**Prossime, in ordine (27-11 notte, dopo il banco, scelte con l'utente):** solo quelle che si
-possono fare davvero e che migliorano qualcosa di misurabile.
+**Prossime, in ordine (27-11 notte, riscritte con l'utente):** solo quelle che si possono fare
+davvero e che migliorano qualcosa di misurabile. L'ingestion si fa più avanti, quando l'utente
+ha tempo; la conoscenza prima di pubblicarla per ora la controlla l'utente a mano.
 
-1. La campagna `quasi_finale` (passo 4h, utente, circa 2,5 $): chiude il cancello A ed è la
-   base con cui si confronta tutto il resto.
-2. MG58 risultato già calcolato (Claude, subito): stesso PDF e stessa conoscenza, risposta in un
-   secondo e 0 $. Non tocca il modello.
-3. Conoscenza e indice (utente con Copilot; il codice dell'indice lo scrive Claude se
-   `knowledge-index` si collega a questa sessione): MG73 grande ingestion (la classe
-   dell'acido, meno avvisi «fonte assente»), MG74 indice (nomi dei manuali, titoli dei task,
-   voci RDR «OTHER», targa `90`: MEMORIA 13), MG62 `kb-check` prima di pubblicare, MG61
-   classifica dei manuali che mancano, MG60 macchine attive su S3.
-4. MG83 meno avvisi e MG49 errori più stabili (Claude, dai numeri della campagna): cancello C.
-5. Tempo e costo, uno alla volta, ognuno provato come variante nella campagna contro
-   `quasi_finale`: MG54 chiamata diretta a Bedrock (circa metà del tempo), poi MG56 cache di
-   Bedrock con MG59 (il testo fisso pagato una volta; il batch no, non risponde subito), poi
-   MG55 più operazioni insieme (rischio: il modello mescola le operazioni).
-6. MG48 task di un altro stadio (una domanda a Copilot, poi Claude).
-7. MG42 prova EJ200 (utente, passo 4f): cancello B.
+Adesso, Claude (non serve aspettare la campagna):
 
-Da non fare adesso: MG46 (già vista: l'unico caso lo trova la scheda), MG57 (rischio di falsi
-errori senza la conoscenza completa), MG51 (collega), MG52, MG63-MG67, MG69-MG72 (poco
-guadagno o dipendono da altre persone o dalla produzione). MG68 scartata (27-11, utente:
-OpenSearch non si introduce).
+1. MG58 risultato già calcolato: stesso PDF e stessa conoscenza, risposta in un secondo e 0 $.
+   Non tocca il modello.
+2. MG54 chiamata diretta a Bedrock (circa metà del tempo): si scrive come scelta spenta,
+   così `quasi_finale` non cambia; si accende solo in una variante della campagna.
+3. MG56 cache di Bedrock con MG59, sopra MG54: il testo fisso si paga una volta. Il batch no,
+   non risponde subito. Anche questa spenta finché la campagna non la prova.
+4. MG48 task di un altro stadio: prima una domanda a Copilot (come l'indice scrive il pezzo nei
+   titoli dei task), poi il codice.
+
+Adesso, utente:
+
+5. La campagna `quasi_finale` (passo 4h, circa 2,5 $): chiude il cancello A ed è la base con cui
+   si confronta tutto il resto.
+6. MG42 prova EJ200 (passo 4f): cancello B.
+
+Dopo la campagna:
+
+7. MG83 meno avvisi e MG49 errori più stabili (Claude, dai numeri della campagna): cancello C.
+8. Una campagna per tempo e costo: MG54, poi MG56, ognuna come variante contro
+   `quasi_finale`. Si tiene solo se trova gli stessi errori.
+9. MG55 più operazioni insieme, per ultima (rischio: il modello mescola le operazioni).
+
+Più avanti, con l'ingestion (utente, quando ha tempo; il codice dell'indice lo scrive Claude se
+`knowledge-index` si collega a una sessione): MG73 grande ingestion (la classe dell'acido, meno
+avvisi «fonte assente»), MG74 indice (nomi dei manuali, titoli dei task, voci RDR «OTHER»,
+targa `90`: MEMORIA 13), MG61 classifica dei manuali che mancano, MG60 macchine attive su S3.
+
+Da non fare adesso: MG62 (per ora la conoscenza la controlla l'utente a mano prima di
+pubblicarla), MG46 (già vista: l'unico caso lo trova la scheda), MG57 (rischio di falsi errori
+senza la conoscenza completa), MG51 (collega), MG52, MG63-MG67, MG69-MG72 (poco guadagno o
+dipendono da altre persone o dalla produzione). MG68 scartata (27-11, utente: OpenSearch non si
+introduce).
 
 | Sigla | Miglioria | Cosa fa | Stato | Imp. | Era |
 |---|---|---|:-:|:-:|---|
