@@ -175,7 +175,15 @@ async def arun_validation(
         if request.check_integrity
         else IntegrityOutcome((), frozenset())
     )
-    ctx = CheckContext(cycle, deps.kb, deps.machines, profile, selectors, integrity.unconfirmed)
+    ctx = CheckContext(
+        cycle,
+        deps.kb,
+        deps.machines,
+        profile,
+        selectors,
+        integrity.unconfirmed,
+        deps.settings.agent,
+    )
     active = [check for check in profile.checks if check not in request.skip_checks]
     results: list[CheckResult] = []
     pipeline_errors: list[PipelineError] = []

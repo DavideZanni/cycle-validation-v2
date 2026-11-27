@@ -41,6 +41,8 @@ class Reason(StrEnum):
     # proseguono, la recommendation va guardata a mano
     DR_NON_VERIFICATA = "DR_NON_VERIFICATA"
     ESTRAZIONE_NON_CONFERMATA = "ESTRAZIONE_NON_CONFERMATA"
+    # operazione di processo speciale senza scheda: forse la scheda manca (P6, 27-11)
+    SCHEDA_FORSE_MANCANTE = "SCHEDA_FORSE_MANCANTE"
     BUDGET_ESAURITO = "BUDGET_ESAURITO"
     ERRORE_TECNICO = "ERRORE_TECNICO"
     BLOCCATO_A_MONTE = "BLOCCATO_A_MONTE"

@@ -154,3 +154,69 @@ def _without_conversions_of(
     if len(numbers) <= len(other):
         return numbers
     return [n for n in numbers if not any(_converted(n[1], o[1]) for o in other)]
+
+
+# --- Versione stretta del confronto tra le lingue (`agent.compare_languages_strict`, I15) ---
+#
+# Il modello dice che tipo di differenza ha visto e copia le parole delle due lingue; il codice
+# accetta solo quello che ritrova in quelle parole: una negazione che c'è in una lingua sola, o
+# due limiti di verso opposto. Così una traduzione libera non diventa ERRATO.
+
+_NEGATION = {
+    "it": re.compile(r"\b(?:non|né|mai|vietat[oaie]|evitare|senza)\b", re.IGNORECASE),
+    "en": re.compile(
+        r"\b(?:not|never|nor|without|avoid|prohibited|don'?t|doesn'?t|no(?!\.))\b",
+        re.IGNORECASE,
+    ),
+}
+# Limiti «verso il basso» (al massimo) e «verso l'alto» (almeno). Quelli negati («non oltre»,
+# «not to exceed») si cercano per primi: dicono il contrario della parola che contengono.
+_LIMIT_DOWN = {
+    "it": re.compile(
+        r"\b(?:non\s+(?:superiore|oltre|più\s+di|maggiore)\w*|al\s+massimo|massim[oaie]|"
+        r"inferior[ei]|sotto|meno\s+di|minore|fino\s+a|max)\b",
+        re.IGNORECASE,
+    ),
+    "en": re.compile(
+        r"\b(?:not\s+(?:to\s+)?exceed\w*|not\s+more\s+than|no\s+more\s+than|at\s+most|"
+        r"maximum|max|below|under|less\s+than|lower\s+than|up\s+to)\b",
+        re.IGNORECASE,
+    ),
+}
+_LIMIT_UP = {
+    "it": re.compile(
+        r"\b(?:almeno|minim[oaie]|superior[ei]|oltre|sopra|più\s+di|maggiore|min)\b",
+        re.IGNORECASE,
+    ),
+    "en": re.compile(
+        r"\b(?:at\s+least|minimum|min|above|over|more\s+than|greater\s+than|higher\s+than|"
+        r"exceed\w*)\b",
+        re.IGNORECASE,
+    ),
+}
+
+
+def has_negation(text: str, language: str) -> bool:
+    """Nel testo c'è una negazione o un divieto (`language`: `it` o `en`)."""
+    return _NEGATION[language].search(text) is not None
+
+
+def limit_direction(text: str, language: str) -> str | None:
+    """Il verso del limite nel testo: `giù` (al massimo), `su` (almeno), None se non ce n'è
+    uno solo (nessun limite, oppure un intervallo con minimo e massimo)."""
+    down = _LIMIT_DOWN[language].search(text) is not None
+    rest = _LIMIT_DOWN[language].sub(" ", text)
+    up = _LIMIT_UP[language].search(rest) is not None
+    if down == up:
+        return None
+    return "giù" if down else "su"
+
+
+def strict_difference(kind: str, italian: str, english: str) -> bool:
+    """Il codice ritrova la differenza dichiarata dal modello nelle parole copiate."""
+    if kind == "negazione":
+        return has_negation(italian, "it") != has_negation(english, "en")
+    if kind == "limite":
+        first, second = limit_direction(italian, "it"), limit_direction(english, "en")
+        return first is not None and second is not None and first != second
+    return False

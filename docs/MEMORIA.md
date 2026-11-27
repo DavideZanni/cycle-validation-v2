@@ -1193,6 +1193,17 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   scartata: circa 10 errori in più ma 11-13 falsi errori a prova (traduzioni libere). Da qui
   la versione stretta (I15). Tre differenze tra le lingue in stampe «giuste» sono da far
   guardare a Copilot (potrebbero essere errori veri). Dettagli in `MIGLIORIE.md`, sezione 13.
+- **27-11, passo 2 scritto da Claude.** I9 nella base (processo speciale senza scheda = WARNING
+  `SCHEDA_FORSE_MANCANTE`; motivo nuovo). I8 `fonte_ispezione`: la sezione d'ispezione si cerca
+  come task `<sezione> INSPECTION 00N` nel manuale delle fonti (stessa forma dei `REPAIR 00N`,
+  con la ricerca nel testo): **è un'ipotesi sul titolo**, non visto sui file veri; se nella
+  campagna finale 04ecaabe 050 resta ERRATO, chiedere a Copilot come si chiama la sezione
+  d'ispezione di M1 nel testo (solo la forma). I15 `compare_languages_strict` dentro la variante
+  `finale`. 737dec71 060 in attesa finché Copilot non risponde alla P10. Corretti i 4 difetti
+  della revisione. Campagna finale: base, `fonte_ispezione`, `finale`.
+- **27-11, accesso a `knowledge-index` per la guida allo studio:** il tentativo di collegarlo a
+  questa sessione è stato negato dai permessi; la parte sull'ingestion della guida si fa da
+  MEMORIA e dalla risposta di Copilot (COPILOT 6.3).
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

@@ -9,7 +9,7 @@ from cycle_validation.domain.check import Reason
 from cycle_validation.domain.cycle import Cycle, Operation, Source
 from cycle_validation.kb.documents import read_lines
 from cycle_validation.kb.port import DocumentInfo, KnowledgeBase, TaskLocation
-from cycle_validation.kb.task_text import find_task_in_text, lines_with
+from cycle_validation.kb.task_text import find_task_in_text, lines_with, task_section
 from cycle_validation.text import normalize_code
 
 _NUMBERS = re.compile(r"\d+")
@@ -216,6 +216,27 @@ def resolve_operation(cycle: Cycle, operation: Operation, kb: KnowledgeBase) -> 
         else:
             found.append(location)
     return OperationRefs(tuple(found), tuple(missing))
+
+
+# Nei manuali GE la sezione d'ispezione di un pezzo è `<sezione> INSPECTION 00N` (come i
+# `REPAIR 00N`), spesso un file a sé. Se ne cercano le prime.
+_INSPECTION_NUMBERS = ("001", "002", "003")
+
+
+def inspection_locations(cycle: Cycle, kb: KnowledgeBase) -> tuple[TaskLocation, ...]:
+    """La sezione d'ispezione del manuale del motore per ogni sezione citata dalle fonti del
+    ciclo (`72-00-01 REPAIR 001` → `72-00-01 INSPECTION 001`, nello stesso manuale). Il
+    capitolo 70 (pratiche standard) non ha una sezione d'ispezione del motore."""
+    found: list[TaskLocation] = []
+    for source in cycle.sources:
+        section = task_section(source.task or "")
+        if section is None or _STANDARD_PRACTICES_TASK.match(section):
+            continue
+        for number in _INSPECTION_NUMBERS:
+            hit = kb.find_task(source.manual, f"{section} INSPECTION {number}")
+            if hit is not None:
+                found.append(hit)
+    return _dedupe(found)
 
 
 def _dedupe(locations: Sequence[TaskLocation]) -> tuple[TaskLocation, ...]:

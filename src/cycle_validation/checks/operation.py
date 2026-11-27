@@ -13,6 +13,7 @@ INCOERENZA_LINGUE al posto dell'esito del confronto con il manuale.
 """
 
 import asyncio
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -26,6 +27,7 @@ from cycle_validation.agent.prompt import (
     OperationJudgement,
     build_languages_prompt,
     build_operation_prompt,
+    build_strict_languages_prompt,
     judgement_schema,
     languages_schema,
 )
@@ -42,7 +44,11 @@ from cycle_validation.checks.dr_recommendation import (
     dr_documents,
     dr_tasks,
 )
-from cycle_validation.checks.languages import language_parts, number_mismatches
+from cycle_validation.checks.languages import (
+    language_parts,
+    number_mismatches,
+    strict_difference,
+)
 from cycle_validation.checks.process_sheet import engine_family, treatment_for_family
 from cycle_validation.config import AgentSettings
 from cycle_validation.domain.check import (
@@ -61,6 +67,7 @@ from cycle_validation.kb.port import DocumentInfo, TaskLocation
 from cycle_validation.resolve.civil import (
     cited_documents,
     context_locations,
+    inspection_locations,
     resolve_operation,
     whole_document,
 )
@@ -94,6 +101,9 @@ class LanguageJob:
     italian: str
     english: str
     request: SessionRequest
+    # versione stretta (`agent.compare_languages_strict`): vale solo quello che il codice
+    # ritrova nelle parole copiate
+    strict: bool = False
 
 
 # esiti dopo i quali il confronto tra le due lingue non serve: le lingue sono già diverse nei
@@ -148,7 +158,32 @@ def _locations(
         locations += tuple(
             whole_document(document) for document in procedures if document.key not in present
         )
+    if settings.inspection_source and locations and is_inspection(operation):
+        # la sezione d'ispezione del manuale del motore: per i criteri vale più dell'SPM (I8)
+        present_lines = {(item.document.key, item.line_start) for item in locations}
+        locations += tuple(
+            item
+            for item in inspection_locations(ctx.cycle, ctx.kb)
+            if (item.document.key, item.line_start) not in present_lines
+        )
     return locations
+
+
+# Operazioni d'ispezione e di controllo, in italiano o in inglese (I8).
+_INSPECTION = re.compile(
+    r"ispezion\w*|controll[oi]\s+(?:visiv|dimensional|penetrant|non\s+distruttiv)\w*"
+    r"|esame\s+visivo|liquidi\s+penetranti|magnetoscop\w*|penetrant\w*|inspect\w*|\bFPI\b",
+    re.IGNORECASE,
+)
+
+
+def is_inspection(operation: Operation) -> bool:
+    """L'operazione è un'ispezione o un controllo (dalla descrizione)."""
+    return _INSPECTION.search(operation.operation_description or "") is not None
+
+
+def _has_inspection(locations: Sequence[TaskLocation]) -> bool:
+    return any("INSPECTION" in item.task.upper() for item in locations)
 
 
 def _languages(operation: Operation, settings: AgentSettings) -> tuple[str, str] | None:
@@ -251,6 +286,7 @@ def plan_operation_checks(
             missing_tasks=missing_tasks,
             languages=_languages(operation, settings),
             dr_procedure=settings.dr_procedure_always and _has_dr_procedure(locations),
+            inspection=settings.inspection_source and _has_inspection(locations),
         )
         request = SessionRequest(
             session_id=f"op-{index:03d}-{operation.operation_number}",
@@ -270,7 +306,9 @@ def plan_language_checks(
 ) -> list[LanguageJob]:
     """Una sessione corta per ogni operazione scritta in due lingue, tranne quelle in `skip`."""
     jobs: list[LanguageJob] = []
-    schema = languages_schema()
+    strict = settings.compare_languages_strict
+    schema = languages_schema(strict)
+    build = build_strict_languages_prompt if strict else build_languages_prompt
     for index, operation in enumerate(ctx.cycle.operations):
         if index in skip or not operation.operation_description:
             continue
@@ -281,12 +319,12 @@ def plan_language_checks(
         request = SessionRequest(
             session_id=f"op-{index:03d}-{operation.operation_number}-lingue",
             system_prompt=LANGUAGES_SYSTEM_PROMPT,
-            prompt=build_languages_prompt(italian, english),
+            prompt=build(italian, english),
             output_schema=schema,
             use_tools=False,
             max_turns=settings.inline_max_turns,
         )
-        jobs.append(LanguageJob(index, italian, english, request))
+        jobs.append(LanguageJob(index, italian, english, request, strict))
     return jobs
 
 
@@ -312,6 +350,12 @@ def decide_languages(job: LanguageJob, outcome: SessionOutcome) -> LanguagesJudg
     if not italian or not english:
         return None
     if italian not in _plain(job.italian) or english not in _plain(job.english):
+        return None
+    if job.strict and not strict_difference(
+        judgement.kind, judgement.italian_quote, judgement.english_quote
+    ):
+        # il modello dice «diverse», ma nelle parole copiate il codice non ritrova né una
+        # negazione in una lingua sola né due limiti al contrario: traduzione libera
         return None
     return judgement
 

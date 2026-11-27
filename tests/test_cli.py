@@ -653,3 +653,26 @@ def test_a_blind_copy_is_not_downgraded_because_the_pdf_has_the_old_value(
     result = runner.invoke(cli.app, args)
     assert result.exit_code == 0, result.output
     assert f"{fingerprint} mai visto: trovato" in result.output
+
+
+def test_the_summary_keeps_the_variant_name_as_it_is(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """27-11 (revisione del codice): la virgola decimale valeva anche per il nome."""
+    from types import SimpleNamespace
+
+    metrics = SimpleNamespace(
+        concordance=0.955,
+        false_errato=0,
+        missed_errors=1,
+        technical=0,
+        time_median_ms=1500,
+        cost_per_cycle=0.01,
+        extraction_accuracy=None,
+        mismatches=[],
+    )
+    monkeypatch.setattr(cli, "measure", lambda _: metrics)
+    path = tmp_path / "r.json"
+    path.write_text("{}", encoding="utf-8")
+    line = cli._summary("sonnet-4.5", path)
+    assert line.startswith("sonnet-4.5: concordanza 95,5%")

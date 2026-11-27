@@ -193,6 +193,41 @@ def test_process_sheet_unknown() -> None:
     assert _reasons(check_process_sheets(_ctx(cycle))) == [Reason.FONTE_ASSENTE]
 
 
+def test_a_special_process_without_sheet_is_a_warning_never_an_error() -> None:
+    """P6 (26-11, I9): nei processi speciali la scheda è obbligatoria. Senza scheda: WARNING
+    «scheda forse mancante», mai ERRATO. Le altre operazioni senza scheda restano N/A."""
+    from cycle_validation.config import AgentSettings
+
+    cycle = Cycle.model_validate(
+        {
+            "operations": [
+                {
+                    "operation_number": "1",
+                    "operation_description": "APPLICARE LUBRIFICANTE SECCO / APPLY DRY FILM",
+                },
+                {"operation_number": "2", "operation_description": "FPI DELLA ZONA / FPI AREA"},
+                {"operation_number": "3", "operation_description": "PULIRE / CLEAN"},
+            ]
+        }
+    )
+    results = check_process_sheets(_ctx(cycle))
+    assert _reasons(results) == [
+        Reason.SCHEDA_FORSE_MANCANTE,
+        Reason.SCHEDA_FORSE_MANCANTE,
+        Reason.CAMPO_ASSENTE,
+    ]
+    assert results[0].verdict is Verdict.WARNING
+    assert "lubrificante secco" in results[0].rationale.casefold()
+    off = CheckContext(
+        cycle=cycle,
+        kb=memory_knowledge(),
+        machines=ACTIVE,
+        profile=profile("mos"),
+        agent=AgentSettings(special_process_sheet=False),
+    )
+    assert _reasons(check_process_sheets(off)) == [Reason.CAMPO_ASSENTE] * 3
+
+
 def test_a_sheet_is_found_without_hyphens_and_spaces() -> None:
     # come nel servizio precedente: CPEC522-BR = CPEC522BR (e gli spazi non contano)
     kb = IndexedKnowledgeBase(

@@ -125,26 +125,28 @@ servizio la scegli tu: una grande ingestion di tutti i documenti civili.
 | | Passo | Chi | Quando · costo |
 |---|---|---|---|
 | ✅ | **1 · Campagna** base contro `lingue_tra_loro` e `procedura_dr` | tu | finita il 27-11 alle 11:17: `procedura_dr` nella base, `lingue_tra_loro` scartata (`MIGLIORIE.md`, sezione 13) |
-| 👉 | **2 · Migliorie per la campagna finale** | Claude | adesso |
+| ✅ | **2 · Migliorie per la campagna finale** | Claude | scritte il 27-11 |
 | 👉 | **3 · Aggiornare, prove dal frontend, domande a Copilot** | tu | adesso, mentre Claude scrive il passo 2 · qualche centesimo · 1 ora |
 | ⬜ | **4 · Campagna finale** | tu | dopo il passo 2 · circa 5 $ · 2-3 ore |
 | ⬜ | **5 · Grande ingestion, prova di controllo, Salvare, QA** | tu | dopo |
 
 ---
 
-**👉 Passo 2 · Migliorie per la campagna finale** (lo fa Claude)
+**✅ Passo 2 · Migliorie per la campagna finale** (fatto da Claude il 27-11)
 
-`fonte_ispezione` (I8: toglie il falso errore «4 volte contro 3 volte»), la regola della scheda
-(I9), `lingue_tra_loro` stretta (I15: solo negazioni, numeri e limiti al contrario; le
-traduzioni libere non sono errori) e i difetti trovati nella revisione del codice del 27-11
-(`MEMORIA.md`, sezione 12). Poi Claude scrive cosa deve dire il piano della campagna finale.
+Nella base: la regola della scheda (I9: processo speciale senza scheda = WARNING). Da provare
+nella campagna finale: `fonte_ispezione` (I8: nelle ispezioni anche la sezione d'ispezione del
+manuale del motore, toglie il «4 volte contro 3 volte») e `finale` (I8 più il confronto tra le
+lingue stretto, I15: solo negazioni e limiti al contrario). Corretti i quattro difetti della
+revisione del codice.
 
 ---
 
 **👉 Passo 3 · Aggiornare, prove dal frontend, domande a Copilot** (adesso)
 
 1. Aggiornare (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Foto dell'ultima riga. Porta la
-   pulizia del codice del 27-11 e `procedura_dr` nella base.
+   pulizia del codice del 27-11, `procedura_dr` e la regola della scheda nella base, le
+   varianti della campagna finale.
 2. Prove dal frontend (sezione [4](#4-prove-dal-frontend)).
 3. Domanda **P10** a Copilot (sezione [6.1](#61-domande)): quattro differenze tra le lingue in
    stampe «giuste», forse errori veri.
@@ -155,12 +157,18 @@ traduzioni libere non sono errori) e i difetti trovati nella revisione del codic
 
 **⬜ Passo 4 · Campagna finale**
 
+Dopo il passo 3 (Aggiornare fatto, prove dal frontend finite: non insieme alla campagna).
 Archiviare (3.8), copie cieche con il **seme 3** (3.3), piano e campagna (3.5): la base contro
-la v2 con tutto acceso. Il seme nuovo è una misura onesta: la configurazione che vince è quella
-della produzione. Claude scrive prima cosa deve dire il piano.
+`fonte_ispezione` e contro `finale`, 3 prove ciascuna, piccolo e grande. Il seme nuovo è una
+misura onesta: la configurazione che vince è quella della produzione. Circa 6 $ e 2-3 ore.
 
-**Deve dire:** 0 falsi errori (anche le operazioni oggi «in attesa»), nessun ciclo oltre 10
-minuti, nessun ciclo non eseguito.
+**Il piano deve dire:** `Piccolo: N cicli e copie; grande: M cicli.` e, per ogni insieme, tre
+righe: `base`, `fonte_ispezione`, `finale`, ognuna `3 da fare`.
+
+**La campagna deve dire:** 0 falsi errori (anche nella tabella «In attesa»: 04ecaabe 050 e
+2d724fba 050 con `fonte_ispezione` e `finale` a 0 su 3, o quasi), nessun ciclo oltre 10 minuti,
+nessun ciclo non eseguito. **Mandami:** la riga finale, `runs\campagna.md` e i due
+`riepilogo.md`, come oggi.
 
 ---
 

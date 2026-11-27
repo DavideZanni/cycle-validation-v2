@@ -70,8 +70,11 @@ _SHEET = re.compile(r"^SCHEDA\s*:\s*(?P<code>.*)$", re.IGNORECASE)
 _SHEET_LINE = re.compile(
     r"^\s*SCHEDA\s*:\s*(?P<code>.*?)\s*(?:\bSP\.(?:ORIG|FIAT)\b.*)?$", re.IGNORECASE
 )
-# riparazione nella testata ripetuta a ogni pagina: vale per le operazioni di quella pagina
-_PAGE_REPAIR = re.compile(r"^\s*RIPARAZIONE\s*:\s*(?P<repair>\S+)", re.IGNORECASE | re.MULTILINE)
+# riparazione nella testata ripetuta a ogni pagina: vale per le operazioni di quella pagina.
+# Solo spazi e tab, mai l'a capo: un campo vuoto non prende la parola della riga dopo (27-11)
+_PAGE_REPAIR = re.compile(
+    r"^[ \t]*RIPARAZIONE[ \t]*:[ \t]*(?P<repair>\S+)", re.IGNORECASE | re.MULTILINE
+)
 # Il task per intero: codice completo (70-42-00-350-002) o sezione con tipo e numero
 # (72-00-00 REPAIR 001). Il codice completo va letto tutto: tagliato alle prime tre coppie
 # non corrisponde a nessun task del manuale. Vale anche SUBTASK, che sta dentro un task.

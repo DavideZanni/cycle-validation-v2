@@ -444,3 +444,15 @@ def test_the_waiting_table_counts_the_errato_per_variant(tmp_path: Path) -> None
     summary = render_summary(trials)
     assert "| Ciclo | Op | Che cosa aspetta | ERRATO base | ERRATO variante |" in summary
     assert "| aaaa1111 | 030 | domanda P7 | 1 su 1 | 0 su 1 |" in summary
+
+
+def test_a_failed_cycle_does_not_hide_that_the_model_did_not_answer(tmp_path: Path) -> None:
+    """27-11 (revisione del codice): un ciclo non eseguito non ha il conto dei controlli del
+    modello, e la prova passava alla regola delle prove vecchie: restava buona e la variante
+    risultava scartata per «cicli non eseguiti» invece di rifare la prova."""
+    dead = _answers(tmp_path, failed=20, total=20)
+    broken = failed_cycle("dddd4444", _known(tmp_path), "guasto")
+    with_failed = dead.model_copy(update={"cycles": [*dead.cycles, broken]})
+    assert with_failed.unusable
+    good = _answers(tmp_path, failed=0, total=20)
+    assert not good.model_copy(update={"cycles": [*good.cycles, broken]}).unusable

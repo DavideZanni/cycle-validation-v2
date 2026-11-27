@@ -516,3 +516,13 @@ def test_ordinary_orphan_text_still_stops_the_parser() -> None:
     body = [*block(["QQ/901"], "010", ["PRIMA OPERAZIONE"]), row(text="TESTO ORFANO"), SEP]
     with pytest.raises(ExtractionError):
         parse_pvrm320_report(as_document([page(1, body, FOOTER)]))
+
+
+def test_an_empty_repair_field_does_not_take_the_next_line() -> None:
+    """27-11 (revisione del codice): `\\s*` dopo i due punti attraversava l'a capo e un campo
+    RIPARAZIONE vuoto prendeva la prima parola della riga dopo."""
+    from cycle_validation.extract.pvrm320_report import _PAGE_REPAIR
+
+    assert _PAGE_REPAIR.search("RIPARAZIONE :   \nNOTE....... ABC") is None
+    found = _PAGE_REPAIR.search("RIPARAZIONE : B1    72-00-00 REPAIR 001")
+    assert found is not None and found["repair"] == "B1"

@@ -367,7 +367,10 @@ si controlla.
 
 ### 6.4 `process_sheet`: la scheda esiste (`checks/process_sheet.py`)
 
-- Nessuna scheda: N/A `CAMPO_ASSENTE`.
+- Nessuna scheda: N/A `CAMPO_ASSENTE`. Ma se la descrizione è di un **processo speciale**
+  (lubrificante secco, rivestimento, attacco chimico, liquidi penetranti, FPI, in italiano o in
+  inglese: `special_process`) è WARNING `SCHEDA_FORSE_MANCANTE`, mai ERRATO
+  (`agent.special_process_sheet`, accesa nella base dal 27-11; regola P6, MIGLIORIE I9).
 - EJ200: N/A `NON_VERIFICATO_PER_PROFILO`.
 - Prefissi esclusi (`SWJ`, `SSS`, `SPS`): N/A `ESCLUSO_DA_REGOLA`.
 - I codici si confrontano senza spazi, trattini né maiuscole (`CPEC 100-BR` = `CPEC100BR`).
@@ -457,8 +460,20 @@ vieta o manda a sostituire qualcosa che la D.R. autorizza, non è una contraddiz
 895167b9 005 (Copilot, 26-11 sera): il manuale manda a sostituire il pezzo, la deroga citata
 nella stessa operazione autorizza la raccordatura, ma il modello non l'aveva.
 
+**Sezione d'ispezione del manuale del motore (`agent.inspection_source`, spenta nella base;
+variante `fonte_ispezione`, 27-11; I8).** Nelle operazioni d'ispezione e di controllo
+(`is_inspection`: ispezione, controllo visivo o dimensionale, liquidi penetranti, FPI,
+magnetoscopia, inspect…) che hanno già un testo di riferimento, si aggiunge la sezione
+d'ispezione del manuale del motore: per ogni fonte del ciclo che cita una sezione fuori dal
+capitolo 70 (`72-00-01 REPAIR 001`), il task `72-00-01 INSPECTION 001` (fino a 003) nello stesso
+manuale (`resolve/civil.inspection_locations`, con la ricerca nel testo se l'indice non ha quel
+titolo). Alla domanda si aggiunge una nota (`INSPECTION_NOTE`): per i criteri d'ispezione vale
+la sezione del motore, non le definizioni generali di un manuale di pratiche standard. Nasce da
+P7 e P8: la stampa giusta 04ecaabe op. 050 e il ciclo vero 2d724fba op. 050 dicono «4 volte»
+come il manuale del motore, la v2 confrontava solo con il «3 volte» generico dell'SPM.
+
 **Le due lingue tra loro (`agent.compare_languages`, spenta nella base; variante
-`lingue_tra_loro`, 26-11 sera).** Per ogni operazione scritta in due lingue (tranne quelle già
+`lingue_tra_loro`, 26-11 sera; scartata il 27-11 per i falsi errori).** Per ogni operazione scritta in due lingue (tranne quelle già
 ERRATO `INCOERENZA_LINGUE` per i numeri, senza descrizione o non confermate) una sessione corta
 chiede al modello se le due lingue danno le stesse istruzioni, **senza manuale**
 (`plan_language_checks`; prompt in `agent/prompt.py`, `build_languages_prompt`). Risponde
@@ -471,6 +486,20 @@ dicono `diverse`, l'operazione è ERRATO `INCOERENZA_LINGUE` al posto dell'esito
 il manuale, con le due citazioni dal ciclo come prova. Vale anche dove il manuale manca
 (`FONTE_ASSENTE`). Le sessioni delle lingue girano insieme alle altre; il loro costo va
 sull'operazione.
+
+**Versione stretta (`agent.compare_languages_strict`, con `compare_languages`; variante
+`finale`, 27-11; I15).** La domanda chiede solo due tipi di differenza
+(`build_strict_languages_prompt`): `negazione` (un divieto o un «non» in una lingua sola) e
+`limite` (minimo e massimo, «almeno» e «al massimo», «superiore a» e «not to exceed»). Tutto il
+resto non va segnalato: traduzioni libere, titoli, sinonimi, nomi generici e specifici, codici
+con o senza lettere, numeri (li controlla già il codice). Lo schema ha in più `kind`
+(`negazione`, `limite`, `nessuna`). Il codice accetta il giudizio solo se ritrova la differenza
+nelle parole copiate (`checks/languages.strict_difference`): per `negazione`, una parola di
+negazione in una citazione sì e nell'altra no (`no.` come abbreviazione di numero non conta);
+per `limite`, un limite in tutte e due con verso opposto (`limit_direction`: «non oltre» e «not
+to exceed» valgono «al massimo»; un intervallo con minimo e massimo non ha verso). Poi la
+conferma G1 come sopra. Nasce dalla campagna del 26-27-11: `lingue_tra_loro` trovava circa 10
+errori in più ma prendeva per errore le traduzioni libere (11-13 falsi errori a prova).
 
 **Conferma degli ERRATO (regola G1).** Ogni `CONTRADDIZIONE` si rifà con
 `confirm_contradiction` sessioni uguali (2). Resta ERRATO solo se **tutte** ritrovano la
@@ -528,6 +557,7 @@ Ogni motivo ha un solo esito (`domain/check.py`).
 | | `CITAZIONE_NON_VERIFICATA` | la citazione del modello non è nel file |
 | | `GIUDIZIO_INSTABILE` | una verifica di conferma smentisce la contraddizione |
 | | `DR_NON_VERIFICATA` | mancano serial number o condition per scegliere |
+| | `SCHEDA_FORSE_MANCANTE` | processo speciale senza scheda di processo (regola P6) |
 | | `ESTRAZIONE_NON_CONFERMATA` | il valore letto non compare nel PDF |
 | | `BUDGET_ESAURITO` | la sessione ha finito i passi |
 | | `ERRORE_TECNICO` | guasto: modello, rete, sorgente, tempo |
@@ -800,6 +830,9 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.search_when_unverifiable` | `false` | dopo un `non_verificabile`, una seconda sessione cerca in tutti i documenti citati dal ciclo, con i tool. Variante `seconda_ricerca` |
 | `agent.general_definitions_note` | `false` | nella domanda al modello: una differenza solo con una **definizione generale** del manuale di pratiche standard (per esempio «indicazione lineare = 3 volte la larghezza») dà `non_verificabile`, non `contraddetto`; resta `contraddetto` con un limite specifico o con una lingua diversa dall'altra. Variante `definizioni_generali` (26-11) |
 | `agent.compare_languages` | `false` | una sessione corta per ogni operazione scritta in due lingue: il modello confronta l'italiano e l'inglese **tra loro**, senza manuale. Una differenza (negazione, limite, materiale, valore) con le citazioni ritrovate e confermata è ERRATO `INCOERENZA_LINGUE`. Variante `lingue_tra_loro` (26-11 sera) |
+| `agent.special_process_sheet` | `true` (dal 27-11) | processo speciale senza scheda: WARNING `SCHEDA_FORSE_MANCANTE` invece di N/A (sezione 6.4). Regola P6, I9 |
+| `agent.inspection_source` | `false` | nelle ispezioni anche la sezione INSPECTION del manuale del motore, con una nota (sezione 6.5). Variante `fonte_ispezione` (I8, 27-11) |
+| `agent.compare_languages_strict` | `false` | con `compare_languages`: solo negazioni e limiti al contrario, ritrovati dal codice nelle parole copiate (sezione 6.5). Variante `finale` (I15, 27-11) |
 | `agent.dr_procedure_always` | `true` (dal 27-11) | nei cicli DR la procedura della D.R. va al modello insieme ai task trovati, con una nota: per quel pezzo vale più del manuale. Variante `procedura_dr` (26-11 sera), nella base dopo la campagna del 26-27-11 |
 | `agent.confirm_contradiction` | 2 | sessioni di conferma per ogni ERRATO del modello |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
@@ -1223,8 +1256,10 @@ massimo_dollari: 15
   il conto dei controlli del modello, non vale solo una prova a zero token con almeno 5 WARNING
   `ERRORE_TECNICO` (dal 26-11: il 25-11 la regola contava tutti i WARNING per errore tecnico,
   e sul PC le targhe ne danno circa 8 per ciclo perché Redshift non si raggiunge; così le prove
-  buone del 24-11 di Haiku sono state cancellate). `eval prova` scrive `ATTENZIONE: prova non
-  valida` in fondo.
+  buone del 24-11 di Haiku sono state cancellate). Un ciclo **non eseguito** non ha il conto
+  dei controlli ma non fa della prova una prova vecchia (dal 27-11: prima una prova con un ciclo
+  non eseguito e il modello che non rispondeva restava buona, e la variante risultava scartata
+  invece di rifare la prova). `eval prova` scrive `ATTENZIONE: prova non valida` in fondo.
 - Il report `runs/campagna.md`: per ogni modello e insieme la scelta migliore e la classifica
   (prove, stabili, mai visti per il modello stabili, falsi errori, da verificare, costo e
   tempo per ciclo, decisione); i modelli a confronto, variante per variante; gli errori mai

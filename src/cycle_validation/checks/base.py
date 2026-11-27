@@ -1,11 +1,11 @@
 """Mattoni comuni dei controlli: contesto, costruzione degli esiti, guasti delle sorgenti."""
 
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from typing import Literal
 
-from cycle_validation.config import ProfileConfig
+from cycle_validation.config import AgentSettings, ProfileConfig
 from cycle_validation.domain.check import (
     REASON_VERDICT,
     CheckName,
@@ -34,6 +34,8 @@ class CheckContext:
     # Valori estratti che il PDF non conferma (controllo, tipo di oggetto, indice): un
     # controllo può evitare lavoro il cui esito verrebbe comunque declassato.
     unconfirmed: frozenset[tuple[CheckName, TargetKind, int]] = frozenset()
+    # le regole che si accendono dalle impostazioni (per esempio `special_process_sheet`)
+    agent: AgentSettings = field(default_factory=AgentSettings)
 
 
 def make_result(

@@ -274,7 +274,9 @@ class Trial(_Strict):
         WARNING per errore tecnico, e contava come fatta. Non vale se più di
         `MAX_TECHNICAL_SHARE` dei controlli del modello è finita in errore tecnico (almeno
         `MIN_TECHNICAL`). Gli errori tecnici del codice (un servizio, una fonte) non contano."""
-        if any(c.model_checks is None for c in self.cycles):
+        # un ciclo non eseguito non ha il conto dei controlli: non fa della prova una prova
+        # vecchia (27-11: prima la regola vecchia la teneva come buona)
+        if any(c.model_checks is None and c.failure is None for c in self.cycles):
             # prova scritta prima del 25-11, senza il conto dei controlli del modello: non vale
             # solo se il modello non ha letto né scritto niente (zero token). Contare tutti i
             # WARNING per errore tecnico era sbagliato: sul PC le targhe (Redshift non
@@ -572,6 +574,7 @@ WARNING_MEANING = {
     "ERRORE_TECNICO": "un servizio non ha risposto",
     "BUDGET_ESAURITO": "la sessione ha finito i passi o il tempo",
     "DR_NON_VERIFICATA": "DR senza serial number o condition",
+    "SCHEDA_FORSE_MANCANTE": "processo speciale senza scheda di processo",
 }
 
 

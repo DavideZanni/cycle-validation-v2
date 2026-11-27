@@ -12,12 +12,16 @@
 # 26-11 sera: `seconda_ricerca` scartata (stessi errori, costo 2,1 volte la base sul grande).
 # 26-11 sera: `definizioni_generali` scartata (14 contro 15 sul piccolo, 8 contro 10 sul
 # grande: perde gli errori trovati per il motivo sbagliato e non trova quelli giusti).
-# Ora `lingue_tra_loro` e `procedura_dr` (Copilot: 895167b9 005 è un falso errore, la deroga
-# della D.R. non arriva al modello). La base è nuova (controllo dei numeri tra le lingue
-# corretto: codici e conversioni scritte prima del numero), quindi si rifà anche lei.
+# 27-11: `procedura_dr` nella base, `lingue_tra_loro` scartata (circa 10 errori in più ma
+# 11-13 falsi errori a prova: traduzioni libere). Nella base anche la regola della scheda (I9,
+# dà solo WARNING).
+# CAMPAGNA FINALE (27-11, copie cieche del seme 3): la base contro `fonte_ispezione` (I8) e
+# contro `finale` (I8 più il confronto tra le lingue stretto, I15). Quella che vince è la
+# configurazione della produzione. `fonte_ispezione` da sola dice quanto vale I8 se `finale`
+# avesse un falso errore per via delle lingue.
 varianti:
-  - lingue_tra_loro
-  - procedura_dr
+  - fonte_ispezione
+  - finale
 
 # Prove per variante: tre (le differenze sono di uno o due errori).
 ripetizioni: 3
@@ -33,12 +37,10 @@ modelli:
 insiemi: [piccolo, grande]
 
 # Sul grande: se_si_tiene (base + varianti che si tengono sul piccolo), sempre, mai.
-# 26-11 sera: sempre. `lingue_tra_loro` sui cicli veri può dare ERRATO dove una lingua
-# traduce liberamente, e i falsi errori che `procedura_dr` deve togliere sono sul grande.
+# 27-11: sempre. I falsi errori che contano (traduzioni libere, «4 volte») sono sui cicli veri.
 grande: sempre
 
-# Tetto di spesa della campagna, in dollari. Il 26-11 sera 12 prove sono costate 2,77 $.
-# Con `lingue_tra_loro` (una sessione corta in più per operazione) e `procedura_dr` circa
-# 5 $. Arrivata
-# al tetto la campagna si ferma; rilanciata, riparte da dove era.
+# Tetto di spesa della campagna, in dollari. Il 26-27-11: base 0,22-0,26 $ a prova,
+# `lingue_tra_loro` 0,39-0,56 $. Questa: circa 6 $ (18 prove). Arrivata al tetto la campagna si
+# ferma; rilanciata, riparte da dove era.
 massimo_dollari: 10

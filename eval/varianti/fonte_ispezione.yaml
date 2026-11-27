@@ -1,0 +1,7 @@
+nome: fonte_ispezione
+descrizione: nelle operazioni d'ispezione al modello va anche la sezione INSPECTION del manuale del motore citato dalle fonti del ciclo, con una nota che per i criteri d'ispezione vale quella e non le definizioni generali dell'SPM
+ipotesi: "P7 e P8 (26-11): la stampa giusta 04ecaabe op. 050 e il ciclo vero 2d724fba op. 050 dicono «4 volte» come la sezione d'ispezione del manuale del motore; la v2 confronta solo con il task SPM («3 volte», definizione generica) e dà ERRATO. La sezione d'ispezione è già nella conoscenza dal 23-11. `definizioni_generali` (dire al modello cosa non è un errore) toglieva anche gli errori veri: qui invece il modello riceve il testo giusto"
+atteso: "04ecaabe 050 e 2d724fba 050 (in attesa) non più ERRATO, o quasi mai; falsi errori 0; errori stabili uguali alla base; mai visti non meno della base; costo per ciclo al massimo +30% (più testo solo nelle ispezioni)"
+base: baseline
+agent:
+  inspection_source: true

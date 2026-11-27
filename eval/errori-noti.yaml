@@ -87,6 +87,10 @@ cicli:
     # 26-11 sera (Copilot): la stampa giusta da cui vengono 22f586bb e 895167b9
     giusto: true
     di: 22f586bb
+    # 27-11 (P10 a Copilot): «superiore a 4X» in italiano, «not to exceed 4X» in inglese. Può
+    # essere un errore vero della stampa: finché Copilot non risponde, un ERRATO qui non conta
+    in_attesa:
+      "060": "P10: limite al contrario tra le lingue, forse errore vero della stampa"
   2d724fba:
     # ciclo vero: per la v2 una stampa giusta. 26-11 (Copilot): l'ERRATO della 050 è un falso
     # errore come quello della P7 («4 volte» contro la definizione generica di «3 volte»).

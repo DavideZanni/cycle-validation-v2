@@ -118,8 +118,10 @@ class SdkAgentSession:
 
     def build_options(self, request: SessionRequest) -> ClaudeAgentOptions:
         settings = self._settings
-        tools = list(ALLOWED_TOOLS) if request.use_tools else []
         files = list(request.allowed_files)
+        # i tool solo con dei file ammessi: senza, mancherebbe l'hook che limita Read e Grep a
+        # quei file (27-11, revisione del codice; oggi ogni sessione con i tool ha dei file)
+        tools = list(ALLOWED_TOOLS) if request.use_tools and files else []
         cwd = Path(os.path.commonpath([str(path.parent) for path in files])) if files else None
         hooks: dict[str, list[HookMatcher]] = {}
         if request.use_tools and cwd is not None:

@@ -2,7 +2,12 @@
 
 import pytest
 
-from cycle_validation.checks.languages import language_parts, number_mismatches
+from cycle_validation.checks.languages import (
+    language_parts,
+    limit_direction,
+    number_mismatches,
+    strict_difference,
+)
 
 
 def test_a_number_changed_next_to_a_part_number_is_found() -> None:
@@ -123,3 +128,45 @@ def test_no_mismatch(description: str) -> None:
 def test_language_parts() -> None:
     assert language_parts("UNO / ONE") == ("UNO", "ONE")
     assert language_parts("SOLO ITALIANO") is None
+
+
+# --- versione stretta del confronto tra le lingue (I15, 27-11) ---
+
+
+@pytest.mark.parametrize(
+    ("kind", "italian", "english", "accepted"),
+    [
+        # errori veri: negazione tolta in una lingua, limite al contrario
+        ("negazione", "NON RACCORDARE IL BORDO", "BLEND THE EDGE", True),
+        ("negazione", "RACCORDARE IL BORDO", "DO NOT BLEND THE EDGE", True),
+        ("limite", "PROFONDITÀ MASSIMA 0,5", "MINIMUM DEPTH 0.5", True),
+        ("limite", "SUPERIORE A 4X", "NOT TO EXCEED 4X", True),
+        ("limite", "ALMENO 3 VOLTE", "AT MOST 3 TIMES", True),
+        # falsi errori della campagna del 26-27-11: traduzioni libere
+        (
+            "negazione",
+            "PRESA IN CARICO DA PERIZIA",
+            "HANDLING OF THE PART TO THE REPAIR AREA",
+            False,
+        ),
+        ("limite", "LARGHEZZA", "LENGTH", False),
+        ("negazione", "CARTA ABRASIVA", "CROCUS CLOTH", False),
+        # stessa negazione o stesso limite nelle due lingue
+        ("negazione", "NON PIEGARE", "DO NOT BEND", False),
+        ("limite", "AL MASSIMO 2 MM", "MAXIMUM 2 MM", False),
+        # «No.» abbreviazione di numero, non una negazione
+        ("negazione", "FIGURA 3", "FIGURE No. 3", False),
+        # un altro tipo non diventa mai ERRATO
+        ("materiale", "OLIO", "GREASE", False),
+    ],
+)
+def test_the_strict_check_accepts_only_what_the_code_finds_in_the_quotes(
+    kind: str, italian: str, english: str, accepted: bool
+) -> None:
+    assert strict_difference(kind, italian, english) is accepted
+
+
+def test_a_range_with_minimum_and_maximum_has_no_direction() -> None:
+    assert limit_direction("MINIMO 1 MASSIMO 2", "it") is None
+    assert limit_direction("NON OLTRE 2", "it") == "giù"
+    assert limit_direction("OLTRE 2", "it") == "su"

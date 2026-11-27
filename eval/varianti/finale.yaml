@@ -1,0 +1,9 @@
+nome: finale
+descrizione: la v2 con tutto acceso per la produzione - fonte_ispezione (I8) e il confronto tra le lingue nella versione stretta (I15, solo negazioni e limiti al contrario ritrovati dal codice nelle parole copiate)
+ipotesi: "Campagna del 26-27-11: `lingue_tra_loro` trovava circa 10 errori in più (negazioni, limiti, materiali cambiati in una lingua) ma 11-13 falsi errori a prova, tutti traduzioni libere (titoli, sinonimi, codici con o senza lettera). Nella versione stretta passano solo le negazioni in una lingua sola e i limiti al contrario, e il codice li deve ritrovare nelle parole copiate dal modello. Con `fonte_ispezione` il falso errore «4 volte contro 3 volte» non c'è più"
+atteso: "falsi errori 0 (anche nelle operazioni in attesa); più errori stabili della base (le negazioni e i limiti cambiati in una lingua: 22f586bb 010 e 060, 895167b9 060, f355dc3c 050); mai visti non meno della base; i materiali cambiati in una lingua restano mancati; costo per ciclo al massimo 2 volte la base"
+base: baseline
+agent:
+  inspection_source: true
+  compare_languages: true
+  compare_languages_strict: true

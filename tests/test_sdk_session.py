@@ -210,3 +210,11 @@ def test_a_request_can_ask_for_its_own_effort() -> None:
     session = SdkAgentSession(AgentSettings(effort="low"))
     assert session.build_options(request(effort="high")).effort == "high"
     assert session.build_options(request()).effort == "low"
+
+
+def test_tools_without_allowed_files_are_switched_off() -> None:
+    """27-11 (revisione del codice): senza file ammessi mancherebbe l'hook che limita Read e
+    Grep a quei file. Oggi non succede, ma la sessione non deve avere i tool liberi."""
+    options = SdkAgentSession(AgentSettings()).build_options(request(use_tools=True))
+    assert options.tools == []
+    assert not options.hooks

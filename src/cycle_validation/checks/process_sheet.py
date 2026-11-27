@@ -43,9 +43,35 @@ def treatment_for_family(treatment: str | None, family: str | None) -> str | Non
     return _SEPARATOR.join(kept) if kept else treatment
 
 
+# Processi speciali (P6, decisa il 26-11): lì la scheda di processo è obbligatoria. Si
+# riconoscono dalla descrizione, in italiano o in inglese.
+_SPECIAL_PROCESS = re.compile(
+    r"lubrificant\w*\s+secc\w*|rivestiment\w*|attacco\s+chimic\w*|liquidi\s+penetranti"
+    r"|penetrant\w*|dry[\s-]+film|dry\s+lubricant\w*|coating\w*|chemical\s+etch\w*"
+    r"|etching|\bFPI\b",
+    re.IGNORECASE,
+)
+
+
+def special_process(description: str | None) -> str | None:
+    """La parola del processo speciale nella descrizione, se c'è."""
+    found = _SPECIAL_PROCESS.search(description or "")
+    return found.group(0) if found else None
+
+
 def _check_one(ctx: CheckContext, target: Target, operation: Operation) -> CheckResult:
     sheet = operation.process_sheet
     if sheet is None:
+        process = special_process(operation.operation_description)
+        if ctx.agent.special_process_sheet and process is not None:
+            # mai ERRATO: dove i dati non bastano vale la regola prudente
+            return make_result(
+                CHECK,
+                target,
+                Reason.SCHEDA_FORSE_MANCANTE,
+                f"Operazione di processo speciale («{process}») senza scheda di processo: "
+                "la scheda forse manca.",
+            )
         return make_result(CHECK, target, Reason.CAMPO_ASSENTE, "Nessuna scheda indicata.")
     if not ctx.profile.verify_process_sheet:
         return make_result(

@@ -87,6 +87,12 @@ class AgentSettings(_Strict):
     # negazioni tolte in una lingua mancate con EVIDENZA_NON_TROVATA o FONTE_ASSENTE. Costa una
     # sessione corta per ogni operazione scritta in due lingue.
     compare_languages: bool = False
+    # Con `compare_languages`: la versione stretta (I15, 27-11-2026). Il modello segnala solo
+    # una negazione in una lingua sola o un limite al contrario, e il codice lo ritrova nelle
+    # parole copiate (una negazione in una citazione sola; due limiti di verso opposto). Nasce
+    # dalla campagna del 26-27-11: `lingue_tra_loro` trovava 10 errori in più ma prendeva per
+    # errore le traduzioni libere (11-13 falsi errori a prova). Variante `lingue_stretta`.
+    compare_languages_strict: bool = False
     # Nei cicli DR la procedura della D.R. (la deroga, documenti DR_PROC delle recommendation
     # applicabili) va al modello **insieme** ai task trovati, con una nota: per quel pezzo vale
     # più del manuale. Oggi arriva solo se nessun task si trova. Variante `procedura_dr`
@@ -96,6 +102,18 @@ class AgentSettings(_Strict):
     # 895167b9 005, 0 falsi errori, stessi errori stabili; quelli che perde erano trovati per il
     # motivo sbagliato, «il manuale vieta la raccordatura»).
     dr_procedure_always: bool = True
+    # Un'operazione di processo speciale (lubrificante secco, rivestimenti, attacco chimico,
+    # liquidi penetranti) senza scheda: WARNING SCHEDA_FORSE_MANCANTE, mai ERRATO. Le altre
+    # operazioni senza scheda restano N/A. P6, decisa il 26-11-2026; nella base dal 27-11 (dà
+    # solo WARNING, non cambia gli errori trovati). MIGLIORIE I9.
+    special_process_sheet: bool = True
+    # Nelle operazioni d'ispezione (FPI, controllo visivo...) al modello va anche la sezione
+    # INSPECTION del manuale del motore citato dalle fonti del ciclo, con una nota: per i
+    # criteri d'ispezione vale quella, non le definizioni generali dell'SPM. P7 e P8 (26-11):
+    # la stampa giusta 04ecaabe op. 050 e il ciclo vero 2d724fba dicono «4 volte» come il
+    # manuale del motore, la v2 confrontava con il «3 volte» generico dell'SPM e dava ERRATO.
+    # Variante `fonte_ispezione` (I8, 27-11-2026).
+    inspection_source: bool = False
     # Una contraddizione (ERRATO) si conferma con altrettante sessioni uguali: resta ERRATO
     # solo se la ritrovano tutte, altrimenti WARNING GIUDIZIO_INSTABILE. Su un ciclo DR vero
     # lo stesso confronto dava ERRATO 3 volte su 6 (21-11-2026). Costa solo sugli ERRATO.

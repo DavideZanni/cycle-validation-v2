@@ -617,6 +617,44 @@ def test_the_languages_prompt_has_both_texts_and_a_closed_schema() -> None:
     assert set(schema["required"]) == set(schema["properties"])
 
 
+# --- versione stretta (`agent.compare_languages_strict`, variante `lingue_stretta`, I15) ---
+
+STRICT_ON = LANG_ON.model_copy(update={"compare_languages_strict": True})
+
+
+def test_the_strict_languages_check_keeps_a_negation_found_by_the_code() -> None:
+    reply = {**_languages("diverse"), "kind": "negazione"}
+    results, _ = asyncio.run(check_operations(ctx([op(BILINGUAL)]), _script(reply), STRICT_ON, "s"))
+    assert results[0].reason is Reason.INCOERENZA_LINGUE
+
+
+def test_the_strict_languages_check_drops_a_free_translation() -> None:
+    """Campagna del 26-27-11: titoli e frasi tradotti liberamente diventavano ERRATO."""
+    text = "PRESA IN CARICO DA PERIZIA / HANDLING OF THE PART TO THE REPAIR AREA"
+    for kind in ("negazione", "limite", "nessuna"):
+        reply = {
+            **_languages("diverse", "DA PERIZIA", "TO THE REPAIR AREA"),
+            "kind": kind,
+        }
+        results, _ = asyncio.run(check_operations(ctx([op(text)]), _script(reply), STRICT_ON, "s"))
+        assert results[0].reason is Reason.VERIFICATO, kind
+
+
+def test_the_strict_prompt_asks_only_negations_and_limits() -> None:
+    from cycle_validation.agent.prompt import languages_schema
+
+    session = _script({**_languages("uguali", "", ""), "kind": "nessuna"})
+    asyncio.run(check_operations(ctx([op(BILINGUAL)]), session, STRICT_ON, "s"))
+    request = next(r for r in session.requests if r.session_id.endswith("-lingue"))
+    assert "`negazione`" in request.prompt and "`limite`" in request.prompt
+    assert request.output_schema == languages_schema(strict=True)
+    assert request.output_schema["properties"]["kind"]["enum"] == [
+        "negazione",
+        "limite",
+        "nessuna",
+    ]
+
+
 # --- procedura della D.R. insieme ai task (`agent.dr_procedure_always`, `procedura_dr`) ---
 
 
@@ -674,3 +712,60 @@ def test_without_a_dr_procedure_the_variant_changes_nothing() -> None:
     off_jobs, _ = plan_operation_checks(ctx([op()]), SETTINGS, "s")
     on_jobs, _ = plan_operation_checks(ctx([op()]), on, "s")
     assert on_jobs[0].request.prompt == off_jobs[0].request.prompt
+
+
+# --- sezione d'ispezione del manuale del motore (`agent.inspection_source`, I8) ---
+
+
+def _inspection_ctx(tmp_path: Path, description: str) -> CheckContext:
+    """Un'operazione che cita un task SPM (capitolo 70), in un ciclo che cita il manuale del
+    motore con la sezione 72-00-01: la sua ispezione è `CIR 72-00-01, INSPECTION 001`."""
+    from cycle_validation.kb.memory import IndexedKnowledgeBase
+    from cycle_validation.kb.port import DocumentInfo
+
+    spm = tmp_path / "spm.md"
+    spm.write_text(
+        "<!-- page 1 -->\n70-21-00-110-030 Indicazioni\nLineare: lunghezza 3 volte la larghezza.\n",
+        "utf-8",
+    )
+    engine = tmp_path / "motore.md"
+    engine.write_text(
+        "<!-- page 1 -->\nCIR 72-00-01, INSPECTION 001\nLineare: lunghezza oltre 4 volte la "
+        "larghezza.\nCIR 72-00-01, REPAIR 001\nRaccordare.\n",
+        "utf-8",
+    )
+    kb = IndexedKnowledgeBase(
+        "v",
+        documents=[
+            DocumentInfo(key="SPM_DEMO", path=spm, code="SPM-DEMO", kind="SPM"),
+            DocumentInfo(key="MOTORE_DEMO", path=engine, code="MOTORE-DEMO"),
+        ],
+    )
+    cycle = Cycle(
+        engine_model="GENX-1B",
+        sources=[Source(manual="MOTORE-DEMO", task="72-00-01 REPAIR 001", repair_code="R-01")],
+        operations=[op(description, codes=["70-21-00-110-030"])],
+    )
+    return CheckContext(cycle, kb, StaticMachineRegistry([]), profile("mos"))
+
+
+def test_an_inspection_gets_the_engine_manual_inspection_section(tmp_path: Path) -> None:
+    on = SETTINGS.model_copy(update={"inspection_source": True})
+    context = _inspection_ctx(tmp_path, "ISPEZIONE FPI: INDICAZIONE LINEARE OLTRE 4 VOLTE")
+    jobs, _ = plan_operation_checks(context, on, "s")
+    tasks = [item.task for item in jobs[0].locations]
+    assert tasks == ["70-21-00-110-030", "72-00-01 INSPECTION 001"]
+    assert "sezione d'ispezione del manuale del motore" in jobs[0].request.prompt
+    assert "oltre 4 volte" in jobs[0].request.prompt  # il testo arriva al modello
+    # spenta (la base), solo il task SPM
+    off, _ = plan_operation_checks(context, SETTINGS, "s")
+    assert [item.task for item in off[0].locations] == ["70-21-00-110-030"]
+    assert "sezione d'ispezione" not in off[0].request.prompt
+
+
+def test_an_operation_that_is_not_an_inspection_is_unchanged(tmp_path: Path) -> None:
+    on = SETTINGS.model_copy(update={"inspection_source": True})
+    context = _inspection_ctx(tmp_path, "PULIRE IL PEZZO")
+    with_flag, _ = plan_operation_checks(context, on, "s")
+    without, _ = plan_operation_checks(context, SETTINGS, "s")
+    assert with_flag[0].request.prompt == without[0].request.prompt

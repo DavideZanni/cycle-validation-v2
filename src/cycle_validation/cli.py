@@ -784,7 +784,8 @@ def _session_for(name: str) -> Callable[[AgentSettings, Path | None], AgentSessi
 def _summary(name: str, path: Path) -> str:
     metrics = measure(json.loads(path.read_text(encoding="utf-8")))
     lines = [
-        f"{name}: concordanza {metrics.concordance:.1%}".replace(".", ",")
+        f"{name}: concordanza "
+        + f"{metrics.concordance:.1%}".replace(".", ",")
         + f", ERRATO falsi {metrics.false_errato:g}, errori mancati {metrics.missed_errors:g}, "
         f"esiti tecnici {metrics.technical:g}, tempo mediano per ciclo "
         f"{metrics.time_median_ms / 1000:.1f} s, costo per ciclo {metrics.cost_per_cycle:.4f} USD"

@@ -72,11 +72,18 @@ class LanguagesJudgement(BaseModel):
     rationale: str = Field(min_length=1)
     italian_quote: str = ""
     english_quote: str = ""
+    # solo nella versione stretta (`agent.compare_languages_strict`)
+    kind: str = ""
 
 
-def languages_schema() -> dict[str, Any]:
-    """Schema JSON del confronto tra le due lingue: chiuso, come `judgement_schema`."""
-    return {
+# Tipi di differenza della versione stretta: solo questi possono diventare ERRATO.
+STRICT_KINDS = ("negazione", "limite", "nessuna")
+
+
+def languages_schema(strict: bool = False) -> dict[str, Any]:
+    """Schema JSON del confronto tra le due lingue: chiuso, come `judgement_schema`. Nella
+    versione stretta anche il tipo della differenza."""
+    schema: dict[str, Any] = {
         "type": "object",
         "additionalProperties": False,
         "required": ["languages", "rationale", "italian_quote", "english_quote"],
@@ -87,6 +94,10 @@ def languages_schema() -> dict[str, Any]:
             "english_quote": {"type": "string"},
         },
     }
+    if strict:
+        schema["required"].append("kind")
+        schema["properties"]["kind"] = {"type": "string", "enum": list(STRICT_KINDS)}
+    return schema
 
 
 LANGUAGES_SYSTEM_PROMPT = (
@@ -95,6 +106,34 @@ LANGUAGES_SYSTEM_PROMPT = (
     "all'operatore le stesse istruzioni. Confronti solo le due lingue tra loro: non hai il "
     "manuale e non ti serve. Rispondi solo con l'output strutturato richiesto."
 )
+
+
+def build_strict_languages_prompt(italian: str, english: str) -> str:
+    """La domanda della versione stretta (variante `lingue_stretta`, 27-11): solo negazioni e
+    limiti al contrario. Le parole copiate devono contenere la negazione o i due limiti: il
+    codice li ritrova lì (`checks/languages.strict_difference`)."""
+    return (
+        f"## Descrizione in italiano\n\n{italian.strip()}\n\n"
+        f"## Descrizione in inglese\n\n{english.strip()}\n\n"
+        "## Domanda\n\n"
+        "Una delle due lingue dice all'operatore il **contrario** dell'altra? Cerca solo due "
+        "cose:\n"
+        "- `negazione`: una negazione o un divieto che c'è in una lingua sola («non», «mai», "
+        "«vietato», «not», «never», «do not»), che cambia quello che l'operatore deve fare;\n"
+        "- `limite`: un limite al contrario (minimo in una lingua e massimo nell'altra, "
+        "«almeno» e «al massimo», «superiore a» e «not to exceed», sopra e sotto).\n\n"
+        "Tutto il resto **non** è una differenza da segnalare: traduzioni libere, titoli e "
+        "nomi delle operazioni detti in modo diverso, una lingua più dettagliata dell'altra, "
+        "frasi o note in una lingua sola, sinonimi, un nome generico e uno specifico dello "
+        "stesso materiale o attrezzo, codici scritti con o senza lettere davanti, numeri e "
+        "unità di misura (li controlla già il programma). Nel dubbio rispondi `uguali` e "
+        "`nessuna`.\n\n"
+        "Se rispondi `diverse`, scrivi in `kind` il tipo (`negazione` o `limite`) e copia in "
+        "`italian_quote` e in `english_quote` le poche parole delle due lingue che non "
+        "coincidono, identiche al testo qui sopra e **con** la parola della negazione o del "
+        "limite. Scrivi in `rationale` che cosa cambia per l'operatore. Se rispondi `uguali`, "
+        "`kind` è `nessuna` e le due citazioni restano vuote."
+    )
 
 
 def build_languages_prompt(italian: str, english: str) -> str:
@@ -180,6 +219,16 @@ DR_PROCEDURE_NOTE = (
 )
 
 
+INSPECTION_NOTE = (
+    "Tra i testi di riferimento c'è la **sezione d'ispezione del manuale del motore** (titolo "
+    "con INSPECTION). Per i criteri d'ispezione (che cosa è un'indicazione, i limiti, i "
+    "rapporti tra lunghezza e larghezza, le zone) vale questa: le definizioni generali di un "
+    "manuale di pratiche standard valgono solo dove il manuale del motore non dice niente. "
+    "Resta `contraddetto` se la descrizione contraddice la sezione d'ispezione, o se una delle "
+    "due lingue dice qualcosa di diverso dall'altra."
+)
+
+
 def _header(
     cycle: Cycle,
     operation: Operation,
@@ -189,6 +238,7 @@ def _header(
     itemized: bool = False,
     general_definitions: bool = False,
     dr_procedure: bool = False,
+    inspection: bool = False,
 ) -> list[str]:
     lines = [
         f"Operazione {operation.operation_number}",
@@ -203,6 +253,8 @@ def _header(
         lines.append(GENERAL_DEFINITIONS_NOTE)
     if dr_procedure:
         lines.append(DR_PROCEDURE_NOTE)
+    if inspection:
+        lines.append(INSPECTION_NOTE)
     if operation.task_codes:
         lines.append(f"Task code citati: {', '.join(operation.task_codes)}")
     if missing_tasks:
@@ -245,12 +297,14 @@ def build_operation_prompt(
     languages: tuple[str, str] | None = None,
     second_search: bool = False,
     dr_procedure: bool = False,
+    inspection: bool = False,
 ) -> str:
     """`languages`: le due parti della descrizione, se vanno giudicate separatamente
     (`AgentSettings.separate_languages`). `second_search`: è la seconda ricerca, nei documenti
     interi, dopo un primo giudizio «non verificabile» (`AgentSettings.search_when_unverifiable`).
     `dr_procedure`: tra i testi c'è la procedura della D.R. insieme ai task
-    (`AgentSettings.dr_procedure_always`)."""
+    (`AgentSettings.dr_procedure_always`). `inspection`: tra i testi c'è la sezione d'ispezione
+    del manuale del motore (`AgentSettings.inspection_source`)."""
     lines = _header(
         cycle,
         operation,
@@ -260,6 +314,7 @@ def build_operation_prompt(
         itemized=settings.itemized_check,
         general_definitions=settings.general_definitions_note,
         dr_procedure=dr_procedure,
+        inspection=inspection,
     )
     if second_search:
         lines.append(SECOND_SEARCH_NOTE)
