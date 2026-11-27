@@ -9,6 +9,8 @@ import json
 import os
 import re
 import shutil
+import subprocess
+import sys
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -627,6 +629,11 @@ def _pdfs_in(folder: Path) -> list[Path]:
     return found
 
 
+def _pdfs_of(paths: list[Path]) -> list[Path]:
+    """I PDF dati e quelli delle cartelle date (`eval scegli`, `eval prova`)."""
+    return [pdf for path in paths for pdf in (_pdfs_in(path) if path.is_dir() else [path])]
+
+
 def _fingerprint(data: bytes) -> str:
     """L'impronta di un file: le prime 8 cifre del suo sha256 (nomi delle cartelle, errori noti)."""
     return hashlib.sha256(data).hexdigest()[:8]
@@ -858,6 +865,8 @@ def _write_leaderboard(results_dir: Path, out: Path) -> str:
 
 
 DEFAULT_TRIAL_LIST = Path("runs/prove/cicli.txt")
+KNOWN_ERRORS_FILE = Path("eval/errori-noti.yaml")
+VARIANTS_DIR = Path("eval/varianti")
 
 
 @eval_app.command("scegli")
@@ -870,9 +879,7 @@ def eval_choose(
     copertura: Annotated[
         float, typer.Option(help="Parte minima delle operazioni confrontabili (0-1).")
     ] = 0.8,
-    attesi: Annotated[Path, typer.Option(help="YAML degli errori noti.")] = Path(
-        "eval/errori-noti.yaml"
-    ),
+    attesi: Annotated[Path, typer.Option(help="YAML degli errori noti.")] = KNOWN_ERRORS_FILE,
     out: Annotated[Path, typer.Option(help="Lista dei PDF (resta sul PC).")] = DEFAULT_TRIAL_LIST,
     config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
 ) -> None:
@@ -887,9 +894,7 @@ def eval_choose(
         kb = load_local_knowledge(knowledge)
     except (CycleValidationError, OSError, ValueError) as error:
         raise _fail(error) from error
-    pdfs: list[Path] = []
-    for path in percorsi:
-        pdfs.extend(_pdfs_in(path) if path.is_dir() else [path])
+    pdfs = _pdfs_of(percorsi)
     cycles: dict[str, CycleSeen] = {}
     names: dict[str, list[str]] = {}
     hash_of: dict[str, str] = {}
@@ -958,9 +963,7 @@ def eval_blind(
     per_ciclo: Annotated[
         int, typer.Option(help="Copie al massimo da uno stesso ciclo vero.")
     ] = BLIND_PER_CYCLE,
-    attesi: Annotated[Path, typer.Option(help="YAML degli errori noti.")] = Path(
-        "eval/errori-noti.yaml"
-    ),
+    attesi: Annotated[Path, typer.Option(help="YAML degli errori noti.")] = KNOWN_ERRORS_FILE,
     out: Annotated[Path, typer.Option(help="Cartella delle copie (resta sul PC).")] = Path(
         "runs/mutazioni"
     ),
@@ -1169,10 +1172,8 @@ def eval_trial(
             settings = load_settings(config)
         if not nome:
             raise CycleValidationError("Manca --nome (o --variante).")
-        known = load_known_errors(attesi or [Path("eval/errori-noti.yaml")])
-        entries: list[tuple[Path, Path | None]] = []
-        for path in pdfs or []:
-            entries += [(pdf, None) for pdf in (_pdfs_in(path) if path.is_dir() else [path])]
+        known = load_known_errors(attesi or [KNOWN_ERRORS_FILE])
+        entries: list[tuple[Path, Path | None]] = [(pdf, None) for pdf in _pdfs_of(pdfs or [])]
         entries += _list_entries(lista or [])
         if not entries:
             raise CycleValidationError("Nessun PDF: dai i PDF o --lista.")
@@ -1248,7 +1249,7 @@ def _campaign_settings(
     if name.casefold() == BASE_NAME:
         settings = load_settings(config)
     else:
-        loaded = load_variant(Path("eval/varianti") / f"{name}.yaml", config_override=config)
+        loaded = load_variant(VARIANTS_DIR / f"{name}.yaml", config_override=config)
         settings = loaded.settings
         proposal = _proposal(loaded)
     if model_id:
@@ -1459,10 +1460,10 @@ def eval_campaign(
         if config is None and Path("data/settings.yaml").is_file():
             config = Path("data/settings.yaml")
         for name in campaign.varianti:
-            if not (Path("eval/varianti") / f"{name}.yaml").is_file():
+            if not (VARIANTS_DIR / f"{name}.yaml").is_file():
                 raise CycleValidationError(f"Variante non trovata: eval/varianti/{name}.yaml")
         kb = knowledge or _latest_knowledge()
-        sets = _campaign_sets(runs, Path("eval/errori-noti.yaml"))
+        sets = _campaign_sets(runs, KNOWN_ERRORS_FILE)
     except (CycleValidationError, OSError, ValueError) as error:
         raise _fail(error) from error
     outcome = Outcome()
@@ -1591,7 +1592,7 @@ def _direct_fetch(values: dict[str, Any], database: str | None, query: str) -> l
     )
 
 
-_MASKED = ("CV_ENV_SECRET", "REDSHIFT_DATABASE", "MACHINES_QUERY")
+_COMPANY_ENV = ("CV_ENV_SECRET", "REDSHIFT_DATABASE", "MACHINES_QUERY")
 
 
 @app.command("qa")
@@ -1703,7 +1704,7 @@ def prepare_qa(
         typer.echo(f"  {line}")
     typer.echo("Dockerfile scritto (valori aziendali coperti):")
     shown = dockerfile
-    for name in _MASKED:
+    for name in _COMPANY_ENV:
         shown = re.sub(rf'({name}=)"(?:[^"\\]|\\.)*"', r'\1"…"', shown)
     for line in shown.splitlines():
         typer.echo(f"  {line}")
@@ -1953,23 +1954,20 @@ CHECKS = (
 
 def run_code_checks(echo: Callable[[str], None]) -> bool:
     """Test, ruff e mypy con lo stesso Python del programma. Requisito, non punteggio."""
-    import subprocess
-    import sys
-
     ok = True
     for name, args in CHECKS:
-        done = subprocess.run(
+        result = subprocess.run(
             [sys.executable, *args],
             capture_output=True,
             text=True,
             encoding="utf-8",
             errors="replace",
         )
-        last = (done.stdout.strip().splitlines() or [""])[-1]
-        echo(f"  {name}: {'OK' if done.returncode == 0 else 'FALLITO'} {last}")
-        if done.returncode != 0:
+        last = (result.stdout.strip().splitlines() or [""])[-1]
+        echo(f"  {name}: {'OK' if result.returncode == 0 else 'FALLITO'} {last}")
+        if result.returncode != 0:
             ok = False
-            echo(done.stdout[-3000:] + done.stderr[-2000:])
+            echo(result.stdout[-3000:] + result.stderr[-2000:])
     return ok
 
 
