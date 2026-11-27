@@ -26,7 +26,7 @@ prova e cosa si è deciso), `MEMORIA.md` (cosa è successo finora).
 | **3. Le prove** | 3.1 Come funzionano · 3.2 Cicli veri · 3.3 Copie cieche · 3.4 Gruppo nascosto · 3.5 Campagna · 3.6 Leggere i risultati · 3.7 Prova a mano · 3.8 Mettere ordine |
 | **4. Prove dal frontend** | la v2 dalla pagina web |
 | **5. Dopo una nuova ingestion** | fotografia della conoscenza, lista dei manuali, cosa rifare |
-| **6. Le persone** | domande aperte, messaggio per il collega del frontend |
+| **6. Le persone** | domande aperte, messaggio per il collega del frontend, prompt per la documentazione completa |
 | **7. QA** | la pubblicazione nell'ambiente di prova |
 
 ---
@@ -108,7 +108,7 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 |---|---|---|---|
 | ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, copie cieche | 24-11 |
 | ✅ | **2. Prima campagna** | tutte le impostazioni, Haiku e Sonnet | 24-11 sera |
-| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` e `definizioni_generali` non entrano; corretto il controllo dei numeri tra le lingue. Adesso: `lingue_tra_loro` e `procedura_dr`. Domani: `fonte_ispezione`, regola della scheda e campagna finale | 26-27-11 |
+| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` e `definizioni_generali` non entrano; corretto il controllo dei numeri tra le lingue. 27-11: `procedura_dr` nella base, `lingue_tra_loro` scartata. Adesso: `fonte_ispezione`, regola della scheda, `lingue_tra_loro` stretta, poi campagna finale | 26-27-11 |
 | ⬜ | **4. Prove dal frontend** | la v2 dalla pagina web (sezione 4) | 27-11 |
 | ⬜ | **5. Conoscenza e QA** | la tua grande ingestion, una prova di controllo, Salvare, QA | dopo la 4 |
 | ⬜ | **6. Produzione** | `develop` → `main` | dopo QA |
@@ -116,7 +116,7 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 Tempo e costo (B1, B4...) non servono per la produzione: oggi 15 s e 0,01 $ a ciclo. Si fanno
 dopo, se serve. Risultati e decisioni: `MIGLIORIE.md`, sezioni 7 e 13.
 
-### 👉 Adesso: finire le migliorie (26-27-11)
+### 👉 Adesso: finire le migliorie (27-11)
 
 **Decisione del 26-11 sera.** Niente altri manuali da chiedere: si va in produzione anche senza
 il capitolo 70-23 dell'SPM, i due REPAIR e M4 (li aggiungeranno poi, a mano). La conoscenza del
@@ -124,35 +124,32 @@ servizio la scegli tu: una grande ingestion di tutti i documenti civili.
 
 | | Passo | Chi | Quando · costo |
 |---|---|---|---|
-| 👉 | **1 · Campagna** base contro `lingue_tra_loro` e `procedura_dr` (sta girando) | tu | oggi · circa 5 $ · 2-3 ore |
-| ⬜ | **2 · `fonte_ispezione` e regola della scheda** | Claude | dopo le foto del passo 1 |
-| ⬜ | **3 · Aggiornare e prove dal frontend** | tu | domani · qualche centesimo · 1 ora |
-| ⬜ | **4 · Campagna finale** | tu | domani · circa 5 $ · 2-3 ore |
+| ✅ | **1 · Campagna** base contro `lingue_tra_loro` e `procedura_dr` | tu | finita il 27-11 alle 11:17: `procedura_dr` nella base, `lingue_tra_loro` scartata (`MIGLIORIE.md`, sezione 13) |
+| 👉 | **2 · Migliorie per la campagna finale** | Claude | adesso |
+| 👉 | **3 · Aggiornare, prove dal frontend, domande a Copilot** | tu | adesso, mentre Claude scrive il passo 2 · qualche centesimo · 1 ora |
+| ⬜ | **4 · Campagna finale** | tu | dopo il passo 2 · circa 5 $ · 2-3 ore |
 | ⬜ | **5 · Grande ingestion, prova di controllo, Salvare, QA** | tu | dopo |
 
 ---
 
-**👉 Passo 1 · Campagna** (sezione [3.5](#35-la-campagna-tutte-le-prove-in-automatico))
+**👉 Passo 2 · Migliorie per la campagna finale** (lo fa Claude)
 
-- **Mentre gira:** non aggiornare il PC e non fare prove dal frontend (si dividono la quota di
-  Bedrock e i numeri si falsano).
-- **Mandami:** la riga finale, le foto di `runs\campagna.md` e dei due `riepilogo.md`.
-
----
-
-**⬜ Passo 2 · `fonte_ispezione` e regola della scheda** (lo fa Claude)
-
-Claude decide quali varianti entrano nella base, poi scrive `fonte_ispezione` (I8: toglie il
-falso errore «4 volte contro 3 volte») e la regola della scheda (I9). Corregge anche i difetti
-trovati nella revisione del codice del 27-11 (`MEMORIA.md`, sezione 12), prima della campagna
-finale.
+`fonte_ispezione` (I8: toglie il falso errore «4 volte contro 3 volte»), la regola della scheda
+(I9), `lingue_tra_loro` stretta (I15: solo negazioni, numeri e limiti al contrario; le
+traduzioni libere non sono errori) e i difetti trovati nella revisione del codice del 27-11
+(`MEMORIA.md`, sezione 12). Poi Claude scrive cosa deve dire il piano della campagna finale.
 
 ---
 
-**⬜ Passo 3 · Aggiornare e prove dal frontend** (domani, prima della campagna)
+**👉 Passo 3 · Aggiornare, prove dal frontend, domande a Copilot** (adesso)
 
-1. Aggiornare (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Foto dell'ultima riga.
-2. Prove dal frontend (sezione [4](#4-prove-dal-frontend)), con la v2 aggiornata.
+1. Aggiornare (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Foto dell'ultima riga. Porta la
+   pulizia del codice del 27-11 e `procedura_dr` nella base.
+2. Prove dal frontend (sezione [4](#4-prove-dal-frontend)).
+3. Domanda **P10** a Copilot (sezione [6.1](#61-domande)): quattro differenze tra le lingue in
+   stampe «giuste», forse errori veri.
+4. Quando hai tempo: il prompt per la **documentazione completa** (sezione
+   [6.3](#63-prompt-per-copilot-la-documentazione-completa)).
 
 ---
 
@@ -580,10 +577,34 @@ uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --er
 
 ### 6.1 Domande
 
-Nessuna domanda aperta: P1-P9 chiuse il 26-11 (decise da Copilot sui dati, con la **regola
-prudente**: dove i dati non bastano, WARNING e mai ERRATO). Le risposte e cosa cambiano sono in
-`MEMORIA.md` (note del 26-11) e `MIGLIORIE.md` (7.3). Se una persona che conosce cicli e manuali
-dice altro, scrivilo a Claude a parole, senza codici veri.
+P1-P9 chiuse il 26-11 (decise da Copilot sui dati, con la **regola prudente**: dove i dati
+non bastano, WARNING e mai ERRATO). Le risposte e cosa cambiano sono in `MEMORIA.md` (note del
+26-11) e `MIGLIORIE.md` (7.3). Se una persona che conosce cicli e manuali dice altro, scrivilo
+a Claude a parole, senza codici veri.
+
+**👉 P10 (27-11): differenze tra le lingue in stampe «giuste».** Nella campagna del 27-11
+`lingue_tra_loro` ha segnato come ERRATO quattro operazioni di stampe che per noi sono giuste.
+Se sono errori veri della stampa, non sono falsi errori. Copilot **in modalità Ask**, incolla:
+
+```text
+Sono in app_cycle_validation_v2. Non modificare nessun file. Le stampe dei cicli si
+riconoscono dall'impronta: i primi 8 caratteri, minuscoli, dello SHA-256 del PDF
+(Get-FileHash). I percorsi sono in runs\prove-grande\cicli.txt e runs\prove-piccolo\cicli.txt.
+Per ognuna di queste operazioni leggi la descrizione italiana e quella inglese (la riga di
+asterischi le separa) e dimmi se danno all'operatore la stessa istruzione:
+1. impronta 04ecaabe, operazione 030: «larghezza» in italiano, «length» in inglese;
+2. impronta 2d724fba, operazione 030: lo stesso;
+3. impronta 737dec71, operazione 060: «superiore a 4X» in italiano, «not to exceed 4X» in
+   inglese;
+4. impronta 8bdb25d5, operazione 040: «sul lubrificante applicato» in italiano, «on the
+   coating» in inglese.
+Per ognuna rispondi: UGUALI (stessa istruzione, traduzione libera) oppure DIVERSE (errore
+vero della stampa), con una riga di spiegazione. Se il manuale o la D.R. citati dicono quale
+delle due è giusta, dillo. Non scrivere codici di manuali, part number, serial number, numeri
+DR o codici di ciclo: usa le parole o le impronte.
+```
+
+**Mandami:** la foto della risposta.
 
 ### 6.2 Messaggio per il collega del frontend
 
@@ -604,6 +625,77 @@ stessa risposta.
 ```
 
 **Scrivi a Claude** la risposta del collega, a parole.
+
+### 6.3 Prompt per Copilot: la documentazione completa
+
+**A cosa serve:** Copilot vede sul PC quello che Claude non vede: il codice dell'ingestion,
+la v1, il frontend, il buildspec, le cartelle su S3 (solo i nomi). Con questo prompt confronta
+`docs/DOCUMENTAZIONE.md` con tutto quello che c'è e scrive cosa manca, cosa è sbagliato e
+com'è fatta l'ingestion. Claude poi lo mette in `DOCUMENTAZIONE.md` e nella guida allo studio,
+così una persona nuova (o un'altra IA) impara tutto da zero leggendo solo quello.
+
+**Quando:** quando hai tempo, non mentre gira una campagna (non costa niente, ma è lungo).
+Copilot **in modalità Ask**: non deve modificare niente.
+
+```text
+Sei un revisore tecnico. Lavori in sola lettura: NON modificare, creare o cancellare file, NON
+lanciare comandi che scrivono qualcosa. Non leggere la cartella data/ (è esclusa) e non
+aggirare l'esclusione.
+
+OBIETTIVO
+Il file app_cycle_validation_v2/docs/DOCUMENTAZIONE.md deve permettere a una persona nuova, o
+a un'altra intelligenza artificiale, di capire DA ZERO tutto il sistema Cycle Validation v2:
+l'ingestion (come nasce la conoscenza dai documenti) e la validazione dei cicli (come la v2
+controlla una stampa). Deve essere completo, corretto e senza parti nascoste: anche le regole
+implicite nel codice, i valori predefiniti, i casi limite, cosa succede quando qualcosa non va.
+
+COSA LEGGERE
+1. docs/DOCUMENTAZIONE.md, tutto, poi docs/MEMORIA.md per la storia.
+2. Il codice della v2: app_cycle_validation_v2/src, config, prompts, tests, Dockerfile.
+3. Il codice dell'ingestion che pubblica la conoscenza su S3 (knowledge-index o la cartella
+   che nel workspace la contiene): tutti i passi, i file di regole (per esempio regole.json),
+   i comandi, i formati di uscita.
+4. La v1 (app_cycle_validation) e il frontend (la pagina Cycle Validation): solo quello che
+   serve a capire come la v2 li sostituisce o li usa.
+5. buildspec.yml e i file di pubblicazione: come si passa da develop (QA) a main
+   (produzione).
+
+COSA SCRIVERE (in italiano molto semplice, frasi corte, termini tecnici spiegati la prima volta)
+Parte A - Errori: ogni punto di DOCUMENTAZIONE.md che il codice smentisce. Per ognuno: sezione,
+  cosa dice il documento, cosa fa davvero il codice (file e funzione), il testo corretto.
+Parte B - Cosa manca: ogni cosa che il codice fa e il documento non dice (regole, soglie,
+  valori predefiniti, rami d'errore, tentativi, tempi massimi, cache, permessi, variabili
+  d'ambiente, formati). Per ognuna: in quale sezione va e il testo da aggiungere.
+Parte C - L'ingestion, dall'inizio alla fine: da dove arrivano i documenti (cartelle S3 solo
+  come forma, per esempio <bucket>/.../landing_area/), quali tipi di documento, come si
+  leggono i PDF, come si trovano task, targhe, schede, recommendation DR, come si scrive
+  ogni file pubblicato (manifest.json, tasks.json, machine_tags.json, process_sheets.json,
+  dr_recommendations.json, uncertainty.json, catalog.json di EJ200, current.json), come si
+  lancia, quanto costa, quanto dura, cosa fa se un file non si legge, come si aggiunge un
+  manuale, come si ripubblica, i limiti noti. Con un diagramma a blocchi in testo (frecce ->).
+Parte D - Il giro completo: dall'utente che carica un PDF nel frontend fino al risultato a
+  schermo, passando per il servizio, la conoscenza, Redshift, Bedrock. Con un diagramma in
+  testo. Dove sta ogni pezzo in AWS (solo il tipo di risorsa e la regione, mai nomi veri).
+Parte E - Cose implicite o nascoste: comportamenti che una persona non si aspetta (valori
+  scritti nel codice, condizioni che saltano un controllo, differenze tra QA e produzione,
+  differenze tra v1 e v2, cose che dipendono dall'ordine dei file).
+Parte F - Domande aperte: quello che non riesci a capire dal codice e va chiesto a una persona.
+
+REGOLE SUI DATI (obbligatorie: il testo finisce in un repository pubblico)
+Mai scrivere: nomi di bucket, account AWS, ARN, host, nomi o valori di secret, nomi utente,
+matricole, nomi di persone, nome dell'azienda o del repository aziendale, codici veri di
+manuali (chiamali M1, M2...), numeri DR, serial number, part number, codici di ciclo, contenuti
+o codici EJ200. Al loro posto usa segnaposto: <bucket>, <secret di ambiente>, M1, SN-0001.
+Gli esempi di file con valori inventati, la forma deve essere quella vera.
+
+FORMATO DELLA RISPOSTA
+Markdown, dentro un unico blocco di codice, così si copia tutto insieme. Se è troppo lungo,
+dividi in parti («Parte 1 di N») e aspetta che io scriva «continua».
+```
+
+**Mandami:** il testo della risposta (copiato e incollato, non in foto: è lungo). **Prima di
+mandarlo, controlla** che non ci siano nomi veri (bucket, persone, codici): se ce ne sono,
+cancellali. Claude aggiorna `DOCUMENTAZIONE.md` e la guida allo studio.
 
 ---
 
