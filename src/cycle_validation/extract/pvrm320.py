@@ -16,7 +16,7 @@ Le operazioni ripetute su più pagine (stesso numero) si uniscono in una sola.
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from cycle_validation.domain.check import Usage
@@ -52,7 +52,7 @@ class _Op:
     number: str
     text: list[str]
     machine: str | None = None
-    modules: list[str] | None = None
+    modules: list[str] = field(default_factory=list)
     page: int | None = None
 
 
@@ -98,8 +98,7 @@ def parse_pvrm320(pdf: PdfDocument, layout: Pvrm320Layout | None = None) -> Cycl
                 current.machine = m[1].strip()
             elif (m := layout.data_modules.match(line)) is not None and current is not None:
                 in_note = False
-                found = [x.strip() for x in m[1].split(",") if x.strip()]
-                current.modules = [*(current.modules or []), *found]
+                current.modules += [x.strip() for x in m[1].split(",") if x.strip()]
             elif (m := layout.cycle_code.match(line)) is not None:
                 head["cycle_code"] = m[1].strip()
             elif (m := layout.description.match(line)) is not None:
@@ -122,7 +121,7 @@ def parse_pvrm320(pdf: PdfDocument, layout: Pvrm320Layout | None = None) -> Cycl
                 operation_number=op.number,
                 operation_description=" ".join(op.text),
                 machine_tag=op.machine,
-                task_codes=op.modules or [],
+                task_codes=op.modules,
                 page=op.page,
             )
             for op in operations.values()
