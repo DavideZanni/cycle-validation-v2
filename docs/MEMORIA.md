@@ -20,6 +20,46 @@ Gli altri documenti:
 
 ---
 
+## 0. Adesso: verso la presentazione (dal 27-11-2026)
+
+**L'utente presenta la v2 fra circa 2 settimane (dal 27-11).** Il 27-11, dopo le prime prove dal
+frontend, ha chiesto: «perché la v2 dà così tanti warning? quale è più giusta, la v1 o la
+v2?». La risposta, con i fatti, è nella nota del 27-11 in sezione 12. Il messaggio per la
+presentazione: nella v1 «OK» vuol dire «non ho trovato contraddizioni»; nella v2 vuol dire «ho
+controllato, e la frase citata l'ha ritrovata il programma nel manuale». Dove il manuale non
+dice niente, la v2 lo dice invece di scrivere OK.
+
+**Le cose da fare, in ordine** (i blocchi sono in `COPILOT.md`; lo stato aggiornato è nella
+sezione 1 di `COPILOT.md`):
+
+| # | Cosa | Dove | Stato |
+|---|---|---|---|
+| 1 | Aggiornare il codice sul PC | COPILOT 2.1 | ✅ 27-11 12:35, test passati |
+| 2 | `aws sso login` | terminale | prima della campagna |
+| 3 | Archiviare le prove vecchie | COPILOT 3.8 | ✅ 27-11 12:35 (le cartelle `-sonnet` da spostare a mano) |
+| 4 | Copie cieche con il seme 3 | COPILOT 3.3 | ✅ 27-11: 14 copie (seme 2: 15) |
+| 5 | Piano della campagna: per ogni insieme `base`, `fonte_ispezione`, `finale`, ognuna `3 da fare` | COPILOT 3.5 | da fare |
+| 6 | Campagna finale (circa 6 $, 3 ore); foto della riga finale, di `campagna.md` e dei due `riepilogo.md` | COPILOT 3.5 | da fare |
+| 7 | La v1 sugli stessi 14 cicli noti, in QA, con le copie rinominate con l'impronta (si può fare mentre gira la campagna) | COPILOT 3.9 | da fare |
+| 8 | Le altre prove dal frontend della v2, dopo la campagna (due cicli «con errori», il più lungo con il tempo, DR con e senza serial, file sbagliato, storico, CSV) | COPILOT 4 | A3 e A1 fatte il 27-11 |
+| 9 | Prompt della documentazione completa (quando c'è tempo) | COPILOT 6.3 | da fare |
+
+**Cosa fa Claude con i risultati:**
+
+- dopo la campagna (6): sceglie la configurazione per la produzione e la accende nella base,
+  poi l'utente rifà Aggiornare;
+- dopo la v1 (7): la tabella «v1 contro v2 sugli stessi cicli» (errori trovati, falsi errori,
+  WARNING per ciclo, costo, tempo) e, se l'utente vuole, una pagina o qualche slide per la
+  presentazione;
+- poi, se c'è tempo prima della presentazione: grande ingestion, prova di controllo, QA
+  (COPILOT passo 5). Per la presentazione basta la demo in locale con la configurazione
+  scelta.
+
+**Come l'utente vuole le risposte** (detto il 27-11): le cose da fare scritte in modo preciso e
+puntuale, in ordine, ognuna con il paragrafo di `COPILOT.md`, *Deve uscire* e *Mandami*.
+
+---
+
 ## 1. Dove siamo e cosa manca per la consegna (22-11-2026)
 
 **In breve:** la v2 funziona sui cicli veri (MOS e DR) e legge tutte le stampe viste. Per
@@ -427,6 +467,23 @@ dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora
   ripete**, né in chat né nei documenti.
 - `report.md` non si manda a Claude (contiene i testi dei manuali). Bastano le righe di
   riepilogo; i giudizi l'utente li dà a parole.
+- **Regole dell'utente (ripetute in ogni giro, scritte qui il 27-11 perché valgono sempre):**
+  - mai scrivere nel repository, nei documenti o in chat: nome del bucket, account, profilo
+    AWS, host, nome utente Windows o matricola (compaiono nei percorsi delle foto), nomi di
+    colleghi, codici veri di manuali, numeri DR, serial o part number, codici di ciclo,
+    contenuti EJ200, nome dell'azienda o del repository aziendale. I manuali si chiamano
+    M1…M6; le impronte di 8 caratteri vanno bene;
+  - mai chiedere né guardare: `runs/mutazioni/errori.yaml`, `data/errori-nascosti.yaml`, le
+    stampe nascoste, i `report.md`, i `prestazioni.md` interi, i `transcripts`,
+    `runs/manuali-da-ingestionare.txt` (di quello si fotografa solo lo schermo);
+  - prima di ogni commit: `uv run pytest -q`, `ruff check`, `ruff format --check`,
+    `mypy src`; nel diff niente numeri di 6 o più cifre (anche le date scritte tutte attaccate),
+    né le sigle dei codici veri (le lettere G-E-K e T-E-C-P-R scritte attaccate); le impronte
+    vanno bene;
+  - italiano molto semplice; `DOCUMENTAZIONE.md` si aggiorna nello stesso commit quando cambia
+    il comportamento; in `COPILOT.md` le parti fatte si tolgono;
+  - **Copilot sempre in Ask**: nelle foto è spesso su **Agent con «Allow all»** (anche il 27-11,
+    tre volte): ricordarlo all'utente ogni volta che si vede.
 
 ---
 

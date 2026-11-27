@@ -24,3 +24,15 @@ impari qualcosa di nuovo, aggiungilo lì. Le regole che non si discutono:
   nuovi in `docs/` senza motivo: si aggiunge a uno di questi.
 - Quando cambia come funziona il programma (regole, controlli, comandi, impostazioni, rotte),
   si aggiorna `docs/DOCUMENTAZIONE.md` nello stesso commit.
+- Regole fisse dell'utente (dettagli in `docs/MEMORIA.md`, sezione 7): mai scrivere (repository,
+  documenti, chat) nome utente Windows o matricola, nomi di colleghi, nome dell'azienda o del
+  repository aziendale, oltre ai codici veri; i manuali si chiamano M1…M6, le impronte di 8
+  caratteri vanno bene. Mai chiedere né guardare i file degli errori nascosti, i `report.md`,
+  i `prestazioni.md` interi, i `transcripts`, `runs/manuali-da-ingestionare.txt`. Nel diff di
+  ogni commit niente numeri di 6 o più cifre e niente sigle dei codici veri (le lettere
+  G-E-K dei manuali GE e T-E-C-P-R, scritte attaccate).
+- Se nelle foto Copilot è su **Agent** (spesso con «Allow all»), ricordare all'utente di
+  rimetterlo su **Ask**.
+- Le cose da fare per l'utente si scrivono in ordine, ognuna con il paragrafo di `COPILOT.md`,
+  *Deve uscire* e *Mandami*. Lo stato del lavoro e il piano verso la presentazione sono in
+  `docs/MEMORIA.md`, sezione 0.

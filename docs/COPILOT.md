@@ -127,7 +127,7 @@ servizio la scegli tu: una grande ingestion di tutti i documenti civili.
 | ✅ | **1 · Campagna** base contro `lingue_tra_loro` e `procedura_dr` | tu | finita il 27-11 alle 11:17: `procedura_dr` nella base, `lingue_tra_loro` scartata (`MIGLIORIE.md`, sezione 13) |
 | ✅ | **2 · Migliorie per la campagna finale** | Claude | scritte il 27-11 |
 | 👉 | **3 · Aggiornare, prove dal frontend, domande a Copilot** | tu | adesso, mentre Claude scrive il passo 2 · qualche centesimo · 1 ora |
-| ⬜ | **4 · Campagna finale** | tu | dopo il passo 2 · circa 5 $ · 2-3 ore |
+| 👉 | **4 · Campagna finale** | tu | 27-11: archiviato e copie cieche fatte (12:35); ora login, piano, campagna · circa 6 $ · 3 ore |
 | ⬜ | **5 · Grande ingestion, prova di controllo, Salvare, QA** | tu | dopo |
 
 ---
@@ -159,10 +159,18 @@ revisione del codice.
 
 ---
 
-**⬜ Passo 4 · Campagna finale**
+**👉 Passo 4 · Campagna finale** (adesso)
 
-Dopo il passo 3 (Aggiornare fatto, prove dal frontend finite: non insieme alla campagna).
-Archiviare (3.8), copie cieche con il **seme 3** (3.3), piano e campagna (3.5): la base contro
+Fatto il 27-11 alle 12:35: Aggiornare (test passati), Archiviare (3.8), copie cieche con il
+**seme 3** (3.3: 14 copie su 14 cicli, 4 dei tipi del modello). Le cartelle
+`runs\prove-piccolo-sonnet` e `runs\prove-grande-sonnet` sono ancora in `runs`: spostale a mano
+nelle cartelle di archivio del 27-11 alle 12:35 (non è urgente, la campagna non le usa).
+
+**Adesso, in ordine:** `aws sso login`; il piano (3.5, «Il piano»); se il piano è giusto, la
+campagna (3.5, «La campagna»). Mentre gira si può fare il passo 4b (la v1 in QA), non le prove
+dal frontend della v2.
+
+Che cosa confronta: la base contro
 `fonte_ispezione` e contro `finale`, 3 prove ciascuna, piccolo e grande. Il seme nuovo è una
 misura onesta: la configurazione che vince è quella della produzione. Circa 6 $ e 2-3 ore.
 
