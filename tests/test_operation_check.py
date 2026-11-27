@@ -24,7 +24,15 @@ from cycle_validation.domain.check import Reason, Verdict
 from cycle_validation.domain.cycle import Cycle, Operation, Source
 from cycle_validation.services.machines import StaticMachineRegistry
 
-SETTINGS = AgentSettings(retry_backoff_s=0)
+# le prove partono dalla v2 «nuda»: le parti di `finale` (nella base dal 27-11 sera) si
+# accendono nei test che le provano
+PLAIN = {
+    "compare_languages": False,
+    "compare_languages_strict": False,
+    "inspection_source": False,
+    "out_of_scope": False,
+}
+SETTINGS = AgentSettings(retry_backoff_s=0, **PLAIN)
 QUOTE_OK = {"file": "MAN-DEMO-72.md", "line": 7, "quote": "Pulire il supporto con solvente tipo A."}
 
 
@@ -519,7 +527,7 @@ def test_a_contradiction_from_the_second_search_is_confirmed_on_the_same_documen
 
 # --- confronto tra le due lingue (`agent.compare_languages`, variante `lingue_tra_loro`) ---
 
-LANG_ON = SETTINGS.model_copy(update={"compare_languages": True})
+LANG_ON = SETTINGS.model_copy(update={"compare_languages": True})  # versione larga
 BILINGUAL = "NON RACCORDARE IL BORDO / BLEND THE EDGE"
 
 

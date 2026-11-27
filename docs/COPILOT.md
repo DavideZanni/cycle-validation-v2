@@ -128,70 +128,37 @@ servizio la scegli tu: una grande ingestion di tutti i documenti civili.
 | ✅ | **2 · Migliorie per la campagna finale** | Claude | scritte il 27-11 |
 | ✅ | **3 · Aggiornare, prove dal frontend, domande a Copilot** | tu | 27-11 (restano le altre prove dal frontend, sezione 4) |
 | ✅ | **4 · Campagna finale e v1 sugli stessi cicli** | tu | 27-11: vince `finale`; la v1 in `docs/CONFRONTO_V1_14_CICLI.md` |
-| 👉 | **4c · Riepiloghi ricalcolati e domanda P12** | tu | adesso · gratis · 30 minuti |
+| ✅ | **4c · Riepiloghi ricalcolati e domanda P12** | tu | 27-11 sera: la v2 mancava tutte e 6 le operazioni aggiunte; P12: i 3 ERRATO dei cicli veri sono errori veri |
+| 👉 | **4d · La base nuova** (`finale` più tre controlli del codice) | tu | adesso · circa 2,5 $ · 1 ora |
 | ⬜ | **5 · Grande ingestion, prova di controllo, Salvare, QA** | tu | dopo |
 
 ---
 
-**👉 Passo 4c · Riepiloghi ricalcolati e domanda P12** (adesso, gratis)
+**👉 Passo 4d · La base nuova** (adesso, circa 2,5 $, 1 ora)
 
-**Fatto il 27-11:** la campagna finale (vince `finale`: 23 su 34 contro 20 sul piccolo, 12 su
-20 contro 10 sul grande, 0 falsi errori) e la v1 in QA sulle 14 stampe
-(`docs/CONFRONTO_V1_14_CICLI.md`). Dal testo delle stampe Claude ha trovato **6 operazioni con
-errori che non erano nella lista** (cambi di task, schede, macchine: la v1 li trova). Adesso
-si ricalcolano le prove già fatte con la lista nuova, senza rifarle.
+**Fatto il 27-11 sera:** riepiloghi ricalcolati (la v2 mancava tutte e 6 le operazioni trovate
+dalla v1) e P12 (i 3 ERRATO dei cicli veri sono lo stesso errore vero di 737dec71). Claude ha
+messo **`finale` nella base** e ha scritto **tre controlli del codice**, senza modello, provati
+sul testo delle 14 stampe: il task accanto all'operazione contro quello della testata (H17),
+la stessa operazione con due macchine (H19), i limiti della 010 cambiati in una lingua sola.
+Sulle 14 stampe trovano 5 operazioni in più e nessun falso errore. Adesso si misura la base
+nuova.
 
-1. **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Porta la lista nuova
-   degli errori noti e il comando che ricalcola.
+1. **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)).
    - **Deve uscire:** `... passed`, nessun `failed`.
-2. **Ricalcolare i due riepiloghi** (gratis, nessuna chiamata al modello):
-
-```powershell
-$env:UV_PYTHON = "3.14"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-"piccolo", "grande" | ForEach-Object { uv run cycle-validation eval riepilogo --cartella "runs/prove-$_" --attesi eval/errori-noti.yaml }
-```
-
-   - **Deve uscire:** per ogni insieme `Ricalcolati con gli errori noti di adesso: 27 cicli
-     cambiati` (3 stampe per 9 prove; un numero diverso va bene, mandami la foto), poi 9 righe
-     `... su 40` (piccolo) e 9 righe `... su 26` (grande), poi `Riepilogo: ...`.
-   - **Mandami:** la foto del terminale; poi, nei due `riepilogo.md` (3.6), la «Classifica
-     delle varianti» e le righe di «Errore per errore» di **38960731**, **8d3c673c** ed
-     **e9b74c84**.
-3. **Domanda P12 a Copilot** (in **Ask**, non in Agent): copia il testo qui sotto.
-
-```text
-Modalità Ask: leggi soltanto, non modificare e non creare file.
-
-Domanda A. Nella cartella runs/prove-grande ci sono tre prove «finale» del 27-11 (cartelle che
-finiscono con -finale). Nei cicli 414d85ca, 477abec8 e ffadfe16 la v2 dà ERRATO
-sull'operazione 060 (in prova.json: cycles, poi extra). Per ognuno dei tre cicli:
-1) che cosa dice la spiegazione dell'ERRATO, in una frase;
-2) nel file runs/prove-grande/<prova>/<impronta>/report.json, il testo della 060 in italiano e
-   in inglese: dicono la stessa cosa? In particolare il limite dell'ingrandimento: l'italiano
-   dice «superiore a 4X» e l'inglese «not to exceed 4X», come nella stampa 737dec71?
-3) la conclusione: errore vero della stampa (le due lingue dicono cose diverse) o falso errore
-   (traduzione libera, stessa istruzione)?
-
-Domanda B. Ciclo 04ecaabe, operazione 050, variante «fonte_ispezione»: nel piccolo
-(runs/prove-piccolo, cartelle che finiscono con -fonte_ispezione) la v2 dà ERRATO 3 volte su 3,
-nel grande 0 volte su 3. Confronta il report.json di 04ecaabe in una prova del piccolo e in una
-del grande: per la 050, quali manuali e task cita la v2 come evidenza, e che cosa dice la
-spiegazione? Nel piccolo c'è la sezione d'ispezione del manuale del motore tra le evidenze?
-
-Rispondi in italiano semplice: una tabella per la domanda A (ciclo, spiegazione, italiano,
-inglese, conclusione) e tre righe per la domanda B. Delle stampe copia solo le frasi della
-060 e della 050; non copiare testo dei manuali.
-```
-
-   - **Deve uscire:** la tabella con i tre cicli e le righe per 04ecaabe.
-   - **Mandami:** la foto della risposta.
-4. **Facoltativo:** nella QA ricarica una volta **298bc28e** (sezione [3.9](#39-la-v1-sugli-stessi-cicli),
-   punto 2), l'unica stampa che non si è caricata. **Mandami:** l'intestazione e le righe
-   «Error», oppure il messaggio di errore.
-
-**Dopo (Claude):** la tabella finale «v1 contro v2 sugli stessi cicli», `finale` nella base
-(se la P12 dice che i 3 ERRATO sono errori veri) e, se vuoi, una pagina per la presentazione.
+2. **Archiviare** le prove di oggi (sezione [3.8](#38-mettere-ordine-togliere-azzerare-archiviare-le-prove),
+   «Archiviare»): la base è cambiata, le prove vecchie non si confrontano più.
+   - **Deve uscire:** l'elenco delle cartelle di `runs`, con le due nuove `archivio-...`.
+3. **`aws sso login`**, poi **il piano** (sezione [3.5](#35-la-campagna-tutte-le-prove-in-automatico)).
+   - **Deve uscire:** per ogni insieme una riga sola, `base`, `3 da fare`.
+4. **La campagna** (3.5): solo la base, 3 prove, piccolo e grande.
+   - **Deve uscire:** 0 falsi errori; circa 28 errori stabili su 40 sul piccolo e circa 20 su
+     29 sul grande (i 3 cicli veri ora sono errori da trovare); nessun ciclo oltre 10 minuti.
+     Se sono molti meno, mandami la foto lo stesso: la lettura vera dei PDF può differire dal
+     testo su cui Claude ha provato.
+   - **Mandami:** la riga finale, `runs\campagna.md` e i due `riepilogo.md` (classifica,
+     «Errore per errore», «ERRATO da verificare», «In attesa»).
+5. **Ricordati:** Copilot sempre in **Ask** (nella foto della P12 era in Agent con «Allow all»).
 
 ---
 

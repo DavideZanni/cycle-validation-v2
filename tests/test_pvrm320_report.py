@@ -526,3 +526,31 @@ def test_an_empty_repair_field_does_not_take_the_next_line() -> None:
     assert _PAGE_REPAIR.search("RIPARAZIONE :   \nNOTE....... ABC") is None
     found = _PAGE_REPAIR.search("RIPARAZIONE : B1    72-00-00 REPAIR 001")
     assert found is not None and found["repair"] == "B1"
+
+
+def test_the_task_column_at_the_end_of_a_text_line_is_read_and_left_out_of_the_text() -> None:
+    """27-11 sera: la colonna SP.ORIG finita sulla stessa riga del testo era letta come testo;
+    ora è il task dell'operazione (H17) e non sta nella descrizione."""
+    body = [
+        row("ZC/001", "030", "RACCORDARE I DIFETTI."),
+        row(text="AREE RACCORDATE. * SP.ORIG. 70-11-00-350-003 SP.FIAT"),
+        SEP,
+    ]
+    operation = ops(parse_pvrm320_report(as_document([page(1, body)])))["030"]
+    assert operation.original_task == "70-11-00-350-003"
+    assert operation.operation_description == "RACCORDARE I DIFETTI. AREE RACCORDATE."
+
+
+def test_another_machine_for_the_same_operation_on_the_next_page_is_kept() -> None:
+    """H19 (27-11 sera): una stampa con errori aveva la macchina cambiata in una pagina sola."""
+    first = block(["QQ/901", "RSP001"], "010", ["PRIMA PARTE"], closed=False)
+    second = [row("QQ/902", "010", "SECONDA PARTE"), SEP, row("QQ/903", "020", "ALTRA"), SEP]
+    third = [row("QQ/903", "020", "ANCORA"), SEP]
+    cycle = parse_pvrm320_report(
+        as_document([page(1, first), page(2, second), page(3, third, FOOTER)])
+    )
+    by_number = ops(cycle)
+    assert by_number["010"].machine_tag == "QQ/901"
+    assert by_number["010"].other_machine_tags == ["QQ/902"]
+    # la stessa targa ripetuta su un'altra pagina non conta
+    assert by_number["020"].other_machine_tags == []

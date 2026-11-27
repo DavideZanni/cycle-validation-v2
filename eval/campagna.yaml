@@ -19,9 +19,9 @@
 # contro `finale` (I8 più il confronto tra le lingue stretto, I15). Quella che vince è la
 # configurazione della produzione. `fonte_ispezione` da sola dice quanto vale I8 se `finale`
 # avesse un falso errore per via delle lingue.
-varianti:
-  - fonte_ispezione
-  - finale
+# 27-11 sera: `finale` e i controlli H17, H19 e la 010 sono nella base. Si misura la base
+# nuova da sola (prima si archiviano le prove vecchie, COPILOT 3.8)
+varianti: []
 
 # Prove per variante: tre (le differenze sono di uno o due errori).
 ripetizioni: 3

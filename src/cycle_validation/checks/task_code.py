@@ -2,13 +2,20 @@
 
 Profili "task" (MOS, DR): il codice è un task del manuale citato.
 Profili "document" (EJ200): il codice compare nel testo delle pubblicazioni citate.
+
+Profili "task", prima di tutto (H17, 27-11 sera): il task scritto nella colonna SP.ORIG accanto
+all'operazione, se è della stessa famiglia del task della testata (stesse prime quattro parti,
+per esempio 70-11-00-350) ma diverso, è un ERRATO: la stampa si contraddice. Nelle stampe con
+errori messi a mano il task cambiato di una cifra esiste spesso nel manuale, quindi il
+controllo «task inesistente» non lo vede. Un task di un'altra famiglia (attacco chimico,
+liquidi penetranti, pulizia) è un altro processo e non si confronta.
 """
 
 import re
 
 from cycle_validation.checks.base import CheckContext, evidence_at, make_result, per_operation
 from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reason, Target
-from cycle_validation.domain.cycle import Operation
+from cycle_validation.domain.cycle import Cycle, Operation
 from cycle_validation.kb.documents import folded_text
 from cycle_validation.kb.port import DocumentInfo
 from cycle_validation.resolve.civil import (
@@ -17,7 +24,7 @@ from cycle_validation.resolve.civil import (
     resolve_operation,
     wrong_code_siblings,
 )
-from cycle_validation.text import squash
+from cycle_validation.text import normalize_code, squash
 
 CHECK = CheckName.TASK_CODE
 
@@ -101,7 +108,45 @@ def _by_document(ctx: CheckContext, target: Target, operation: Operation) -> Che
     )
 
 
+_FULL_TASK = re.compile(r"^(?P<family>\d{2}-\d{2}-\d{2}-\d{3})-\d{3}$")
+
+
+def header_task_mismatch(cycle: Cycle, operation: Operation) -> tuple[str, str] | None:
+    """(task dell'operazione, task della testata) quando sono della stessa famiglia ma diversi.
+    Conta la testata della riparazione dell'operazione, se le fonti dicono la riparazione."""
+    code = normalize_code(operation.original_task or "")
+    match = _FULL_TASK.match(code)
+    if match is None:
+        return None
+    header = [
+        normalize_code(source.task)
+        for source in cycle.sources
+        if source.task
+        and (
+            operation.repair_code is None
+            or source.repair_code is None
+            or normalize_code(source.repair_code) == normalize_code(operation.repair_code)
+        )
+    ]
+    if code in header:
+        return None
+    same = [
+        task for task in header if (m := _FULL_TASK.match(task)) and m["family"] == match["family"]
+    ]
+    return (code, same[0]) if same else None
+
+
 def _check_one(ctx: CheckContext, target: Target, operation: Operation) -> CheckResult:
+    if ctx.profile.reference_mode != "document" and (
+        pair := header_task_mismatch(ctx.cycle, operation)
+    ):
+        return make_result(
+            CHECK,
+            target,
+            Reason.TASK_DIVERSO_DALLA_TESTATA,
+            f"Il task accanto all'operazione ({pair[0]}) è diverso da quello della testata "
+            f"({pair[1]}), della stessa famiglia: uno dei due è sbagliato.",
+        )
     if not operation.task_codes:
         return make_result(CHECK, target, Reason.CAMPO_ASSENTE, "Nessun task code citato.")
     if ctx.profile.reference_mode == "document":

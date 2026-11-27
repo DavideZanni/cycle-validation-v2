@@ -16,6 +16,11 @@ I codici fatti di cifre (part number, numeri di 5 cifre o più) le due lingue li
 in punti diversi: si confrontano a parte, come elenco. Un codice che c'è solo in una lingua al
 posto di un altro che c'è solo nell'altra è un codice cambiato (26-11 sera: prima i codici non
 si confrontavano).
+
+Dal 27-11 sera i numeri si confrontano anche quando righe di asterischi dentro il testo
+dividono una lingua in più parti (`language_blocks`): nelle stampe di raccordatura la 010 ha
+quattro parti (italiano, nota, inglese, nota) e prima non si confrontava, così i limiti
+cambiati in una lingua sola non si vedevano.
 """
 
 import difflib
@@ -36,6 +41,110 @@ def language_parts(description: str) -> tuple[str, str] | None:
     """Parte italiana e parte inglese, se la descrizione ne ha esattamente due."""
     parts = description.split(LANGUAGE_SEPARATOR)
     return (parts[0], parts[1]) if len(parts) == 2 else None
+
+
+# Parole che dicono la lingua di una parte (solo parole brevi e frequenti, che non sono
+# nell'altra lingua): bastano a distinguere italiano e inglese nelle stampe.
+_ITALIAN_WORDS = frozenset(
+    [
+        "di",
+        "del",
+        "della",
+        "delle",
+        "dei",
+        "degli",
+        "il",
+        "lo",
+        "gli",
+        "la",
+        "le",
+        "con",
+        "per",
+        "su",
+        "sul",
+        "sulla",
+        "sulle",
+        "da",
+        "dal",
+        "dalla",
+        "che",
+        "non",
+        "sono",
+        "e",
+        "ed",
+        "alla",
+        "alle",
+        "al",
+        "nel",
+        "nella",
+        "un",
+        "una",
+        "come",
+        "deve",
+        "devono",
+        "essere",
+        "se",
+    ]
+)
+_ENGLISH_WORDS = frozenset(
+    [
+        "the",
+        "of",
+        "and",
+        "to",
+        "with",
+        "for",
+        "is",
+        "are",
+        "on",
+        "be",
+        "not",
+        "this",
+        "if",
+        "as",
+        "by",
+        "must",
+        "should",
+        "than",
+        "from",
+        "all",
+        "each",
+        "it",
+        "that",
+    ]
+)
+_WORD = re.compile(r"[^\W\d_]+")
+
+
+def _language(text: str) -> str | None:
+    words = [word.casefold() for word in _WORD.findall(text)]
+    italian = sum(word in _ITALIAN_WORDS for word in words)
+    english = sum(word in _ENGLISH_WORDS for word in words)
+    if italian == english:
+        return None
+    return "it" if italian > english else "en"
+
+
+def language_blocks(description: str) -> tuple[str, str] | None:
+    """Parte italiana e parte inglese, anche quando una lingua è divisa in più parti da righe di
+    asterischi dentro il testo: le parti vicine della stessa lingua si uniscono (una parte che
+    non si riconosce va con quella prima). Solo se alla fine resta italiano e poi inglese."""
+    parts = description.split(LANGUAGE_SEPARATOR)
+    if len(parts) <= 2:
+        return language_parts(description)
+    languages: list[str | None] = []
+    blocks: list[list[str]] = []
+    for part in parts:
+        language = _language(part)
+        if blocks and (language is None or languages[-1] in (None, language)):
+            blocks[-1].append(part)
+            languages[-1] = languages[-1] or language
+        else:
+            languages.append(language)
+            blocks.append([part])
+    if languages != ["it", "en"]:
+        return None
+    return " ".join(blocks[0]), " ".join(blocks[1])
 
 
 def _numbers(text: str) -> list[tuple[str, Decimal]]:
@@ -66,7 +175,7 @@ def _converted(a: Decimal, b: Decimal) -> bool:
 def number_mismatches(description: str) -> list[tuple[str, str]]:
     """Coppie (numero italiano, numero inglese) diverse nello stesso punto delle due lingue,
     poi i codici cambiati."""
-    parts = language_parts(description)
+    parts = language_blocks(description)
     if parts is None:
         return []
     italian, english = (_numbers(part) for part in parts)

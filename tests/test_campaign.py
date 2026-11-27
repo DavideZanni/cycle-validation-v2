@@ -258,6 +258,7 @@ def test_a_trial_without_answers_already_written_is_removed_and_done_again(
         cycle.pop("model_failures", None)
         cycle["warnings"] = {"ERRORE_TECNICO": 50}
         cycle["counts"]["warning"] = 50
+        cycle["tokens"] = 0  # il modello non ha letto né scritto niente
     bad = small / "20991231-235959-base"
     bad.mkdir()
     (bad / "prova.json").write_text(json.dumps(data), encoding="utf-8")

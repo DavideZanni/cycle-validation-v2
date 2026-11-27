@@ -3,6 +3,7 @@
 import pytest
 
 from cycle_validation.checks.languages import (
+    language_blocks,
     language_parts,
     limit_direction,
     number_mismatches,
@@ -170,3 +171,33 @@ def test_a_range_with_minimum_and_maximum_has_no_direction() -> None:
     assert limit_direction("MINIMO 1 MASSIMO 2", "it") is None
     assert limit_direction("NON OLTRE 2", "it") == "giù"
     assert limit_direction("OLTRE 2", "it") == "su"
+
+
+# 27-11 sera: nelle stampe di raccordatura la 010 ha una riga di asterischi pieni dentro ogni
+# lingua (prima della nota), quindi quattro parti; prima non si confrontava e i limiti cambiati
+# in una lingua sola non si vedevano (tre stampe con errori)
+SPLIT_010 = (
+    "IDENTIFICARE I DIFETTI CON LA MATITA. SE NON E STATA APPROVATA UNA DR RISPETTARE I "
+    "LIMITI: - MASSIMO 8 RACCORDATURE SU TUTTA LA PALA - MASSIMO 2 SUL BORDO D'ENTRATA"
+    " / RIPORTARE DI SEGUITO IL NUMERO DEI DIFETTI E CREARE UNA CARTELLA CON LE FOTO"
+    " / IDENTIFY THE DEFECTS WITH THE PENCIL. IF THERE IS NOT AN APPROVED DR USE THE "
+    "FOLLOWING LIMITS: - MAXIMUM NUMBER OF BLENDS FOR ONE BLADE IS 4 - MAXIMUM NUMBER OF "
+    "BLENDS ON LEADING EDGE IS 2"
+    " / CREATE A FOLDER NAMED AS THIS OL WITH THE DEFECTS PICTURES"
+)
+
+
+def test_a_language_split_in_more_parts_is_put_back_together() -> None:
+    blocks = language_blocks(SPLIT_010)
+    assert blocks is not None
+    assert blocks[0].startswith("IDENTIFICARE") and "CARTELLA" in blocks[0]
+    assert blocks[1].startswith("IDENTIFY") and "FOLDER" in blocks[1]
+    assert number_mismatches(SPLIT_010) == [("8", "4")]
+    assert number_mismatches(SPLIT_010.replace("MASSIMO 8", "MASSIMO 4")) == []
+
+
+def test_parts_that_do_not_end_as_italian_then_english_are_not_compared() -> None:
+    english_first = " / ".join(reversed(SPLIT_010.split(" / ")))
+    assert language_blocks(english_first) is None
+    # due parti: come prima, senza riconoscere la lingua
+    assert language_blocks("A 1 / B 2") == ("A 1", "B 2")

@@ -85,14 +85,17 @@ class AgentSettings(_Strict):
     # sono un ERRATO INCOERENZA_LINGUE (citazioni ritrovate nel testo, conferma come gli altri
     # ERRATO). Vale anche dove il manuale manca. Variante `lingue_tra_loro` (26-11-2026 sera):
     # negazioni tolte in una lingua mancate con EVIDENZA_NON_TROVATA o FONTE_ASSENTE. Costa una
-    # sessione corta per ogni operazione scritta in due lingue.
-    compare_languages: bool = False
+    # sessione corta per ogni operazione scritta in due lingue. Nella base dal 27-11-2026 sera,
+    # solo nella versione stretta (campagna finale: `finale` vince, P12: i 3 ERRATO in più sui
+    # cicli veri sono errori veri della stampa).
+    compare_languages: bool = True
     # Con `compare_languages`: la versione stretta (I15, 27-11-2026). Il modello segnala solo
     # una negazione in una lingua sola o un limite al contrario, e il codice lo ritrova nelle
     # parole copiate (una negazione in una citazione sola; due limiti di verso opposto). Nasce
     # dalla campagna del 26-27-11: `lingue_tra_loro` trovava 10 errori in più ma prendeva per
-    # errore le traduzioni libere (11-13 falsi errori a prova). Variante `lingue_stretta`.
-    compare_languages_strict: bool = False
+    # errore le traduzioni libere (11-13 falsi errori a prova). Variante `lingue_stretta`. Nella
+    # base dal 27-11-2026 sera (dentro `finale`).
+    compare_languages_strict: bool = True
     # Nei cicli DR la procedura della D.R. (la deroga, documenti DR_PROC delle recommendation
     # applicabili) va al modello **insieme** ai task trovati, con una nota: per quel pezzo vale
     # più del manuale. Oggi arriva solo se nessun task si trova. Variante `procedura_dr`
@@ -112,15 +115,17 @@ class AgentSettings(_Strict):
     # criteri d'ispezione vale quella, non le definizioni generali dell'SPM. P7 e P8 (26-11):
     # la stampa giusta 04ecaabe op. 050 e il ciclo vero 2d724fba dicono «4 volte» come il
     # manuale del motore, la v2 confrontava con il «3 volte» generico dell'SPM e dava ERRATO.
-    # Variante `fonte_ispezione` (I8, 27-11-2026).
-    inspection_source: bool = False
+    # Variante `fonte_ispezione` (I8, 27-11-2026). Nella base dal 27-11-2026 sera, dentro
+    # `finale` (da sola pari alla base: non toglie del tutto il caso P7, P12).
+    inspection_source: bool = True
     # Il modello può rispondere `fuori_tema` quando il testo di riferimento non tratta affatto
     # il tipo di operazione (presa in carico, versamento, preservazione, documenti): esito N/A
     # FUORI_TEMA con la spiegazione, invece di WARNING EVIDENZA_NON_TROVATA. Nasce dalle prove
     # dal frontend del 27-11-2026: 6 operazioni su 9 WARNING «il testo non ne parla», dove la
     # v1 dice OK senza controllare. Non trova e non toglie errori: cambia come si mostra
-    # «non c'è niente da confrontare». Dentro la variante `finale` (I16).
-    out_of_scope: bool = False
+    # «non c'è niente da confrontare». Dentro la variante `finale` (I16); nella base dal
+    # 27-11-2026 sera.
+    out_of_scope: bool = True
     # Una contraddizione (ERRATO) si conferma con altrettante sessioni uguali: resta ERRATO
     # solo se la ritrovano tutte, altrimenti WARNING GIUDIZIO_INSTABILE. Su un ciclo DR vero
     # lo stesso confronto dava ERRATO 3 volte su 6 (21-11-2026). Costa solo sugli ERRATO.

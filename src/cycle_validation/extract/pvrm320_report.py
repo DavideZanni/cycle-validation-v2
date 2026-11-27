@@ -60,6 +60,8 @@ _DT = re.compile(r"^(?:D\.T\.\s+)?\d{2}-\d{2}-\d{2}$")
 # Lo SP.FIAT è quasi sempre vuoto. Un codice contiene almeno una cifra, così una sigla vuota
 # non prende come codice la sigla che segue.
 _SP_LINE = re.compile(r"^\s*SP\.(?:ORIG|FIAT)\b")
+# la colonna dei codici in fondo a una riga di testo: «… ADJACENT AREAS. * SP.ORIG. <task> SP.FIAT»
+_SP_TAIL = re.compile(r"\s*\*?\s*\bSP\.(?:ORIG|FIAT)\b.*$")
 _SP_CODE = re.compile(r"\bSP\.(?P<kind>ORIG|FIAT)\.?\s+(?P<code>(?!SP\.)(?=\S*\d)\S+)")
 _TOOLING_HEADER = re.compile(r"^\*?\s*ATTREZZATURA PREVISTA", re.IGNORECASE)
 _TOOLING_CODE = re.compile(r"^[A-Z]\d{7}\s+\S")
@@ -136,6 +138,8 @@ class _Op:
     number: str
     page: int
     tag: str | None = None
+    # targhe diverse dalla prima scritte sulla riga del numero nelle pagine dopo (H19)
+    other_tags: list[str] = field(default_factory=list)
     text: list[str] = field(default_factory=list)
     sheet: str | None = None
     sp_orig: str | None = None
@@ -206,6 +210,13 @@ def _add_text(op: _Op, text: str) -> None:
     if _SP_LINE.match(text):
         op.take_codes(text)
         return
+    if (tail := _SP_TAIL.search(text)) is not None:
+        # i codici stanno nella loro colonna, finita sulla stessa riga del testo (27-11 sera):
+        # si prendono come task dell'operazione e non entrano nella descrizione
+        op.take_codes(text[tail.start() :])
+        text = text[: tail.start()]
+        if not _HAS_WORD.search(text):
+            return
     op.text.append(" ".join(_LONE_STAR.sub(" ", text).split()))
 
 
@@ -455,7 +466,12 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
             elif left and match["num"]:
                 # la targa sta sulla riga del numero; sotto c'è il centro responsabile, che non è
                 # una macchina e non deve mai finire nel controllo delle macchine attive
-                target.tag = target.tag or left
+                if target.tag is None:
+                    target.tag = left
+                elif normalize_code(left) != normalize_code(target.tag) and left not in (
+                    target.other_tags
+                ):
+                    target.other_tags.append(left)
             _add_text(target, text)
         if not held(pending):
             _settle(pending, after_banner, _truncated(operations, page.number, continuing))
@@ -489,6 +505,8 @@ def parse_pvrm320_report(pdf: PdfDocument) -> Cycle:
                 task_codes=tasks,
                 process_sheet=process_sheet,
                 page=op.page,
+                original_task=op.sp_orig,
+                other_machine_tags=[t for t in op.other_tags if t.upper() != "NOTE"],
             )
         )
 

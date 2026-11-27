@@ -772,3 +772,65 @@ def test_a_task_code_missing_where_its_family_is_is_errato(tmp_path: Path) -> No
     ]
     assert results[1].verdict == Verdict.ERRATO
     assert "70-11-00-350-029" in results[1].rationale
+
+
+def test_the_same_operation_with_two_machines_is_errato_even_with_the_registry_off() -> None:
+    """H19 (27-11 sera): la stessa operazione con targhe diverse su due pagine; vale anche sul
+    PC, dove il registro delle macchine è spento."""
+    cycle = load_cycle(EXAMPLE_DIR / "ciclo.json")
+    first = cycle.operations[0].model_copy(update={"other_machine_tags": ["TM-9999"]})
+    cycle = cycle.model_copy(update={"operations": [first, *cycle.operations[1:]]})
+    off = UnavailableMachineRegistry("non collegato", disabled=True)
+    results = check_machine_tags(_ctx(cycle, machines=off))
+    assert (results[0].reason, results[0].verdict) == (Reason.MACCHINE_DIVERSE, Verdict.ERRATO)
+    assert "TM-9999" in results[0].rationale
+    assert results[1].reason is Reason.CONTROLLO_SPENTO
+
+
+def _with_header_task(header: str | None, original: str | None) -> Cycle:
+    from cycle_validation.domain.cycle import Operation, Source
+
+    return Cycle(
+        repair_code="A1",
+        sources=[Source(manual="SPM-DEMO", task=header, repair_code="A1")],
+        operations=[
+            Operation(
+                operation_number="030",
+                operation_description="RACCORDARE / BLEND",
+                repair_code="A1",
+                original_task=original,
+            )
+        ],
+    )
+
+
+@pytest.mark.parametrize(
+    ("header", "original", "expected"),
+    [
+        # stessa famiglia, ultima parte diversa: la stampa si contraddice
+        ("70-11-00-350-002", "70-11-00-350-003", Reason.TASK_DIVERSO_DALLA_TESTATA),
+        # uguale alla testata, o di un altro processo (attacco chimico), o incompleto: niente
+        ("70-11-00-350-002", "70-11-00-350-002", Reason.CAMPO_ASSENTE),
+        ("70-11-00-350-002", "70-24-00-110-033", Reason.CAMPO_ASSENTE),
+        ("70-11-00-350-002", "70-11-00", Reason.CAMPO_ASSENTE),
+        # testata senza task: niente da confrontare
+        (None, "70-11-00-350-003", Reason.CAMPO_ASSENTE),
+    ],
+)
+def test_the_task_next_to_the_operation_is_compared_with_the_header(
+    header: str | None, original: str | None, expected: Reason
+) -> None:
+    """H17 (27-11 sera): nelle stampe con errori il task della colonna SP.ORIG era cambiato di
+    una cifra; esiste nel manuale, quindi «task inesistente» non lo vedeva."""
+    results = check_task_codes(_ctx(_with_header_task(header, original)))
+    assert results[0].reason is expected
+    if expected is Reason.TASK_DIVERSO_DALLA_TESTATA:
+        assert results[0].verdict is Verdict.ERRATO
+        assert "70-11-00-350-003" in results[0].rationale
+
+
+def test_the_header_task_of_another_repair_is_not_compared() -> None:
+    cycle = _with_header_task("70-11-00-350-002", "70-11-00-350-003")
+    other = cycle.operations[0].model_copy(update={"repair_code": "A3"})
+    results = check_task_codes(_ctx(cycle.model_copy(update={"operations": [other]})))
+    assert results[0].reason is Reason.CAMPO_ASSENTE

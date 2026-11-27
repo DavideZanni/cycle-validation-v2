@@ -26,6 +26,11 @@ class Reason(StrEnum):
     TASK_INESISTENTE = "TASK_INESISTENTE"
     # la descrizione italiana e quella inglese dicono numeri diversi
     INCOERENZA_LINGUE = "INCOERENZA_LINGUE"
+    # il task accanto all'operazione è della stessa famiglia di quello della testata, ma
+    # diverso (H17, 27-11 sera): la stampa si contraddice
+    TASK_DIVERSO_DALLA_TESTATA = "TASK_DIVERSO_DALLA_TESTATA"
+    # la stessa operazione ha targhe diverse su pagine diverse (H19, 27-11 sera)
+    MACCHINE_DIVERSE = "MACCHINE_DIVERSE"
 
     EVIDENZA_NON_TROVATA = "EVIDENZA_NON_TROVATA"
     FONTE_ASSENTE = "FONTE_ASSENTE"
@@ -63,6 +68,8 @@ _ERRATO = (
     Reason.DR_NESSUNA_CORRISPONDENZA,
     Reason.TASK_INESISTENTE,
     Reason.INCOERENZA_LINGUE,
+    Reason.TASK_DIVERSO_DALLA_TESTATA,
+    Reason.MACCHINE_DIVERSE,
 )
 _NON_APPLICABILE = (
     Reason.CAMPO_ASSENTE,

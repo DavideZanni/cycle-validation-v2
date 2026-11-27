@@ -255,7 +255,8 @@ ce ne sono più d'uno vale quello che ha recommendation nei dati DR.
 Il **ciclo estratto** (`domain/cycle.py`) ha: codice e descrizione del ciclo, modello del
 motore, tipo di operazione, codice di riparazione, fonti (`manual`, `task`, `repair_code`,
 `issue`, `section`), operazioni (`operation_number`, `operation_description`, `repair_code`,
-`machine_tag`, `task_codes`, `process_sheet`), dati DR. I segnaposto come `-`, `N/A`, `nessuno`
+`machine_tag`, `task_codes`, `process_sheet`, e dal 27-11 sera `original_task`, il task della
+colonna SP.ORIG, e `other_machine_tags`, le altre targhe della stessa operazione), dati DR. I segnaposto come `-`, `N/A`, `nessuno`
 valgono «assente».
 
 ### 5.5 Integrità (`extract/integrity.py`)
@@ -329,6 +330,15 @@ sorgente non risponde, l'esito è WARNING `ERRORE_TECNICO`.
 
 ### 6.2 `task_code`: i task citati esistono (`checks/task_code.py`)
 
+- **Prima di tutto, MOS e DR (H17, dal 27-11 sera):** il task scritto nella colonna SP.ORIG
+  accanto all'operazione (`Operation.original_task`, letto dal parser anche quando la colonna
+  finisce in fondo a una riga di testo) si confronta con il task della testata della stessa
+  riparazione. Se è della **stessa famiglia** (stesse prime quattro parti, per esempio
+  `70-11-00-350`) ma **diverso**: ERRATO `TASK_DIVERSO_DALLA_TESTATA`, la stampa si
+  contraddice. Un task di un'altra famiglia (attacco chimico, liquidi penetranti, pulizia) è un
+  altro processo e non si confronta; senza task in testata non si confronta. Nasce dalla v1
+  sugli stessi cicli: il task cambiato di una cifra esiste nel manuale, quindi
+  `TASK_INESISTENTE` non lo vedeva.
 - Nessun task: N/A `CAMPO_ASSENTE`.
 - **MOS e DR:** ogni task si cerca nei manuali delle fonti collegate all'operazione (stesso
   repair code; se nessuna, tutte le fonti). I task del **capitolo 70** si cercano **prima
@@ -364,6 +374,11 @@ si confrontano senza spazi né maiuscole (`A 0100` = `A0100`).
 | no | sì | WARNING `FONTE_ASSENTE` |
 | no | no | WARNING `TARGA_SCONOSCIUTA` |
 
+**Prima di tutto (H19, dal 27-11 sera), anche con il registro spento:** se la stessa
+operazione ha **targhe diverse su pagine diverse** (il parser le tiene in
+`Operation.other_machine_tags`; la stessa targa ripetuta non conta): ERRATO
+`MACCHINE_DIVERSE`, la stampa si contraddice.
+
 Nessuna targa: N/A. Elenco delle attive non raggiungibile: WARNING `ERRORE_TECNICO` (mai
 ERRATO). La targa è la riga sopra nella colonna TARGA; la riga sotto (centro responsabile) non
 si controlla.
@@ -395,7 +410,12 @@ si controlla.
    le conversioni mm ↔ pollici (2%) e °C ↔ °F (±1). Una conversione scritta in una sola lingua
    («0.38 MM (0.015 IN)», «248 °F (120 °C)») non sposta l'allineamento: di due numeri vicini
    che sono uno la conversione dell'altro resta quello che c'è anche nell'altra lingua (26-11;
-   dal 26-11 sera anche con la conversione scritta prima). Dal 26-11 sera vale anche:
+   dal 26-11 sera anche con la conversione scritta prima). **Dal 27-11 sera** si confrontano
+   anche le descrizioni divise in più di due parti da righe di asterischi dentro il testo
+   (`language_blocks`): le parti vicine della stessa lingua si uniscono (la lingua si
+   riconosce da parole brevi e frequenti) e il confronto si fa se resta italiano e poi
+   inglese. Prima la 010 delle stampe di raccordatura (quattro parti) non si confrontava e i
+   limiti cambiati in una lingua sola non si vedevano. Dal 26-11 sera vale anche:
    - due lingue con tanti numeri quanti, uguali tranne uno («50, 25» contro «25, 25»), anche se
      l'allineamento vede un numero tolto e uno aggiunto;
    - i **codici** fatti di cifre (con `/`, o di 5 cifre o più, come i part number) si
@@ -464,8 +484,8 @@ vieta o manda a sostituire qualcosa che la D.R. autorizza, non è una contraddiz
 895167b9 005 (Copilot, 26-11 sera): il manuale manda a sostituire il pezzo, la deroga citata
 nella stessa operazione autorizza la raccordatura, ma il modello non l'aveva.
 
-**Sezione d'ispezione del manuale del motore (`agent.inspection_source`, spenta nella base;
-variante `fonte_ispezione`, 27-11; I8).** Nelle operazioni d'ispezione e di controllo
+**Sezione d'ispezione del manuale del motore (`agent.inspection_source`, accesa nella base
+dal 27-11 sera; variante `fonte_ispezione`, 27-11; I8).** Nelle operazioni d'ispezione e di controllo
 (`is_inspection`: ispezione, controllo visivo o dimensionale, liquidi penetranti, FPI,
 magnetoscopia, inspect…) che hanno già un testo di riferimento, si aggiunge la sezione
 d'ispezione del manuale del motore: per ogni fonte del ciclo che cita una sezione fuori dal
@@ -481,8 +501,9 @@ la sezione del motore, non le definizioni generali di un manuale di pratiche sta
 P7 e P8: la stampa giusta 04ecaabe op. 050 e il ciclo vero 2d724fba op. 050 dicono «4 volte»
 come il manuale del motore, la v2 confrontava solo con il «3 volte» generico dell'SPM.
 
-**Le due lingue tra loro (`agent.compare_languages`, spenta nella base; variante
-`lingue_tra_loro`, 26-11 sera; scartata il 27-11 per i falsi errori).** Per ogni operazione scritta in due lingue (tranne quelle già
+**Le due lingue tra loro (`agent.compare_languages`, accesa nella base dal 27-11 sera solo con
+la versione stretta; variante `lingue_tra_loro`, 26-11 sera; la versione larga è scartata il
+27-11 per i falsi errori).** Per ogni operazione scritta in due lingue (tranne quelle già
 ERRATO `INCOERENZA_LINGUE` per i numeri, senza descrizione o non confermate) una sessione corta
 chiede al modello se le due lingue danno le stesse istruzioni, **senza manuale**
 (`plan_language_checks`; prompt in `agent/prompt.py`, `build_languages_prompt`). Risponde
@@ -497,7 +518,7 @@ il manuale, con le due citazioni dal ciclo come prova. Vale anche dove il manual
 sull'operazione.
 
 **Versione stretta (`agent.compare_languages_strict`, con `compare_languages`; variante
-`finale`, 27-11; I15).** La domanda chiede solo due tipi di differenza
+`finale`, 27-11; I15; accesa nella base dal 27-11 sera).** La domanda chiede solo due tipi di differenza
 (`build_strict_languages_prompt`): `negazione` (un divieto o un «non» in una lingua sola) e
 `limite` (minimo e massimo, «almeno» e «al massimo», «superiore a» e «not to exceed»). Tutto il
 resto non va segnalato: traduzioni libere, titoli, sinonimi, nomi generici e specifici, codici
@@ -510,8 +531,8 @@ to exceed» valgono «al massimo»; un intervallo con minimo e massimo non ha ve
 conferma G1 come sopra. Nasce dalla campagna del 26-27-11: `lingue_tra_loro` trovava circa 10
 errori in più ma prendeva per errore le traduzioni libere (11-13 falsi errori a prova).
 
-**«Fuori tema» (`agent.out_of_scope`, spenta nella base; dentro la variante `finale`, 27-11;
-I16).** Lo schema della risposta ammette `fuori_tema` e la domanda ha una nota
+**«Fuori tema» (`agent.out_of_scope`, accesa nella base dal 27-11 sera; dentro la variante
+`finale`, 27-11; I16).** Lo schema della risposta ammette `fuori_tema` e la domanda ha una nota
 (`OUT_OF_SCOPE_NOTE`): se il testo di riferimento non tratta affatto il tipo di operazione (presa
 in carico, movimentazione, versamento, preservazione, documenti, mentre il testo parla di una
 lavorazione), il modello risponde `fuori_tema` e l'esito è N/A `FUORI_TEMA` con la spiegazione;
@@ -566,6 +587,8 @@ Ogni motivo ha un solo esito (`domain/check.py`).
 | | `DR_NESSUNA_CORRISPONDENZA` | nessuna recommendation per serial number e condition |
 | | `TASK_INESISTENTE` | codice completo che non c'è, mentre ci sono i suoi fratelli |
 | | `INCOERENZA_LINGUE` | italiano e inglese con numeri o codici diversi; con `agent.compare_languages` anche istruzioni diverse (controllo del modello) |
+| | `TASK_DIVERSO_DALLA_TESTATA` | il task accanto all'operazione è della stessa famiglia di quello della testata, ma diverso (H17, 27-11 sera) |
+| | `MACCHINE_DIVERSE` | la stessa operazione ha targhe diverse su pagine diverse (H19, 27-11 sera) |
 | **WARNING** | `FONTE_ASSENTE` | documento, task, targa o scheda non nella conoscenza |
 | | `TARGA_SCONOSCIUTA` | targa né nei dati TM né tra le attive |
 | | `EVIDENZA_NON_TROVATA` | il testo non basta per decidere |
@@ -850,11 +873,11 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.itemized_check` | `true` (dal 26-11) | prima di giudicare il modello scompone la descrizione in elementi tecnici (lavorazione, valori, limiti, divieti, materiali) e li confronta uno per uno; se uno solo è incompatibile, `contraddetto`. Variante `elementi_uno_per_uno`. Le due sono nella base dal 26-11 (campagna del 25-11, variante `elementi_e_lingue`): il valore predefinito nel codice vale anche per `data/settings.yaml` sul PC, che non le nomina |
 | `agent.search_when_unverifiable` | `false` | dopo un `non_verificabile`, una seconda sessione cerca in tutti i documenti citati dal ciclo, con i tool. Variante `seconda_ricerca` |
 | `agent.general_definitions_note` | `false` | nella domanda al modello: una differenza solo con una **definizione generale** del manuale di pratiche standard (per esempio «indicazione lineare = 3 volte la larghezza») dà `non_verificabile`, non `contraddetto`; resta `contraddetto` con un limite specifico o con una lingua diversa dall'altra. Variante `definizioni_generali` (26-11) |
-| `agent.compare_languages` | `false` | una sessione corta per ogni operazione scritta in due lingue: il modello confronta l'italiano e l'inglese **tra loro**, senza manuale. Una differenza (negazione, limite, materiale, valore) con le citazioni ritrovate e confermata è ERRATO `INCOERENZA_LINGUE`. Variante `lingue_tra_loro` (26-11 sera) |
+| `agent.compare_languages` | `true` (dal 27-11 sera, con la versione stretta) | una sessione corta per ogni operazione scritta in due lingue: il modello confronta l'italiano e l'inglese **tra loro**, senza manuale. Una differenza (negazione, limite, materiale, valore) con le citazioni ritrovate e confermata è ERRATO `INCOERENZA_LINGUE`. Variante `lingue_tra_loro` (26-11 sera) |
 | `agent.special_process_sheet` | `true` (dal 27-11) | processo speciale senza scheda: WARNING `SCHEDA_FORSE_MANCANTE` invece di N/A (sezione 6.4). Regola P6, I9 |
-| `agent.inspection_source` | `false` | nelle ispezioni anche la sezione INSPECTION o i task d'ispezione (gruppo 200) del manuale del motore, con una nota (sezione 6.5). Variante `fonte_ispezione` (I8, 27-11) |
-| `agent.out_of_scope` | `false` | il modello può rispondere `fuori_tema`: N/A `FUORI_TEMA` invece di WARNING quando il testo non tratta il tipo di operazione (sezione 6.5). Variante `finale` (I16, 27-11) |
-| `agent.compare_languages_strict` | `false` | con `compare_languages`: solo negazioni e limiti al contrario, ritrovati dal codice nelle parole copiate (sezione 6.5). Variante `finale` (I15, 27-11) |
+| `agent.inspection_source` | `true` (dal 27-11 sera) | nelle ispezioni anche la sezione INSPECTION o i task d'ispezione (gruppo 200) del manuale del motore, con una nota (sezione 6.5). Variante `fonte_ispezione` (I8, 27-11) |
+| `agent.out_of_scope` | `true` (dal 27-11 sera) | il modello può rispondere `fuori_tema`: N/A `FUORI_TEMA` invece di WARNING quando il testo non tratta il tipo di operazione (sezione 6.5). Variante `finale` (I16, 27-11) |
+| `agent.compare_languages_strict` | `true` (dal 27-11 sera) | con `compare_languages`: solo negazioni e limiti al contrario, ritrovati dal codice nelle parole copiate (sezione 6.5). Variante `finale` (I15, 27-11) |
 | `agent.dr_procedure_always` | `true` (dal 27-11) | nei cicli DR la procedura della D.R. va al modello insieme ai task trovati, con una nota: per quel pezzo vale più del manuale. Variante `procedura_dr` (26-11 sera), nella base dopo la campagna del 26-27-11 |
 | `agent.confirm_contradiction` | 2 | sessioni di conferma per ogni ERRATO del modello |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |

@@ -104,7 +104,11 @@ cicli:
     # cerca): resta in attesa, così le prove restano confrontabili con quelle di prima
     in_attesa:
       "030": "P10: errore vero della stampa (larghezza contro length), solo tra le lingue"
-      "050": "P7: falso errore noto, si toglie con fonte_ispezione"
+      # P12 (27-11 sera, Copilot): con fonte_ispezione la v2 cita la sezione d'ispezione del
+      # manuale del motore; l'ERRATO (3 su 3 nel piccolo, 0 nel grande) dice che l'italiano
+      # «almeno 4 volte la larghezza» comprende il caso uguale a 4, l'inglese e il manuale «più
+      # di 4»: una differenza vera ma piccola tra le lingue. Resta in attesa: un dubbio
+      "050": "P7 e P12: «almeno 4 volte» contro «più di 4 volte» tra le lingue (dubbio)"
   737dec71:
     # 26-11 sera (Copilot): la stampa giusta da cui vengono 22f586bb e 895167b9
     giusto: true
@@ -126,3 +130,15 @@ cicli:
     in_attesa:
       "030": "P10: dubbio (larghezza contro length: dipende se vale anche sui bordi)"
       "050": "P7 su un ciclo vero: falso errore noto (definizione generica dell'SPM)"
+  # P12 (27-11 sera, Copilot): tre cicli veri con la stessa 060 di 737dec71, parola per parola
+  # («superiore a 4X» in italiano, «not to exceed 4X» in inglese): errore vero della stampa,
+  # trovato solo da `finale` (nella base dal 27-11 sera)
+  414d85ca:
+    errori:
+      "060": "P12: errore vero della stampa (limite al contrario tra le lingue, come 737dec71)"
+  477abec8:
+    errori:
+      "060": "P12: errore vero della stampa (limite al contrario tra le lingue, come 737dec71)"
+  ffadfe16:
+    errori:
+      "060": "P12: errore vero della stampa (limite al contrario tra le lingue, come 737dec71)"

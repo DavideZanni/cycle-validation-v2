@@ -43,8 +43,10 @@ sezione 1 di `COPILOT.md`):
 | 5 | Piano della campagna: per ogni insieme `base`, `fonte_ispezione`, `finale`, ognuna `3 da fare` | COPILOT 3.5 | ✅ |
 | 6 | Campagna finale (circa 6 $, 3 ore); foto della riga finale, di `campagna.md` e dei due `riepilogo.md` | COPILOT 3.5 | ✅ 27-11 (piccolo 14:05-15:13, grande 16:03-17:02, circa 5,3 $): vince `finale` (MIGLIORIE 13) |
 | 7 | La v1 sugli stessi 14 cicli noti, in QA, con le copie rinominate con l'impronta (si può fare mentre gira la campagna) | COPILOT 3.9 | ✅ 27-11: `docs/CONFRONTO_V1_14_CICLI.md` (298bc28e da ricaricare una volta) |
-| 7b | Aggiornare, riepiloghi ricalcolati con gli errori aggiunti dal testo delle stampe (gratis), domanda P12 a Copilot | COPILOT passo 4c | da fare |
-| 7c | Claude: tabella finale v1 contro v2, `finale` nella base, pagina per la presentazione | Claude | dopo 7b |
+| 7b | Aggiornare, riepiloghi ricalcolati con gli errori aggiunti dal testo delle stampe (gratis), domanda P12 a Copilot | COPILOT passo 4c | ✅ 27-11 sera |
+| 7c | Claude: `finale` nella base e tre controlli del codice (H17, H19, la 010 in più parti) | Claude | ✅ 27-11 sera |
+| 7d | Aggiornare, archiviare, campagna della sola base nuova | COPILOT passo 4d | da fare |
+| 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
 | 8 | Le altre prove dal frontend della v2, dopo la campagna (due cicli «con errori», il più lungo con il tempo, DR con e senza serial, file sbagliato, storico, CSV) | COPILOT 4 | A3 e A1 fatte il 27-11 |
 | 9 | Prompt della documentazione completa (quando c'è tempo) | COPILOT 6.3 | da fare |
 
@@ -1411,6 +1413,25 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
     né le A6 senza serial; la v2 non dà quasi mai errori falsi, legge tutte le stampe e le due
     lingue, e ogni ERRATO ha la frase citata ritrovata dal programma; le manca il controllo dei
     codici (H17-H19, lavoro piccolo).
+
+- **27-11 sera, riepiloghi ricalcolati e P12.** Con le 6 operazioni aggiunte (40 errori sul
+  piccolo, 26 sul grande) i trovati non cambiano: **la v2 le mancava tutte**. P12 (Copilot,
+  ancora in Agent con «Allow all»): (A) i 3 ERRATO di `finale` sui cicli veri 414d85ca,
+  477abec8, ffadfe16 sono la stessa 060 di 737dec71, parola per parola: **errori veri**,
+  messi in `eval/errori-noti.yaml`; (B) 04ecaabe 050 con `fonte_ispezione`: la sezione
+  d'ispezione c'è sempre tra le evidenze; l'ERRATO del piccolo dice che l'italiano «almeno 4
+  volte la larghezza» comprende il caso uguale a 4, mentre l'inglese e il manuale dicono «più di
+  4»: una differenza vera ma piccola (resta in attesa, come dubbio). **Decisione:** `finale`
+  nella base (le quattro impostazioni accese di default). **Tre controlli nuovi del codice**
+  (proposte 1, 2 e 4 del confronto con la v1), provati sul testo delle 14 stampe del file v1
+  (il parser della v2 sulle pagine dell'appendice): H17 (task della colonna SP.ORIG contro
+  la testata: 38960731 030; il parser ora legge la colonna anche in fondo a una riga di testo,
+  prima finiva nella descrizione), la 010 divisa in quattro parti da righe di asterischi
+  dentro ogni lingua (`language_blocks`: 38960731, 5ff17062, f355dc3c 010), H19 (stessa
+  operazione con due macchine: 38960731 040, e la 050 di 5ff17062 e f355dc3c). **5
+  operazioni in più, 0 falsi errori** sulle stampe giuste. Il testo dell'appendice non è
+  identico a quello che legge il PC (per esempio 5ff17062 030 lì è rovinato): la misura vera
+  è la campagna della base nuova (COPILOT passo 4d).
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

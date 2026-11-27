@@ -550,7 +550,7 @@ def test_the_known_errors_file_is_valid() -> None:
     # 26-11: 15 con la P9 (5ff17062 con 4 errori), 19 con 895167b9; 2d724fba giusto (vero).
     # 26-11 sera: 23 con 22f586bb, giusta anche 737dec71. 27-11 sera: 29, con le 6 operazioni
     # trovate nel testo delle stampe (v1 sugli stessi cicli)
-    assert total == 29 and len(giuste) == 5
+    assert total == 32 and len(giuste) == 5  # P12: 3 cicli veri con la 060 sbagliata
 
 
 def test_eval_prova_scores_blind_copies_without_showing_them(tmp_path: Path, pdf: Path) -> None:

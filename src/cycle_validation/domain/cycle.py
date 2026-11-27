@@ -97,6 +97,11 @@ class Operation(_Strict):
     task_codes: Codes = Field(default_factory=list)
     process_sheet: Annotated[ProcessSheet | None, BeforeValidator(_clean_sheet)] = None
     page: int | None = None
+    # il task scritto nella colonna SP.ORIG accanto all'operazione (stampe PVRM320): si
+    # confronta con il task della testata (H17, 27-11 sera)
+    original_task: OptionalCode = None
+    # le altre targhe scritte per la stessa operazione nelle pagine dopo la prima (H19)
+    other_machine_tags: Codes = Field(default_factory=list)
 
 
 class Cycle(_Strict):
