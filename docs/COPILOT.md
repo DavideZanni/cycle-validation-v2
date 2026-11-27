@@ -147,9 +147,11 @@ revisione del codice.
 1. Aggiornare (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Foto dell'ultima riga. Porta la
    pulizia del codice del 27-11, `procedura_dr` e la regola della scheda nella base, le
    varianti della campagna finale.
-2. Prove dal frontend (sezione [4](#4-prove-dal-frontend)).
-3. Domanda **P10** a Copilot (sezione [6.1](#61-domande)): quattro differenze tra le lingue in
-   stampe «giuste», forse errori veri.
+2. Prove dal frontend (sezione [4](#4-prove-dal-frontend)). Il 27-11 alle 12:07 la prima:
+   il ciclo «con errori» A3 in locale, errore della 005 trovato (foto mandate). Mancano le
+   altre (sezione 4).
+3. ✅ Domanda **P10** a Copilot: fatta il 27-11 (due errori veri, uno uguale, un dubbio:
+   tutto in `eval/errori-noti.yaml`).
 4. Quando hai tempo: il prompt per la **documentazione completa** (sezione
    [6.3](#63-prompt-per-copilot-la-documentazione-completa)).
 
@@ -166,7 +168,8 @@ misura onesta: la configurazione che vince è quella della produzione. Circa 6 $
 righe: `base`, `fonte_ispezione`, `finale`, ognuna `3 da fare`.
 
 **La campagna deve dire:** 0 falsi errori (anche nella tabella «In attesa»: 04ecaabe 050 e
-2d724fba 050 con `fonte_ispezione` e `finale` a 0 su 3, o quasi), nessun ciclo oltre 10 minuti,
+2d724fba 050 con `fonte_ispezione` e `finale` a 0 su 3, o quasi; 737dec71 060 con `finale` a
+3 su 3 va bene, è un errore vero della stampa), nessun ciclo oltre 10 minuti,
 nessun ciclo non eseguito. **Mandami:** la riga finale, `runs\campagna.md` e i due
 `riepilogo.md`, come oggi.
 
@@ -585,34 +588,10 @@ uv run cycle-validation manuali (Resolve-Path "..\..").Path --conoscenza $v --er
 
 ### 6.1 Domande
 
-P1-P9 chiuse il 26-11 (decise da Copilot sui dati, con la **regola prudente**: dove i dati
-non bastano, WARNING e mai ERRATO). Le risposte e cosa cambiano sono in `MEMORIA.md` (note del
-26-11) e `MIGLIORIE.md` (7.3). Se una persona che conosce cicli e manuali dice altro, scrivilo
+P1-P9 chiuse il 26-11, P10 il 27-11 (decise da Copilot sui dati, con la **regola prudente**:
+dove i dati non bastano, WARNING e mai ERRATO). Le risposte e cosa cambiano sono in
+`MEMORIA.md` (note del 26-11 e del 27-11), `MIGLIORIE.md` (7.3) ed `eval/errori-noti.yaml`. Se una persona che conosce cicli e manuali dice altro, scrivilo
 a Claude a parole, senza codici veri.
-
-**👉 P10 (27-11): differenze tra le lingue in stampe «giuste».** Nella campagna del 27-11
-`lingue_tra_loro` ha segnato come ERRATO quattro operazioni di stampe che per noi sono giuste.
-Se sono errori veri della stampa, non sono falsi errori. Copilot **in modalità Ask**, incolla:
-
-```text
-Sono in app_cycle_validation_v2. Non modificare nessun file. Le stampe dei cicli si
-riconoscono dall'impronta: i primi 8 caratteri, minuscoli, dello SHA-256 del PDF
-(Get-FileHash). I percorsi sono in runs\prove-grande\cicli.txt e runs\prove-piccolo\cicli.txt.
-Per ognuna di queste operazioni leggi la descrizione italiana e quella inglese (la riga di
-asterischi le separa) e dimmi se danno all'operatore la stessa istruzione:
-1. impronta 04ecaabe, operazione 030: «larghezza» in italiano, «length» in inglese;
-2. impronta 2d724fba, operazione 030: lo stesso;
-3. impronta 737dec71, operazione 060: «superiore a 4X» in italiano, «not to exceed 4X» in
-   inglese;
-4. impronta 8bdb25d5, operazione 040: «sul lubrificante applicato» in italiano, «on the
-   coating» in inglese.
-Per ognuna rispondi: UGUALI (stessa istruzione, traduzione libera) oppure DIVERSE (errore
-vero della stampa), con una riga di spiegazione. Se il manuale o la D.R. citati dicono quale
-delle due è giusta, dillo. Non scrivere codici di manuali, part number, serial number, numeri
-DR o codici di ciclo: usa le parole o le impronte.
-```
-
-**Mandami:** la foto della risposta.
 
 ### 6.2 Messaggio per il collega del frontend
 

@@ -1205,6 +1205,32 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   questa sessione è stato negato dai permessi; la parte sull'ingestion della guida si fa da
   MEMORIA e dalla risposta di Copilot (COPILOT 6.3).
 
+- **27-11, risposta di Copilot alla P10** (le quattro differenze tra le lingue in stampe
+  «giuste» segnate da `lingue_tra_loro`). **04ecaabe 030: diverse**, errore vero della stampa
+  («larghezza» in italiano, «length» in inglese; più avanti l'italiano dice «semi-lunghezza»:
+  sbaglia l'italiano). **2d724fba 030** (stesso testo, altro stadio): uguali nell'uso comune
+  (per quello stadio il manuale chiede tutte e due le misure), diverse sui bordi: un dubbio.
+  **737dec71 060: diverse**, errore vero («superiore a 4X» contro «not to exceed 4X»; vale
+  l'inglese). **8bdb25d5 040: uguali** («coating» è lo strato di lubrificante). In
+  `eval/errori-noti.yaml`: le tre operazioni diverse o in dubbio **in attesa** (non contano né
+  come trovate né come falsi errori: le prove restano confrontabili con quelle di prima); la 040
+  di 8bdb25d5 no (un ERRATO lì è falso). Conseguenza: tra i falsi errori di `lingue_tra_loro`
+  alcuni erano errori veri; la decisione non cambia. I15 (`finale`) dovrebbe trovare 737dec71
+  060 (limite al contrario), non 04ecaabe 030 (una misura cambiata non è né negazione né limite).
+  **Copilot era in Agent con «Allow all»** e ha estratto il testo dei PDF in una cartella
+  temporanea, poi cancellata: niente file del repository toccati, ma va rimesso su **Ask**.
+- **27-11, prime prove dal frontend (12:07)**, conoscenza di prova, v2 in locale contro la
+  versione in QA (uguale alla produzione). Ciclo «con errori» MOS A3 (298bc28e): **in locale**
+  1 ERRATO, quello giusto (005, il codice del subtask diverso tra italiano e inglese, trovato
+  dal codice); la 035 (parole cambiate) esce WARNING, come nelle prove; 2 operazioni CORRETTO, 6
+  WARNING «il manuale non ne parla» (presa in carico, collaudi, preservazione: niente da
+  confrontare); la fonte OK; le targhe WARNING (macchine non collegate sul PC, normale). **In
+  QA**: descrizioni solo in inglese, la 005 non compare tra le operazioni (diventa le righe
+  delle fonti), quasi tutto OK, 1 WARNING (030) e **1 ERRORE sulla seconda fonte che si
+  contraddice da solo** («codice sbagliato… che è giusto per questo ciclo»): un falso errore
+  della v1. Da confermare che la foto della QA sia della stessa stampa. Le WARNING della v2 sono
+  oneste (la v1 dice OK senza aver controllato), ma sono tante: idea in MIGLIORIE 10.4 (H15).
+
 ## 13. Da correggere nell'indice (knowledge-index)
 
 **Titoli dei task GE.** `regole.json` (`codice_task`) riconosce solo il codice completo

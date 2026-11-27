@@ -75,26 +75,39 @@ cicli:
   8bdb25d5:
     giusto: true
     di: c5ff3cd6
+    # P10 (27-11, Copilot): la 040 «lubrificante applicato» e «coating» danno la stessa
+    # istruzione (il coating è lo strato di lubrificante): un ERRATO lì è un falso errore
   04ecaabe:
     giusto: true
     di: f355dc3c
     # P7 (26-11): il «4 volte» è giusto (manuale del motore), l'ERRATO della v2 qui è un falso
     # errore. Resta in attesa finché non c'è `fonte_ispezione` (MIGLIORIE 7.3): poi si toglie
     # da qui e un ERRATO conta come falso errore
+    # P10 (27-11, Copilot): la 030 è un errore vero della stampa, «larghezza» in italiano contro
+    # «length» in inglese (più avanti l'italiano dice «semi-lunghezza»: sbaglia l'italiano). Si
+    # trova solo confrontando le lingue, e non è né una negazione né un limite (I15 non lo
+    # cerca): resta in attesa, così le prove restano confrontabili con quelle di prima
     in_attesa:
+      "030": "P10: errore vero della stampa (larghezza contro length), solo tra le lingue"
       "050": "P7: falso errore noto, si toglie con fonte_ispezione"
   737dec71:
     # 26-11 sera (Copilot): la stampa giusta da cui vengono 22f586bb e 895167b9
     giusto: true
     di: 22f586bb
-    # 27-11 (P10 a Copilot): «superiore a 4X» in italiano, «not to exceed 4X» in inglese. Può
-    # essere un errore vero della stampa: finché Copilot non risponde, un ERRATO qui non conta
+    # P10 (27-11, Copilot): la 060 è un errore vero della stampa: «superiore a 4X» in italiano,
+    # «not to exceed 4X» in inglese; vale l'inglese (le altre stampe dicono «sino 4X»). Un
+    # ERRATO qui è giusto. Resta in attesa (non conta né come trovato né come falso errore),
+    # così le prove restano confrontabili con quelle di prima
     in_attesa:
-      "060": "P10: limite al contrario tra le lingue, forse errore vero della stampa"
+      "060": "P10: errore vero della stampa (limite al contrario tra le lingue)"
   2d724fba:
     # ciclo vero: per la v2 una stampa giusta. 26-11 (Copilot): l'ERRATO della 050 è un falso
     # errore come quello della P7 («4 volte» contro la definizione generica di «3 volte»).
     # In attesa finché `definizioni_generali` o `fonte_ispezione` non lo tolgono
     giusto: true
+    # P10 (27-11, Copilot): la 030 ha lo stesso testo della 030 di 04ecaabe («larghezza» contro
+    # «length»), ma per questo stadio il manuale chiede tutte e due le misure, tranne sui bordi:
+    # uguali nell'uso comune, diverse se l'operazione vale anche sui bordi. Un dubbio: in attesa
     in_attesa:
+      "030": "P10: dubbio (larghezza contro length: dipende se vale anche sui bordi)"
       "050": "P7 su un ciclo vero: falso errore noto (definizione generica dell'SPM)"
