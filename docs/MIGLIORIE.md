@@ -18,26 +18,30 @@ Seconda prova: piccolo 41 su 45, grande 31 su 31, 0 falsi errori. P15: i 4 da ve
 falsi errori di MG47, tutti dallo stesso testo («sabbiatura» in una condizione, «replace» per
 «ripristinare»): corretti, attesi 0.
 
-**Prossime, in ordine (27-11 notte, dopo il banco):** solo quelle che si possono fare davvero
-e che migliorano qualcosa di misurabile.
+**Prossime, in ordine (27-11 notte, dopo il banco, scelte con l'utente):** solo quelle che si
+possono fare davvero e che migliorano qualcosa di misurabile.
 
-1. La campagna `quasi_finale` (passo 4h, utente, circa 2,5 $): chiude il cancello A e dà i
-   numeri per i punti 2 e 3.
-2. MG83 meno avvisi per ciclo (Claude, dai numeri della campagna): cancello C (≤ 5 per ciclo;
-   oggi circa 5 nel piccolo e 10 nel grande). Si prova gratis con `eval senza-modello`.
-3. MG49 errori più stabili (Claude, dalla campagna): gli errori che escono 2 volte su 3.
-4. MG48 task di un altro stadio (una domanda a Copilot, poi Claude): l'unico controllo che la
-   v1 fa e la v2 no. Si misura con un tipo nuovo nel banco.
-5. MG73 grande ingestion, con MG74 (utente con Copilot, ore di lavoro): la classe dell'acido
-   (f355dc3c 040, 5ff17062 040, gli unici errori della v1 che la v2 non trova) e meno avvisi
-   «fonte assente».
-6. MG42 prova EJ200 (utente, passo 4f): cancello B.
-7. Dopo la presentazione, per la produzione: MG54 (metà del tempo), MG62 (`kb-check`
-   nell'ingestion), MG58 (risultato già calcolato), MG63 (prova ombra in QA).
+1. La campagna `quasi_finale` (passo 4h, utente, circa 2,5 $): chiude il cancello A ed è la
+   base con cui si confronta tutto il resto.
+2. MG58 risultato già calcolato (Claude, subito): stesso PDF e stessa conoscenza, risposta in un
+   secondo e 0 $. Non tocca il modello.
+3. Conoscenza e indice (utente con Copilot; il codice dell'indice lo scrive Claude se
+   `knowledge-index` si collega a questa sessione): MG73 grande ingestion (la classe
+   dell'acido, meno avvisi «fonte assente»), MG74 indice (nomi dei manuali, titoli dei task,
+   voci RDR «OTHER», targa `90`: MEMORIA 13), MG62 `kb-check` prima di pubblicare, MG61
+   classifica dei manuali che mancano, MG60 macchine attive su S3.
+4. MG83 meno avvisi e MG49 errori più stabili (Claude, dai numeri della campagna): cancello C.
+5. Tempo e costo, uno alla volta, ognuno provato come variante nella campagna contro
+   `quasi_finale`: MG54 chiamata diretta a Bedrock (circa metà del tempo), poi MG56 cache di
+   Bedrock con MG59 (il testo fisso pagato una volta; il batch no, non risponde subito), poi
+   MG55 più operazioni insieme (rischio: il modello mescola le operazioni).
+6. MG48 task di un altro stadio (una domanda a Copilot, poi Claude).
+7. MG42 prova EJ200 (utente, passo 4f): cancello B.
 
 Da non fare adesso: MG46 (già vista: l'unico caso lo trova la scheda), MG57 (rischio di falsi
-errori senza la conoscenza completa), MG51 (collega), MG52, MG55, MG56, MG59-MG61, MG64-MG72
-(poco guadagno o dipendono da altre persone o dalla produzione).
+errori senza la conoscenza completa), MG51 (collega), MG52, MG63-MG67, MG69-MG72 (poco
+guadagno o dipendono da altre persone o dalla produzione). MG68 scartata (27-11, utente:
+OpenSearch non si introduce).
 
 | Sigla | Miglioria | Cosa fa | Stato | Imp. | Era |
 |---|---|---|:-:|:-:|---|
@@ -108,7 +112,7 @@ errori senza la conoscenza completa), MG51 (collega), MG52, MG55, MG56, MG59-MG6
 | MG65 | Ciclo dai dati strutturati | il ciclo da una tabella invece che dal PDF | ⬜ | 2 | H6 |
 | MG66 | Prove dentro AWS | gli stessi comandi `eval` in AWS | ⬜ | 2 | H7 |
 | MG67 | Feedback come caso di prova | una risposta segnata sbagliata diventa un caso | ⬜ | 2 | H8 |
-| MG68 | OpenSearch come riserva | ricerca per somiglianza solo quando il task non c'è | ⬜ | 1 | H9 |
+| MG68 | OpenSearch come riserva | ricerca per somiglianza solo quando il task non c'è (scartata dall'utente il 27-11: non si introduce) | ❌ | 1 | H9 |
 | MG69 | Python 3.14 nel progetto | niente più `$env:UV_PYTHON` nei blocchi | ⬜ | 1 | H11 |
 | MG70 | Casi aziendali rivisti | cicli veri con esito atteso riga per riga | ⬜ | 2 | — |
 | MG71 | Varianti proposte dal modello | il modello propone, la classifica decide | ⬜ | 1 | E1 |
