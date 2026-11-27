@@ -21,7 +21,7 @@ si confrontavano).
 import difflib
 import re
 from collections import Counter
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 # separatore tra le parti della descrizione (riga di asterischi), come la scrive il parser
 LANGUAGE_SEPARATOR = " / "
@@ -39,16 +39,12 @@ def language_parts(description: str) -> tuple[str, str] | None:
 
 
 def _numbers(text: str) -> list[tuple[str, Decimal]]:
-    found: list[tuple[str, Decimal]] = []
-    for match in _NUMBER.finditer(text):
-        raw = match.group()
-        if match["code"]:
-            continue
-        try:
-            found.append((raw, Decimal(raw.replace(",", "."))))
-        except InvalidOperation:
-            continue
-    return found
+    # ogni numero trovato da `_NUMBER` è un decimale valido (Decimal accetta ogni cifra Unicode)
+    return [
+        (match.group(), Decimal(match.group().replace(",", ".")))
+        for match in _NUMBER.finditer(text)
+        if not match["code"]
+    ]
 
 
 def _codes(text: str) -> list[str]:
