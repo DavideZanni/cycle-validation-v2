@@ -14,11 +14,12 @@ from cycle_validation.evaluation.trials import (
     load_trials,
     render_summary,
     render_trial,
+    rescore_trials,
     score_cycle,
     write_summary,
     write_trial,
 )
-from cycle_validation.report.builder import build_report
+from cycle_validation.report.builder import build_report, write_outputs
 
 KNOWN = """
 cicli:
@@ -456,3 +457,30 @@ def test_a_failed_cycle_does_not_hide_that_the_model_did_not_answer(tmp_path: Pa
     assert with_failed.unusable
     good = _answers(tmp_path, failed=0, total=20)
     assert not good.model_copy(update={"cycles": [*good.cycles, broken]}).unusable
+
+
+def test_old_trials_are_rescored_when_the_known_errors_change(tmp_path: Path) -> None:
+    # 27-11: errori trovati dopo nel testo delle stampe; le prove fatte si ricalcolano dai
+    # loro report.json, senza rifarle
+    known = _known(tmp_path)
+    root = tmp_path / "prove"
+    folder = root / "2030-base"
+    reports = [_report("aaaa1111", ["005", "010"]), _report("bbbb2222", [])]
+    for report in reports:
+        write_outputs(report, folder / report.meta.pdf_sha256[:8])
+    scores = [score_cycle(r, known) for r in reports]
+    scores.append(failed_cycle("cccc3333", known, "PDF illeggibile"))
+    write_trial(build_trial("base", datetime(2030, 1, 1, 9), reports, scores), folder)
+    assert load_trials(root)[0].extra_errors == 1  # la 010 non era nella lista
+    assert rescore_trials(root, known) == 0
+    more = tmp_path / "piu.yaml"
+    more.write_text(
+        KNOWN.replace(
+            '"030": frase cambiata', '"030": frase cambiata\n      "010": codice cambiato'
+        ),
+        "utf-8",
+    )
+    assert rescore_trials(root, load_known_errors(more)) == 1
+    trial = load_trials(root)[0]
+    assert (trial.known_found, trial.known_total, trial.extra_errors) == (2, 3, 0)
+    assert trial.failures == 1  # il ciclo non eseguito resta com'era

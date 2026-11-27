@@ -804,6 +804,31 @@ def load_trials(root: Path) -> list[Trial]:
     return sorted(trials, key=lambda t: t.started_at)
 
 
+def rescore_trials(root: Path, known: KnownErrors) -> int:
+    """Ricalcola, nelle prove già fatte, il punteggio dei cicli che sono negli errori noti,
+    dal loro `report.json`: serve quando la lista degli errori noti cambia (27-11: errori
+    trovati nel testo delle stampe). Gli altri cicli (copie cieche, gruppo nascosto, cicli
+    veri, cicli non eseguiti) restano come sono. Restituisce quanti punteggi sono cambiati."""
+    changed = 0
+    for path, trial in _read_trials(sorted(root.glob(f"*/{TRIAL_FILE}"))):
+        cycles: list[CycleScore] = []
+        for cycle in trial.cycles:
+            report_file = path.parent / cycle.fingerprint / "report.json"
+            new = cycle
+            if known.cycle(cycle.fingerprint) is not None and report_file.is_file():
+                try:
+                    report = Report.model_validate_json(report_file.read_text("utf-8"))
+                except (OSError, ValueError):
+                    report = None
+                if report is not None:
+                    new = score_cycle(report, known, cycle.fingerprint)
+            changed += new != cycle
+            cycles.append(new)
+        if cycles != trial.cycles:
+            write_trial(trial.model_copy(update={"cycles": cycles}), path.parent)
+    return changed
+
+
 def unusable_trials(root: Path) -> list[Path]:
     """Le cartelle delle prove in cui il modello non ha risposto: la campagna le toglie e le
     rifà."""

@@ -4,6 +4,8 @@
 # Dentro ci sono anche esempi reali, foto e materiale di lavoro: mai in git.
 docs/*
 !docs/DOCUMENTAZIONE.md
+# la v1 sui 14 cicli noti, con i codici veri: permesso dal responsabile dell'utente (27-11)
+!docs/CONFRONTO_V1_14_CICLI.md
 
 # Materiale aziendale: mai in git
 data/

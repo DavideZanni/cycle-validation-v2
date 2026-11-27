@@ -2,7 +2,10 @@
 # Chiave: prime 8 cifre dell'impronta SHA-256 del PDF. Niente codici veri: solo numeri di
 # operazione e descrizioni generiche. Si usa con `cycle-validation eval prova` (COPILOT sezione 3).
 # Gli errori dei quattro cicli senza stampa giusta conosciuta sono quelli trovati dal controllo
-# delle due lingue il 23-11: da confermare con chi ha preparato le stampe.
+# delle due lingue il 23-11: da confermare con chi ha preparato le stampe. Il 27-11 sera, dal
+# testo originale delle stampe (docs/CONFRONTO_V1_14_CICLI.md, la v1 sugli stessi cicli), ne
+# sono stati aggiunti altri: cambi fatti a mano che il confronto delle lingue non vede (codici
+# di task, schede, macchine) e che la v1 segnala.
 # `in_attesa` (operazione → che cosa aspetta): l'operazione oggi non si può giudicare. Un errore
 # noto lì non conta come mancato (24-11: si trova solo con un documento che non c'è o con una
 # regola da chiedere); un ERRATO lì non conta come falso errore.
@@ -28,8 +31,14 @@ cicli:
     in_attesa:
       "040": "documento non nella conoscenza (capitolo 70-23 dell'SPM o manuale d'ispezione)"
   38960731:
+    # 27-11 sera: nel testo ci sono altri cambi fatti a mano (una parola minuscola in una
+    # stampa tutta maiuscola, la stessa operazione con due macchine diverse su due pagine, i
+    # limiti dell'inglese più alti del totale). La v1 li segnala tutti
     errori:
-      "050": un numero cambiato (solo in una lingua)
+      "010": i limiti cambiati in inglese (in italiano restano quelli giusti)
+      "030": il task del manuale cambiato (una cifra)
+      "040": la macchina cambiata in una pagina; cambiati il codice della scheda e il suo task
+      "050": un numero cambiato (solo in una lingua); in inglese una parola cambiata (dice il contrario); cambiato il codice della scheda
   5ff17062:
     # P9 (26-11, verificato con `confronta`): è la stampa giusta 04ecaabe con quattro
     # operazioni cambiate, come f355dc3c
@@ -64,11 +73,17 @@ cicli:
       "050": il materiale cambiato in una lingua; cambiato anche il codice della scheda
       "060": una negazione tolta in una lingua; cambiato anche il codice della scheda
   8d3c673c:
+    # 27-11 sera: nelle due schede dei processi speciali codice e task diversi da tutte le
+    # altre stampe (probabili cambi a mano: non c'è la stampa giusta). La v1 li segnala
     errori:
+      "100": il codice della scheda e il suo task cambiati (probabile)
+      "110": il codice della scheda e il suo task cambiati (probabile)
       "140": un numero cambiato (solo in una lingua)
   e9b74c84:
+    # 27-11 sera: dal confronto con la stampa A3 dello stadio 7 (stesso testo). La v1 li segnala
     errori:
-      "025": un numero cambiato (solo in una lingua)
+      "025": un numero cambiato (solo in una lingua); anche il task del manuale cambiato
+      "040": una parola cambiata in inglese (dice «raccordato» invece di «rimosso»)
   4e64d49a:
     giusto: true
     di: 298bc28e

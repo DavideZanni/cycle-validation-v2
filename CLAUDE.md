@@ -12,7 +12,10 @@ impari qualcosa di nuovo, aggiungilo lì. Le regole che non si discutono:
 - `docs/COPILOT.md`: blocchi PowerShell pronti da copiare, ognuno con
   `$env:UV_PYTHON = "3.14"`, poi *Deve uscire* e *Manda a Claude*; le parti fatte si tolgono.
 - Il repository è pubblico: mai nome del bucket, account, host, matricola, codici di manuali,
-  numeri DR, serial o part number veri. Valori inventati negli esempi; i comandi leggono i
+  numeri DR, serial o part number veri. Unica eccezione: `docs/CONFRONTO_V1_14_CICLI.md`
+  (la v1 sui 14 cicli noti e il testo originale delle stampe, con i codici veri), che il
+  responsabile dell'utente ha permesso di tenere nel repository pubblico (27-11): Claude lo
+  usa, ma in quello che scrive lui restano impronte e numeri di operazione. Valori inventati negli esempi; i comandi leggono i
   codici dai file sul PC. Nelle foto può comparire il nome del bucket: non ripeterlo.
 - Documenti e output EJ200 restano su AWS EU: nessuna copia locale della conoscenza EJ200.
 - Prima di ogni commit: `uv run pytest -q`, `uv run ruff check .`, `uv run ruff format --check .`,
@@ -21,7 +24,8 @@ impari qualcosa di nuovo, aggiungilo lì. Le regole che non si discutono:
   `DOCUMENTAZIONE.md` (com'è fatto e come funziona tutto il progetto, anche installare,
   configurare e avviare il servizio), `COPILOT.md` (lavoro sul PC e domande aperte),
   `MEMORIA.md` (la storia: non si toglie niente), `MIGLIORIE.md`. Niente file
-  nuovi in `docs/` senza motivo: si aggiunge a uno di questi.
+  nuovi in `docs/` senza motivo: si aggiunge a uno di questi. In più c'è
+  `CONFRONTO_V1_14_CICLI.md`, messo dall'utente: è un dato, non si modifica.
 - Quando cambia come funziona il programma (regole, controlli, comandi, impostazioni, rotte),
   si aggiorna `docs/DOCUMENTAZIONE.md` nello stesso commit.
 - Regole fisse dell'utente (dettagli in `docs/MEMORIA.md`, sezione 7): mai scrivere (repository,

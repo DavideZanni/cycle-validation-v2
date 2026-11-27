@@ -108,8 +108,8 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 |---|---|---|---|
 | ✅ | **1. Preparare** | aggiornare il PC, scegliere i cicli, copie cieche | 24-11 |
 | ✅ | **2. Prima campagna** | tutte le impostazioni, Haiku e Sonnet | 24-11 sera |
-| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` e `definizioni_generali` non entrano; corretto il controllo dei numeri tra le lingue. 27-11: `procedura_dr` nella base, `lingue_tra_loro` scartata. Adesso: `fonte_ispezione`, regola della scheda, `lingue_tra_loro` stretta, poi campagna finale | 26-27-11 |
-| ⬜ | **4. Prove dal frontend** | la v2 dalla pagina web (sezione 4) | 27-11 |
+| 👉 | **3. Migliorie** | 25-11: `elementi_e_lingue` nella base. 26-11: `seconda_ricerca` e `definizioni_generali` non entrano; corretto il controllo dei numeri tra le lingue. 27-11: `procedura_dr` nella base, `lingue_tra_loro` scartata; campagna finale: vince `finale` (I8 + I15 + I16); la v1 sugli stessi cicli. Adesso: riepiloghi ricalcolati e P12, poi `finale` nella base | 26-27-11 |
+| 👉 | **4. Prove dal frontend** | la v2 dalla pagina web (sezione 4): A3 e A1 fatte il 27-11, le altre dopo `finale` nella base | 27-11 → |
 | ⬜ | **5. Conoscenza e QA** | la tua grande ingestion, una prova di controllo, Salvare, QA | dopo la 4 |
 | ⬜ | **6. Produzione** | `develop` → `main` | dopo QA |
 
@@ -126,71 +126,72 @@ servizio la scegli tu: una grande ingestion di tutti i documenti civili.
 |---|---|---|---|
 | ✅ | **1 · Campagna** base contro `lingue_tra_loro` e `procedura_dr` | tu | finita il 27-11 alle 11:17: `procedura_dr` nella base, `lingue_tra_loro` scartata (`MIGLIORIE.md`, sezione 13) |
 | ✅ | **2 · Migliorie per la campagna finale** | Claude | scritte il 27-11 |
-| 👉 | **3 · Aggiornare, prove dal frontend, domande a Copilot** | tu | adesso, mentre Claude scrive il passo 2 · qualche centesimo · 1 ora |
-| 👉 | **4 · Campagna finale** | tu | 27-11: archiviato e copie cieche fatte (12:35); ora login, piano, campagna · circa 6 $ · 3 ore |
+| ✅ | **3 · Aggiornare, prove dal frontend, domande a Copilot** | tu | 27-11 (restano le altre prove dal frontend, sezione 4) |
+| ✅ | **4 · Campagna finale e v1 sugli stessi cicli** | tu | 27-11: vince `finale`; la v1 in `docs/CONFRONTO_V1_14_CICLI.md` |
+| 👉 | **4c · Riepiloghi ricalcolati e domanda P12** | tu | adesso · gratis · 30 minuti |
 | ⬜ | **5 · Grande ingestion, prova di controllo, Salvare, QA** | tu | dopo |
 
 ---
 
-**✅ Passo 2 · Migliorie per la campagna finale** (fatto da Claude il 27-11)
+**👉 Passo 4c · Riepiloghi ricalcolati e domanda P12** (adesso, gratis)
 
-Nella base: la regola della scheda (I9: processo speciale senza scheda = WARNING). Da provare
-nella campagna finale: `fonte_ispezione` (I8: nelle ispezioni anche la sezione d'ispezione del
-manuale del motore, toglie il «4 volte contro 3 volte») e `finale` (I8 più il confronto tra le
-lingue stretto, I15: solo negazioni e limiti al contrario). Corretti i quattro difetti della
-revisione del codice.
+**Fatto il 27-11:** la campagna finale (vince `finale`: 23 su 34 contro 20 sul piccolo, 12 su
+20 contro 10 sul grande, 0 falsi errori) e la v1 in QA sulle 14 stampe
+(`docs/CONFRONTO_V1_14_CICLI.md`). Dal testo delle stampe Claude ha trovato **6 operazioni con
+errori che non erano nella lista** (cambi di task, schede, macchine: la v1 li trova). Adesso
+si ricalcolano le prove già fatte con la lista nuova, senza rifarle.
 
----
+1. **Aggiornare** (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Porta la lista nuova
+   degli errori noti e il comando che ricalcola.
+   - **Deve uscire:** `... passed`, nessun `failed`.
+2. **Ricalcolare i due riepiloghi** (gratis, nessuna chiamata al modello):
 
-**👉 Passo 3 · Aggiornare, prove dal frontend, domande a Copilot** (adesso)
+```powershell
+$env:UV_PYTHON = "3.14"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+"piccolo", "grande" | ForEach-Object { uv run cycle-validation eval riepilogo --cartella "runs/prove-$_" --attesi eval/errori-noti.yaml }
+```
 
-1. Aggiornare (sezione [2.1](#21-aggiornare-il-codice-sul-pc)). Foto dell'ultima riga. Porta la
-   pulizia del codice del 27-11, `procedura_dr` e la regola della scheda nella base, le
-   varianti della campagna finale.
-2. Prove dal frontend (sezione [4](#4-prove-dal-frontend)). Fatte il 27-11: il ciclo «con
-   errori» A3 (errore della 005 trovato) e la stampa A1 dello stadio 6 (solo il falso errore
-   noto della 050), in locale e in QA. Mancano le altre (sezione 4).
-3. ✅ Domande **P10** e **P11** a Copilot: fatte il 27-11 (P10: due errori veri, uno uguale,
-   un dubbio, tutto in `eval/errori-noti.yaml`; P11: l'ERRORE della QA sulla scheda della 040 è
-   falso).
-4. **Ricordati:** Copilot sempre in **Ask**. Nelle foto del 27-11 era in Agent con «Allow all».
-5. Quando hai tempo: il prompt per la **documentazione completa** (sezione
-   [6.3](#63-prompt-per-copilot-la-documentazione-completa)).
+   - **Deve uscire:** per ogni insieme `Ricalcolati con gli errori noti di adesso: 27 cicli
+     cambiati` (3 stampe per 9 prove; un numero diverso va bene, mandami la foto), poi 9 righe
+     `... su 40` (piccolo) e 9 righe `... su 26` (grande), poi `Riepilogo: ...`.
+   - **Mandami:** la foto del terminale; poi, nei due `riepilogo.md` (3.6), la «Classifica
+     delle varianti» e le righe di «Errore per errore» di **38960731**, **8d3c673c** ed
+     **e9b74c84**.
+3. **Domanda P12 a Copilot** (in **Ask**, non in Agent): copia il testo qui sotto.
 
----
+```text
+Modalità Ask: leggi soltanto, non modificare e non creare file.
 
-**👉 Passo 4 · Campagna finale** (adesso)
+Domanda A. Nella cartella runs/prove-grande ci sono tre prove «finale» del 27-11 (cartelle che
+finiscono con -finale). Nei cicli 414d85ca, 477abec8 e ffadfe16 la v2 dà ERRATO
+sull'operazione 060 (in prova.json: cycles, poi extra). Per ognuno dei tre cicli:
+1) che cosa dice la spiegazione dell'ERRATO, in una frase;
+2) nel file runs/prove-grande/<prova>/<impronta>/report.json, il testo della 060 in italiano e
+   in inglese: dicono la stessa cosa? In particolare il limite dell'ingrandimento: l'italiano
+   dice «superiore a 4X» e l'inglese «not to exceed 4X», come nella stampa 737dec71?
+3) la conclusione: errore vero della stampa (le due lingue dicono cose diverse) o falso errore
+   (traduzione libera, stessa istruzione)?
 
-Fatto il 27-11 alle 12:35: Aggiornare (test passati), Archiviare (3.8), copie cieche con il
-**seme 3** (3.3: 14 copie su 14 cicli, 4 dei tipi del modello). Le cartelle
-`runs\prove-piccolo-sonnet` e `runs\prove-grande-sonnet` sono ancora in `runs`: spostale a mano
-nelle cartelle di archivio del 27-11 alle 12:35 (non è urgente, la campagna non le usa).
+Domanda B. Ciclo 04ecaabe, operazione 050, variante «fonte_ispezione»: nel piccolo
+(runs/prove-piccolo, cartelle che finiscono con -fonte_ispezione) la v2 dà ERRATO 3 volte su 3,
+nel grande 0 volte su 3. Confronta il report.json di 04ecaabe in una prova del piccolo e in una
+del grande: per la 050, quali manuali e task cita la v2 come evidenza, e che cosa dice la
+spiegazione? Nel piccolo c'è la sezione d'ispezione del manuale del motore tra le evidenze?
 
-**Adesso, in ordine:** `aws sso login`; il piano (3.5, «Il piano»); se il piano è giusto, la
-campagna (3.5, «La campagna»). Mentre gira si può fare il passo 4b (la v1 in QA), non le prove
-dal frontend della v2.
+Rispondi in italiano semplice: una tabella per la domanda A (ciclo, spiegazione, italiano,
+inglese, conclusione) e tre righe per la domanda B. Delle stampe copia solo le frasi della
+060 e della 050; non copiare testo dei manuali.
+```
 
-Che cosa confronta: la base contro
-`fonte_ispezione` e contro `finale`, 3 prove ciascuna, piccolo e grande. Il seme nuovo è una
-misura onesta: la configurazione che vince è quella della produzione. Circa 6 $ e 2-3 ore.
+   - **Deve uscire:** la tabella con i tre cicli e le righe per 04ecaabe.
+   - **Mandami:** la foto della risposta.
+4. **Facoltativo:** nella QA ricarica una volta **298bc28e** (sezione [3.9](#39-la-v1-sugli-stessi-cicli),
+   punto 2), l'unica stampa che non si è caricata. **Mandami:** l'intestazione e le righe
+   «Error», oppure il messaggio di errore.
 
-**Il piano deve dire:** `Piccolo: N cicli e copie; grande: M cicli.` e, per ogni insieme, tre
-righe: `base`, `fonte_ispezione`, `finale`, ognuna `3 da fare`.
-
-**La campagna deve dire:** 0 falsi errori (anche nella tabella «In attesa»: 04ecaabe 050 e
-2d724fba 050 con `fonte_ispezione` e `finale` a 0 su 3, o quasi; 737dec71 060 con `finale` a
-3 su 3 va bene, è un errore vero della stampa), con `finale` molti meno WARNING per ciclo
-(le operazioni «fuori tema» diventano N/A), nessun ciclo oltre 10 minuti,
-nessun ciclo non eseguito. **Mandami:** la riga finale, `runs\campagna.md` e i due
-`riepilogo.md`, come oggi.
-
----
-
-**⬜ Passo 4b · La v1 sugli stessi cicli** (per la presentazione; dopo la campagna o mentre
-gira, dal browser)
-
-Sezione [3.9](#39-la-v1-sugli-stessi-cicli). Circa 1 ora, nessun costo per noi. Serve per la
-tabella «v1 contro v2 sugli stessi cicli con errori conosciuti».
+**Dopo (Claude):** la tabella finale «v1 contro v2 sugli stessi cicli», `finale` nella base
+(se la P12 dice che i 3 ERRATO sono errori veri) e, se vuoi, una pagina per la presentazione.
 
 ---
 
@@ -546,6 +547,11 @@ if ($ok) { $lista = "runs/prove-grande/cicli.txt"; $copia = Join-Path $env:TEMP 
 ---
 
 ### 3.9 La v1 sugli stessi cicli
+
+**Fatto il 27-11** con la v1 (la versione di prima, in QA come in produzione): risultati e testo
+originale delle stampe in `docs/CONFRONTO_V1_14_CICLI.md`. La v1 ha preso le stampe MOS; le tre
+A6 si sono fermate (chiede serial e condition del DR) e 298bc28e non si è caricata. Il blocco
+resta per ricaricare 298bc28e.
 
 **A cosa serve:** la v2 si misura nelle campagne sulle stampe con errori conosciuti
 (`eval/errori-noti.yaml`); la v1 no. Per dire quale delle due è più giusta servono le stesse

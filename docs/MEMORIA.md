@@ -8,6 +8,7 @@ nuovo.** Ultimo aggiornamento: 27-11-2026.
 
 Il repository è pubblico: qui non ci sono mai valori veri (bucket, account, host, matricola,
 codici di manuali, numeri DR, serial number, part number, codici dei cicli, contenuti EJ200).
+Unica eccezione: `docs/CONFRONTO_V1_14_CICLI.md` (sezione 7).
 
 Gli altri documenti:
 
@@ -17,6 +18,7 @@ Gli altri documenti:
 | `docs/COPILOT.md` | il file per lavorare sul PC: cosa fare adesso, blocchi da lanciare, domande per Copilot e per le persone |
 | `docs/MEMORIA.md` | questo file |
 | `docs/MIGLIORIE.md` | cosa migliorare, in che ordine, e il registro delle prove fatte |
+| `docs/CONFRONTO_V1_14_CICLI.md` | la v1 sui 14 cicli con errori noti (in QA) e il testo originale delle stampe: **con i codici veri**, permesso dal responsabile (27-11) |
 
 ---
 
@@ -35,12 +37,14 @@ sezione 1 di `COPILOT.md`):
 | # | Cosa | Dove | Stato |
 |---|---|---|---|
 | 1 | Aggiornare il codice sul PC | COPILOT 2.1 | ✅ 27-11 12:35, test passati |
-| 2 | `aws sso login` | terminale | prima della campagna |
+| 2 | `aws sso login` | terminale | ✅ |
 | 3 | Archiviare le prove vecchie | COPILOT 3.8 | ✅ 27-11 12:35 (le cartelle `-sonnet` da spostare a mano) |
 | 4 | Copie cieche con il seme 3 | COPILOT 3.3 | ✅ 27-11: 14 copie (seme 2: 15) |
-| 5 | Piano della campagna: per ogni insieme `base`, `fonte_ispezione`, `finale`, ognuna `3 da fare` | COPILOT 3.5 | da fare |
-| 6 | Campagna finale (circa 6 $, 3 ore); foto della riga finale, di `campagna.md` e dei due `riepilogo.md` | COPILOT 3.5 | da fare |
-| 7 | La v1 sugli stessi 14 cicli noti, in QA, con le copie rinominate con l'impronta (si può fare mentre gira la campagna) | COPILOT 3.9 | da fare |
+| 5 | Piano della campagna: per ogni insieme `base`, `fonte_ispezione`, `finale`, ognuna `3 da fare` | COPILOT 3.5 | ✅ |
+| 6 | Campagna finale (circa 6 $, 3 ore); foto della riga finale, di `campagna.md` e dei due `riepilogo.md` | COPILOT 3.5 | ✅ 27-11 (piccolo 14:05-15:13, grande 16:03-17:02, circa 5,3 $): vince `finale` (MIGLIORIE 13) |
+| 7 | La v1 sugli stessi 14 cicli noti, in QA, con le copie rinominate con l'impronta (si può fare mentre gira la campagna) | COPILOT 3.9 | ✅ 27-11: `docs/CONFRONTO_V1_14_CICLI.md` (298bc28e da ricaricare una volta) |
+| 7b | Aggiornare, riepiloghi ricalcolati con gli errori aggiunti dal testo delle stampe (gratis), domanda P12 a Copilot | COPILOT passo 4c | da fare |
+| 7c | Claude: tabella finale v1 contro v2, `finale` nella base, pagina per la presentazione | Claude | dopo 7b |
 | 8 | Le altre prove dal frontend della v2, dopo la campagna (due cicli «con errori», il più lungo con il tempo, DR con e senza serial, file sbagliato, storico, CSV) | COPILOT 4 | A3 e A1 fatte il 27-11 |
 | 9 | Prompt della documentazione completa (quando c'è tempo) | COPILOT 6.3 | da fare |
 
@@ -484,6 +488,15 @@ dei cicli in `docs\Esempio ciclo mos\` e `docs\Esempio ciclo dr\` (git li ignora
     il comportamento; in `COPILOT.md` le parti fatte si tolgono;
   - **Copilot sempre in Ask**: nelle foto è spesso su **Agent con «Allow all»** (anche il 27-11,
     tre volte): ricordarlo all'utente ogni volta che si vede.
+- **Eccezione del 27-11 sera: `docs/CONFRONTO_V1_14_CICLI.md`.** L'utente l'ha messo nel
+  repository (i risultati della v1 in QA sui 14 cicli noti, dai CSV della v1, e il testo
+  originale delle 14 stampe, con codici di ciclo, manuali, task, schede, macchine). Claude ha
+  avvisato che il repository è pubblico; l'utente ha risposto che **il suo responsabile ha
+  detto che può stare nel repository pubblico** e di usarlo. Quindi: il file resta, è un dato
+  (non si modifica, non si toglie), Claude lo legge per le analisi. **Le altre regole non
+  cambiano:** in tutto quello che scrive Claude (codice, altri documenti, chat, errori noti)
+  restano impronte, numeri di operazione e descrizioni generiche; il controllo del diff vale
+  per tutti i commit che non aggiungono quel file.
 
 ---
 
@@ -1329,6 +1342,53 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   (c) i dubbi veri (per esempio la classe dell'etchant che il testo non nomina): restano WARNING,
   sono quelli da guardare. Manca la misura della v1 sulle stesse stampe: nuovo passo 4b (COPILOT
   3.9), con le copie rinominate con l'impronta.
+
+- **27-11 sera, campagna finale e v1 sugli stessi cicli.** Foto di `campagna.md` e dei due
+  riepiloghi (piccolo 14:05-15:13, grande 16:03-17:02: la campagna è ripartita per il grande).
+  **Vince `finale`** su tutti e due gli insiemi, 0 falsi errori, meno WARNING; sul grande 3
+  ERRATO da verificare sulla 060 di tre cicli veri (414d85ca, 477abec8, ffadfe16), forse lo
+  stesso errore vero della stampa 737dec71 060 («superiore» contro «not to exceed»): P12.
+  `fonte_ispezione` non toglie il falso errore P7 (sul piccolo nessun effetto, sul grande solo
+  su 04ecaabe): P12. Con `finale` 298bc28e 035 (un errore da trovare) diventa N/A
+  `FUORI_TEMA`: prima era un WARNING, quindi I16 può nascondere un errore. Numeri in
+  MIGLIORIE 13.
+  **La v1:** l'utente ha messo nel repository `docs/CONFRONTO_V1_14_CICLI.md` (risultati della
+  v1, cioè la versione di prima del cycle validation, quella in QA e in produzione, sulle
+  stesse 14 stampe caricate come MOS; i DR la v1 non li prende; dai suoi CSV e testo originale delle 14 stampe, con i codici veri). Claude ha
+  avvisato del repository pubblico; l'utente: **il responsabile ha detto che può stare nel
+  repository pubblico** (regola in sezione 7). Cosa dice, confrontato con il testo delle
+  stampe:
+  - la v1 valida 10 stampe su 14: si ferma sulle 3 A6 (22f586bb, 737dec71, 895167b9: «serial
+    e condition mancanti» o «nessun dato DR»), e 298bc28e non si carica. La v2 le fa tutte;
+  - **la lista degli errori noti era incompleta** sulle tre stampe senza stampa giusta
+    (38960731, 8d3c673c, e9b74c84): il 23-11 veniva solo dal confronto delle lingue. Nel
+    testo ci sono cambi a mano che si vedono (una parola minuscola in una stampa tutta
+    maiuscola, la stessa operazione con due macchine su due pagine, limiti in inglese più alti
+    del totale, codici di scheda e task diversi da tutte le altre stampe). Aggiunte 6
+    operazioni in `eval/errori-noti.yaml` (38960731 010, 030, 040; 8d3c673c 100, 110;
+    e9b74c84 040). Le stampe copiate da 04ecaabe (5ff17062, f355dc3c) erano già complete per
+    operazione (P9); anche lì sono cambiati il task della 030 e la macchina della 050;
+  - **la v1 trova 15 operazioni con errori su 19** nelle 6 stampe con errori: tutti i cambi di
+    codici (task, schede, macchine: ha il registro delle macchine attive e l'indice delle
+    schede con il materiale) e le frasi inglesi. **Manca i cambi solo in italiano** (5ff17062
+    010, f355dc3c 010 e 050) e la classe dell'etchant di f355dc3c 040: legge l'inglese;
+  - **la v1 dà 8 falsi errori:** 6 sulle 4 stampe giuste (04ecaabe: la fonte, il cui testo dice
+    che è giusta, e la scheda della 040, P11; 4e64d49a: la fonte, stesso testo; 8bdb25d5: la
+    030, «coating» e «lubrificante applicato» sono la stessa cosa, P10; 2d724fba: la 030, «1,5
+    volte la semi-lunghezza» contro «7,5 volte la profondità», che con «lunghezza almeno 10
+    volte la profondità» è la stessa regola, e la scheda della 040) e 2 su 8d3c673c (060:
+    «opposing» contro «opposite»; 070: una macchina che nel testo della stampa non c'è);
+  - **la v2** (`finale`): sulle 13 operazioni della lista di prima ne può giudicare 10 e ne
+    trova 8 (manca 5ff17062 010 e f355dc3c 010, tre numeri cambiati in italiano); 0 falsi
+    errori contati, ma il falso errore P7 resta (04ecaabe 050, 2d724fba 050). Sulle 6
+    operazioni aggiunte non si sa ancora: si ricalcola gratis (`eval riepilogo --attesi`,
+    comando nuovo del 27-11 sera). Probabilmente le manca: oggi controlla solo che task e
+    scheda esistano, e sul PC le targhe sono spente. Idee H17-H19 (MIGLIORIE 10.4);
+  - **il messaggio per la presentazione, da confermare con i numeri ricalcolati:** la v1 trova
+    di più sui codici ma su una stampa giusta su due dà un errore falso, e non legge l'italiano
+    né le A6 senza serial; la v2 non dà quasi mai errori falsi, legge tutte le stampe e le due
+    lingue, e ogni ERRATO ha la frase citata ritrovata dal programma; le manca il controllo dei
+    codici (H17-H19, lavoro piccolo).
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

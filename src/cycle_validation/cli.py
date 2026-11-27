@@ -63,6 +63,7 @@ from cycle_validation.evaluation.trials import (
     failed_cycle,
     load_known_errors,
     load_trials,
+    rescore_trials,
     score_cycle,
     unusable_trials,
     write_summary,
@@ -1521,8 +1522,18 @@ def eval_campaign(
 @eval_app.command("riepilogo")
 def eval_trials_summary(
     cartella: Annotated[Path, typer.Option(help="Cartella delle prove.")] = Path("runs/prove"),
+    attesi: Annotated[
+        list[Path] | None,
+        typer.Option(
+            help="Errori noti aggiornati: ricalcola le prove già fatte dai loro report.json "
+            "(solo i cicli che sono in questi file; gratis, nessuna chiamata al modello)."
+        ),
+    ] = None,
 ) -> None:
     """Riscrive `riepilogo.md` con tutte le prove della cartella e stampa la tabella."""
+    if attesi:
+        changed = rescore_trials(cartella, load_known_errors(attesi))
+        typer.echo(f"Ricalcolati con gli errori noti di adesso: {changed} cicli cambiati")
     trials = load_trials(cartella)
     summary = write_summary(cartella)
     for trial in trials:
