@@ -32,16 +32,20 @@ class ConversationRequest(BaseModel):
             return None
         return self.answer.strip().casefold() in YES
 
+    @property
+    def has_selectors(self) -> bool:
+        """Almeno uno dei selettori DR ha un valore."""
+        return bool(self.dr_serial_number) or self.dr_condition not in (None, "", [])
+
     @model_validator(mode="after")
     def _selectors_need_dr(self) -> "ConversationRequest":
-        has_selectors = bool(self.dr_serial_number) or self.dr_condition not in (None, "", [])
-        if self.is_yes is False and has_selectors:
+        if self.is_yes is False and self.has_selectors:
             raise ValueError("Con risposta no i selettori DR non sono ammessi.")
         # Serial number e condition sono facoltativi: il passo DR può arrivare con i due campi
         # vuoti (il frontend li manda anche così, se si toglie l'obbligo). Serve però che ci
         # siano almeno i nomi dei campi, altrimenti la richiesta non dice niente.
         dr_step = {"dr_serial_number", "dr_condition"} & self.model_fields_set
-        if self.answer is None and not has_selectors and not dr_step:
+        if self.answer is None and not self.has_selectors and not dr_step:
             raise ValueError("Serve una risposta oppure i campi DR (anche vuoti).")
         return self
 

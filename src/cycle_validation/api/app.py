@@ -47,7 +47,7 @@ from cycle_validation.errors import (
 from cycle_validation.kb.stores import WritableObjectStore
 from cycle_validation.pipeline import RunRequest
 from cycle_validation.report.legacy_payload import build_legacy_payload
-from cycle_validation.resolve.dr import SelectorError, parse_selectors
+from cycle_validation.resolve.dr import DrSelectors, SelectorError, parse_selectors
 from cycle_validation.selection import MILITARY_PROFILE, resolve_profile, selection_options
 
 DR_QUESTION = "Devi validare un ciclo DR (Departure Recommendation)?"
@@ -108,9 +108,22 @@ def _identity(request: Request) -> Identity:
     return identity
 
 
+def _military_allowed(request: Request) -> bool:
+    """I cicli militari solo a chi ha il servizio EJ200 nell'SSO."""
+    return bool(_identity(request).services & {SERVICE_EJ200, SERVICE_ALL})
+
+
 def _check_session_id(value: str | None) -> None:
     if value is not None and not SESSION_ID.match(value):
         raise ApiError(422, "session_id non valido: ammessi lettere, cifre, - e _ (1-128).")
+
+
+def _selectors(is_dr: bool, serial_number: str | None, conditions: Any) -> DrSelectors | None:
+    """I selettori DR, oppure 422 con il motivo."""
+    try:
+        return parse_selectors(is_dr=is_dr, serial_number=serial_number, conditions=conditions)
+    except SelectorError as exc:
+        raise ApiError(422, str(exc)) from exc
 
 
 def _parse_bool(value: str) -> bool:
@@ -150,6 +163,13 @@ def _envelope(services: ApiServices, report: Report, file_name: str) -> dict[str
     }
 
 
+def _with_job(services: ApiServices, envelope: dict[str, Any]) -> dict[str, Any]:
+    """Le risposte militari portano anche un identificativo e l'ora di fine."""
+    envelope["job_id"] = services.new_id()
+    envelope["finished_at"] = services.clock().astimezone(UTC).isoformat()
+    return envelope
+
+
 def _public_message(exc: BaseException) -> str:
     """Il messaggio degli errori previsti è scritto per chi usa lo strumento. Quello di ogni
     altra eccezione può riportare il valore che l'ha causata (testo del ciclo, di un manuale,
@@ -187,6 +207,11 @@ def _failed(services: ApiServices, exc: Exception) -> dict[str, Any]:
     }
 
 
+# Errori che il sistema attuale traduce in un codice HTTP anche sulle rotte civili; gli altri
+# lì diventano 200 con `state: failed`.
+_HTTP_ERRORS = (IngestError, SelectorError, KnowledgeError, ProfileUnavailableError)
+
+
 def _raise_for(exc: Exception) -> None:
     """Traduce gli errori della libreria nei codici HTTP del sistema attuale."""
     if isinstance(exc, IngestError):
@@ -206,6 +231,12 @@ def _sessions_router(
     base = "/ej200/sessions" if ej200 else "/sessions"
     model = Ej200Session if ej200 else ChatSession
     Sid = Annotated[str, Path(pattern=SESSION_ID.pattern)]
+
+    def found(request: Request, session_id: str) -> dict[str, Any]:
+        session = store.get(_identity(request).sso, session_id)
+        if session is None:
+            raise ApiError(404, "Sessione non trovata.")
+        return session
 
     @router.post(base)
     async def save_session(request: Request, session: Annotated[Any, Body()]) -> dict[str, Any]:
@@ -231,19 +262,13 @@ def _sessions_router(
 
         @router.get(f"{base}/{{username}}/{{session_id}}")
         async def get_civil(request: Request, username: str, session_id: Sid) -> dict[str, Any]:
-            found = store.get(_identity(request).sso, session_id)
-            if found is None:
-                raise ApiError(404, "Sessione non trovata.")
-            return found
+            return found(request, session_id)
 
     else:
 
         @router.get(f"{base}/{{session_id}}")
         async def get_ej200(request: Request, session_id: Sid) -> dict[str, Any]:
-            found = store.get(_identity(request).sso, session_id)
-            if found is None:
-                raise ApiError(404, "Sessione non trovata.")
-            return found
+            return found(request, session_id)
 
     @router.delete(f"{base}/{{session_id}}")
     async def delete_session(
@@ -318,16 +343,10 @@ def create_app(services: ApiServices) -> FastAPI:
 
     @router.post("/conversation")
     async def conversation(body: ConversationRequest) -> dict[str, Any]:
-        has_selectors = bool(body.dr_serial_number) or body.dr_condition not in (None, "", [])
         if body.is_yes is False:
             return {"is_dr": False, "next_message": "Ok. Carica il PDF del ciclo."}
-        if has_selectors:
-            try:
-                parse_selectors(
-                    is_dr=True, serial_number=body.dr_serial_number, conditions=body.dr_condition
-                )
-            except SelectorError as exc:
-                raise ApiError(422, str(exc)) from exc
+        if body.has_selectors:
+            _selectors(True, body.dr_serial_number, body.dr_condition)
             return {"is_dr": True, "next_message": "Dati DR ricevuti. Carica il PDF del ciclo."}
         return {
             "is_dr": True,
@@ -348,18 +367,13 @@ def create_app(services: ApiServices) -> FastAPI:
         _check_session_id(session_id)
         data = await _read_pdf(file, services.config.max_upload_bytes)
         dr = _parse_bool(is_dr)
-        try:
-            selectors = parse_selectors(
-                is_dr=dr, serial_number=dr_serial_number, conditions=dr_condition
-            )
-        except SelectorError as exc:
-            raise ApiError(422, str(exc)) from exc
+        selectors = _selectors(dr, dr_serial_number, dr_condition)
         request = RunRequest(
             pdf_bytes=data, pdf_name=file.filename or "ciclo.pdf", selectors=selectors
         )
         try:
             report = await validate("dr" if dr else "mos", request)
-        except (IngestError, SelectorError, KnowledgeError, ProfileUnavailableError) as exc:
+        except _HTTP_ERRORS as exc:
             _raise_for(exc)
             raise
         except Exception as exc:  # il sistema attuale risponde 200 con state: failed
@@ -368,10 +382,9 @@ def create_app(services: ApiServices) -> FastAPI:
 
     @router.get("/validation/options")
     async def validation_options(request: Request) -> dict[str, Any]:
-        # il pulsante militare compare solo a chi ha il servizio EJ200 nell'SSO
-        allowed = bool(_identity(request).services & {SERVICE_EJ200, SERVICE_ALL})
         return selection_options(
-            military_enabled=services.config.ej200_enabled, military_allowed=allowed
+            military_enabled=services.config.ej200_enabled,
+            military_allowed=_military_allowed(request),
         )
 
     @router.post("/validation/upload")
@@ -389,13 +402,11 @@ def create_app(services: ApiServices) -> FastAPI:
         _check_session_id(session_id)
         try:
             profile = resolve_profile(domain, civil_type)
-            selectors = parse_selectors(
-                is_dr=profile == "dr", serial_number=dr_serial_number, conditions=dr_condition
-            )
-        except (SelectionError, SelectorError) as exc:
+        except SelectionError as exc:
             raise ApiError(422, str(exc)) from exc
+        selectors = _selectors(profile == "dr", dr_serial_number, dr_condition)
         military = profile == MILITARY_PROFILE
-        if military and not _identity(request).services & {SERVICE_EJ200, SERVICE_ALL}:
+        if military and not _military_allowed(request):
             raise ApiError(403, "Permesso insufficiente per i cicli militari.")
         if military and not services.config.ej200_enabled:
             raise ApiError(501, "La validazione dei cicli militari è disabilitata.")
@@ -404,17 +415,12 @@ def create_app(services: ApiServices) -> FastAPI:
         try:
             report = await validate(profile, run)
         except Exception as exc:
-            if military or isinstance(
-                exc, (IngestError, SelectorError, KnowledgeError, ProfileUnavailableError)
-            ):
+            if military or isinstance(exc, _HTTP_ERRORS):
                 _raise_for(exc)
                 raise
             return _failed(services, exc)  # come il civile storico: 200 con state: failed
         envelope = _envelope(services, report, run.pdf_name)
-        if military:
-            envelope["job_id"] = services.new_id()
-            envelope["finished_at"] = services.clock().astimezone(UTC).isoformat()
-        return envelope
+        return _with_job(services, envelope) if military else envelope
 
     router.include_router(
         _sessions_router(
@@ -441,10 +447,7 @@ def create_app(services: ApiServices) -> FastAPI:
         except Exception as exc:
             _raise_for(exc)
             raise
-        envelope = _envelope(services, report, request.pdf_name)
-        envelope["job_id"] = services.new_id()
-        envelope["finished_at"] = services.clock().astimezone(UTC).isoformat()
-        return envelope
+        return _with_job(services, _envelope(services, report, request.pdf_name))
 
     router.include_router(
         _sessions_router(

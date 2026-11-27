@@ -5,6 +5,7 @@
 import threading
 
 from cycle_validation.errors import KnowledgeError, SourceUnavailableError
+from cycle_validation.kb.memory import IndexedKnowledgeBase
 from cycle_validation.kb.port import (
     DocumentInfo,
     DrRecommendation,
@@ -15,7 +16,6 @@ from cycle_validation.kb.port import (
 from cycle_validation.kb.snapshot import ManualSource
 from cycle_validation.kb.stores import ObjectStore
 from cycle_validation.kb.structured import StructuredData, StructuredLayout, load_structured
-from cycle_validation.text import normalize_code, sheet_key
 
 
 class RemoteKnowledgeBase:
@@ -32,9 +32,8 @@ class RemoteKnowledgeBase:
         self._layout = layout or StructuredLayout()
         self._lock = threading.Lock()
         self._data: StructuredData | None = None
-        self._tags: dict[str, MachineTagEntry] = {}
-        self._sheets: dict[str, ProcessSheetEntry] = {}
-        self._dr: dict[str, list[DrRecommendation]] = {}
+        # Gli stessi indici (e le stesse regole di ricerca) della conoscenza in memoria.
+        self._index = IndexedKnowledgeBase(version)
 
     @property
     def version(self) -> str:
@@ -52,21 +51,23 @@ class RemoteKnowledgeBase:
     def _load(self) -> StructuredData:
         if self._data is None:
             data = load_structured(self._store, self._layout)
-            self._tags = {normalize_code(item.tag): item for item in data.machine_tags}
-            self._sheets = {sheet_key(item.code): item for item in data.process_sheets}
-            self._dr = {}
-            for item in data.dr_recommendations:
-                self._dr.setdefault(normalize_code(item.serial_number), []).append(item)
+            self._index = IndexedKnowledgeBase(
+                self._version,
+                machine_tags=data.machine_tags,
+                process_sheets=data.process_sheets,
+                dr_recommendations=data.dr_recommendations,
+            )
             self._data = data
         return self._data
 
-    def _ensure(self) -> None:
+    def _ensure(self) -> IndexedKnowledgeBase:
         """Durante un controllo, un caricamento fallito è una sorgente non raggiungibile."""
         with self._lock:
             try:
                 self._load()
             except KnowledgeError as exc:
                 raise SourceUnavailableError(str(exc)) from exc
+            return self._index
 
     def find_manuals(self, manual: str) -> list[DocumentInfo]:
         return self._manuals.find_manuals(manual)
@@ -78,20 +79,16 @@ class RemoteKnowledgeBase:
         return self._manuals.find_task_in_kind(kind, task)
 
     def documents_of_kind(self, kind: str) -> list[DocumentInfo]:
-        method = getattr(self._manuals, "documents_of_kind", None)
-        return list(method(kind)) if callable(method) else []
+        return self._manuals.documents_of_kind(kind)
 
     def find_machine_tag(self, tag: str) -> MachineTagEntry | None:
-        self._ensure()
-        return self._tags.get(normalize_code(tag))
+        return self._ensure().find_machine_tag(tag)
 
     def find_process_sheet(self, code: str) -> ProcessSheetEntry | None:
-        self._ensure()
-        return self._sheets.get(sheet_key(code))
+        return self._ensure().find_process_sheet(code)
 
     def find_dr_recommendations(self, serial_number: str) -> list[DrRecommendation]:
-        self._ensure()
-        return list(self._dr.get(normalize_code(serial_number), ()))
+        return self._ensure().find_dr_recommendations(serial_number)
 
     def stats(self) -> dict[str, int]:
         data = self._load()

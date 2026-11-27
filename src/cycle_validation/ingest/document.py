@@ -4,7 +4,6 @@ Regola: PDFium se c'è un livello di testo, altrimenti si renderizzano le pagine
 trascrive con il modello. Le immagini (JPEG, PNG) sono una pagina sola.
 """
 
-import hashlib
 import io
 from collections import deque
 from collections.abc import Generator, Iterable
@@ -13,7 +12,6 @@ from contextlib import closing
 from pathlib import Path
 from typing import Any
 
-import pypdfium2 as pdfium
 from PIL import Image
 
 from cycle_validation.config import FileLimits
@@ -25,12 +23,13 @@ from cycle_validation.ingest.pdf import (
     PdfDocument,
     PdfPage,
     check_required_text,
+    check_size,
+    is_pdf,
+    open_pdf,
     read_pdf_bytes,
 )
 from cycle_validation.ingest.transcribe import PageTranscriber
 
-_PDF = b"%PDF-"
-_PDF_WINDOW = 1024
 _PNG = b"\x89PNG\r\n\x1a\n"
 _JPEG = b"\xff\xd8\xff"
 _RENDER_SCALE = 2.5  # ~180 dpi: abbastanza per testo da 8 pt senza pagine enormi
@@ -113,10 +112,7 @@ def _rendered_pages(
     """Le pagine come immagini, una alla volta: in memoria ce n'è una sola, e se la trascrizione di
     una pagina fallisce le successive non vengono nemmeno renderizzate."""
     with PDFIUM_LOCK:
-        try:
-            document = pdfium.PdfDocument(data)
-        except pdfium.PdfiumError as exc:
-            raise IngestError(f"Il PDF {name} non è leggibile: {exc}") from exc
+        document = open_pdf(data, name)
         n_pages = len(document)
     try:
         if n_pages > limits.max_transcribed_pages:
@@ -173,9 +169,7 @@ def _transcribe(
     for number, (text, used) in enumerate(_transcribe_pages(images, tr, concurrency), 1):
         usage = usage + used
         pages.append(PdfPage(number=number, text=text.strip()))
-    document = PdfDocument(
-        name=name, sha256=hashlib.sha256(data).hexdigest(), size_bytes=len(data), pages=tuple(pages)
-    )
+    document = PdfDocument.of(data, name, tuple(pages))
     if document.n_chars < limits.min_chars:
         raise IngestError(
             f"La trascrizione di {name} contiene meno di {limits.min_chars} caratteri: "
@@ -197,13 +191,11 @@ def read_document_bytes(
     `concurrency`: pagine scansionate trascritte insieme (`agent.transcribe_concurrency`)."""
     if not data:
         raise IngestError(f"Il file {name} è vuoto.", http_status=400)
-    is_pdf = _PDF in data[:_PDF_WINDOW]
-    media_type = None if is_pdf else _media_type(data)
-    if not is_pdf and media_type is None:
+    pdf = is_pdf(data)
+    media_type = None if pdf else _media_type(data)
+    if not pdf and media_type is None:
         raise IngestError(f"Il file {name} non è un PDF né un'immagine JPEG o PNG.", 415)
-    if limits.max_bytes is not None and len(data) > limits.max_bytes:
-        megabytes = limits.max_bytes / (1024 * 1024)
-        raise IngestError(f"Il file {name} supera il limite di {megabytes:.0f} MB.", 413)
+    check_size(data, name, limits)
     if media_type is not None:
         if transcriber is None:
             raise IngestError(

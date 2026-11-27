@@ -53,6 +53,18 @@ def _op(value: object) -> str:
     return str(value or "").strip().lstrip("0") or "0"
 
 
+def _task_codes(operation: dict[str, Any]) -> list[str]:
+    return [_code(task) for task in operation.get("task_codes") or [] if _code(task)]
+
+
+def _linked(linked_by: list[tuple[str, str]], operation: dict[str, Any]) -> list[str]:
+    """Come la v2: i manuali delle fonti con lo stesso repair code dell'operazione, oppure,
+    se nessuna, tutti quelli del ciclo. `linked_by`: (manuale, repair code della fonte)."""
+    repair = _code(operation.get("repair_code"))
+    same = [code for code, rc in linked_by if repair and rc == repair]
+    return list(dict.fromkeys(same or [code for code, _ in linked_by]))
+
+
 def _chapter(task: str) -> str:
     """Il capitolo di un task: i primi due pezzi (`72-00-01-110-001` → `72-00`)."""
     parts = [part for part in task.split("-") if part]
@@ -189,13 +201,10 @@ def cycle_coverage(seen: CycleSeen, kb: KnowledgeBase) -> tuple[int, int]:
         if _code(source.get("manual"))
     ]
     present = {code for code, _ in linked_by if kb.find_manuals(code)}
-    all_manuals = list(dict.fromkeys(code for code, _ in linked_by))
     covered = 0
     for operation in seen.operations:
-        repair = _code(operation.get("repair_code"))
-        same = [code for code, rc in linked_by if repair and rc == repair]
-        linked = [code for code in dict.fromkeys(same or all_manuals) if code in present]
-        tasks = [_code(task) for task in operation.get("task_codes") or [] if _code(task)]
+        linked = [code for code in _linked(linked_by, operation) if code in present]
+        tasks = _task_codes(operation)
         if not tasks:
             covered += bool(linked)
             continue
@@ -239,13 +248,10 @@ def needed_manuals(
                 need.tasks.add(task)
             if seen.reasons.get(index):
                 need.reasons[seen.reasons[index]] += 1
-        all_manuals = list(dict.fromkeys(code for code, _ in linked_by))
         wanted = next((ops for key, ops in errors.items() if key in seen.name.lower()), set())
         for operation in seen.operations:
-            repair = _code(operation.get("repair_code"))
-            same = [code for code, rc in linked_by if repair and rc == repair]
-            linked = list(dict.fromkeys(same)) or all_manuals
-            tasks = [_code(task) for task in operation.get("task_codes") or [] if _code(task)]
+            linked = _linked(linked_by, operation)
+            tasks = _task_codes(operation)
             own: set[str] = set()
             for task in tasks:
                 if task.startswith(_SPM_PREFIX):
