@@ -15,7 +15,6 @@ suite di partenza.
 """
 
 import json
-import re
 import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -32,13 +31,16 @@ SUFFIX = "-MUT"
 _PATH_KEYS = ("conoscenza", "macchine")
 
 Rows = list[dict[str, Any]]
+# il ciclo cambiato, gli attesi e l'operazione toccata (None = tutte); None se non si applica
+Applied = tuple[dict[str, Any], Rows, int | None] | None
+Apply = Callable[[dict[str, Any], Rows], Applied]
 
 
 @dataclass(frozen=True)
 class Mutation:
     kind: str  # "difetto" | "innocua"
     description: str
-    apply: Callable[[dict[str, Any], Rows], tuple[dict[str, Any], Rows, int | None] | None]
+    apply: Apply
 
 
 def _verified(rows: Rows, check: str, index: int) -> bool:
@@ -51,12 +53,10 @@ def _verified(rows: Rows, check: str, index: int) -> bool:
     )
 
 
-def _defect(
-    check: str, field: str, verdict: str, reason: str | None
-) -> Callable[[dict[str, Any], Rows], tuple[dict[str, Any], Rows, int | None] | None]:
+def _defect(check: str, field: str, verdict: str, reason: str | None) -> Apply:
     """Il primo valore verificato di `field` diventa un codice che non esiste."""
 
-    def apply(cycle: dict[str, Any], rows: Rows) -> tuple[dict[str, Any], Rows, int | None] | None:
+    def apply(cycle: dict[str, Any], rows: Rows) -> Applied:
         for index, operation in enumerate(cycle.get("operations", [])):
             if not _verified(rows, check, index):
                 continue
@@ -85,21 +85,17 @@ def _defect(
     return apply
 
 
-def _double_spaces(
-    cycle: dict[str, Any], rows: Rows
-) -> tuple[dict[str, Any], Rows, int | None] | None:
+def _double_spaces(cycle: dict[str, Any], rows: Rows) -> Applied:
     touched = False
     for operation in cycle.get("operations", []):
         text = operation.get("operation_description") or ""
         if " " in text:
-            operation["operation_description"] = re.sub(" ", "  ", text)
+            operation["operation_description"] = text.replace(" ", "  ")
             touched = True
     return (cycle, rows, None) if touched else None
 
 
-def _lowercase_tags(
-    cycle: dict[str, Any], rows: Rows
-) -> tuple[dict[str, Any], Rows, int | None] | None:
+def _lowercase_tags(cycle: dict[str, Any], rows: Rows) -> Applied:
     touched = False
     for operation in cycle.get("operations", []):
         tag = operation.get("machine_tag")
