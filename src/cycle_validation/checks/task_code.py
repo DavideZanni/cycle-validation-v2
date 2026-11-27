@@ -5,9 +5,8 @@ Profili "document" (EJ200): il codice compare nel testo delle pubblicazioni cita
 """
 
 import re
-from functools import partial
 
-from cycle_validation.checks.base import CheckContext, evidence_at, guarded, make_result
+from cycle_validation.checks.base import CheckContext, evidence_at, make_result, per_operation
 from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reason, Target
 from cycle_validation.domain.cycle import Operation
 from cycle_validation.kb.documents import folded_text
@@ -111,8 +110,4 @@ def _check_one(ctx: CheckContext, target: Target, operation: Operation) -> Check
 
 
 def check_task_codes(ctx: CheckContext) -> list[CheckResult]:
-    results: list[CheckResult] = []
-    for index, operation in enumerate(ctx.cycle.operations):
-        target = Target.operation(index, operation)
-        results.append(guarded(CHECK, target, partial(_check_one, ctx, target, operation)))
-    return results
+    return per_operation(ctx, CHECK, _check_one)

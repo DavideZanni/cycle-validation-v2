@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from functools import partial
 from typing import Literal
 
 from cycle_validation.config import ProfileConfig
@@ -15,7 +16,7 @@ from cycle_validation.domain.check import (
     TargetKind,
     Usage,
 )
-from cycle_validation.domain.cycle import Cycle
+from cycle_validation.domain.cycle import Cycle, Operation
 from cycle_validation.errors import SourceUnavailableError
 from cycle_validation.kb.documents import page_at, read_lines
 from cycle_validation.kb.port import DocumentInfo, KnowledgeBase
@@ -76,3 +77,16 @@ def guarded(check: CheckName, target: Target, decide: Callable[[], CheckResult])
         return decide()
     except SourceUnavailableError as exc:
         return make_result(check, target, Reason.ERRORE_TECNICO, f"Controllo non eseguito: {exc}")
+
+
+def per_operation(
+    ctx: CheckContext,
+    check: CheckName,
+    decide: Callable[[CheckContext, Target, Operation], CheckResult],
+) -> list[CheckResult]:
+    """Un esito per ogni operazione del ciclo, ognuno protetto da `guarded`."""
+    results: list[CheckResult] = []
+    for index, operation in enumerate(ctx.cycle.operations):
+        target = Target.operation(index, operation)
+        results.append(guarded(check, target, partial(decide, ctx, target, operation)))
+    return results
