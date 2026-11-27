@@ -310,3 +310,23 @@ def test_an_action_inside_a_condition_is_not_an_action() -> None:
     assert actions("SE DANNEGGIATE DURANTE LA SABBIATURA", "it") == set()
     assert actions("IF DAMAGED DURING GRIT BLASTING", "en") == set()
     assert actions("DOPO LA SABBIATURA PULIRE", "it") == {"pulire"}
+
+
+def test_the_same_number_with_a_limit_twice_is_compared_by_count() -> None:
+    # banco di prova (27-11 notte): «MASSIMO 2 ... MASSIMO 2», uno girato in una lingua
+    from cycle_validation.checks.languages import limit_mismatches
+
+    assert limit_mismatches(
+        "- MASSIMO 2 SUL BORDO A - MINIMO 2 SUL BORDO B / "
+        "- MAXIMUM 2 ON EDGE B - MAXIMUM 2 ON EDGE A"
+    )
+    # l'ordine cambia tra le lingue: non è un errore
+    assert not limit_mismatches(
+        "- MASSIMO 2 SUL BORDO A - MASSIMO 2 SUL BORDO B / "
+        "- MAXIMUM 2 ON EDGE B - MAXIMUM 2 ON EDGE A"
+    )
+
+
+def test_a_date_in_one_language_does_not_hide_a_changed_number() -> None:
+    # banco di prova (27-11 notte): «D.T. 01-02-25» solo in italiano disallineava i numeri
+    assert number_mismatches("D.T. 01-02-25 RAGGIO 3 MM, 7 MM / RADIUS 3 MM, 9 MM") == [("7", "9")]

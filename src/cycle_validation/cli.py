@@ -1248,6 +1248,31 @@ def eval_without_model(
         )
 
 
+@eval_app.command("banco")
+def eval_bench(
+    knowledge: Annotated[
+        Path | None, typer.Option(help="Conoscenza. Vuoto = l'ultima fotografia.")
+    ] = None,
+    config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
+    giri: Annotated[int, typer.Option(help="Giri con semi diversi.")] = 5,
+) -> None:
+    """Banco di prova sulle 14 stampe vere (`docs/CONFRONTO_V1_14_CICLI.md`): il programma mette
+    un errore alla volta su ogni operazione possibile e conta quanti ne trovano i controlli del
+    codice, per tipo, e i falsi allarmi; poi la lettura della stampa contro la v1. 0 $, pochi
+    secondi. A schermo solo impronte, operazioni e conteggi."""
+    from cycle_validation.evaluation.bench import render_bench, run_bench
+
+    try:
+        settings = model_free_settings(load_settings(config))
+        kb = load_local_knowledge(knowledge or _latest_knowledge())
+        profile = load_profile("mos", settings.paths.profiles_dir)
+        result = run_bench(kb, settings.agent, profile, rounds=giri)
+    except (CycleValidationError, OSError, ValueError) as error:
+        raise _fail(error) from error
+    for line in render_bench(result):
+        typer.echo(line)
+
+
 CAMPAIGN_FILE = Path("eval/campagna.yaml")
 KNOWLEDGE_SNAPSHOTS = Path("eval/casi/aziendali/conoscenza")
 

@@ -125,22 +125,33 @@ Fatti il 27-11 notte: due prove senza modello e la P15. Solo il codice trova 41 
 nel piccolo e 31 su 31 nel grande, con 0 falsi errori. I 4 ERRATO da verificare dei cicli veri
 erano falsi errori di MG47 (P15: «sabbiatura» in una condizione, «replace» per «ripristinare»):
 Claude li ha corretti. Terza prova (27-11 notte): 41 su 45 e 31 su 31, 0 falsi errori, 0 da
-verificare. Aggiornare e prova senza modello: fatti; tocca alla campagna (punto 3).
+verificare.
+
+Dopo (27-11 notte) Claude ha aggiunto il **banco di prova** (`eval banco`), le **metriche di
+controllo** nel riepilogo e due correzioni dei numeri trovate dal banco (date, limiti ripetuti).
+Il codice è cambiato: prima della campagna si rifanno i punti 1-2, gratis. **Se la campagna sta
+già girando, non fermarla:** finita quella, fai i punti 1, 2 e 4.
 
 1. **Aggiornare** (2.1).
    - **Deve uscire:** `... passed`, nessun `failed`.
-2. **Prova senza modello** (0 $, pochi minuti):
+2. **Prova senza modello e banco di prova** (0 $, pochi minuti):
 
    ```powershell
    $env:UV_PYTHON = "3.14"
    [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
    uv run cycle-validation eval senza-modello
+   uv run cycle-validation eval banco
    ```
 
    - **Deve uscire:** `Senza modello, piccolo: errori trovati dal codice 41 su 45 · falsi errori
      0 · da verificare 0` e `Senza modello, grande: ... 31 su 31 · falsi errori 0 · da
      verificare 0`.
+     Dal banco: `numero_una_lingua: trovati 38 su 40`, gli altri tipi tutti trovati, `falsi
+     allarmi 0` ovunque; `Lettura della stampa contro la v1 (13 cicli): operazioni 105 su 105`
+     e 2 differenze (8d3c673c 070 e c5ff3cd6 030: gli errori noti). Con la conoscenza vera i
+     numeri possono cambiare di poco.
    - **Se non è 0 e 0:** fermati e mandami la foto delle righe con `ERRATO in più`.
+   - **Mandami:** la foto delle due righe `Senza modello, ...` e di tutto l'output del banco.
 3. **Solo con 0 falsi errori e 0 da verificare: la campagna** (3 prove di `quasi_finale`,
    piccolo e grande, circa un'ora; la base è già fatta e si salta). Prima il piano (3.5), poi:
 
@@ -153,9 +164,19 @@ verificare. Aggiornare e prova senza modello: fatti; tocca alla campagna (punto 
 
    - **Deve uscire:** nel piano `quasi_finale: 3 da fare` per piccolo e grande; alla fine
      `Campagna finita. Prove fatte ora: 6 · spesa ... $.`
-   - **Mandami:** la foto delle due righe `Senza modello, ...`, poi la riga finale della
-     campagna, la classifica e la tabella «ERRATO da verificare» dei due `riepilogo.md`
-     (`runs\prove-piccolo`, `runs\prove-grande`).
+   - **Mandami:** la riga finale della campagna, poi dei due `riepilogo.md`
+     (`runs\prove-piccolo`, `runs\prove-grande`) la classifica, la tabella «ERRATO da
+     verificare» e la tabella «Metriche di controllo».
+4. **Solo se la campagna è partita prima dei punti 1-2:** ricalcola i riepiloghi, così escono
+   anche le «Metriche di controllo»:
+
+   ```powershell
+   $env:UV_PYTHON = "3.14"
+   "piccolo", "grande" | ForEach-Object { uv run cycle-validation eval riepilogo --cartella "runs/prove-$_" --attesi eval/errori-noti.yaml }
+   ```
+
+   - **Deve uscire:** due volte `Ricalcolati con gli errori noti di adesso: ...`.
+   - **Mandami:** la tabella «Metriche di controllo» dei due `riepilogo.md`.
 
 ---
 

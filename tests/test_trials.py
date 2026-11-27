@@ -484,3 +484,14 @@ def test_old_trials_are_rescored_when_the_known_errors_change(tmp_path: Path) ->
     trial = load_trials(root)[0]
     assert (trial.known_found, trial.known_total, trial.extra_errors) == (2, 3, 0)
     assert trial.failures == 1  # il ciclo non eseguito resta com'era
+
+
+def test_the_summary_counts_the_false_ok(tmp_path: Path) -> None:
+    """27-11 notte: un errore noto mancato con CORRETTO è il caso peggiore (l'operatore si
+    fida): il riepilogo lo conta a parte, per variante."""
+    trial = _trial(tmp_path, "base", 1, [])
+    missed = trial.cycles[0].missed
+    missed[0] = missed[0].model_copy(update={"said": "CORRETTO VERIFICATO: uguale al manuale"})
+    text = render_summary([trial])
+    assert "## Metriche di controllo" in text
+    assert f"| base | 1 su {len(missed)} |" in text

@@ -22,6 +22,9 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | ✅ | Errori stabili, grande | ≥ 60% | 79% (23/29) |
 | ✅ | ERRATO da verificare | 0 | 0 senza modello, piccolo e grande (dopo la correzione di MG47, P15); da confermare con la campagna |
 | ✅ | Stampe lette | 14/14 | 14/14 |
+| ✅ | Banco di prova: errori messi dal programma sulle 14 stampe, trovati dal codice | ≥ 90% per tipo, 0 falsi allarmi | 308 su 310 (numeri 95%, limiti, massimo/minimo, azioni e DR 100%), 0 falsi allarmi |
+| ✅ | Lettura della stampa contro la v1 | uguale, tranne gli errori noti | operazioni 105 su 105; targhe 104 su 105 e schede 21 su 22: le 2 differenze sono errori noti |
+| ⬜ | Falsi OK (errori noti mancati con CORRETTO) | 0 | dalla campagna («Metriche di controllo») |
 | ✅ | Costo per ciclo | ≤ 0,05 $ | 0,011-0,018 $ |
 | ✅ | Tempo per ciclo | ≤ 2 min | 16-24 s |
 | ✅ | Test | 0 `failed` | 0 |
@@ -79,7 +82,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | Ricerca nel manuale | ✅ | per somiglianza (OpenSearch) | per codice esatto |
 | 2900 documenti | ✅ | non misurato | stesso testo al modello; 4,2 s, 164 MB (finto) |
 | Costo e tempo | ✅ | non misurati | 0,011-0,018 $, 16-24 s |
-| Prove automatiche e test | ✅ | no | campagne, copie cieche, oltre 1000 test |
+| Prove automatiche e test | ✅ | no | campagne, copie cieche, prova senza modello, banco di prova (310 errori messi sulle 14 stampe), oltre 1000 test |
 | Frontend e accessi | ➖ | — | stesso payload, stesse regole |
 | Conoscenza nuova senza riavvio | ✅ | — | sì, ogni 5 minuti |
 | Conoscenza rotta all'avvio | ✅ | — | civile: non parte e dice quale file; EJ200: si spegne solo EJ200 (MG44) |

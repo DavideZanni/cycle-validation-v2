@@ -54,6 +54,8 @@ sezione 1 di `COPILOT.md`):
 | 7e9 | Aggiornare, di nuovo senza modello, P15 | COPILOT passo 4h | ✅ 27-11 notte: piccolo 41 su 45, grande 31 su 31, 0 falsi errori; i 4 da verificare falsi errori di MG47 |
 | 7e10 | Claude: MG47 corretta (condizioni, «ripristinare») | Claude | ✅ 27-11 notte |
 | 7e11 | Aggiornare, senza modello (0 e 0 attesi), poi subito la campagna `quasi_finale` | COPILOT passo 4h | senza modello ✅ 27-11 notte: piccolo 41 su 45, grande 31 su 31, 0 falsi errori, 0 da verificare; campagna da fare |
+| 7e12 | Claude: banco di prova (`eval banco`), metriche di controllo nel riepilogo, date e limiti ripetuti | Claude | ✅ 27-11 notte |
+| 7e13 | Aggiornare, senza modello, `eval banco`; campagna (o, se già partita, ricalcolo dei riepiloghi per le metriche di controllo) | COPILOT passo 4h | da fare |
 | 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
 | 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |
 | 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
@@ -1606,6 +1608,22 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
 - **27-11 notte, terza prova senza modello.** Piccolo 41 su 45, grande 31 su 31, 0 falsi
   errori, 0 da verificare: la correzione di MG47 funziona sui cicli veri. Nel piccolo restano
   i 4 «mai visti» che solo il modello può trovare. Via libera alla campagna `quasi_finale`.
+- **27-11 notte, metriche più specifiche (chieste dall'utente: «verificare realmente che il
+  sistema funzioni»).** Gli errori noti sono una trentina: pochi per dire che una regola
+  funziona. Banco di prova (`eval banco`, MG84): il programma mette un errore alla volta su ogni
+  operazione possibile delle 14 stampe vere (testo di `CONFRONTO_V1_14_CICLI.md`), 5 giri con
+  semi diversi, e conta quanti ne trova il codice. Risultato: 308 su 310 (numeri 38 su 40,
+  limiti 12 su 12, massimo/minimo 16 su 16, azioni 223 su 223, DR 1 su 1), 0 falsi allarmi.
+  Il banco ha trovato due buchi, corretti (MG86): una data «D.T. gg-mm-aa» in una lingua sola
+  disallineava i numeri; lo stesso numero con un limite due volte, uno girato, non si vedeva
+  (ora si contano i limiti per verso). Restano 2 limiti noti (un numero scritto due volte per
+  sbaglio, un numero in più in una lingua). Lettura della stampa contro la tabella della v1:
+  105 operazioni su 105, targhe 104 su 105, schede 21 su 22; le 2 differenze sono errori noti
+  (targa cambiata, scheda tolta); 13 operazioni (le 005 della testata) le legge solo la v2.
+  Nel riepilogo (MG85) le «Metriche di controllo»: falsi OK (mancati con CORRETTO, i più
+  pericolosi), mancati come WARNING o N/A, esiti decisi, errori tecnici, ciclo peggiore.
+  Attenzione: il banco misura le regole del codice, non il modello; il modello lo misurano le
+  copie cieche e la campagna.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

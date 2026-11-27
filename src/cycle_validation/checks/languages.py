@@ -33,7 +33,12 @@ LANGUAGE_SEPARATOR = " / "
 # Un codice fatto di cifre (part number «1234567/89», numeri di 5 cifre o più) non è una misura:
 # si lascia fuori, così non si spezza in numeri e non sposta l'allineamento (le due lingue lo
 # scrivono spesso in punti diversi della frase).
-_NUMBER = re.compile(r"(?<![\w.,/])(?:(?P<code>\d+(?:/\d+)+|\d{5,})|\d+(?:[.,]\d+)?|[.,]\d+)")
+# una data («D.T. 26-03-25», spesso in una lingua sola) è un codice, non tre valori: prima
+# disallineava i numeri e un numero cambiato vicino si perdeva (banco di prova, 27-11 notte)
+_NUMBER = re.compile(
+    r"(?<![\w.,/])(?:(?P<code>\d+(?:/\d+)+|\d{5,}|(?<![\d-])\d{1,2}-\d{1,2}-\d{2,4}(?![-\d]))"
+    r"|\d+(?:[.,]\d+)?|[.,]\d+)"
+)
 _INCH = Decimal("25.4")
 
 
@@ -412,6 +417,15 @@ def limit_mismatches(description: str) -> list[tuple[str, str]]:
         it_ways, en_ways = {way for way, _ in it_limits}, {way for way, _ in en_limits}
         if len(it_ways) == 1 and len(en_ways) == 1 and it_ways != en_ways:
             found.append((it_limits[0][1], en_limits[0][1]))
+        elif len(it_limits) == len(en_limits) > 1:
+            # lo stesso numero con un limite più volte («MASSIMO 2 ... MASSIMO 2»): conta quanti
+            # per verso, l'ordine può cambiare tra le lingue (banco di prova, 27-11 notte)
+            it_count = Counter(way for way, _ in it_limits)
+            en_count = Counter(way for way, _ in en_limits)
+            if it_count != en_count:
+                it_only = next(p for w, p in it_limits if it_count[w] > en_count[w])
+                en_only = next(p for w, p in en_limits if en_count[w] > it_count[w])
+                found.append((it_only, en_only))
     return found
 
 

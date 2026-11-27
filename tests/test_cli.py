@@ -724,3 +724,13 @@ def test_eval_without_model_runs_the_code_checks_for_free(tmp_path: Path) -> Non
         ],
     )
     assert bad.exit_code != 0
+
+
+def test_eval_bench_counts_the_errors_put_on_the_real_prints() -> None:
+    """`eval banco` (27-11 notte): errori messi dal programma sulle 14 stampe vere, 0 $."""
+    result = runner.invoke(
+        cli.app, ["eval", "banco", "--knowledge", str(EXAMPLE_KB), "--giri", "1"]
+    )
+    assert result.exit_code == 0, result.output
+    assert "numero_una_lingua: trovati" in result.output
+    assert "Lettura della stampa contro la v1 (13 cicli)" in result.output

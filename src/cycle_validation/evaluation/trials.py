@@ -1028,6 +1028,48 @@ def _by_name(trials: Sequence[Trial]) -> dict[str, list[Trial]]:
     return groups
 
 
+def _render_control_metrics(trials: Sequence[Trial]) -> list[str]:
+    """Metriche per vedere se il sistema funziona davvero, oltre agli errori trovati (27-11
+    notte, chieste dall'utente). Per variante, su tutte le sue prove; solo conteggi."""
+    lines = [
+        "",
+        "## Metriche di controllo",
+        "",
+        "- **Falsi OK**: errori noti mancati dove la v2 ha detto CORRETTO. Sono i più pericolosi:"
+        " l'operatore si fida. Devono essere 0.",
+        "- **Mancati come WARNING / N/A**: errori noti mancati, ma con un avviso o «non "
+        "applicabile»: l'operatore li guarda comunque (WARNING) o no (N/A).",
+        "- **Esiti decisi**: nei cicli giusti e veri, la parte dei controlli con OK o ERRATO; il "
+        "resto è lavoro a mano (WARNING, N/A).",
+        "- **Errori tecnici**: controlli del modello finiti senza risposta (rete, servizio).",
+        "- **Ciclo peggiore**: il più lento e il più caro (il limite è 2 minuti e 0,05 $).",
+        "",
+        "| Variante | Falsi OK | Mancati come WARNING | Mancati come N/A | Esiti decisi | "
+        "Errori tecnici | Ciclo più lento | Ciclo più caro |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for name, runs in _by_name(trials).items():
+        missed = [m for t in runs for c in t.cycles for m in c.missed]
+
+        def said(verdict: str, items: list[Missed] = missed) -> int:
+            return sum(m.said.startswith(verdict) for m in items)
+
+        clean = [c for t in runs for c in t.cycles if c.kind in ("giusto", "vero")]
+        total = sum(sum(c.counts.values()) for c in clean)
+        decided = sum(c.counts.get("corretto", 0) + c.counts.get("errato", 0) for c in clean)
+        checks = sum(c.model_checks or 0 for t in runs for c in t.cycles)
+        failures = sum(c.model_failures for t in runs for c in t.cycles)
+        cycles = [c for t in runs for c in t.cycles]
+        slowest = max((c.duration_ms for c in cycles), default=0)
+        dearest = max((c.cost_usd for c in cycles), default=0.0)
+        lines.append(
+            f"| {_cell(name)} | {said('CORRETTO')} su {len(missed)} | {said('WARNING')} | "
+            f"{said('NON_APPLICABILE')} | {100 * decided / total if total else 0:.0f}% | "
+            f"{failures} su {checks} | {_seconds(slowest)} | {dearest:.3f} $ |"
+        )
+    return lines
+
+
 def _render_to_check(trials: Sequence[Trial]) -> list[str]:
     """Gli ERRATO fuori dalla lista (cicli veri e cicli con errori), operazione per operazione:
     in quante prove di ogni variante. Solo impronta, operazione e motivo, senza testo: la
@@ -1225,6 +1267,7 @@ def render_summary(trials: Sequence[Trial]) -> str:
     else:
         lines.append("Nessuno.")
     lines += _render_to_check(trials)
+    lines += _render_control_metrics(trials)
     pending = sorted(
         {(c.fingerprint, f.op, f.known or "") for t in trials for c in t.cycles for f in c.pending}
         | {

@@ -470,6 +470,12 @@ Le voci incerte dell'indice (`DATO_INCERTO`) non danno mai questi ERRATO.
      max, maximum) e l'altra «minimo» (minimo, min, minimum), anche senza un numero
      («profondità massima dei difetti» contro «min depth of defects»). Conta solo se ogni lingua
      ha una parola sola delle due; «5 MIN» sono minuti. ERRATO `INCOERENZA_LINGUE`;
+   - **numeri e limiti, dettagli** (banco di prova, 27-11 notte): una data («D.T. 01-02-25»,
+     spesso in una lingua sola) è un codice, non tre valori; lo stesso numero con un limite
+     più volte («massimo 2 … massimo 2») si confronta contando quanti limiti per verso ci sono
+     in ogni lingua (l'ordine può cambiare). Limiti noti: un numero scritto due volte per
+     sbaglio in una lingua, o un numero in più in una lingua sola, disallineano le lingue e un
+     numero cambiato vicino può sfuggire (2 copie su 40 nel banco);
    - **lo stesso DR** (MG76, `agent.dr_consistency`): ogni «D.R. CASE #…» citato deve essere il
      DR del ciclo, quello delle recommendation del serial number (`reference`, P14) o, senza,
      il primo citato nella stampa. Un altro: ERRATO `DR_DIVERSO`.
@@ -1186,6 +1192,7 @@ opzioni.
 | `eval muta` | fa le copie cieche: `--lista`, `--knowledge`, `--quanti`, `--seme`, `--per-ciclo` (6) | no |
 | `eval prova [pdf]…` | valida, confronta con gli errori noti, scrive `prestazioni.md` e `riepilogo.md`. `--nome`, `--variante`, `--lista` (ripetibile), `--attesi` (ripetibile), `--cartella`, `--profile` (predefinito `auto`: MOS o DR ciclo per ciclo, dalla testata, così un DR nella lista non si ferma con «Modulo sbagliato») | sì |
 | `eval senza-modello` | gli stessi cicli della campagna (`--insiemi`, predefinito piccolo e grande), solo con i controlli del codice: al posto del modello una risposta fissa «non verificabile». Dice quanti errori noti trova il codice da solo e se dà falsi errori. Prove in `runs/senza-modello-<insieme>`, fuori dalle cartelle della campagna. I WARNING qui non contano (tutto quello che fa il modello esce WARNING). `--knowledge` (vuoto = ultima fotografia), `--config`, `--cartella`. Serve a provare una regola nuova del codice prima di una campagna (27-11 notte) | no |
+| `eval banco` | banco di prova sulle 14 stampe vere di `docs/CONFRONTO_V1_14_CICLI.md`: il programma mette un errore alla volta su ogni operazione possibile (un numero, un limite, «massimo»/«minimo», un'azione in una lingua; il numero del DR) e conta quanti ne trovano i controlli del codice, per tipo, e i falsi allarmi su altre operazioni; poi la lettura della stampa contro la tabella della v1 (operazioni, targhe, schede). `--giri` (5: semi diversi), `--knowledge`, `--config`. 0 $, pochi secondi; a schermo solo impronte, operazioni e conteggi (27-11 notte) | no |
 | `eval riepilogo` | riscrive `riepilogo.md` della cartella. Con `--attesi` (ripetibile) prima ricalcola le prove già fatte dai `report.json` dei cicli, con gli errori noti di adesso: solo i cicli che sono in quei file (copie cieche, gruppo nascosto e cicli veri restano come sono). Serve quando la lista degli errori noti cambia (27-11) | no |
 | `eval campagna` | tutte le prove di `eval/campagna.yaml` in fila, per ogni modello e insieme, e il report unico `runs/campagna.md`. `--piano` (gratis), `--solo-report` (gratis: solo il report), `--modelli` (con un solo modello il report è `runs/campagna-<modello>.md`), `--insiemi`, `--varianti`, `--ripetizioni`, `--grande`, `--massimo-dollari`, `--knowledge` (vuoto = ultima fotografia), `--config` (vuoto = `data/settings.yaml` se c'è), `--file`, `--cartella` | sì |
 
@@ -1354,6 +1361,13 @@ di ogni variante sono usciti e il motivo (dal 27-11 notte, MG82: per esempio
 fotografa, e una persona guarda quelle operazioni sul ciclo (errore vero o falso errore). Anche
 a schermo, nella riga di ogni ciclo, accanto a ogni `ERRATO in più` c'è il motivo:
 `ERRATO in più 050 (INCOERENZA_LINGUE)`.
+
+Dal 27-11 notte il `riepilogo.md` ha anche le **«Metriche di controllo»**, per variante su
+tutte le sue prove: **falsi OK** (errori noti mancati con CORRETTO: i più pericolosi, devono
+essere 0), errori mancati come WARNING e come N/A, **esiti decisi** (nei cicli giusti e veri,
+la parte dei controlli con OK o ERRATO; il resto è lavoro a mano), **errori tecnici** del
+modello, ciclo più lento e più caro. Si calcolano da `prova.json`: ricalcolando il riepilogo
+escono anche per le prove vecchie.
 
 Le **considerazioni** (cosa si è capito, cosa fare dopo) le scrive Claude nel registro di
 `MEMORIA.md` (sezione 16), quando la variante è decisa. Così proposta, risultati
