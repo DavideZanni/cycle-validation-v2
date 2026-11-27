@@ -20,7 +20,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | ✅ | Errori trovati sulle 19 operazioni della v1 | ≥ 15 | 16, dal solo codice (prova senza modello) |
 | ✅ | Errori stabili, piccolo | ≥ 70% | 79% (34/43) |
 | ✅ | Errori stabili, grande | ≥ 60% | 79% (23/29) |
-| 🔶 | ERRATO da verificare | 0 | senza modello 4 nei cicli veri del grande: falsi errori di MG47 (P15), corretti. Atteso 0 |
+| ✅ | ERRATO da verificare | 0 | 0 senza modello, piccolo e grande (dopo la correzione di MG47, P15); da confermare con la campagna |
 | ✅ | Stampe lette | 14/14 | 14/14 |
 | ✅ | Costo per ciclo | ≤ 0,05 $ | 0,011-0,018 $ |
 | ✅ | Tempo per ciclo | ≤ 2 min | 16-24 s |
@@ -136,5 +136,5 @@ Le 6 stampe con errori che la v1 valida. ✔ trovato · — mancato.
 | 8d3c673c 070 | errore vero (P13): una targa cambiata, trovato |
 | 8d3c673c 060, b1261d11 060 | falsi errori del codice (P13), tolti (MG78) |
 
-*Aggiornato il 27-11 notte, dopo la seconda prova senza modello (piccolo 41 su 45, grande 31 su
-31, 0 falsi errori) e la P15. Prossimo: dopo la campagna del passo 4h.*
+*Aggiornato il 27-11 notte, dopo la terza prova senza modello (piccolo 41 su 45, grande 31 su
+31, 0 falsi errori, 0 da verificare). Prossimo: dopo la campagna del passo 4h.*

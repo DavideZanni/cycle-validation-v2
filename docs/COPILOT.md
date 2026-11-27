@@ -124,8 +124,8 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 Fatti il 27-11 notte: due prove senza modello e la P15. Solo il codice trova 41 errori su 45
 nel piccolo e 31 su 31 nel grande, con 0 falsi errori. I 4 ERRATO da verificare dei cicli veri
 erano falsi errori di MG47 (P15: «sabbiatura» in una condizione, «replace» per «ripristinare»):
-Claude li ha corretti. Se la prova qui sotto dà 0 e 0, la campagna si lancia subito, senza
-aspettare Claude.
+Claude li ha corretti. Terza prova (27-11 notte): 41 su 45 e 31 su 31, 0 falsi errori, 0 da
+verificare. Aggiornare e prova senza modello: fatti; tocca alla campagna (punto 3).
 
 1. **Aggiornare** (2.1).
    - **Deve uscire:** `... passed`, nessun `failed`.

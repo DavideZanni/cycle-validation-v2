@@ -53,7 +53,7 @@ sezione 1 di `COPILOT.md`):
 | 7e8 | Claude: MG81 (massimo contro minimo), MG82 (motivo degli ERRATO in più), domanda P15 | Claude | ✅ 27-11 notte |
 | 7e9 | Aggiornare, di nuovo senza modello, P15 | COPILOT passo 4h | ✅ 27-11 notte: piccolo 41 su 45, grande 31 su 31, 0 falsi errori; i 4 da verificare falsi errori di MG47 |
 | 7e10 | Claude: MG47 corretta (condizioni, «ripristinare») | Claude | ✅ 27-11 notte |
-| 7e11 | Aggiornare, senza modello (0 e 0 attesi), poi subito la campagna `quasi_finale` | COPILOT passo 4h | da fare |
+| 7e11 | Aggiornare, senza modello (0 e 0 attesi), poi subito la campagna `quasi_finale` | COPILOT passo 4h | senza modello ✅ 27-11 notte: piccolo 41 su 45, grande 31 su 31, 0 falsi errori, 0 da verificare; campagna da fare |
 | 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
 | 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |
 | 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
@@ -1603,6 +1603,9 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   modello dà 0 falsi errori e 0 da verificare, la campagna parte subito, senza aspettare
   Claude. Lezione: un sinonimo che manca in una regola delle lingue fa un falso errore su
   tutti i cicli con lo stesso testo; `eval senza-modello` sui cicli veri lo vede gratis.
+- **27-11 notte, terza prova senza modello.** Piccolo 41 su 45, grande 31 su 31, 0 falsi
+  errori, 0 da verificare: la correzione di MG47 funziona sui cicli veri. Nel piccolo restano
+  i 4 «mai visti» che solo il modello può trovare. Via libera alla campagna `quasi_finale`.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 
