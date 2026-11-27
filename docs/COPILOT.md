@@ -112,29 +112,18 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 | | Passo | Quando · costo |
 |---|---|---|
 | ✅ | 1-4e · campagne, v1 sugli stessi cicli, base nuova, schede e regole | 27-11 |
-| 👉 | **4g · Aggiornare, ricalcolare, domanda P13** | adesso · gratis |
+| 👉 | **4g · Domande P13 e P14** | adesso · gratis |
 | ⬜ | **4f · EJ200 sul PC** | dopo l'ingestion EJ200 · centesimi |
 | ⬜ | **5 · Grande ingestion e QA** | dopo |
 
 ---
 
-**👉 Passo 4g · Aggiornare, ricalcolare, domanda P13** (gratis)
+**👉 Passo 4g · Domande P13 e P14** (gratis)
 
-`schede_e_limiti` è nella base. Le prove di oggi restano: non archiviare.
+Aggiornare e ricalcolare: fatti (27-11 notte). Le due domande vanno a Copilot in **Ask**, una
+alla volta.
 
-1. **Aggiornare** (2.1).
-   - **Deve uscire:** `... passed`, nessun `failed`.
-2. **Ricalcolare** i riepiloghi (da ora anche la 050 di 2d724fba conta):
-
-   ```powershell
-   $env:UV_PYTHON = "3.14"
-   "piccolo", "grande" | ForEach-Object { uv run cycle-validation eval riepilogo --cartella "runs/prove-$_" --attesi eval/errori-noti.yaml }
-   ```
-
-   - **Deve uscire:** due volte `Ricalcolati con gli errori noti di adesso: N cicli cambiati`;
-     nel riepilogo del grande `schede_e_limiti` sempre con 0 falsi errori.
-   - **Mandami:** la classifica dei due `riepilogo.md`.
-3. **Domanda P13 a Copilot** (in **Ask**):
+1. **Domanda P13** (in **Ask**):
 
 ```text
 Modalità Ask: leggi soltanto, non modificare, non creare file, non lanciare comandi.
@@ -152,6 +141,25 @@ b1261d11 060 (grande, ciclo vero). Per ogni operazione, in un solo report.json
 
 Rispondi con una tabella: ciclo, operazione, controllo e motivo, spiegazione, italiano,
 inglese, conclusione. Copia solo le frasi di queste operazioni e le targhe, niente manuali.
+```
+
+   - **Deve uscire:** una tabella con 3 righe.
+   - **Mandami:** la foto della risposta.
+2. **Domanda P14** (in **Ask**): serve a trovare un DR cambiato anche nelle stampe senza serial
+   (MG76). Copilot legge solo il codice di knowledge-index, niente `data/`.
+
+```text
+Modalità Ask: leggi soltanto, non modificare, non creare file, non lanciare comandi.
+Non leggere data/ e non copiare valori veri (numeri DR, serial, codici).
+
+Nel codice di knowledge-index, l'ingestion degli RDR (le recommendation dei DR):
+1) Nel file che l'ingestion scrive per gli RDR, ogni voce ha il numero del DR (quello che
+   nelle stampe si legge come «D.R. CASE #...»)? Con quale nome di colonna o di campo
+   (per esempio reference, dr_number, dr)?
+2) Da dove lo prende: dal nome del file, dal testo del documento, da una tabella?
+3) È sempre pieno o può mancare? Ci sono più voci con lo stesso numero DR (una per serial)?
+
+Rispondi con una tabella: domanda, risposta, file e funzione del codice. Niente valori veri.
 ```
 
    - **Deve uscire:** una tabella con 3 righe.
