@@ -1,5 +1,6 @@
-"""CLI: `run`, `leggi`, `confronta`, `manuali`, `macchine`, `qa`, `golden`, `kb-check` ed `eval` (esperimenti: `eval esegui`,
-`eval classifica`)."""
+"""CLI: `run`, `leggi`, `confronta`, `manuali`, `macchine`, `qa`, `golden`, `kb-check` ed `eval`
+(prove ed esperimenti: `scegli`, `muta`, `prova`, `campagna`, `riepilogo`, `esegui`, `classifica`,
+`pipeline`, `prepara`, `mutazioni`, `fotografia`)."""
 
 import asyncio
 import difflib
@@ -107,7 +108,7 @@ def make_session(settings: AgentSettings, transcripts_dir: Path | None) -> Agent
 
 
 def _fail(error: Exception) -> typer.Exit:
-    typer.echo(f"Errore: {error}", err=False)
+    typer.echo(f"Errore: {error}")
     return typer.Exit(code=1)
 
 
@@ -246,9 +247,7 @@ def run(
         report = run_validation(
             RunRequest(pdf_path=pdf, selectors=selectors, skip_checks=skipped), deps, out
         )
-    except typer.BadParameter as error:
-        raise _fail(error) from error
-    except CycleValidationError as error:
+    except (typer.BadParameter, CycleValidationError) as error:
         raise _fail(error) from error
     counts = report.counts
     typer.echo(
@@ -597,6 +596,11 @@ def _pdfs_in(folder: Path) -> list[Path]:
     return found
 
 
+def _fingerprint(data: bytes) -> str:
+    """L'impronta di un file: le prime 8 cifre del suo sha256 (nomi delle cartelle, errori noti)."""
+    return hashlib.sha256(data).hexdigest()[:8]
+
+
 # una stampa di ciclo pesa poco: i PDF più grandi (manuali, scansioni lunghe) non si leggono
 _CYCLE_MAX_BYTES = 20 * 1024 * 1024
 
@@ -622,7 +626,7 @@ def _read_cycles(
         except OSError:
             unread += 1
             continue
-        name = hashlib.sha256(data).hexdigest()[:8]
+        name = _fingerprint(data)
         names.setdefault(name, []).append(pdf_path.name)
         hash_of[str(pdf_path)] = name
         if name in cycles:
@@ -937,7 +941,7 @@ def eval_blind(
     for pdf_path, _ in entries:
         try:
             data = pdf_path.read_bytes()
-            name = hashlib.sha256(data).hexdigest()[:8]
+            name = _fingerprint(data)
             entry = known.cycle(name)
             if name in pdf_of or (entry is not None and not entry.giusto):
                 continue  # doppione, o ciclo che ha già i suoi errori
@@ -956,7 +960,7 @@ def eval_blind(
     kinds: Counter[str] = Counter()
     for mutation in mutations:
         text = mutation.cycle.model_dump_json(indent=2)
-        fingerprint = hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
+        fingerprint = _fingerprint(text.encode("utf-8"))
         path = out / f"{fingerprint}.json"
         # byte esatti: su Windows `write_text` scrive \r\n e l'impronta del file non sarebbe
         # più quella scritta in errori.yaml (24-11: le copie uscivano come cicli veri)
@@ -1016,7 +1020,7 @@ def _run_trial(
         data = source.read_bytes()
         if cycle_file is not None:
             data = data.replace(b"\r\n", b"\n")  # copie scritte su Windows prima del 24-11
-        fingerprint = hashlib.sha256(data).hexdigest()[:8]
+        fingerprint = _fingerprint(data)
         if fingerprint in seen:
             continue
         seen.add(fingerprint)
@@ -1170,7 +1174,7 @@ def _campaign_sets(runs: Path, known_file: Path) -> dict[str, _CampaignSet]:
     noted: list[tuple[Path, Path | None]] = [
         (pdf, None)
         for pdf, _ in big
-        if pdf.is_file() and known.cycle(hashlib.sha256(pdf.read_bytes()).hexdigest()[:8])
+        if pdf.is_file() and known.cycle(_fingerprint(pdf.read_bytes()))
     ]
     small = list(noted)
     small_known = [known_file]
@@ -1206,6 +1210,10 @@ def _campaign_settings(
         agent = settings.agent.model_copy(update={"model": model_id})
         settings = settings.model_copy(update={"agent": agent})
     return settings, proposal
+
+
+class _CampaignStop(Exception):
+    """Fine anticipata della campagna (tetto di spesa, nessun ciclo eseguito)."""
 
 
 def _split(value: str | None) -> list[str] | None:
@@ -1417,10 +1425,6 @@ def eval_campaign(
     typer.echo(f"Report finale: {report}")
 
 
-class _CampaignStop(Exception):
-    """Fine anticipata della campagna (tetto di spesa, nessun ciclo eseguito)."""
-
-
 @eval_app.command("riepilogo")
 def eval_trials_summary(
     cartella: Annotated[Path, typer.Option(help="Cartella delle prove.")] = Path("runs/prove"),
@@ -1522,8 +1526,6 @@ def prepare_qa(
 ) -> None:
     """Prepara la v2 per QA sul PC aziendale: Dockerfile dalla v1 con i valori aziendali,
     libreria di accesso in vendor/, impostazioni nell'immagine, buildspec sulla v2."""
-    import shutil
-
     from cycle_validation.deploy import (
         SETTINGS_FILE,
         V1_FOLDER,
