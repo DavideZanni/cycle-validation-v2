@@ -2222,6 +2222,18 @@ def ej200_trial(
     )
     from cycle_validation.kb.ej200 import Ej200Catalog, Ej200KnowledgeBase
 
+    for path in cicli:
+        # 28-11: lanciato con «<cartella EJ200>» copiato dall'esempio, usciva solo «prova non
+        # partita (OSError)». Il percorso l'ha scritto l'utente: si può mostrare.
+        if "<" in str(path) or ">" in str(path):
+            raise _fail(
+                CycleValidationError(
+                    f"«{path}» è l'esempio del comando: al suo posto scrivi il percorso vero "
+                    "della cartella con le stampe EJ200 (per esempio C:\\stampe-ej200)."
+                )
+            )
+        if not path.exists():
+            raise _fail(CycleValidationError(f"Il percorso «{path}» non esiste."))
     pdfs = _pdfs_of(cicli)
     if not pdfs:
         raise _fail(CycleValidationError("Nessun PDF nei percorsi dati."))

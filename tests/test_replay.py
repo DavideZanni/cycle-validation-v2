@@ -235,10 +235,34 @@ def test_the_quote_diagnosis_says_only_yes_and_no() -> None:
     seen = final_rules.quote_diagnosis(cycle, [ok(0, "Depth 0.5 mm maximum.")], "010")
     assert seen == (
         "citazioni 1 · limite letto nella descrizione sì · stesso numero nella riga citata sì "
-        "· parole di limite nella riga sì · verso letto vicino al numero giù"
+        "· parole di limite nella riga sì · verso letto vicino al numero giù · verso nella "
+        "descrizione sullo stesso numero su"
     )
     other = final_rules.quote_diagnosis(cycle, [ok(0, "Blend the damage.")], "010")
     assert "stesso numero nella riga citata no" in other and "Blend" not in other
     assert final_rules.quote_diagnosis(cycle, [ok(1, "x")], "010") == (
         "nessun CORRETTO della descrizione"
     )
+
+
+def test_the_shape_keeps_only_limit_words() -> None:
+    """MG87, secondo giro: la forma del testo, senza parole del manuale né cifre vere."""
+    from cycle_validation.domain.check import Evidence
+
+    cycle = _ops(
+        "LUCIDARE PER 5 MIN, PROFONDITA' MASSIMO 0,5 MM / POLISH 5 MIN, DEPTH MAXIMUM 0.5 MM",
+        "PULIRE / CLEAN",
+    )
+    result = make_result(
+        CheckName.OPERATION_DESCRIPTION,
+        Target.operation(0, cycle.operations[0]),
+        Reason.VERIFICATO,
+        "uguale",
+        evidence=[Evidence(document_key="m1", quote="Blend to 0.5 mm minimum depth.")],
+        decided_by="agent",
+    )
+    shapes = final_rules.quote_shapes(cycle, [result], "010")
+    assert "it «" in shapes and "en «" in shapes and "riga 1 «" in shapes
+    assert "9 MIN" in shapes and "9.9 mm minimum" in shapes
+    for word in ("LUCIDARE", "POLISH", "Blend", "depth", "0.5", "5 MIN"):
+        assert word not in shapes

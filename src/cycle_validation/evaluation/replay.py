@@ -29,7 +29,7 @@ from cycle_validation.evaluation.trials import (
     write_summary,
     write_trial,
 )
-from cycle_validation.verdict.final_rules import quote_diagnosis, replay_report
+from cycle_validation.verdict.final_rules import quote_diagnosis, quote_shapes, replay_report
 
 REPLAYABLE = "agent.final_rules"
 
@@ -119,7 +119,9 @@ def false_ok_quotes(root: Path, reference: str, known: KnownErrors) -> list[str]
             for missed in score_cycle(report, known, cycle.fingerprint).missed:
                 if missed.said.startswith("CORRETTO"):
                     diagnosis = quote_diagnosis(report.cycle, report.results, missed.op)
+                    shapes = quote_shapes(report.cycle, report.results, missed.op)
                     lines.append(f"{cycle.fingerprint} {missed.op}: {diagnosis}")
+                    lines.append(f"{cycle.fingerprint} {missed.op} forma: {shapes}")
     return lines
 
 

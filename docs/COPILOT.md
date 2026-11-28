@@ -116,66 +116,75 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 | ✅ | 4h · Versione quasi finale: senza modello, banco, campagna | 28-11 notte: si tiene |
 | ✅ | 4i · Chiamata diretta, rigioca, tabelle, una prova di `diretta` | 28-11 mattina: `diretta` -37% di costo |
 | ✅ | 4j · Regole MG83 e MG87, campagna delle migliorie che usano il modello | 28-11: `lingue_insieme` e MG83 nella base |
-| 👉 | **4k · La base nuova a 0 $, perché MG87 non scatta** | adesso · 0 $, pochi minuti |
-| ⬜ | **4f · EJ200 sul PC** | dopo l'ingestion EJ200 · centesimi |
+| ✅ | 4k · La base nuova a 0 $, perché MG87 non scatta | 28-11: la base tiene; MG87 la riga citata dice «almeno» |
+| 👉 | **4l · Il codice nuovo a 0 $, la forma dei falsi OK** | adesso · 0 $, 10 minuti |
+| ⬜ | **4f · EJ200 sul PC** | quando vuoi (conoscenza EJ200 già su S3) · centesimi |
 | ⬜ | **5 · Grande ingestion e QA** | dopo |
 
 ---
 
-**👉 Passo 4k · La base nuova a 0 $, e perché MG87 non scatta** (0 $, pochi minuti)
+**👉 Passo 4l · Il codice nuovo a 0 $, e la «forma» dei falsi OK** (0 $, circa 10 minuti)
 
-Passo 4j fatto il 28-11 (17 prove, 4,01 $): tutte le varianti trovano gli stessi errori. Nella
-base ora c'è `lingue_insieme` (chiamata diretta, cache, lingue di 8 operazioni insieme: costo
--43%/-48%, tempo circa la metà) e la regola MG83. Scartata `testo_comune`.
+Passo 4k fatto il 28-11: la base nuova tiene (piccolo 42 → 42, grande 31 → 31, avvisi sul
+grande 8,9 → 5,3). La regola MG87 non scatta: la riga citata ha lo stesso numero con «almeno»,
+quindi il codice legge «almeno» anche nella descrizione. Adesso `eval rigioca` mostra anche la
+**forma** del testo: lettere → `x`, cifre → `9`, restano leggibili solo le parole di limite
+(«MASSIMO», «MIN», «at least»...). Nessun codice e nessuna parola del manuale.
 
 1. **Aggiornare** (2.1).
    - **Deve uscire:** in fondo `... passed` e nessun `failed`.
    - **Mandami:** la foto dell'ultima riga.
-2. **La base nuova sulle prove già fatte, e la riga citata dei falsi OK** (0 $, pochi
-   secondi):
+2. **La forma dei falsi OK, e i controlli del codice con le impostazioni nuove** (0 $):
 
    ```powershell
    $env:UV_PYTHON = "3.14"
    [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-   uv run cycle-validation eval rigioca --variante lingue_insieme_avvisi
-   uv run cycle-validation eval rigioca --riferimento quasi_finale --variante limiti_citati --insiemi piccolo
+   uv run cycle-validation eval rigioca --variante lingue_insieme_avvisi --insiemi piccolo
+   uv run cycle-validation eval senza-modello
+   uv run cycle-validation eval banco
    ```
 
-   - **Deve uscire:** `Rigiocate 3 prove di lingue_insieme con lingue_insieme_avvisi, piccolo:
-     errori stabili 42 → 42 ...` e lo stesso per il grande (`31 → 31`, WARNING per ciclo circa
-     8,9 → 5,3), poi `Rigiocate 3 prove di quasi_finale con limiti_citati, piccolo: ...` e
-     alcune righe `Falso OK, riga citata: <impronta> <op>: citazioni ... · verso letto vicino al
-     numero ...` (solo sì/no e conteggi, nessun testo).
-   - **Mandami:** la foto di tutte le righe `Rigiocate ...` e `Falso OK, riga citata: ...`.
+   - **Deve uscire:**
+     - `Rigiocate 3 prove di lingue_insieme ... 42 → 42`, poi per ogni falso OK due righe:
+       `Falso OK, riga citata: <impronta> <op>: ...` e
+       `Falso OK, riga citata: <impronta> <op> forma: it «...» · en «...» · riga 1 «...»`;
+     - senza modello: piccolo 41 su 45, grande 31 su 31, 0 falsi errori, 0 da verificare (come
+       il 27-11 notte);
+     - banco: 308 su 310, 0 falsi allarmi, lettura 105 su 105.
+   - **Mandami:** la foto delle righe `Falso OK` (si devono leggere bene le righe `forma`) e
+     la foto delle righe finali di `senza-modello` e `banco`.
 
-Con queste foto Claude scrive il prossimo passo per MG87 (i falsi OK) e per gli avvisi
-«evidenza non trovata».
+Con queste foto Claude scrive la correzione per MG87 (si rigioca a 0 $) e il passo dopo.
 
 ---
 
-**⬜ Passo 4f · EJ200 sul PC**
+**⬜ Passo 4f · EJ200 sul PC** (centesimi)
 
-`prova-ej200` non lascia niente: legge la conoscenza EJ200 da S3, tiene i testi in una cartella
-temporanea che cancella alla fine, non scrive in `runs\`. A schermo solo impronte e conteggi.
-A Claude solo la foto dello schermo; a Copilot niente di EJ200.
+Cosa fa, in breve: legge le stampe EJ200 che metti in una cartella, le controlla con i manuali
+EJ200 che stanno su S3 e ti dice per ogni stampa solo numeri (quanti OK, quanti avvisi, quanti
+errori). Non salva niente sul PC: i testi dei manuali stanno in una cartella temporanea che si
+cancella alla fine.
 
-1. **Documenti su S3 e ingestion EJ200** (knowledge-index). La v2 conosce RDR, EF e RN: un'altra
-   sigla (per esempio «RI») dimmela prima. Le copie sul PC: fuori da `ProgettoDocumenti` e dalle
-   cartelle git, cancellate dopo il caricamento.
-   - **Mandami:** a parole, la chiave del `current.json` EJ200 (senza bucket) e i conteggi.
-2. **Le stampe EJ200** in una cartella fuori da ogni cartella git. Sostituisci
-   `<cartella EJ200>` e, se è diversa, la chiave:
+La conoscenza EJ200 su S3 c'è già (28-11: `Conoscenza EJ200 ...: pubblicazioni 44, issue 44,
+targhe 104`). Il 28-11 la prova si è fermata con `prova non partita (OSError)` perché nel
+comando era rimasto l'esempio `<cartella EJ200>`: lì va il percorso vero. Ora il programma lo
+dice in chiaro.
+
+1. **Le stampe EJ200** in una cartella **fuori** da `ProgettoDocumenti` e da ogni cartella git,
+   per esempio `C:\stampe-ej200` (crea la cartella e copia lì 3-5 PDF di cicli EJ200).
+2. **La prova.** Nel comando cambia solo `C:\stampe-ej200`, se hai scelto un'altra cartella:
 
 ```powershell
 $env:UV_PYTHON = "3.14"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
 aws sso login
-uv run cycle-validation prova-ej200 "<cartella EJ200>" --bucket (Get-Content data/bucket.txt) --conoscenza-ej200 "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/ej200/current.json" --regione eu-south-1
+uv run cycle-validation prova-ej200 "C:\stampe-ej200" --bucket (Get-Content data/bucket.txt) --conoscenza-ej200 "Manufacturing AI/ingestion-v2-test-qa-output/knowledge/ej200/current.json" --regione eu-south-1
 ```
 
-   - **Deve uscire:** `Conoscenza EJ200 ...`, una riga per stampa con i conteggi, `Totale: ...`,
-     `Cartella temporanea cancellata; niente in runs.` (oppure `prova non partita (...)`).
-   - **Mandami:** la foto dello schermo.
+   - **Deve uscire:** `Conoscenza EJ200 ...`, una riga per stampa (impronta e conteggi),
+     `Totale: ...`, `Cartella temporanea cancellata; niente in runs.`
+   - **Mandami:** la foto dello schermo (senza la riga dell'`aws sso login`, se puoi).
+3. Alla fine cancella la cartella `C:\stampe-ej200`.
 
 ---
 

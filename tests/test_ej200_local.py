@@ -120,3 +120,29 @@ def test_a_failing_cycle_shows_the_error_type_not_the_message(tmp_path: Path) ->
     assert lines[0].endswith("non validato (ValueError)")
     assert "segreto" not in "\n".join(lines)
     assert lines[-1].startswith("Totale: 0 cicli validati su 1")
+
+
+def test_the_example_placeholder_is_explained(tmp_path: Path, temp_root: Path) -> None:
+    result = invoke(tmp_path, Path("<cartella EJ200>"))
+    assert result.exit_code == 1
+    assert "è l'esempio del comando" in result.output
+    assert "OSError" not in result.output
+
+
+def test_a_missing_folder_is_named(tmp_path: Path, temp_root: Path) -> None:
+    result = invoke(tmp_path, tmp_path / "non-c-e")
+    assert result.exit_code == 1
+    assert "non esiste" in result.output
+
+
+def test_an_unreadable_pdf_does_not_stop_the_others(tmp_path: Path) -> None:
+    good = tmp_path / "a.pdf"
+    good.write_bytes(b"%PDF-1.4")
+    missing = tmp_path / "RN-100.pdf"
+
+    def broken(path: Path) -> Any:
+        raise ValueError("x")
+
+    outcomes = ej200_local.run_cycles([missing, good], broken)
+    assert [o.problem for o in outcomes] == ["FileNotFoundError", "ValueError"]
+    assert outcomes[0].fingerprint == "????????"

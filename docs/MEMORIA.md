@@ -1724,6 +1724,26 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   Scartata `testo_comune` (MG59): nessun risparmio rispetto a `diretta`. Riferimento della
   campagna: `lingue_insieme`. La base nuova si controlla a 0 $ rigiocando le prove di
   `lingue_insieme` con la regola (variante `lingue_insieme_avvisi`).
+- **28-11, 13:40, passo 4k (0 $).** `lingue_insieme_avvisi` rigiocata sulle prove di
+  `lingue_insieme`: piccolo 42 → 42, falsi OK 0,7 → 0,7, WARNING 4,8 → 4,8 (pari); grande
+  31 → 31, **WARNING 8,9 → 5,3**, si tiene. La base nuova è confermata. `limiti_citati` su
+  `quasi_finale`: 42 → 42, falsi OK 1,0 → 1,0, non scatta. Riga citata dei falsi OK (sempre
+  9ccfacac 030, la copia cieca `limite_invertito`): 2 citazioni, limite letto nella descrizione
+  sì, stesso numero nella riga sì, parole di limite sì, verso vicino al numero «su» (una volta
+  «nessuno»). Considerazione: la regola scatta solo se la descrizione dice il verso opposto
+  sullo stesso numero; quindi il codice legge «su» anche nella descrizione su quel numero, e il
+  limite scambiato dalla copia cieca è un'altra parola, non legata a quel numero dal codice
+  (per esempio un limite scritto dopo il numero con un'unità come «°C», oppure lontano dal
+  numero). `eval rigioca` ora stampa anche la **forma** del testo (lettere → x, cifre → 9,
+  leggibili solo le parole di limite) e il verso letto nella descrizione sullo stesso numero.
+  Visto scrivendo il test: «PER 5 MIN, PROFONDITA' MASSIMO 0,5» non dà verso a 0,5 (il «MIN»
+  dei minuti nella stessa frase conta come «minimo»): da guardare se la forma lo mostra.
+  **Prova EJ200 sul PC, primo tentativo:** la conoscenza EJ200 su S3 si legge (pubblicazioni
+  44, issue 44, targhe 104, versione del 19-11), ma la prova si è fermata con `prova non
+  partita (OSError)`: nel comando era rimasto l'esempio `<cartella EJ200>`. Ora `prova-ej200`
+  controlla i percorsi prima di partire e lo dice in chiaro; un PDF che non si legge non ferma
+  gli altri. L'utente ha chiesto la lista degli esperimenti rimasti prima delle prove a mano e
+  della QA, e una spiegazione più semplice della prova EJ200.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

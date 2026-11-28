@@ -2,7 +2,7 @@
 
 Numeri: v1 da `CONFRONTO_V1_14_CICLI.md`; v2 dalla campagna del 28-11 (passo 4j: la base nuova
 `lingue_insieme`, 3 prove sul piccolo e 3 sul grande, contro `quasi_finale` del passo 4h), da
-`eval rigioca` per la regola MG83 e dalla prova senza modello del 27-11 notte
+`eval rigioca` per la regola MG83 (passo 4k, sulle prove di `lingue_insieme`) e dalla prova senza modello del 27-11 notte
 (solo i controlli del codice: quello che trovano lo trovano sempre). La v1 ha documenti che la v2 non ha ancora: per ogni errore mancato si dice se
 manca il **documento** o il **controllo**. Claude aggiorna il file dopo ogni campagna.
 
@@ -25,7 +25,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | ✅ | Stampe lette | 14/14 | 14/14 |
 | ✅ | Banco di prova: errori messi dal programma sulle 14 stampe, trovati dal codice | ≥ 90% per tipo, 0 falsi allarmi | 308 su 310 (numeri 95%, limiti, massimo/minimo, azioni e DR 100%), 0 falsi allarmi; uguale sul PC con la conoscenza vera |
 | ✅ | Lettura della stampa contro la v1 | uguale, tranne gli errori noti | operazioni 105 su 105; targhe 104 su 105 e schede 21 su 22: le 2 differenze sono errori noti |
-| ❌ | Falsi OK (errori noti mancati con CORRETTO) | 0 | grande 0; piccolo 0,7 a prova (2 su 9 mancati), copie cieche che trova solo il modello: il limite invertito in tutte e due le lingue (MG87: la regola sulla riga citata non scatta, si guarda perché) |
+| ❌ | Falsi OK (errori noti mancati con CORRETTO) | 0 | grande 0; piccolo 0,7 a prova (2 su 9 mancati), copie cieche che trova solo il modello: il limite invertito in tutte e due le lingue (MG87: la regola sulla riga citata non scatta: la riga citata ha lo stesso numero con lo stesso verso che il codice legge nella descrizione; si guarda la forma del testo) |
 | ✅ | Costo per ciclo | ≤ 0,05 $ | 0,0064 $ piccolo, 0,0098 $ grande (il più caro 0,022 $); prima 0,011 e 0,019 $ |
 | ✅ | Tempo per ciclo | ≤ 2 min | 10 s piccolo, 13 s grande (il più lento 34 s); prima 20 e 30 s |
 | ✅ | Test | 0 `failed` | 0 |
@@ -51,7 +51,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | ⬜ | QA: un MOS e un DR veri, con e senza serial | nessun errore tecnico | — |
 | ⬜ | QA: targhe vere (Redshift) | 0 targhe giuste ERRATO | — |
 | ⬜ | Esperto su 5-10 risultati QA | 0 falsi, ≥ 80% trovati | — |
-| ⬜ | Avvisi per ciclo in QA | ≤ 5, `[da guardare]` ≤ 2 | 4,8 piccolo, 8,9 grande nella campagna; con MG83 circa 5,3 sul grande (rigiocata su `quasi_finale`) |
+| ⬜ | Avvisi per ciclo in QA | ≤ 5, `[da guardare]` ≤ 2 | 4,8 piccolo, 5,3 grande (base nuova con MG83, rigiocata sulle prove di `lingue_insieme`); restano 3,2 «evidenza non trovata» |
 | ⬜ | Accessi EJ200 in QA | solo `cv_ej200` e `all` | ok nei test |
 | ⬜ | Ritorno alla v1 (`qa --torna-alla-v1`) | provato | — |
 
@@ -64,7 +64,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | Prova di ogni errore | ✅ | testo libero | frase del manuale ritrovata dal programma |
 | «OK» vuol dire | ✅ | nessuna contraddizione vista | controllato con il manuale |
 | Cosa non ha controllato | ✅ | non lo dice | `[non controllabile]` separato da `[da guardare]` |
-| Avvisi per ciclo | ❌ | 1-2 | 4,8 piccolo; grande 8,9 → circa 5,3 con MG83 (la fonte assente detta una volta). Restano «evidenza non trovata» (3,2 per ciclo) e documenti mancanti |
+| Avvisi per ciclo | ❌ | 1-2 | 4,8 piccolo; grande 8,9 → 5,3 con MG83 (la fonte assente detta una volta, misurata sulla base nuova). Restano «evidenza non trovata» (3,2 per ciclo) e documenti mancanti |
 | Stabilità | ✅ | non misurata | misurata su 3 prove: tutti gli errori noti 3 su 3 |
 | **Codici di task sbagliati** | ✅ | col modello, a volte «incompleto» su codici giusti | dal codice, senza modello: codice assente e fratelli presenti |
 | Task dell'operazione contro la testata | ➖ | sì | sì (MG36) |
@@ -87,7 +87,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | Frontend e accessi | ➖ | — | stesso payload, stesse regole |
 | Conoscenza nuova senza riavvio | ✅ | — | sì, ogni 5 minuti |
 | Conoscenza rotta all'avvio | ✅ | — | civile: non parte e dice quale file; EJ200: si spegne solo EJ200 (MG44) |
-| EJ200 | ❌ | in produzione | mai provata (passo 4f) |
+| EJ200 | ❌ | in produzione | mai provata: la conoscenza su S3 si legge sul PC (44 pubblicazioni), la prova sulle stampe è da fare (passo 4f) |
 
 ## 3. Errore per errore
 
@@ -143,5 +143,6 @@ Le 6 stampe con errori che la v1 valida. ✔ trovato · — mancato.
 Nella campagna `quasi_finale` (3 prove) tutte le operazioni di questa tabella sono trovate in
 3 prove su 3, e nessun falso errore.
 
-*Aggiornato il 28-11, dopo la campagna `quasi_finale` (piccolo 42 su 45, grande 31 su 31, 0
-falsi errori, 0 da verificare). Prossimo: dopo MG83 (meno avvisi) e la variante per i falsi OK.*
+*Aggiornato il 28-11, dopo la campagna 4j e la rigiocata del passo 4k (base nuova: piccolo 42
+su 45, grande 31 su 31, 0 falsi errori, 0 da verificare, avvisi 4,8 e 5,3). Prossimo: MG87 (i
+falsi OK) e gli avvisi «evidenza non trovata».*

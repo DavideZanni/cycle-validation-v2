@@ -8,6 +8,7 @@ falso OK, sulle stesse risposte del modello delle prove di riferimento.
 
 Le regole si accendono per nome con `agent.final_rules` (una variante per regola)."""
 
+import re
 from collections.abc import Callable, Sequence
 from decimal import Decimal
 
@@ -172,15 +173,138 @@ def quote_diagnosis(cycle: Cycle, results: Sequence[CheckResult], op: str) -> st
         for way in ways
     }
 
+    common = limited & numbers
+    described_way = {way for value in common for way in described[value]}
+
     def yes(flag: bool) -> str:
         return "sì" if flag else "no"
 
     return (
         f"citazioni {len(quotes)} · limite letto nella descrizione {yes(bool(limited))} · "
-        f"stesso numero nella riga citata {yes(bool(limited & numbers))} · parole di limite "
+        f"stesso numero nella riga citata {yes(bool(common))} · parole di limite "
         f"nella riga {yes(any(has_limit_word(q) for q in quotes))} · verso letto vicino al "
-        f"numero {', '.join(sorted(near)) or 'nessuno'}"
+        f"numero {', '.join(sorted(near)) or 'nessuno'} · verso nella descrizione sullo "
+        f"stesso numero {', '.join(sorted(described_way)) or 'nessuno'}"
     )
+
+
+# Le parole che restano leggibili nella «forma» di un testo: limiti e negazioni, generiche.
+_KEPT_WORDS = frozenset(
+    [
+        "al",
+        "massimo",
+        "massima",
+        "massimi",
+        "massime",
+        "minimo",
+        "minima",
+        "minimi",
+        "minime",
+        "max",
+        "min",
+        "maximum",
+        "minimum",
+        "almeno",
+        "at",
+        "most",
+        "least",
+        "non",
+        "not",
+        "no",
+        "oltre",
+        "sopra",
+        "sotto",
+        "fino",
+        "up",
+        "to",
+        "less",
+        "more",
+        "than",
+        "above",
+        "below",
+        "over",
+        "under",
+        "superiore",
+        "superiori",
+        "inferiore",
+        "inferiori",
+        "exceed",
+        "exceeds",
+        "exceeding",
+        "meno",
+        "più",
+        "di",
+        "a",
+        "mm",
+    ]
+)
+_WORD_OR_DIGIT = re.compile(r"[^\W\d_]+|\d")
+# le parole che scambia la copia cieca «limite invertito» (evaluation/blind.py)
+_SWAPPED = re.compile(
+    r"(?<![\w.])(?:al massimo|almeno|massimo|minimo|at most|at least|maximum|minimum|max|min)"
+    r"(?!\w)",
+    re.IGNORECASE,
+)
+
+
+def text_shape(text: str, start: int, end: int, width: int = 30) -> str:
+    """La «forma» del testo intorno a [start, end): lettere → x, cifre → 9; restano leggibili
+    solo le parole di limite e di negazione. Niente codici né parole del manuale (va a schermo)."""
+
+    def mask(match: re.Match[str]) -> str:
+        word = match.group()
+        if word.isdigit():
+            return "9"
+        return word if word.casefold() in _KEPT_WORDS else "x" * len(word)
+
+    window = text[max(0, start - width) : end + width]
+    return " ".join(_WORD_OR_DIGIT.sub(mask, window).split())
+
+
+def _shape_at_limit(text: str) -> str:
+    match = _SWAPPED.search(text)
+    return text_shape(text, match.start(), match.end()) if match else "nessuna parola di limite"
+
+
+def quote_shapes(cycle: Cycle, results: Sequence[CheckResult], op: str) -> str:
+    """MG87, secondo giro (28-11): la forma della descrizione intorno alla prima parola di
+    limite, per lingua (è quella che scambia la copia cieca), e della riga citata intorno al
+    numero in comune. Così si vede se il limite scambiato sta vicino a un numero."""
+    result = next(
+        (
+            r
+            for r in results
+            if r.check is CheckName.OPERATION_DESCRIPTION
+            and r.verdict is Verdict.CORRETTO
+            and r.target.label == op
+            and r.target.index is not None
+            and 0 <= r.target.index < len(cycle.operations)
+        ),
+        None,
+    )
+    if result is None or result.target.index is None:
+        return "nessun CORRETTO della descrizione"
+    description = cycle.operations[result.target.index].operation_description
+    blocks = language_blocks(description)
+    parts = [("it", blocks[0]), ("en", blocks[1])] if blocks else [("testo", description)]
+    shapes = [f"{name} «{_shape_at_limit(text)}»" for name, text in parts]
+    described = _description_ways(description)
+    for number, evidence in enumerate(result.evidence[:2], start=1):
+        quote = evidence.quote
+        hit = next(
+            (
+                m
+                for m in _NUMBER_IN_QUOTE.finditer(quote)
+                if Decimal(m.group().replace(",", ".")) in described
+            ),
+            None,
+        )
+        shape = text_shape(quote, hit.start(), hit.end()) if hit else _shape_at_limit(quote)
+        shapes.append(f"riga {number} «{shape}»")
+    return " · ".join(shapes)
+
+
+_NUMBER_IN_QUOTE = re.compile(r"(?<![\w.,/-])\d+(?:[.,]\d+)?(?![\w/-]|[.,]\d)")
 
 
 # nome → regola, in `agent.final_rules` (una variante per regola).

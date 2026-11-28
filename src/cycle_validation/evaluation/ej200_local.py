@@ -106,7 +106,11 @@ def run_cycles(pdfs: Sequence[Path], validate: Callable[[Path], Report]) -> list
     """Valida ogni PDF. Un ciclo non EJ200 o che non si legge non ferma gli altri."""
     outcomes: list[Ej200Outcome] = []
     for pdf in pdfs:
-        name = fingerprint(pdf)
+        try:
+            name = fingerprint(pdf)
+        except OSError as error:  # file che non si legge: non ferma gli altri
+            outcomes.append(Ej200Outcome(fingerprint="????????", problem=type(error).__name__))
+            continue
         try:
             outcomes.append(outcome_of(name, validate(pdf)))
         except WrongModuleError:
