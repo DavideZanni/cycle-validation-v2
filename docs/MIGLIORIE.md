@@ -35,6 +35,12 @@ finale sugli esiti già fatti: `eval rigioca` sulle prove di `quasi_finale` (0 $
 diretta: una prova sola sul piccolo per costo e tempo; la campagna solo per `diretta`,
 `testo_comune` e `lingue_insieme`, se la prova risparmia (circa 6-7 $ invece di 12-14).
 
+**28-11, campagna 4j (17 prove, 4,01 $):** `diretta`, `testo_comune` e `lingue_insieme` trovano
+tutte gli stessi errori di `quasi_finale` (42 su 45, 31 su 31) con 0 falsi errori. Nella base:
+`lingue_insieme` (MG54, MG56, MG55: 0,0064 $ e 10 s a ciclo sul piccolo, 0,0098 $ e 13 s sul
+grande, contro 0,0114 $ e 20 s, 0,0188 $ e 30 s) e la regola MG83. Scartata `testo_comune`
+(MG59, nessun risparmio rispetto a `diretta`); MG48 resta spenta (nessuna differenza).
+
 **Prossime, in ordine (28-11):** solo quelle che si possono fare davvero e che migliorano
 qualcosa di misurabile. L'ingestion si fa più avanti, quando l'utente ha tempo; la conoscenza
 prima di pubblicarla per ora la controlla l'utente a mano.
@@ -50,7 +56,7 @@ prima di pubblicarla per ora la controlla l'utente a mano.
    tipo, se c'è una causa chiara.
 3. Passo 4j (utente, circa 6-7 $): la campagna solo delle varianti che usano il modello
    (`diretta`, `testo_comune`, `lingue_insieme`), contro `quasi_finale`. Si tiene solo quello
-   che trova gli stessi errori (o di più) e risparmia davvero.
+   che trova gli stessi errori (o di più) e risparmia davvero. ✅ 28-11 mattina: nella base `lingue_insieme` e MG83.
 4. MG42 prova EJ200 (utente, passo 4f): cancello B.
 
 Più avanti, con l'ingestion (utente, quando ha tempo; il codice dell'indice lo scrive Claude se
@@ -113,18 +119,18 @@ introduce).
 | MG45 | Fuori tema più prudente | mai N/A se la descrizione ha un limite o una negazione: WARNING e seconda ricerca (tocca il modello: si misura con la campagna) | 🔶 | 4 | F3 |
 | MG46 | Materiale tra le lingue | materiale diverso tra italiano e inglese, dal codice | ⬜ | 4 | F1 |
 | MG47 | Azione diversa tra le lingue | dal codice: rimuovere, raccordare, sostituire, lucidare, sabbiare, saldare, pulire (e9b74c84 040, 298bc28e 035). P15: un'azione in una condizione («durante la sabbiatura») non conta; «ripristinare» = «replace» | ✅ | 4 | F1 |
-| MG48 | Task di un altro stadio | il task cita un pezzo diverso da quello del ciclo (28-11: dal codice, stadio del titolo contro intestazione del task; `agent.task_stage_check`, variante `altro_stadio`) | 🔶 | 3 | F2 |
+| MG48 | Task di un altro stadio | il task cita un pezzo diverso da quello del ciclo (28-11: dal codice, stadio del titolo contro intestazione del task; `agent.task_stage_check`, variante `altro_stadio`). 28-11, senza modello: nessuna differenza sul piccolo (41 → 41) e sul grande (31 → 31), nessun danno; nei nostri cicli non c'è un caso: resta spenta | ❌ | 3 | F2 |
 | MG49 | Errori più stabili | errori che escono 2 volte su 3 (28-11: con `quasi_finale` tutti gli errori noti 3 su 3, non serve) | ✅ | 3 | F4 |
 | MG50 | DR senza serial | la procedura DR dal numero «D.R. CASE #» della stampa (P14); le recommendation restano da decidere con le persone | 🔶 | 3 | F5 |
 | MG51 | Frontend con i due WARNING | colori diversi per `[da guardare]` e `[non controllabile]` (collega) | ⬜ | 3 | F7 |
 | MG52 | Fonte della nota | la fonte giusta per il task della nota nelle MOS | ⬜ | 3 | H16 |
 | MG53 | Tempo massimo della validazione | 480 s per le sessioni di un ciclo: chiude con quello che ha | ✅ | 3 | T1 |
-| MG54 | Chiamata diretta a Bedrock | niente avvio dell'agente per ogni operazione: circa metà del tempo (28-11: `agent/direct_session.py`, `agent.session_backend: diretta`, variante `diretta`; prova `eval chiamata-diretta`) | 🔶 | 3 | B1 |
-| MG55 | Più operazioni insieme | dopo MG54: meno tempo (28-11: il confronto tra le lingue di 8 operazioni in una sessione, `agent.language_batch_size`, variante `lingue_insieme`) | 🔶 | 2 | B4 |
-| MG56 | Cache e batch di Bedrock | meno costo (28-11: cache su istruzioni, strumenti e storia, `agent.direct_cache`, nella variante `diretta`; il batch no, non risponde subito) | 🔶 | 2 | H10 |
+| MG54 | Chiamata diretta a Bedrock | niente avvio dell'agente per ogni operazione: circa metà del tempo (28-11: `agent/direct_session.py`, `agent.session_backend: diretta`, variante `diretta`; prova `eval chiamata-diretta`). Campagna 4j (28-11): stessi errori di `quasi_finale` (42 su 45, 31 su 31), 0 falsi errori, costo -37%, tempo -55% sul piccolo e -53% sul grande: **nella base** | ✅ | 3 | B1 |
+| MG55 | Più operazioni insieme | dopo MG54: meno tempo (28-11: il confronto tra le lingue di 8 operazioni in una sessione, `agent.language_batch_size`, variante `lingue_insieme`). Campagna 4j (28-11): stessi errori, 0 falsi errori, falsi OK 0,7 a prova contro 1,0, costo -43% sul piccolo e -48% sul grande, tempo -49% e -55%: **nella base** (`language_batch_size: 8`) | ✅ | 2 | B4 |
+| MG56 | Cache e batch di Bedrock | meno costo (28-11: cache su istruzioni, strumenti e storia, `agent.direct_cache`, nella variante `diretta`; il batch no, non risponde subito). Nella base con MG54 (28-11) | ✅ | 2 | H10 |
 | MG57 | Numeri contro il manuale | numeri e classi della descrizione confrontati dal codice con il manuale | ⬜ | 3 | I4, H12 |
 | MG58 | Risultato già calcolato | stesso PDF e stessa conoscenza: risposta subito e 0 $ (28-11: nel servizio, in memoria, 200 risultati per 6 ore; DOCUMENTAZIONE 13.3) | ✅ | 2 | H13 |
-| MG59 | Più operazioni in una sessione | stesso testo mandato una volta (28-11: il testo del manuale prima della domanda, in un blocco in cache, `agent.shared_reference_first`, variante `testo_comune`) | 🔶 | 1 | H14 |
+| MG59 | Più operazioni in una sessione | stesso testo mandato una volta (28-11: il testo del manuale prima della domanda, in un blocco in cache, `agent.shared_reference_first`, variante `testo_comune`). Campagna 4j (28-11): stessi errori ma nessun risparmio rispetto a `diretta` (0,0072 $ contro 0,0071 $ sul piccolo), WARNING un po' di più: scartata | ❌ | 1 | H14 |
 | MG60 | Macchine attive su S3 | file notturno con le macchine attive, leggibile anche dal PC | ⬜ | 3 | H1 |
 | MG61 | Ingestion guidata | classifica dei manuali più chiesti che mancano | ⬜ | 2 | H2 |
 | MG62 | `kb-check` nell'ingestion | una conoscenza rotta non si pubblica mai | ⬜ | 4 | H3 |
@@ -148,7 +154,7 @@ introduce).
 | MG80 | Test sulle 14 stampe vere | le regole del codice sul testo di `CONFRONTO_V1_14_CICLI.md`, a ogni `pytest` | ✅ | 4 | — |
 | MG81 | Massimo contro minimo tra le lingue | «profondità massima» in italiano, «min depth» in inglese, anche senza un numero: ERRATO dal codice (22f586bb e 895167b9 010) | ✅ | 4 | — |
 | MG82 | Motivo degli ERRATO in più | a schermo e nel riepilogo, accanto a ogni ERRATO da verificare, il motivo (quale controllo): si capisce subito da dove viene | ✅ | 3 | — |
-| MG83 | Meno avvisi per ciclo | tagliare le cause più frequenti dei WARNING (tabella «WARNING per motivo»), per il cancello C (28-11: prima i dati, tabella «WARNING per operazione» nel report; poi una regola finale, `agent.final_rules`, e la variante `meno_avvisi`, provata con `eval rigioca` a 0 $). 28-11 mattina, dalla tabella: sul grande 4,5 WARNING per ciclo su 8,8 sono FONTE_ASSENTE, quasi tutti di due cicli veri con il manuale fuori dalla conoscenza (uno per operazione); regola `fonte_assente_una_volta` scritta. 11:05, rigiocata: piccolo uguale (4,9), grande 8,9 → 5,3 WARNING per ciclo, stessi errori, 0 falsi OK in più, 0 falsi errori: **si tiene**. Entra nella base dopo la campagna del passo 4j (prima cambierebbe il riferimento a metà). EVIDENZA_NON_TROVATA (3,2 per ciclo) non si tocca con una regola: è anche la risposta su un errore mancato (`numero_manuale`) | 🔶 | 4 | — |
+| MG83 | Meno avvisi per ciclo | tagliare le cause più frequenti dei WARNING (tabella «WARNING per motivo»), per il cancello C (28-11: prima i dati, tabella «WARNING per operazione» nel report; poi una regola finale, `agent.final_rules`, e la variante `meno_avvisi`, provata con `eval rigioca` a 0 $). 28-11 mattina, dalla tabella: sul grande 4,5 WARNING per ciclo su 8,8 sono FONTE_ASSENTE, quasi tutti di due cicli veri con il manuale fuori dalla conoscenza (uno per operazione); regola `fonte_assente_una_volta` scritta. 11:05, rigiocata: piccolo uguale (4,9), grande 8,9 → 5,3 WARNING per ciclo, stessi errori, 0 falsi OK in più, 0 falsi errori: **si tiene**. Entra nella base dopo la campagna del passo 4j (prima cambierebbe il riferimento a metà). EVIDENZA_NON_TROVATA (3,2 per ciclo) non si tocca con una regola: è anche la risposta su un errore mancato (`numero_manuale`). Nella base dal 28-11 (`final_rules: [fonte_assente_una_volta]`) | ✅ | 4 | — |
 | MG84 | Banco di prova | `eval banco`: errori messi dal programma su ogni operazione delle 14 stampe vere (numero, limite, massimo/minimo, azione, DR): 310 copie, trovate 308, 0 falsi allarmi; lettura della stampa uguale alla v1 | ✅ | 4 | — |
 | MG85 | Metriche di controllo | nel riepilogo: falsi OK, mancati come WARNING o N/A, esiti decisi, errori tecnici, ciclo più lento e più caro | ✅ | 4 | — |
 | MG86 | Date e limiti ripetuti | trovati dal banco: una data in una lingua sola disallineava i numeri; «massimo 2 … massimo 2» con uno girato non si vedeva | ✅ | 3 | — |

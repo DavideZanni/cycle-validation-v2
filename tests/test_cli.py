@@ -766,7 +766,7 @@ def test_eval_replay_recounts_the_trials_already_done(tmp_path: Path) -> None:
     assert (runs / "rigioca-grande" / "riepilogo.md").is_file()
     bad = runner.invoke(cli.app, [*replay, "--variante", "altro_stadio", "--cartella", str(runs)])
     assert bad.exit_code != 0
-    assert "agent.task_stage_check" in bad.output
+    assert "cambia anche" in bad.output and "si rigioca solo" in bad.output
 
 
 def test_eval_bench_counts_the_errors_put_on_the_real_prints() -> None:

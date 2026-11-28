@@ -46,7 +46,10 @@
 varianti: [quasi_finale, diretta, testo_comune, lingue_insieme]
 
 # La variante con cui si confrontano le altre. Vuoto = la base.
-riferimento: quasi_finale
+# 28-11, 12:37: campagna 4j finita (17 prove, 4,01 $). Nella base `lingue_insieme` (diretta,
+# cache, lingue insieme) e la regola MG83; `testo_comune` scartata. Riferimento: `lingue_insieme`
+# (le prove della base nuova senza la regola finale, che si rigioca).
+riferimento: lingue_insieme
 
 # Prove per variante: tre (le differenze sono di uno o due errori).
 ripetizioni: 3

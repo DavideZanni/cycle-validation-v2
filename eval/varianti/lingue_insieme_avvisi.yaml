@@ -1,0 +1,7 @@
+nome: lingue_insieme_avvisi
+descrizione: "La base del 28-11: lingue_insieme (chiamata diretta con la cache, lingue di 8 operazioni insieme) più la regola finale fonte_assente_una_volta (MG83). Si prova rigiocando le prove di lingue_insieme"
+ipotesi: "La regola lavora solo sugli esiti già fatti: sulle prove di lingue_insieme toglie i FONTE_ASSENTE ripetuti come su quelle di quasi_finale"
+atteso: "rigiocata sulle prove di lingue_insieme (0 $): stessi errori, 0 falsi OK in più, 0 falsi errori; grande circa 8,9 → 5,3 WARNING per ciclo"
+base: lingue_insieme
+agent:
+  final_rules: [fonte_assente_una_volta]

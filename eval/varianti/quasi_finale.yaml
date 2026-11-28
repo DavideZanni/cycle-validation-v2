@@ -7,3 +7,9 @@ agent:
   languages_from_code: true
   dr_consistency: true
   prudent_out_of_scope: true
+  # 28-11: la base è cambiata (chiamata diretta, lingue insieme, regola MG83); quasi_finale
+  # resta com'era, perché le sue prove sono il confronto delle varianti del 28-11
+  session_backend: sdk
+  direct_cache: false
+  language_batch_size: 0
+  final_rules: []

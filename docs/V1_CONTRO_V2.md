@@ -1,7 +1,8 @@
 # v1 contro v2
 
-Numeri: v1 da `CONFRONTO_V1_14_CICLI.md`; v2 dalla campagna `quasi_finale` (passo 4h, 3 prove
-sul piccolo e 3 sul grande, 27-11 notte e 28-11) e dalla prova senza modello del 27-11 notte
+Numeri: v1 da `CONFRONTO_V1_14_CICLI.md`; v2 dalla campagna del 28-11 (passo 4j: la base nuova
+`lingue_insieme`, 3 prove sul piccolo e 3 sul grande, contro `quasi_finale` del passo 4h), da
+`eval rigioca` per la regola MG83 e dalla prova senza modello del 27-11 notte
 (solo i controlli del codice: quello che trovano lo trovano sempre). La v1 ha documenti che la v2 non ha ancora: per ogni errore mancato si dice se
 manca il **documento** o il **controllo**. Claude aggiorna il file dopo ogni campagna.
 
@@ -24,9 +25,9 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | ✅ | Stampe lette | 14/14 | 14/14 |
 | ✅ | Banco di prova: errori messi dal programma sulle 14 stampe, trovati dal codice | ≥ 90% per tipo, 0 falsi allarmi | 308 su 310 (numeri 95%, limiti, massimo/minimo, azioni e DR 100%), 0 falsi allarmi; uguale sul PC con la conoscenza vera |
 | ✅ | Lettura della stampa contro la v1 | uguale, tranne gli errori noti | operazioni 105 su 105; targhe 104 su 105 e schede 21 su 22: le 2 differenze sono errori noti |
-| ❌ | Falsi OK (errori noti mancati con CORRETTO) | 0 | grande 0; piccolo 3 su 9 mancati, tutti copie cieche che trova solo il modello (quale tipo: dal report rifatto, passo 4i) |
-| ✅ | Costo per ciclo | ≤ 0,05 $ | 0,011 $ piccolo, 0,019 $ grande (il più caro 0,035 $) |
-| ✅ | Tempo per ciclo | ≤ 2 min | 20 s piccolo, 30 s grande (il più lento 56 s) |
+| ❌ | Falsi OK (errori noti mancati con CORRETTO) | 0 | grande 0; piccolo 0,7 a prova (2 su 9 mancati), copie cieche che trova solo il modello: il limite invertito in tutte e due le lingue (MG87: la regola sulla riga citata non scatta, si guarda perché) |
+| ✅ | Costo per ciclo | ≤ 0,05 $ | 0,0064 $ piccolo, 0,0098 $ grande (il più caro 0,022 $); prima 0,011 e 0,019 $ |
+| ✅ | Tempo per ciclo | ≤ 2 min | 10 s piccolo, 13 s grande (il più lento 34 s); prima 20 e 30 s |
 | ✅ | Test | 0 `failed` | 0 |
 | ⬜ | `kb-check` dopo la grande ingestion | nessun `Errore:` | — |
 | ⬜ | Prova di controllo sul grande | 0 falsi errori, errori stabili non in calo | — |
@@ -50,7 +51,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | ⬜ | QA: un MOS e un DR veri, con e senza serial | nessun errore tecnico | — |
 | ⬜ | QA: targhe vere (Redshift) | 0 targhe giuste ERRATO | — |
 | ⬜ | Esperto su 5-10 risultati QA | 0 falsi, ≥ 80% trovati | — |
-| ⬜ | Avvisi per ciclo in QA | ≤ 5, `[da guardare]` ≤ 2 | 4,9 piccolo, 8,9 grande (campagna sul PC) |
+| ⬜ | Avvisi per ciclo in QA | ≤ 5, `[da guardare]` ≤ 2 | 4,8 piccolo, 8,9 grande nella campagna; con MG83 circa 5,3 sul grande (rigiocata su `quasi_finale`) |
 | ⬜ | Accessi EJ200 in QA | solo `cv_ej200` e `all` | ok nei test |
 | ⬜ | Ritorno alla v1 (`qa --torna-alla-v1`) | provato | — |
 
@@ -63,11 +64,11 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | Prova di ogni errore | ✅ | testo libero | frase del manuale ritrovata dal programma |
 | «OK» vuol dire | ✅ | nessuna contraddizione vista | controllato con il manuale |
 | Cosa non ha controllato | ✅ | non lo dice | `[non controllabile]` separato da `[da guardare]` |
-| Avvisi per ciclo | ❌ | 1-2 | 4,9 piccolo, 8,9 grande (sul PC registro spento, documenti mancanti) |
+| Avvisi per ciclo | ❌ | 1-2 | 4,8 piccolo; grande 8,9 → circa 5,3 con MG83 (la fonte assente detta una volta). Restano «evidenza non trovata» (3,2 per ciclo) e documenti mancanti |
 | Stabilità | ✅ | non misurata | misurata su 3 prove: tutti gli errori noti 3 su 3 |
 | **Codici di task sbagliati** | ✅ | col modello, a volte «incompleto» su codici giusti | dal codice, senza modello: codice assente e fratelli presenti |
 | Task dell'operazione contro la testata | ➖ | sì | sì (MG36) |
-| Task di un altro stadio | 🔶 | sì | dal codice, variante `altro_stadio` (MG48, passo 4j) |
+| Task di un altro stadio | ⬜ | sì | dal codice (MG48), spento: nei nostri cicli nessun caso, senza modello nessuna differenza e nessun danno |
 | Numeri o limiti cambiati in una lingua | ✅ | solo inglese | due lingue, dal codice |
 | Negazioni e frasi al contrario | ✅ | solo inglese | due lingue; 2 errori veri trovati in stampe «giuste» |
 | Parola o materiale cambiati in una lingua | ➖ | la parola sì | azione diversa e «massimo» contro «minimo» dal codice (MG47, MG81); il materiale lo trova la scheda |
@@ -81,7 +82,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | Lettura della stampa | ✅ | modello | parser, gratis e sempre uguale |
 | Ricerca nel manuale | ✅ | per somiglianza (OpenSearch) | per codice esatto |
 | 2900 documenti | ✅ | non misurato | stesso testo al modello; 4,2 s, 164 MB (finto) |
-| Costo e tempo | ✅ | non misurati | 0,011-0,019 $, 20-30 s |
+| Costo e tempo | ✅ | non misurati | 0,0064-0,0098 $, 10-13 s (chiamata diretta e lingue insieme, 28-11) |
 | Prove automatiche e test | ✅ | no | campagne, copie cieche, prova senza modello, banco di prova (310 errori messi sulle 14 stampe), oltre 1000 test |
 | Frontend e accessi | ➖ | — | stesso payload, stesse regole |
 | Conoscenza nuova senza riavvio | ✅ | — | sì, ogni 5 minuti |

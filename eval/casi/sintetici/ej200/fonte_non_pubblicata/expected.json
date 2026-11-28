@@ -12,8 +12,8 @@
       "check": "operation_description",
       "kind": "operation",
       "index": 0,
-      "verdict": "WARNING",
-      "reason": "FONTE_ASSENTE"
+      "verdict": "NON_APPLICABILE",
+      "reason": "GIA_SEGNALATO"
     },
     {
       "check": "task_code",

@@ -1708,6 +1708,22 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   `eval rigioca` ora stampa per ogni falso OK che cosa c'è nella riga citata (solo sì/no e
   conteggi). MG48 sul piccolo: 41 → 41, nessuna differenza, come sul grande: resta spenta
   (non c'è un caso nei nostri cicli; nessun danno). La campagna non è ancora partita.
+- **28-11, 11:10-12:37, campagna 4j (17 prove, 4,01 $).** Tutte trovano gli stessi errori di
+  `quasi_finale` (piccolo 42 su 45 stabili, mai visti 1 su 4; grande 31 su 31), 0 falsi
+  errori, 0 da verificare. Per ciclo, piccolo / grande: `quasi_finale` 0,0114 $ 20 s / 0,0188 $
+  30 s; `diretta` 0,0071 $ 9 s / 0,0119 $ 14 s; `testo_comune` 0,0072 $ 10 s / 0,0117 $ 14 s;
+  `lingue_insieme` 0,0064 $ 10 s / 0,0098 $ 13 s. Falsi OK a prova sul piccolo: 1,0 per
+  `quasi_finale` e `diretta`, 0,7 per `testo_comune` e `lingue_insieme`; sul grande 0 per
+  tutte. Ciclo più lento e più caro del grande: `lingue_insieme` 25 s e 0,018 $. WARNING per
+  ciclo uguali (piccolo 4,4-5,2, grande 8,8-9,2). Tabella per tipo (`diretta`): sul piccolo
+  la negazione tolta in tutte e due le lingue ora esce WARNING invece di N/A FUORI_TEMA.
+  **Decisione (Claude):** nella base `lingue_insieme` (MG54 chiamata diretta, MG56 cache, MG55
+  lingue di 8 operazioni insieme) e la regola MG83 `fonte_assente_una_volta`: impostazioni
+  predefinite del codice (valgono anche per `data/settings.yaml` sul PC). `quasi_finale` ora
+  dice esplicitamente le impostazioni di prima, così le sue prove restano il confronto.
+  Scartata `testo_comune` (MG59): nessun risparmio rispetto a `diretta`. Riferimento della
+  campagna: `lingue_insieme`. La base nuova si controlla a 0 $ rigiocando le prove di
+  `lingue_insieme` con la regola (variante `lingue_insieme_avvisi`).
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

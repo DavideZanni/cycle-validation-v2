@@ -27,6 +27,7 @@ from cycle_validation.services.machines import StaticMachineRegistry
 # le prove partono dalla v2 «nuda»: le parti di `finale` (nella base dal 27-11 sera) si
 # accendono nei test che le provano
 PLAIN = {
+    "language_batch_size": 0,  # le lingue insieme (MG55, base dal 28-11) hanno i loro test
     "compare_languages": False,
     "compare_languages_strict": False,
     "inspection_source": False,

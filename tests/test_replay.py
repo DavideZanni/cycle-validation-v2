@@ -64,7 +64,7 @@ def test_a_final_rule_changes_the_results_but_not_the_integrity_rows(rules: None
 
 
 def test_only_a_variant_of_final_rules_can_be_replayed(rules: None) -> None:
-    base = Settings()
+    base = Settings(agent=AgentSettings(final_rules=[]))
     rule = Settings(agent=AgentSettings(final_rules=["ok_010"]))
     code = Settings(agent=AgentSettings(final_rules=["ok_010"], task_stage_check=True))
     assert replay.other_changes(base, rule) == []

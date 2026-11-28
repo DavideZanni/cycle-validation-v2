@@ -300,10 +300,15 @@ def test_without_any_available_source_operations_are_not_validated(tmp_path: Pat
     cycle = ej_cycle(sources=[Source(manual="RN-999")])
     deps, session = ej_deps(tmp_path, judge, cycle)
     report = run_ej(tmp_path, deps, cycle)
-    assert {r.reason for r in rows(report, CheckName.OPERATION_DESCRIPTION)} == {
-        Reason.FONTE_ASSENTE
+    # MG83 (28-11): la fonte assente si dice una volta, le altre righe dicono dove guardare
+    assert {r.reason for r in rows(report, CheckName.OPERATION_DESCRIPTION)} <= {
+        Reason.FONTE_ASSENTE,
+        Reason.GIA_SEGNALATO,
     }
-    assert {r.reason for r in rows(report, CheckName.TASK_CODE)} == {Reason.FONTE_ASSENTE}
+    assert {r.reason for r in rows(report, CheckName.TASK_CODE)} <= {
+        Reason.FONTE_ASSENTE,
+        Reason.GIA_SEGNALATO,
+    }
     assert session.requests == []
     assert report.counts.errato == 0  # esito non superato ma senza errori di contenuto
 

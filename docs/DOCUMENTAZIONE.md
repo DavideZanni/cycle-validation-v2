@@ -294,7 +294,7 @@ che il codice ha già deciso) e li cambiano. Si accendono per nome con `agent.fi
 integrità non si toccano. Siccome usano solo quello che c'è nel `report.json`, si provano sulle
 prove già fatte, senza modello: `eval rigioca` (sezione 15.3).
 
-Le regole (28-11, tutte spente nella base; una variante ciascuna):
+Le regole (28-11; una variante ciascuna). Nella base dal 28-11: `fonte_assente_una_volta`.
 
 | Nome | Miglioria | Cosa fa |
 |---|---|---|
@@ -741,15 +741,17 @@ in linea, con ricerca, di conferma.
 ## 9. Il modello e l'agente
 
 **Dove:** Claude su **Amazon Bedrock** (regione `eu-south-1`), modello Haiku (id del profilo di
-inferenza `eu.` scritto in `data/settings.yaml` sul PC). Si usa il **Claude Agent SDK**:
-l'unico modulo che lo importa è `agent/sdk_session.py`. Il resto del codice parla con la porta
+inferenza `eu.` scritto in `data/settings.yaml` sul PC). Dal 28-11 la base chiama il modello
+**direttamente** (`agent/direct_session.py`, sotto); il **Claude Agent SDK** resta come
+seconda strada (`agent.session_backend: sdk`): l'unico modulo che lo importa è
+`agent/sdk_session.py`. Il resto del codice parla con la porta
 `AgentSession` (`agent/session.py`) e si prova senza rete.
 
 **Due modi di chiamare il modello (`agent.session_backend`, MG54, dal 28-11):**
 
-- `sdk` (la base): il Claude Agent SDK avvia Claude Code per ogni sessione (circa 3-5 s di
+- `sdk` (la base fino al 28-11): il Claude Agent SDK avvia Claude Code per ogni sessione (circa 3-5 s di
   avvio ciascuna); il costo lo dà l'SDK.
-- `diretta` (variante `diretta`): l'SDK `anthropic` (`AsyncAnthropicBedrock`, la stessa
+- `diretta` (la base dal 28-11, campagna 4j: stessi errori, costo -37%, tempo -55%): l'SDK `anthropic` (`AsyncAnthropicBedrock`, la stessa
   chiamata `InvokeModel` di Bedrock con le credenziali dell'ambiente) chiama il modello da
   `agent/direct_session.py`, senza avviare niente. Read e Grep li esegue la v2, con le stesse
   regole dell'hook (`agent/hooks.check_tool_call`: solo i file ammessi, lettura a paragrafo).
@@ -769,14 +771,16 @@ l'unico modulo che lo importa è `agent/sdk_session.py`. Il resto del codice par
 - Un errore della sessione diretta dice i tipi della catena delle cause, il codice di AWS e una
   causa probabile (`describe_error`: certificato, accesso scaduto, tempo scaduto, proxy...),
   mai il messaggio (può contenere indirizzi, account o testo del ciclo).
-- Con `diretta`: `agent.direct_cache` (MG56; nella variante `diretta`, perché la cache non cambia
-  le risposte, solo il prezzo) mette i punti di cache di
+- Con `diretta`: `agent.direct_cache` (MG56; nella base dal 28-11 insieme a `diretta`, perché la
+  cache non cambia le risposte, solo il prezzo) mette i punti di cache di
   Bedrock su istruzioni, strumenti e storia della sessione (dal secondo turno la storia si
-  rilegge dalla cache); `agent.shared_reference_first` (MG59, variante `testo_comune`) manda il
+  rilegge dalla cache); `agent.shared_reference_first` (MG59, variante `testo_comune`, spento:
+  nella campagna 4j non ha fatto risparmiare niente rispetto a `diretta`) manda il
   testo del manuale delle sessioni in linea in un blocco a sé prima della domanda, con un punto
   di cache (`SessionRequest.shared_context`): le operazioni che citano lo stesso task lo pagano
   una volta. Con `sdk` il blocco va semplicemente davanti alla domanda.
-- `agent.language_batch_size` (MG55, variante `lingue_insieme`): il confronto tra le due lingue
+- `agent.language_batch_size` (MG55, variante `lingue_insieme`; 8 nella base dal 28-11: stessi
+  errori, costo -43% sul piccolo e -48% sul grande contro `quasi_finale`): il confronto tra le due lingue
   di più operazioni (al massimo quel numero) in una sessione sola, con un elemento per
   operazione nella risposta. Le citazioni si ritrovano comunque nella lingua giusta di ogni
   operazione, e una differenza si conferma con le sessioni di una sola operazione; un'operazione
@@ -1040,14 +1044,14 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.validation_timeout_s` | 480 | tempo massimo delle sessioni di un ciclo (MG53; sezione 9) |
 | `agent.confirm_contradiction` | 2 | sessioni di conferma per ogni ERRATO del modello |
 | `agent.task_stage_check` | `false` | task di un altro stadio: ERRATO `TASK_ALTRO_STADIO` (MG48; sezione 6.2) |
-| `agent.session_backend` | `sdk` | `diretta`: chiamata diretta a Bedrock senza Claude Code (MG54; sezione 9) |
+| `agent.session_backend` | `diretta` (dal 28-11) | `diretta`: chiamata diretta a Bedrock senza Claude Code (MG54); `sdk`: Claude Agent SDK (sezione 9) |
 | `agent.direct_model` | vuoto | con `diretta`: id del modello su Bedrock (vuoto = `agent.model`) |
 | `agent.direct_transport` | `boto3` | con `diretta`: `boto3` (`invoke_model`) o `httpx` (client HTTP dell'SDK) |
 | `agent.direct_input_price`, `agent.direct_output_price` | 0,10 e 0,50 | con `diretta`: dollari per milione di token, per il costo nel report |
-| `agent.direct_cache` | `false` | con `diretta`: punti di cache di Bedrock (MG56) |
+| `agent.direct_cache` | `true` (dal 28-11) | con `diretta`: punti di cache di Bedrock (MG56) |
 | `agent.shared_reference_first` | `false` | il testo del manuale prima della domanda, in un blocco da tenere in cache (MG59) |
-| `agent.language_batch_size` | 0 | confronto tra le lingue di più operazioni in una sessione (MG55); 0 = spento |
-| `agent.final_rules` | vuoto | regole finali sugli esiti già fatti, per nome: `fonte_assente_una_volta` (MG83), `limite_contro_citazione` (MG87); sezione 5.7 |
+| `agent.language_batch_size` | 8 (dal 28-11) | confronto tra le lingue di più operazioni in una sessione (MG55); 0 = spento |
+| `agent.final_rules` | `[fonte_assente_una_volta]` (dal 28-11) | regole finali sugli esiti già fatti, per nome: `fonte_assente_una_volta` (MG83), `limite_contro_citazione` (MG87); sezione 5.7 |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
 | `paths.*` | `config/profiles`, `prompts`, `data/knowledge`, `runs` | cartelle |
 | `paths.machines_file` | vuoto | JSON delle macchine attive |

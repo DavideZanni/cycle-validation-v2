@@ -104,7 +104,7 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 | | Tappa | Stato |
 |---|---|---|
-| ✅ | 1-3 · Preparare, campagne, migliorie | 28-11: base `quasi_finale`, 0 falsi errori, 42/45 e 31/31 stabili |
+| ✅ | 1-3 · Preparare, campagne, migliorie | 28-11: base `lingue_insieme` + MG83, 0 falsi errori, 42/45 e 31/31 stabili, 0,006-0,010 $ e 10-13 s a ciclo |
 | 👉 | 4 · Prove dal frontend (sezione 4) | A3 e A1 fatte |
 | ⬜ | 5 · Grande ingestion, prova di controllo, QA | più avanti, quando hai tempo |
 | ⬜ | 6 · Produzione (`develop` → `main`) | quando i cancelli di `V1_CONTRO_V2.md` sono ✅ |
@@ -115,57 +115,41 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 | ✅ | 4g · Domande P13 e P14 | 27-11 notte |
 | ✅ | 4h · Versione quasi finale: senza modello, banco, campagna | 28-11 notte: si tiene |
 | ✅ | 4i · Chiamata diretta, rigioca, tabelle, una prova di `diretta` | 28-11 mattina: `diretta` -37% di costo |
-| 👉 | **4j · Due regole a 0 $ (MG83, MG87), poi la campagna delle migliorie che usano il modello** | adesso · circa 4-5 $, 2-3 ore |
+| ✅ | 4j · Regole MG83 e MG87, campagna delle migliorie che usano il modello | 28-11: `lingue_insieme` e MG83 nella base |
+| 👉 | **4k · La base nuova a 0 $, perché MG87 non scatta** | adesso · 0 $, pochi minuti |
 | ⬜ | **4f · EJ200 sul PC** | dopo l'ingestion EJ200 · centesimi |
 | ⬜ | **5 · Grande ingestion e QA** | dopo |
 
 ---
 
-**👉 Passo 4j · Due regole a 0 $, poi la campagna delle migliorie che usano il modello**
-(circa 4-5 $, 2-3 ore)
+**👉 Passo 4k · La base nuova a 0 $, e perché MG87 non scatta** (0 $, pochi minuti)
 
-Passo 4i fatto il 28-11 mattina: chiamata diretta `ok`, `eval rigioca` ok, MG48 sul grande
-senza differenze, tabelle ✅, una prova di `diretta` sul piccolo: 0,22 $ contro 0,35 $ con gli
-stessi errori. Dalle tabelle Claude ha scritto due regole finali (si provano sulle prove già
-fatte, 0 $): `meno_avvisi` (MG83, la fonte assente detta una volta sola) e `limiti_citati`
-(MG87, il falso OK del limite invertito).
+Passo 4j fatto il 28-11 (17 prove, 4,01 $): tutte le varianti trovano gli stessi errori. Nella
+base ora c'è `lingue_insieme` (chiamata diretta, cache, lingue di 8 operazioni insieme: costo
+-43%/-48%, tempo circa la metà) e la regola MG83. Scartata `testo_comune`.
 
-Fatto alle 11:05: `meno_avvisi` si tiene (grande 8,9 → 5,3 WARNING per ciclo, stessi
-errori), `limiti_citati` non scatta, MG48 sul piccolo nessuna differenza.
-
-1. **La campagna** (circa 4-5 $, 2-3 ore): le 2 prove che mancano di `diretta` sul piccolo e
-   le 3 sul grande, poi `testo_comune` e `lingue_insieme` (3 sul piccolo e 3 sul grande). Le
-   prove già fatte si saltano; se si ferma (tetto di spesa o PC spento), rilanciata riparte da
-   dove era. Prima `aws sso login` se serve:
+1. **Aggiornare** (2.1).
+   - **Deve uscire:** in fondo `... passed` e nessun `failed`.
+   - **Mandami:** la foto dell'ultima riga.
+2. **La base nuova sulle prove già fatte, e la riga citata dei falsi OK** (0 $, pochi
+   secondi):
 
    ```powershell
    $env:UV_PYTHON = "3.14"
    [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-   uv run cycle-validation eval campagna
+   uv run cycle-validation eval rigioca --variante lingue_insieme_avvisi
+   uv run cycle-validation eval rigioca --riferimento quasi_finale --variante limiti_citati --insiemi piccolo
    ```
 
-   - **Deve uscire:** per ogni prova le righe dei cicli e `Prova «...»: ...`, alla fine
-     `Campagna finita. Prove fatte ora: 14 · spesa ... $` e `Report finale: runs\campagna.md`.
-     Non deve uscire `ATTENZIONE: prova non valida`.
-   - **Mandami:** da `runs\campagna.md` le due tabelle delle varianti (piccolo e grande, con
-     la colonna «Decisione») e la foto della riga `Campagna finita`.
+   - **Deve uscire:** `Rigiocate 3 prove di lingue_insieme con lingue_insieme_avvisi, piccolo:
+     errori stabili 42 → 42 ...` e lo stesso per il grande (`31 → 31`, WARNING per ciclo circa
+     8,9 → 5,3), poi `Rigiocate 3 prove di quasi_finale con limiti_citati, piccolo: ...` e
+     alcune righe `Falso OK, riga citata: <impronta> <op>: citazioni ... · verso letto vicino al
+     numero ...` (solo sì/no e conteggi, nessun testo).
+   - **Mandami:** la foto di tutte le righe `Rigiocate ...` e `Falso OK, riga citata: ...`.
 
-2. **Dopo la campagna, perché `limiti_citati` non scatta** (0 $, pochi secondi): Aggiornare
-   (2.1), poi:
-
-   ```powershell
-   $env:UV_PYTHON = "3.14"
-   [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-   uv run cycle-validation eval rigioca --variante limiti_citati --insiemi piccolo
-   ```
-
-   - **Deve uscire:** la riga `Rigiocate 3 prove ...` e poi alcune righe `Falso OK, riga
-     citata: <impronta> <op>: citazioni ... · ... · verso letto vicino al numero ...` (solo
-     sì/no e conteggi, nessun testo).
-   - **Mandami:** la foto di quelle righe.
-
-Con queste foto Claude decide che cosa entra nella base (anche `meno_avvisi`) e aggiorna
-`V1_CONTRO_V2.md`.
+Con queste foto Claude scrive il prossimo passo per MG87 (i falsi OK) e per gli avvisi
+«evidenza non trovata».
 
 ---
 

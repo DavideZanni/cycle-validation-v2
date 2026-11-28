@@ -169,8 +169,9 @@ class AgentSettings(_Strict):
     # Come si chiama il modello (MG54, 28-11). `sdk`: Claude Agent SDK, cioè Claude Code avviato
     # per ogni sessione (circa 3-5 s di avvio ciascuna). `diretta`: l'SDK `anthropic` chiama
     # Bedrock direttamente (`agent/direct_session.py`); Read e Grep li esegue la v2 con le
-    # stesse regole. Variante `diretta`.
-    session_backend: Literal["sdk", "diretta"] = "sdk"
+    # stesse regole. Variante `diretta`; nella base dal 28-11 (campagna 4j: stessi errori di
+    # `quasi_finale`, costo -37%, tempo -55% sul piccolo e -53% sul grande).
+    session_backend: Literal["sdk", "diretta"] = "diretta"
     # Con `diretta`: l'id del modello su Bedrock (per esempio un profilo `eu.anthropic...`).
     # None = `model` (sul PC è già l'id completo; l'alias `haiku` vale solo per l'SDK).
     direct_model: str | None = None
@@ -184,8 +185,9 @@ class AgentSettings(_Strict):
     direct_input_price: float = Field(default=0.10, ge=0)
     direct_output_price: float = Field(default=0.50, ge=0)
     # Con `diretta`: punti di cache di Bedrock (MG56, 28-11) su istruzioni, strumenti e storia
-    # della sessione. Nella variante `diretta` (la cache non cambia le risposte).
-    direct_cache: bool = False
+    # della sessione. Nella variante `diretta` (la cache non cambia le risposte); nella base dal
+    # 28-11.
+    direct_cache: bool = True
     # Il testo di riferimento prima della domanda, in un blocco che si può tenere in cache
     # (MG59, 28-11): le operazioni che citano lo stesso task lo pagano una volta. Cambia
     # l'ordine del prompt (prima il manuale, poi l'operazione). Variante `testo_comune`.
@@ -193,12 +195,15 @@ class AgentSettings(_Strict):
     # Il confronto tra le due lingue di più operazioni in una sola sessione (MG55, 28-11): una
     # sessione ogni `language_batch_size` operazioni invece di una per operazione. Rischio: il
     # modello mescola le operazioni (il codice ritrova comunque le citazioni nella lingua
-    # giusta di ogni operazione). 0 = spento. Variante `lingue_insieme`.
-    language_batch_size: int = Field(default=0, ge=0, le=30)
+    # giusta di ogni operazione). 0 = spento. Variante `lingue_insieme`; nella base dal 28-11
+    # (campagna 4j: stessi errori di `diretta`, 0 falsi errori, costo -43% sul piccolo e -48%
+    # sul grande contro `quasi_finale`, meno falsi OK: 0,7 a prova contro 1,0).
+    language_batch_size: int = Field(default=8, ge=0, le=30)
     # Regole finali (MG83, 28-11): lavorano sugli esiti già fatti, dopo tutti i controlli
     # (`verdict/final_rules.py`). Si possono rigiocare sulle prove fatte (`eval rigioca`, 0 $).
-    # Vuoto = nessuna.
-    final_rules: list[str] = Field(default_factory=list)
+    # Vuoto = nessuna. Nella base dal 28-11: `fonte_assente_una_volta` (MG83: sul grande 8,9 →
+    # 5,3 WARNING per ciclo, stessi errori).
+    final_rules: list[str] = Field(default_factory=lambda: ["fonte_assente_una_volta"])
 
     @field_validator("final_rules")
     @classmethod

@@ -64,6 +64,7 @@ class FakeClient:
 
 
 def _session(client: FakeClient, **changes: Any) -> DirectBedrockSession:
+    changes = {"direct_cache": False, **changes}  # la cache si prova nel suo test
     settings = AgentSettings(model="eu.finto-haiku", session_backend="diretta", **changes)
     return DirectBedrockSession(settings, client_factory=lambda _: client)
 
@@ -171,8 +172,9 @@ def test_the_price_uses_the_settings() -> None:
 
 
 def test_the_backend_comes_from_the_settings() -> None:
-    assert isinstance(make_agent_session(AgentSettings()), SdkAgentSession)
-    direct = make_agent_session(AgentSettings(session_backend="diretta"))
+    sdk = AgentSettings(session_backend="sdk")
+    assert isinstance(make_agent_session(sdk), SdkAgentSession)
+    direct = make_agent_session(AgentSettings())  # nella base dal 28-11
     assert isinstance(direct, DirectBedrockSession)
 
 

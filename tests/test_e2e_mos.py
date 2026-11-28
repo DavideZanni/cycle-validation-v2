@@ -29,7 +29,9 @@ def test_mos_end_to_end(pdf: Path, tmp_path: Path) -> None:
         Reason.VERIFICATO,  # 0010 coerente
         Reason.CONTRADDIZIONE,  # 0020 46,00 mm contro 45,00 mm
         Reason.VERIFICATO,  # 0030
-        Reason.FONTE_ASSENTE,  # 0040 il task citato non è nel manuale: WARNING, niente modello
+        # 0040 il task citato non è nel manuale: WARNING del task code, niente modello; qui
+        # GIA_SEGNALATO (MG83, 28-11: la stessa fonte assente si dice una volta)
+        Reason.GIA_SEGNALATO,
     ]
     assert all(r.evidence for r in ops[:3])
 
@@ -109,7 +111,8 @@ def test_technical_failure_does_not_become_a_content_error(pdf: Path) -> None:
     report = run_validation(RunRequest(pdf_path=pdf), deps)
     ops = by(report, CheckName.OPERATION_DESCRIPTION)
     # la 0040 cita un task che non c'è: WARNING senza modello, quindi niente errore tecnico
-    assert [r.reason for r in ops] == [Reason.ERRORE_TECNICO] * 3 + [Reason.FONTE_ASSENTE]
+    # MG83 (28-11): la fonte assente è già nell'avviso del task code della stessa operazione
+    assert [r.reason for r in ops] == [Reason.ERRORE_TECNICO] * 3 + [Reason.GIA_SEGNALATO]
     assert len(report.pipeline_errors) == 3
     assert report.status.value == "parziale"
     assert report.counts.errato == 2  # la macchina non attiva e la scheda LEAP
