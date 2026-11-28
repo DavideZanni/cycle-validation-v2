@@ -294,7 +294,7 @@ che il codice ha già deciso) e li cambiano. Si accendono per nome con `agent.fi
 integrità non si toccano. Siccome usano solo quello che c'è nel `report.json`, si provano sulle
 prove già fatte, senza modello: `eval rigioca` (sezione 15.3).
 
-Le regole (28-11; una variante ciascuna). Nella base dal 28-11: `fonte_assente_una_volta`.
+Le regole (28-11; una variante ciascuna). Nella base dal 28-11: `fonte_assente_una_volta` e, dal pomeriggio, `parola_limite_contro_citazione` (MG87b: sul piccolo falsi OK 0,7 → 0,3 a prova, 0 falsi errori in più).
 
 | Nome | Miglioria | Cosa fa |
 |---|---|---|
@@ -1052,7 +1052,7 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.direct_cache` | `true` (dal 28-11) | con `diretta`: punti di cache di Bedrock (MG56) |
 | `agent.shared_reference_first` | `false` | il testo del manuale prima della domanda, in un blocco da tenere in cache (MG59) |
 | `agent.language_batch_size` | 8 (dal 28-11) | confronto tra le lingue di più operazioni in una sessione (MG55); 0 = spento |
-| `agent.final_rules` | `[fonte_assente_una_volta]` (dal 28-11) | regole finali sugli esiti già fatti, per nome: `fonte_assente_una_volta` (MG83), `limite_contro_citazione` (MG87), `parola_limite_contro_citazione` (MG87b); sezione 5.7 |
+| `agent.final_rules` | `[fonte_assente_una_volta, parola_limite_contro_citazione]` (dal 28-11) | regole finali sugli esiti già fatti, per nome: `fonte_assente_una_volta` (MG83), `limite_contro_citazione` (MG87), `parola_limite_contro_citazione` (MG87b); sezione 5.7 |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
 | `paths.*` | `config/profiles`, `prompts`, `data/knowledge`, `runs` | cartelle |
 | `paths.machines_file` | vuoto | JSON delle macchine attive |

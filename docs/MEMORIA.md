@@ -62,7 +62,7 @@ sezione 1 di `COPILOT.md`):
 | 7e17 | Claude: MG83 (regola finale e variante `meno_avvisi`, provata con `eval rigioca`) dai dati del 7e16 | Claude | ✅ 28-11 (grande 8,9 → 5,3 avvisi) |
 | 7e18 | Campagna delle varianti che usano il modello (`diretta`, `testo_comune`, `lingue_insieme`), contro `quasi_finale` (circa 6-7 $; era 12-14 $ con tutte) | COPILOT passo 4j | ✅ 28-11: nella base `lingue_insieme` e MG83 |
 | 7e19 | La base nuova a 0 $, forma dei falsi OK, senza modello e banco con il codice nuovo | COPILOT passi 4k e 4l | ✅ 28-11 pomeriggio: niente rotto; MG87b dalla forma |
-| 7e20 | **Ultimi esperimenti:** MG87b rigiocata, prova di controllo `controllo_finale` (0,60 $). Poi esperimenti chiusi | COPILOT passo 4m | da fare |
+| 7e20 | **Ultimi esperimenti:** MG87b rigiocata, prova di controllo `controllo_finale` (0,60 $). Poi esperimenti chiusi | COPILOT passo 4m | MG87b ✅ 28-11 14:15, nella base; prova di controllo in corso |
 | 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
 | 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |
 | 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
@@ -1768,6 +1768,35 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   mancato sono l'unico segnale; si misurano in QA (soglia ≤ 5 per ciclo, oggi 4,8 e 5,3). In
   `COPILOT.md` 6.4 il prompt per Copilot «dove sta cosa sul PC» (cartelle, repository, branch,
   file non salvati).
+- **28-11, 14:15, passo 4m, prima parte.** MG87b rigiocata sulle prove di `lingue_insieme`
+  (variante `limiti_parole`, con MG83): piccolo 42 → 42, falsi OK 0,7 → 0,3 a prova, falsi
+  errori 0 → 0, da verificare 0 → 0, WARNING 4,8 → 4,8, «non si tiene: pari»; grande 31 → 31,
+  falsi OK 0 → 0, falsi errori 0 → 0, WARNING 8,9 → 5,3 (MG83), si tiene. Il falso OK preso è
+  quello con «a minimum of» nella riga citata; resta quello senza parole di limite nella riga.
+  **Decisione (Claude):** MG87b nella base (impostazioni predefinite). Il programma decide
+  «pari» perché la regola di decisione non conta i falsi OK in meno; ma rigiocando le risposte
+  del modello sono le stesse, quindi un falso OK in meno non è rumore, e i falsi errori restano
+  0. `controllo_finale` ora dice esplicitamente le regole di quando è partita la prova (solo
+  MG83), così si rigioca con `controllo_finale_parole`. La prova di controllo è partita alle
+  14:15 con il codice di prima (senza MG87b): va bene così.
+  **Risposte di Copilot (prompt 6.4, era in Agent con «Allow all»: ricordato Ask).** Sul PC 5
+  repository git dentro `ProgettoDocumenti`: (1) cycle validation, con la v1 in
+  `app_cycle_validation/` e la v2 in `app_cycle_validation_v2/`, branch
+  `feature/cycle-validation-v2`; (2) ingestion, con la v2 in `ingestion_v2/` e la vecchia in
+  `indexing/`, branch `feature/ingestion-v2`; (3) frontend React, branch `develop`, di un
+  collega, sola lettura; (4) servizio di login del frontend, `develop`, di un collega; (5)
+  infrastruttura Terraform (ECS, API Gateway, monitoraggio), `main`. Cartelle non git: `Altro/`
+  e `guide/` (esempi di cicli, ticket, guide di deploy e test), `.github/`, `.vscode/`,
+  `.ruff_cache/`. Nel repository della cycle validation 34 file modificati e 17 nuovi, tutti
+  sotto `app_cycle_validation_v2/` (il lavoro del 28-11 non ancora salvato, 2.2); `runs/` e
+  `data/` ignorati da git. Ingestion: codice in `ingestion_v2/src/ingestion/` (pubblicazione
+  in `knowledge/publish.py` e `batch.py`), comando `python -m ingestion.cli run --program
+  civil` oppure `--program ej200` dentro `ingestion_v2/` (guida in `guide/`); il container usa
+  `run --program <programma>`; i `current.json` civile ed EJ200 dove li cerca già la v2.
+  Frontend in `app_frontend_react/`: indirizzo del servizio in `src/services/api.ts` da
+  `VITE_BACKEND_URL`; rotte `/cycle_validation/...` e `/cycle_validation/ej200/...`; in locale
+  `vite.config.ts` manda `/cycle_validation/` alla porta 8003; la pagina si accende con
+  `VITE_ENABLE_CV` (come già in sezione 9). Nessuna cartella di stampe EJ200 sul PC.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

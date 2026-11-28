@@ -3,3 +3,7 @@ descrizione: "La versione da portare in QA, così come è nel codice (28-11): li
 ipotesi: "Nessuna modifica: le stesse impostazioni di lingue_insieme_avvisi, che finora si è misurata rigiocando le prove di lingue_insieme"
 atteso: "come lingue_insieme con MG83: piccolo circa 42 su 45, grande 31 su 31, 0 falsi errori, 0 da verificare; circa 0,0064 $ e 10 s a ciclo sul piccolo, 0,0098 $ e 13 s sul grande; WARNING circa 4,8 e 5,3"
 base: baseline
+agent:
+  # 28-11 pomeriggio: MG87b è entrata nella base mentre girava la prova di controllo, fatta senza.
+  # Qui si dice la regola di allora, così la prova si rigioca con controllo_finale_parole.
+  final_rules: [fonte_assente_una_volta]

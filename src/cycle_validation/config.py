@@ -202,8 +202,12 @@ class AgentSettings(_Strict):
     # Regole finali (MG83, 28-11): lavorano sugli esiti già fatti, dopo tutti i controlli
     # (`verdict/final_rules.py`). Si possono rigiocare sulle prove fatte (`eval rigioca`, 0 $).
     # Vuoto = nessuna. Nella base dal 28-11: `fonte_assente_una_volta` (MG83: sul grande 8,9 →
-    # 5,3 WARNING per ciclo, stessi errori).
-    final_rules: list[str] = Field(default_factory=lambda: ["fonte_assente_una_volta"])
+    # 5,3 WARNING per ciclo, stessi errori) e, dal 28-11 pomeriggio, `parola_limite_contro_citazione`
+    # (MG87b, rigiocata sulle prove di `lingue_insieme`: falsi OK sul piccolo 0,7 → 0,3 a
+    # prova, 0 falsi errori in più sul piccolo e sul grande).
+    final_rules: list[str] = Field(
+        default_factory=lambda: ["fonte_assente_una_volta", "parola_limite_contro_citazione"]
+    )
 
     @field_validator("final_rules")
     @classmethod
