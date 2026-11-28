@@ -40,6 +40,9 @@
 # `eval rigioca` (0 $). `diretta` e `diretta_cache` sono una variante sola (la cache non cambia
 # le risposte). Prima una prova sola di `diretta` sul piccolo (COPILOT passo 4i): se non
 # risparmia, `testo_comune` e `lingue_insieme` (che stanno sopra `diretta`) non si fanno.
+# 28-11 mattina: la prova di `diretta` costa 0,22 $ contro 0,35 $ con gli stessi errori: si
+# fanno le prove che mancano di `diretta`, `testo_comune` e `lingue_insieme` (14 prove).
+# `meno_avvisi` e `limiti_citati` sono regole finali: `eval rigioca`, non stanno qui.
 varianti: [quasi_finale, diretta, testo_comune, lingue_insieme]
 
 # La variante con cui si confrontano le altre. Vuoto = la base.
@@ -66,5 +69,5 @@ grande: sempre
 # `lingue_tra_loro` 0,39-0,56 $. Questa: circa 6 $ (18 prove). Arrivata al tetto la campagna si
 # ferma; rilanciata, riparte da dove era.
 # 28-11: 3 varianti nuove x 6 prove, circa 0,4 $ a prova (meno con la chiamata diretta) =
-# circa 6-7 $.
+# circa 6-7 $. Con la chiamata diretta (0,22 $ a prova sul piccolo): circa 4-5 $.
 massimo_dollari: 10

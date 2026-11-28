@@ -41,6 +41,9 @@ class Reason(StrEnum):
     DR_DIVERSO = "DR_DIVERSO"
     # il task citato è di un altro stadio del motore (MG48, 28-11, `task_stage_check`)
     TASK_ALTRO_STADIO = "TASK_ALTRO_STADIO"
+    # il modello dice CORRETTO, ma la riga del manuale che cita mette lo stesso valore con il
+    # limite al contrario (MG87, 28-11, regola finale `limite_contro_citazione`)
+    LIMITE_CONTRO_CITAZIONE = "LIMITE_CONTRO_CITAZIONE"
 
     EVIDENZA_NON_TROVATA = "EVIDENZA_NON_TROVATA"
     FONTE_ASSENTE = "FONTE_ASSENTE"
@@ -70,6 +73,9 @@ class Reason(StrEnum):
     CONTROLLO_SPENTO = "CONTROLLO_SPENTO"
     # il testo di riferimento non tratta il tipo di operazione: niente da confrontare (I16)
     FUORI_TEMA = "FUORI_TEMA"
+    # la stessa fonte assente è già segnalata da un altro avviso del ciclo (MG83, 28-11,
+    # regola finale `fonte_assente_una_volta`)
+    GIA_SEGNALATO = "GIA_SEGNALATO"
 
 
 _ERRATO = (
@@ -86,6 +92,7 @@ _ERRATO = (
     Reason.SCHEDA_INESISTENTE,
     Reason.DR_DIVERSO,
     Reason.TASK_ALTRO_STADIO,
+    Reason.LIMITE_CONTRO_CITAZIONE,
 )
 _NON_APPLICABILE = (
     Reason.CAMPO_ASSENTE,
@@ -93,6 +100,7 @@ _NON_APPLICABILE = (
     Reason.NON_VERIFICATO_PER_PROFILO,
     Reason.CONTROLLO_SPENTO,
     Reason.FUORI_TEMA,
+    Reason.GIA_SEGNALATO,
 )
 
 

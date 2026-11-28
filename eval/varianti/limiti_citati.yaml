@@ -1,0 +1,7 @@
+nome: limiti_citati
+descrizione: "MG87: un CORRETTO del modello diventa ERRATO LIMITE_CONTRO_CITAZIONE se la riga del manuale che lui stesso cita dà lo stesso valore con il limite al contrario («al massimo» contro «almeno», anche scritto dopo il numero: «0.5 MM MAX»). Regola finale `limite_contro_citazione`"
+ipotesi: "Sul piccolo di quasi_finale l'unico falso OK (1 a prova) è la copia cieca con un limite invertito in tutte e due le lingue: il modello dice CORRETTO VERIFICATO. Se la riga che cita contiene il limite, il codice vede il verso al contrario"
+atteso: "rigiocata sulle prove di quasi_finale (0 $): piccolo falsi OK 1,0 → 0 e mai visti 1 → 2 su 4 se la citazione contiene il limite (altrimenti nessuna differenza); 0 falsi errori in più, anche sui cicli veri"
+base: quasi_finale
+agent:
+  final_rules: [limite_contro_citazione]

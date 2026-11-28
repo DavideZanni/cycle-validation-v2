@@ -1683,6 +1683,22 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   --variante quasi_finale`: 42 → 42 e 31 → 31, WARNING per ciclo 4,9 e 8,9 uguali: il comando
   legge bene le prove sul PC. Falsi OK a prova: 1,0 sul piccolo, 0 sul grande (MG87). Mancano
   ancora le tre tabelle di `runs\campagna.md` e la prova di `diretta`. Copilot era su Agent.
+- **28-11, 10:50, tabelle e prova di `diretta`.** Prova sola di `diretta` sul piccolo: visti
+  31 su 31, mai visti per il modello 1 su 4 (come `quasi_finale`), 0 falsi errori, 0 da
+  verificare, **0,22 $** contro 0,35 $ delle prove di `quasi_finale` (-37%). Si va alla
+  campagna con `testo_comune` e `lingue_insieme`. Tabella per tipo (piccolo, ultima prova):
+  mancati `limite_invertito` (CORRETTO VERIFICATO: il falso OK), `negazione_due_lingue` (N/A
+  FUORI_TEMA), `numero_manuale` (WARNING EVIDENZA_NON_TROVATA). WARNING per ciclo senza errori
+  noti: piccolo EVIDENZA_NON_TROVATA 3,2, SCHEDA_FORSE_MANCANTE 0,8, FONTE_ASSENTE 0,2;
+  grande FONTE_ASSENTE 4,5, EVIDENZA_NON_TROVATA 3,2, SCHEDA_FORSE_MANCANTE 1,0, estrazione
+  0,1. Per operazione: sul grande due cicli veri (9a66895e, d8f8a3bd) hanno FONTE_ASSENTE su
+  tutte le operazioni (16 e 21: il manuale non è nella conoscenza), più i task code sulle
+  stesse operazioni. EVIDENZA_NON_TROVATA torna sulle stesse operazioni (010, 040, 060) negli
+  stessi cicli del piccolo e del grande. Decisioni: MG83 = regola finale
+  `fonte_assente_una_volta` (un avviso per fonte assente, le altre righe N/A GIA_SEGNALATO);
+  MG87 = regola finale `limite_contro_citazione` (il CORRETTO diventa ERRATO se la riga che il
+  modello cita dà il limite al contrario). Tutte e due da rigiocare a 0 $. EVIDENZA_NON_TROVATA
+  non si toglie con una regola: è anche la risposta su un errore mancato.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

@@ -114,67 +114,61 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 | ✅ | 1-4e · campagne, v1 sugli stessi cicli, base nuova, schede e regole | 27-11 |
 | ✅ | 4g · Domande P13 e P14 | 27-11 notte |
 | ✅ | 4h · Versione quasi finale: senza modello, banco, campagna | 28-11 notte: si tiene |
-| 👉 | **4i · Prove corte: MG48 sul piccolo, tre tabelle, una prova di `diretta`** | adesso · circa 0,40 $, 15-20 minuti |
-| ⬜ | **4j · Campagna delle migliorie che usano il modello** | dopo 4i · circa 6-7 $, 2-3 ore |
+| ✅ | 4i · Chiamata diretta, rigioca, tabelle, una prova di `diretta` | 28-11 mattina: `diretta` -37% di costo |
+| 👉 | **4j · Due regole a 0 $ (MG83, MG87), poi la campagna delle migliorie che usano il modello** | adesso · circa 4-5 $, 2-3 ore |
 | ⬜ | **4f · EJ200 sul PC** | dopo l'ingestion EJ200 · centesimi |
 | ⬜ | **5 · Grande ingestion e QA** | dopo |
 
 ---
 
-**👉 Passo 4i · Prove corte delle migliorie del 28-11** (circa 0,40 $, 15-20 minuti)
+**👉 Passo 4j · Due regole a 0 $, poi la campagna delle migliorie che usano il modello**
+(circa 4-5 $, 2-3 ore)
 
-Fatto il 28-11 mattina: Aggiornare ✅, chiamata diretta ✅ (`ok`, boto3, 7,5 s), `eval
-rigioca` ✅ (42 → 42 e 31 → 31), riepiloghi ricalcolati ✅, MG48 sul grande: nessuna
-differenza. Restano tre cose:
+Passo 4i fatto il 28-11 mattina: chiamata diretta `ok`, `eval rigioca` ok, MG48 sul grande
+senza differenze, tabelle ✅, una prova di `diretta` sul piccolo: 0,22 $ contro 0,35 $ con gli
+stessi errori. Dalle tabelle Claude ha scritto due regole finali (si provano sulle prove già
+fatte, 0 $): `meno_avvisi` (MG83, la fonte assente detta una volta sola) e `limiti_citati`
+(MG87, il falso OK del limite invertito).
 
-1. **La riga di MG48 sul piccolo** (0 $). È già sullo schermo del punto 3 di stamattina, più in
-   alto: scorri il terminale fino a `--- piccolo (senza-modello altro_stadio) ---`. Se il
-   terminale è stato chiuso, rilancia:
-
-   ```powershell
-   $env:UV_PYTHON = "3.14"
-   [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-   uv run cycle-validation eval senza-modello --variante eval/varianti/altro_stadio.yaml
-   ```
-
-   - **Deve uscire:** `Senza modello con altro_stadio, piccolo: ...` e `Differenza sul piccolo:
-     ...`, che finisce con `nessuna differenza (nessun danno)`, `si può tenere: trova di più`,
-     `da guardare: ...` o `da scartare`.
-   - **Mandami:** la foto di quelle due righe. Se dice `da guardare`, anche le righe del piccolo
-     con `ERRATO in più` nella prova `senza-modello altro_stadio` (solo impronta e operazione).
-2. **Le tre tabelle di `runs\campagna.md`** (0 $, il file è già scritto: aprilo in VS Code,
-   niente da lanciare).
-   - **Deve uscire:** nel file le tabelle «Errori mai visti per tipo (scelta migliore, ultima
-     prova)», «WARNING per motivo (scelta migliore, ...)» e «WARNING per operazione (scelta
-     migliore, ...)».
-   - **Mandami:** la foto delle tre tabelle. Ogni riga inizia con `haiku · piccolo ·
-     quasi_finale` o `haiku · grande · quasi_finale`; nell'ultima ci sono solo impronte, numeri
-     di operazione e motivi.
-3. **Una prova sola della chiamata diretta**, sul piccolo (circa 0,40 $, 10-15 minuti):
+1. **Aggiornare** (2.1).
+   - **Deve uscire:** in fondo `... passed` e nessun `failed`.
+   - **Mandami:** la foto dell'ultima riga.
+2. **Le due regole sulle prove già fatte, e MG48 sul piccolo** (0 $, qualche minuto):
 
    ```powershell
    $env:UV_PYTHON = "3.14"
    [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-   uv run cycle-validation eval campagna --varianti diretta --insiemi piccolo --ripetizioni 1
+   uv run cycle-validation eval rigioca --variante meno_avvisi
+   uv run cycle-validation eval rigioca --variante limiti_citati
+   uv run cycle-validation eval senza-modello --insiemi piccolo --variante eval/varianti/altro_stadio.yaml
    ```
 
-   - **Deve uscire:** le righe dei cicli, `Prova «diretta»: ...`, poi `Campagna finita. Prove
-     fatte ora: 1 · spesa 0.... $` e `Report finale: runs\campagna-piccolo.md`. Non deve
-     uscire `ATTENZIONE: prova non valida`.
-   - **Mandami:** la foto delle righe `Prova «diretta»` e `Campagna finita`, e da
-     `runs\campagna-piccolo.md` la tabella del piccolo (righe `quasi_finale` e `diretta`, con
-     costo e tempo per ciclo). La decisione dirà `da ripetere (1 prova su 2)`: va bene, le
-     altre prove sono nel passo 4j.
+   - **Deve uscire:** quattro righe `Rigiocate 3 prove di quasi_finale con ...` (piccolo e
+     grande per ogni regola), poi `Senza modello con altro_stadio, piccolo: ...` e `Differenza
+     sul piccolo: ...`. Atteso per `meno_avvisi`: grande `WARNING per ciclo 8.9 → 5` circa,
+     errori, falsi OK e falsi errori uguali. Per `limiti_citati`: piccolo `falsi OK a prova 1.0
+     → 0.0` se la riga citata dal modello contiene il limite (altrimenti nessuna differenza),
+     falsi errori sempre 0.
+   - **Mandami:** la foto delle quattro righe `Rigiocate ...` e delle righe `Senza modello con
+     altro_stadio, piccolo` e `Differenza sul piccolo`.
+3. **La campagna** (circa 4-5 $, 2-3 ore): le 2 prove che mancano di `diretta` sul piccolo e
+   le 3 sul grande, poi `testo_comune` e `lingue_insieme` (3 sul piccolo e 3 sul grande). Le
+   prove già fatte si saltano; se si ferma (tetto di spesa o PC spento), rilanciata riparte da
+   dove era. Prima `aws sso login` se serve:
 
-Con queste foto Claude scrive MG83 (la variante `meno_avvisi`, provata subito con `eval
-rigioca`) e il blocco del passo 4j.
+   ```powershell
+   $env:UV_PYTHON = "3.14"
+   [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+   uv run cycle-validation eval campagna
+   ```
 
-**⬜ Passo 4j · Campagna delle migliorie che usano il modello** (circa 6-7 $, 2-3 ore)
+   - **Deve uscire:** per ogni prova le righe dei cicli e `Prova «...»: ...`, alla fine
+     `Campagna finita. Prove fatte ora: 14 · spesa ... $` e `Report finale: runs\campagna.md`.
+     Non deve uscire `ATTENZIONE: prova non valida`.
+   - **Mandami:** da `runs\campagna.md` le due tabelle delle varianti (piccolo e grande, con
+     la colonna «Decisione») e la foto della riga `Campagna finita`.
 
-Dopo il passo 4i. Solo `diretta` (le prove che mancano), `testo_comune` e `lingue_insieme`, se
-la prova del punto 6 risparmia davvero. Le prove già fatte si saltano; le varianti si
-confrontano con `quasi_finale` (campo `riferimento` di `eval/campagna.yaml`). Il blocco arriva
-con l'aggiornamento di Claude.
+Con queste foto Claude decide che cosa entra nella base e aggiorna `V1_CONTRO_V2.md`.
 
 ---
 

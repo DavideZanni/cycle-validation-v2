@@ -405,6 +405,47 @@ def _limited_values(text: str, language: str) -> dict[Decimal, list[tuple[str, s
     return found
 
 
+# Il limite scritto dopo il numero, come nei manuali: «0.5 MM MAXIMUM», «(0.25 MM) MAX». Al
+# massimo una parola (l'unità) e una parentesi in mezzo; «5 MIN» senza unità sono minuti.
+_LIMIT_AFTER = re.compile(
+    r"\s*(?P<unit>[^\W\d_]{1,6}\.?\s*)?\)?\s*"
+    r"(?P<word>maximum|max|massim[oaie]|minimum|minim[oaie]|min)\b",
+    re.IGNORECASE,
+)
+
+
+def _limited_after(text: str) -> dict[Decimal, set[str]]:
+    found: dict[Decimal, set[str]] = {}
+    for match in _NUMBER.finditer(text):
+        if match["code"] or _reference_kind(text, match.start()) is not None:
+            continue
+        after = _LIMIT_AFTER.match(text, match.end())
+        if after is None:
+            continue
+        word = after["word"].casefold()
+        if word == "min" and not after["unit"]:
+            continue  # minuti
+        way = "giù" if word.startswith("ma") else "su"
+        found.setdefault(Decimal(match.group().replace(",", ".")), set()).add(way)
+    return found
+
+
+def limit_ways(
+    text: str, language: str | None = None, *, after: bool = False
+) -> dict[Decimal, set[str]]:
+    """Valore → versi del limite (`giù`, `su`) dei numeri con un limite davanti (con `after`
+    anche dopo, «0.5 MM MAX»). Senza `language` la lingua si riconosce dalle parole; se non si
+    riconosce valgono tutte e due."""
+    language = language or _language(text)
+    found: dict[Decimal, set[str]] = {}
+    for lang in (language,) if language else ("it", "en"):
+        for value, limits in _limited_values(text, lang).items():
+            found.setdefault(value, set()).update(way for way, _ in limits)
+    for value, ways in (_limited_after(text) if after else {}).items():
+        found.setdefault(value, set()).update(ways)
+    return found
+
+
 def limit_mismatches(description: str) -> list[tuple[str, str]]:
     """(frase italiana, frase inglese) per ogni numero con un limite di verso opposto."""
     parts = language_blocks(description)

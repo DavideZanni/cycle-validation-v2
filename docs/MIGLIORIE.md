@@ -42,8 +42,8 @@ prima di pubblicarla per ora la controlla l'utente a mano.
 1. Passo 4i (utente, circa 0,40 $): Aggiornare, `eval chiamata-diretta`, MG48 senza modello,
    le tabelle per tipo, per motivo e per operazione di `quasi_finale`, prova di `eval rigioca`,
    una prova sola di `diretta` sul piccolo. 28-11, 10:40: chiamata diretta `ok` (boto3),
-   `eval rigioca` ok, MG48 sul grande senza differenze; mancano MG48 sul piccolo, le tabelle e
-   la prova di `diretta`.
+   `eval rigioca` ok, MG48 sul grande senza differenze. 10:50: tabelle ✅, prova di `diretta`
+   ✅ (0,22 $ contro 0,35 $, stessi errori). Manca solo la riga di MG48 sul piccolo.
 2. MG83 meno avvisi (Claude, dalla tabella «WARNING per operazione»): una regola finale e la
    variante `meno_avvisi`, provata con `eval rigioca` (0 $). Sul piccolo della base vecchia 3,8
    dei 4,8 erano «evidenza non trovata». MG87 falsi OK sulle copie cieche, dalla tabella per
@@ -148,8 +148,8 @@ introduce).
 | MG80 | Test sulle 14 stampe vere | le regole del codice sul testo di `CONFRONTO_V1_14_CICLI.md`, a ogni `pytest` | ✅ | 4 | — |
 | MG81 | Massimo contro minimo tra le lingue | «profondità massima» in italiano, «min depth» in inglese, anche senza un numero: ERRATO dal codice (22f586bb e 895167b9 010) | ✅ | 4 | — |
 | MG82 | Motivo degli ERRATO in più | a schermo e nel riepilogo, accanto a ogni ERRATO da verificare, il motivo (quale controllo): si capisce subito da dove viene | ✅ | 3 | — |
-| MG83 | Meno avvisi per ciclo | tagliare le cause più frequenti dei WARNING (tabella «WARNING per motivo»), per il cancello C (28-11: prima i dati, tabella «WARNING per operazione» nel report; poi una regola finale, `agent.final_rules`, e la variante `meno_avvisi`, provata con `eval rigioca` a 0 $) | 🔶 | 4 | — |
+| MG83 | Meno avvisi per ciclo | tagliare le cause più frequenti dei WARNING (tabella «WARNING per motivo»), per il cancello C (28-11: prima i dati, tabella «WARNING per operazione» nel report; poi una regola finale, `agent.final_rules`, e la variante `meno_avvisi`, provata con `eval rigioca` a 0 $). 28-11 mattina, dalla tabella: sul grande 4,5 WARNING per ciclo su 8,8 sono FONTE_ASSENTE, quasi tutti di due cicli veri con il manuale fuori dalla conoscenza (uno per operazione); regola `fonte_assente_una_volta` scritta, da rigiocare. EVIDENZA_NON_TROVATA (3,2 per ciclo) non si tocca con una regola: è anche la risposta su un errore mancato (`numero_manuale`) | 🔶 | 4 | — |
 | MG84 | Banco di prova | `eval banco`: errori messi dal programma su ogni operazione delle 14 stampe vere (numero, limite, massimo/minimo, azione, DR): 310 copie, trovate 308, 0 falsi allarmi; lettura della stampa uguale alla v1 | ✅ | 4 | — |
 | MG85 | Metriche di controllo | nel riepilogo: falsi OK, mancati come WARNING o N/A, esiti decisi, errori tecnici, ciclo più lento e più caro | ✅ | 4 | — |
 | MG86 | Date e limiti ripetuti | trovati dal banco: una data in una lingua sola disallineava i numeri; «massimo 2 … massimo 2» con uno girato non si vedeva | ✅ | 3 | — |
-| MG87 | Falsi OK sulle copie cieche | il modello dice CORRETTO su un errore che solo lui può trovare, confrontando con il manuale (campagna del 28-11: 3 su 9 mancati, piccolo). Quale tipo: dalla tabella per tipo del report rifatto | ⬜ | 4 | — |
+| MG87 | Falsi OK sulle copie cieche | il modello dice CORRETTO su un errore che solo lui può trovare, confrontando con il manuale (campagna del 28-11: 3 su 9 mancati, piccolo). 28-11 mattina, dalla tabella per tipo: il falso OK è `limite_invertito` (CORRETTO VERIFICATO); gli altri due mancati sono `negazione_due_lingue` (N/A FUORI_TEMA) e `numero_manuale` (WARNING). Regola `limite_contro_citazione` (variante `limiti_citati`): il CORRETTO diventa ERRATO se la riga citata dà il limite al contrario; da rigiocare | 🔶 | 4 | — |

@@ -121,3 +121,94 @@ def test_a_safe_rule_is_kept_and_a_rule_that_hides_an_error_is_not(
     assert "troppo" in summary.read_text("utf-8")
     assert len(load_trials(tmp_path / "rigioca-piccolo")) == 4
     assert len(load_trials(root)) == 3  # le prove della campagna non si toccano
+
+
+def _ops(*descriptions: str) -> Cycle:
+    from cycle_validation.domain.cycle import Operation
+
+    return Cycle(
+        operations=[
+            Operation(operation_number=f"{(n + 1) * 10:03d}", operation_description=text)
+            for n, text in enumerate(descriptions)
+        ]
+    )
+
+
+def test_a_missing_source_is_said_once_per_cycle() -> None:
+    """MG83: il manuale fuori dalla conoscenza dava un WARNING per operazione, più quelli dei
+    task code sulle stesse operazioni. Ne resta uno, con l'elenco delle operazioni."""
+    cycle = _ops("A", "B", "C", "D")
+    target = [Target.operation(n, op) for n, op in enumerate(cycle.operations)]
+    absent = "Nessun riferimento dell'operazione è disponibile nella knowledge base."
+    description = CheckName.OPERATION_DESCRIPTION
+    results = [
+        make_result(CheckName.TASK_CODE, target[0], Reason.FONTE_ASSENTE, "Task X non trovato."),
+        make_result(description, target[0], Reason.FONTE_ASSENTE, absent),
+        make_result(description, target[1], Reason.FONTE_ASSENTE, absent),
+        make_result(description, target[2], Reason.FONTE_ASSENTE, absent),
+        make_result(description, target[3], Reason.EVIDENZA_NON_TROVATA, "non trovato"),
+        make_result(CheckName.PROCESS_SHEET, target[3], Reason.FONTE_ASSENTE, "Scheda Y."),
+    ]
+    out = final_rules.once_missing_source(cycle, results)
+    assert [r.reason for r in out] == [
+        Reason.FONTE_ASSENTE,
+        Reason.GIA_SEGNALATO,
+        Reason.GIA_SEGNALATO,
+        Reason.GIA_SEGNALATO,
+        Reason.EVIDENZA_NON_TROVATA,
+        Reason.FONTE_ASSENTE,  # un'altra fonte, su un'operazione senza altri avvisi
+    ]
+    assert out[0].rationale == (
+        f"Task X non trovato. Stesso avviso anche per le operazioni 020, 030. "
+        f"Sulle stesse operazioni: {absent}"
+    )
+    assert "dell'operazione 010 (task_code)" in out[2].rationale
+    assert out[1].verdict is Verdict.NON_APPLICABILE
+    assert final_rules.once_missing_source(cycle, results[4:]) == results[4:]
+
+
+def test_a_correct_against_its_own_quote_on_a_limit_becomes_wrong() -> None:
+    """MG87: il modello dice CORRETTO, ma la riga che cita dà lo stesso valore con il limite al
+    contrario (copia cieca «limite invertito» in tutte e due le lingue)."""
+    from cycle_validation.domain.check import Evidence
+
+    cycle = _ops(
+        "PROFONDITA' ALMENO 0,5 MM / DEPTH AT LEAST 0.5 MM",
+        "PROFONDITA' AL MASSIMO 0,5 MM / DEPTH NOT TO EXCEED 0.5 MM",
+        "PULIRE / CLEAN",
+    )
+    target = [Target.operation(n, op) for n, op in enumerate(cycle.operations)]
+    quote = Evidence(document_key="m1", quote="Blend to a depth of 0.5 mm maximum.")
+    description = CheckName.OPERATION_DESCRIPTION
+
+    def ok(n: int) -> CheckResult:
+        return make_result(
+            description,
+            target[n],
+            Reason.VERIFICATO,
+            "uguale",
+            evidence=[quote],
+            decided_by="agent",
+        )
+
+    out = final_rules.limit_against_quote(cycle, [ok(0), ok(1), ok(2)])
+    assert [r.reason for r in out] == [
+        Reason.LIMITE_CONTRO_CITAZIONE,
+        Reason.VERIFICATO,
+        Reason.VERIFICATO,
+    ]
+    assert out[0].verdict is Verdict.ERRATO and out[0].evidence == (quote,)
+    assert "almeno 0.5" in out[0].rationale and "al massimo 0.5" in out[0].rationale
+
+
+def test_limits_written_after_the_number() -> None:
+    from decimal import Decimal
+
+    from cycle_validation.checks.languages import limit_ways
+
+    quote = "Blend 0.010 in. (0.25 mm) max. Hold for 5 min. Depth 2 MM MINIMUM."
+    assert limit_ways(quote, "en", after=True) == {
+        Decimal("0.25"): {"giù"},
+        Decimal("2"): {"su"},
+    }
+    assert limit_ways(quote, "en") == {}  # senza `after` come prima (MG75)

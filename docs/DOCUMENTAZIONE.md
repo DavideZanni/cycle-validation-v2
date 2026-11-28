@@ -294,6 +294,13 @@ che il codice ha già deciso) e li cambiano. Si accendono per nome con `agent.fi
 integrità non si toccano. Siccome usano solo quello che c'è nel `report.json`, si provano sulle
 prove già fatte, senza modello: `eval rigioca` (sezione 15.3).
 
+Le regole (28-11, tutte spente nella base; una variante ciascuna):
+
+| Nome | Miglioria | Cosa fa |
+|---|---|---|
+| `fonte_assente_una_volta` | MG83, variante `meno_avvisi` | la fonte assente si dice una volta sola: un WARNING `FONTE_ASSENTE` per ogni avviso diverso del ciclo, con l'elenco delle operazioni («Stesso avviso anche per le operazioni …»). Le altre righe diventano N/A `GIA_SEGNALATO` e dicono in quale operazione guardare. Si uniscono i `FONTE_ASSENTE` della stessa operazione (controlli diversi: la spiegazione dell'altro si aggiunge) e quelli dello stesso controllo con la stessa spiegazione |
+| `limite_contro_citazione` | MG87, variante `limiti_citati` | un CORRETTO del modello sulla descrizione diventa ERRATO `LIMITE_CONTRO_CITAZIONE` se la riga del manuale che il modello cita dà lo stesso valore con il limite al contrario («al massimo» contro «almeno»). Il limite si legge prima del numero (come MG75) e anche dopo («0.5 MM MAX», «(0.25 MM) MAX»; «5 MIN» senza unità sono minuti). Conta solo un valore con un verso solo nella descrizione (le due lingue d'accordo) e uno solo nella riga citata |
+
 ### 5.8 Report (`report/`)
 
 Tre file nella cartella del run (con la CLI `runs/ultimo`):
@@ -668,6 +675,7 @@ Ogni motivo ha un solo esito (`domain/check.py`).
 | | `MACCHINE_DIVERSE` | la stessa operazione ha targhe diverse su pagine diverse (H19, 27-11 sera) |
 | | `DR_DIVERSO` | l'operazione cita un DR diverso da quello del ciclo (MG76, 27-11 notte) |
 | | `TASK_ALTRO_STADIO` | il task citato è di un altro stadio del motore (MG48, con `agent.task_stage_check`) |
+| | `LIMITE_CONTRO_CITAZIONE` | la riga del manuale citata dal modello dà lo stesso valore con il limite al contrario (MG87, regola finale `limite_contro_citazione`, sezione 5.7) |
 | | `SCHEDA_ALTRO_MOTORE` | la scheda è di un'altra famiglia di motore (H18, con `agent.sheet_consistency`) |
 | | `SCHEDA_MATERIALE_DIVERSO` | il materiale della scheda non è quello della descrizione (H18) |
 | | `SCHEDA_INESISTENTE` | la scheda non è nell'indice, che ha altre schede con lo stesso prefisso (H18) |
@@ -691,6 +699,7 @@ Ogni motivo ha un solo esito (`domain/check.py`).
 | | `NON_VERIFICATO_PER_PROFILO` | il controllo non vale per questo tipo di ciclo |
 | | `CONTROLLO_SPENTO` | controllo spento per configurazione: registro delle macchine non collegato (`MACHINES_SOURCE=nessuna`, sul PC), dal 27-11 |
 | | `FUORI_TEMA` | il testo di riferimento non tratta il tipo di operazione: niente da confrontare (I16, con `agent.out_of_scope`) |
+| | `GIA_SEGNALATO` | la stessa fonte assente è già in un altro avviso del ciclo, che elenca le operazioni (MG83, regola finale `fonte_assente_una_volta`, sezione 5.7) |
 
 **Due tipi di WARNING (H15, dal 27-11 sera; `warning_kind` in `domain/check.py`).** L'esito
 resta WARNING, cambia come si mostra:
@@ -1038,7 +1047,7 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.direct_cache` | `false` | con `diretta`: punti di cache di Bedrock (MG56) |
 | `agent.shared_reference_first` | `false` | il testo del manuale prima della domanda, in un blocco da tenere in cache (MG59) |
 | `agent.language_batch_size` | 0 | confronto tra le lingue di più operazioni in una sessione (MG55); 0 = spento |
-| `agent.final_rules` | vuoto | regole finali sugli esiti già fatti, per nome (MG83; sezione 5.7) |
+| `agent.final_rules` | vuoto | regole finali sugli esiti già fatti, per nome: `fonte_assente_una_volta` (MG83), `limite_contro_citazione` (MG87); sezione 5.7 |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
 | `paths.*` | `config/profiles`, `prompts`, `data/knowledge`, `runs` | cartelle |
 | `paths.machines_file` | vuoto | JSON delle macchine attive |

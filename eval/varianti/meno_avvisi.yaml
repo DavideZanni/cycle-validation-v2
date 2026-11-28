@@ -1,0 +1,7 @@
+nome: meno_avvisi
+descrizione: "MG83: la fonte assente si dice una volta sola (regola finale `fonte_assente_una_volta`). Un WARNING FONTE_ASSENTE per ogni avviso diverso del ciclo, con l'elenco delle operazioni; le altre righe NON_APPLICABILE GIA_SEGNALATO, che dicono dove guardare"
+ipotesi: "Sul grande di quasi_finale (ultima prova) due cicli veri con il manuale fuori dalla conoscenza danno un WARNING FONTE_ASSENTE per operazione (16 e 21) e i task code sulle stesse operazioni ne aggiungono altri: 4,5 WARNING per ciclo su 8,9 sono FONTE_ASSENTE"
+atteso: "rigiocata sulle prove di quasi_finale (0 $): stessi errori, 0 falsi OK in più, 0 falsi errori; grande circa 8,9 → 5 WARNING per ciclo, piccolo quasi uguale (4,9)"
+base: quasi_finale
+agent:
+  final_rules: [fonte_assente_una_volta]
