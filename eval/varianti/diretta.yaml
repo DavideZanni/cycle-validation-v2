@@ -1,7 +1,8 @@
 nome: diretta
-descrizione: "MG54: il modello si chiama direttamente su Bedrock con l'SDK anthropic, senza avviare Claude Code per ogni sessione; Read e Grep li esegue la v2 con le stesse regole (lettura a paragrafo, solo i file ammessi)"
-ipotesi: "Ogni sessione oggi paga 3-5 s di avvio di Claude Code e il suo testo di istruzioni: senza, circa metà del tempo per ciclo"
-atteso: "stessi errori stabili di quasi_finale, 0 falsi errori; tempo per ciclo circa -40/-50%; costo simile (il costo si calcola dai token con il listino)"
+descrizione: "MG54 + MG56: il modello si chiama direttamente su Bedrock con l'SDK anthropic, senza avviare Claude Code per ogni sessione; Read e Grep li esegue la v2 con le stesse regole (lettura a paragrafo, solo i file ammessi). Con i punti di cache di Bedrock su istruzioni, strumenti e storia della sessione (la cache non cambia le risposte, solo il prezzo: per questo una variante sola)"
+ipotesi: "Ogni sessione oggi paga 3-5 s di avvio di Claude Code e il suo testo di istruzioni: senza, circa metà del tempo per ciclo. Le sessioni con Grep e Read rimandano tutta la storia a ogni turno: dalla cache costa un decimo"
+atteso: "stessi errori stabili di quasi_finale, 0 falsi errori; tempo per ciclo circa -40/-50%; costo almeno -10% (il costo si calcola dai token con il listino). Prima una prova sola sul piccolo (COPILOT passo 4i): se non risparmia, cadono anche testo_comune e lingue_insieme"
 base: quasi_finale
 agent:
   session_backend: diretta
+  direct_cache: true

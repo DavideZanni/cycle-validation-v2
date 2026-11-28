@@ -37,6 +37,7 @@ from cycle_validation.verdict.consolidate import (
     blocked_results,
     is_blocking_failure,
 )
+from cycle_validation.verdict.final_rules import apply_final_rules
 
 SyncCheck = Callable[[CheckContext], list[CheckResult]]
 
@@ -229,6 +230,7 @@ async def arun_validation(
     timings["checks"] = _ms(mark)
 
     results = apply_integrity(results, integrity.unconfirmed)
+    results = apply_final_rules(cycle, results, deps.settings.agent.final_rules)
     timings["total"] = _ms(began)
     meta = RunMeta(
         run_id=uuid.uuid4().hex[:12],

@@ -180,7 +180,7 @@ class AgentSettings(_Strict):
     direct_input_price: float = Field(default=0.10, ge=0)
     direct_output_price: float = Field(default=0.50, ge=0)
     # Con `diretta`: punti di cache di Bedrock (MG56, 28-11) su istruzioni, strumenti e storia
-    # della sessione. Variante `diretta_cache`.
+    # della sessione. Nella variante `diretta` (la cache non cambia le risposte).
     direct_cache: bool = False
     # Il testo di riferimento prima della domanda, in un blocco che si può tenere in cache
     # (MG59, 28-11): le operazioni che citano lo stesso task lo pagano una volta. Cambia
@@ -191,6 +191,21 @@ class AgentSettings(_Strict):
     # modello mescola le operazioni (il codice ritrova comunque le citazioni nella lingua
     # giusta di ogni operazione). 0 = spento. Variante `lingue_insieme`.
     language_batch_size: int = Field(default=0, ge=0, le=30)
+    # Regole finali (MG83, 28-11): lavorano sugli esiti già fatti, dopo tutti i controlli
+    # (`verdict/final_rules.py`). Si possono rigiocare sulle prove fatte (`eval rigioca`, 0 $).
+    # Vuoto = nessuna.
+    final_rules: list[str] = Field(default_factory=list)
+
+    @field_validator("final_rules")
+    @classmethod
+    def _known_rules(cls, value: list[str]) -> list[str]:
+        from cycle_validation.verdict.final_rules import RULES  # qui: niente import circolari
+
+        unknown = [name for name in value if name not in RULES]
+        if unknown:
+            raise ValueError(f"regole finali sconosciute: {', '.join(unknown)}")
+        return value
+
     # Testo delle sessioni su disco: contiene cicli e manuali. Spento nel servizio, acceso
     # negli esperimenti (eval/varianti/baseline.yaml).
     save_transcripts: bool = False

@@ -710,6 +710,14 @@ def test_eval_without_model_runs_the_code_checks_for_free(tmp_path: Path) -> Non
     assert "costo 0.00 $" in result.output
     assert (runs / "senza-modello-grande" / "riepilogo.md").is_file()
     assert not list((runs / "prove-grande").glob("*-senza-modello"))
+    # 28-11: con una variante si prova anche lei e si stampa la differenza
+    args = ["eval", "senza-modello", "--insiemi", "grande", "--knowledge", str(EXAMPLE_KB)]
+    args += ["--cartella", str(runs), "--variante", "eval/varianti/altro_stadio.yaml"]
+    result = runner.invoke(cli.app, args)
+    assert result.exit_code == 0, result.output
+    assert "Senza modello con altro_stadio, grande: errori trovati dal codice" in result.output
+    assert "Differenza sul grande: errori trovati" in result.output
+    assert "nessuna differenza (nessun danno)" in result.output
     bad = runner.invoke(
         cli.app,
         [
@@ -724,6 +732,41 @@ def test_eval_without_model_runs_the_code_checks_for_free(tmp_path: Path) -> Non
         ],
     )
     assert bad.exit_code != 0
+
+
+def test_eval_replay_recounts_the_trials_already_done(tmp_path: Path) -> None:
+    """`eval rigioca` (28-11): le prove del riferimento rifatte dal loro report.json, con le
+    regole finali della variante, 0 $; una variante che cambia altro non si rigioca."""
+    import json
+    import shutil
+
+    from pvrm320_report_fixtures import civil_pages
+
+    from cycle_validation.testing.pdf import build_pdf
+
+    runs = tmp_path / "runs"
+    prints = tmp_path / "vero.pdf"
+    prints.write_bytes(build_pdf(civil_pages()))
+    (runs / "prove-grande").mkdir(parents=True)
+    (runs / "prove-grande" / "cicli.txt").write_text(f"{prints}\n", encoding="utf-8")
+    args = ["eval", "senza-modello", "--insiemi", "grande", "--knowledge", str(EXAMPLE_KB)]
+    result = runner.invoke(cli.app, [*args, "--cartella", str(runs)])
+    assert result.exit_code == 0, result.output
+    # la prova senza modello fa da prova della base nella cartella della campagna
+    (done,) = (runs / "senza-modello-grande").glob("*-senza-modello")
+    folder = runs / "prove-grande" / done.name.replace("senza-modello", "base")
+    shutil.copytree(done, folder)
+    data = json.loads((folder / "prova.json").read_text("utf-8"))
+    (folder / "prova.json").write_text(json.dumps({**data, "name": "base"}), "utf-8")
+    replay = ["eval", "rigioca", "--riferimento", "base", "--insiemi", "grande"]
+    result = runner.invoke(cli.app, [*replay, "--variante", "base", "--cartella", str(runs)])
+    assert result.exit_code == 0, result.output
+    assert "Rigiocate 1 prove di base con base, grande: errori stabili" in result.output
+    assert "falsi OK a prova 0.0 → 0.0" in result.output
+    assert (runs / "rigioca-grande" / "riepilogo.md").is_file()
+    bad = runner.invoke(cli.app, [*replay, "--variante", "altro_stadio", "--cartella", str(runs)])
+    assert bad.exit_code != 0
+    assert "agent.task_stage_check" in bad.output
 
 
 def test_eval_bench_counts_the_errors_put_on_the_real_prints() -> None:

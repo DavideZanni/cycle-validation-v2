@@ -305,6 +305,11 @@ class Trial(_Strict):
         given = self.known_found + self.false_errors + self.extra_errors
         return self.known_found / given if given else 1.0
 
+    @property
+    def false_ok(self) -> int:
+        """Errori noti mancati dove la v2 ha detto CORRETTO: l'operatore si fida (devono essere 0)."""
+        return sum(m.said.startswith("CORRETTO") for c in self.cycles for m in c.missed)
+
     def _clean(self) -> list[CycleScore]:
         """I cicli eseguiti senza errori noti (giusti e veri)."""
         return [c for c in self.cycles if c.kind in ("giusto", "vero") and not c.failure]
@@ -875,7 +880,8 @@ def unusable_trials(root: Path) -> list[Path]:
 # 2. servono almeno `MIN_REPETITIONS` prove: il modello non risponde sempre uguale;
 # 3. classifica: errori trovati in tutte le ripetizioni (stabili), poi il minimo e la media dei
 #    trovati, poi meno ERRATO da verificare, meno WARNING per ciclo senza errori noti, meno costo, meno tempo;
-# 4. si tiene se è valida, ripetuta abbastanza, non perde errori stabili né mai visti e: trova
+# 4. si tiene se è valida, ripetuta abbastanza, non dà più falsi OK della base (28-11: errori
+#    noti detti CORRETTO), non perde errori stabili né mai visti e: trova
 #    più errori stabili della base, oppure trova gli stessi e fa risparmiare davvero (costo
 #    almeno `MIN_COST_SAVING` in meno, tempo almeno `MIN_TIME_SAVING` in meno, almeno
 #    `MIN_WARNING_SAVING` WARNING per ciclo in meno). Con gli stessi errori e differenze più
@@ -901,6 +907,8 @@ class Variant(_Strict):
     found_min: int
     found_mean: float
     false_errors: int
+    # errori noti mancati con CORRETTO, in media per prova (28-11): non devono crescere
+    false_ok: float = 0.0
     extra_max: int
     precision_min: float
     clean_warnings: float
@@ -976,6 +984,7 @@ def build_variants(trials: Sequence[Trial], reference: str = BASE_NAME) -> list[
                 found_min=min(found),
                 found_mean=sum(found) / len(found),
                 false_errors=sum(t.false_errors for t in group),
+                false_ok=sum(t.false_ok for t in group) / len(group),
                 extra_max=max(t.extra_errors for t in group),
                 precision_min=min(t.precision for t in group),
                 clean_warnings=sum(t.clean_warnings for t in group) / len(group),
@@ -1001,6 +1010,11 @@ def _decide(variant: Variant, base: Variant | None) -> str:
         return f"da ripetere ({variant.repetitions} prova su {MIN_REPETITIONS})"
     if variant is base or base is None:
         return "riferimento" if variant is base else "valida (manca la base)"
+    if variant.false_ok > base.false_ok + 1e-9:
+        return (
+            f"non si tiene: falsi OK {variant.false_ok:.1f} a prova contro "
+            f"{base.false_ok:.1f} della base"
+        )
     if variant.stable < base.stable:
         return f"non si tiene: errori stabili {variant.stable} contro {base.stable} della base"
     if variant.unseen_stable < base.unseen_stable:

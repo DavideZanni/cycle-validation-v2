@@ -149,7 +149,7 @@ def _row(v: Variant) -> str:
     unseen = f"{v.unseen_stable} su {v.unseen_total}" if v.unseen_total else "-"
     return (
         f"| {v.name} | {v.repetitions} | **{v.stable}** su {v.known_total} | {unseen} | "
-        f"{v.false_errors} | {v.extra_max} | {v.cost_per_cycle:.4f} $ | "
+        f"{v.false_errors} | {v.false_ok:.1f} | {v.extra_max} | {v.cost_per_cycle:.4f} $ | "
         f"{v.mean_ms / 1000:.0f} s | {v.decision} |"
     )
 
@@ -210,8 +210,9 @@ def render_campaign(
                 f"**Scelta migliore:** {best.name if best else 'nessuna variante valida'}.",
                 "",
                 "| Variante | Prove | Stabili | Mai visti (modello) stabili | Falsi errori | "
-                "Da verificare | Costo per ciclo | Tempo per ciclo | Decisione |",
-                "|---|---|---|---|---|---|---|---|---|",
+                "Falsi OK a prova | Da verificare | Costo per ciclo | Tempo per ciclo | "
+                "Decisione |",
+                "|---|---|---|---|---|---|---|---|---|---|",
                 *(_row(v) for v in variants),
                 "",
             ]

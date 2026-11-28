@@ -287,6 +287,13 @@ Il dettaglio di ogni controllo è nella sezione 6.
 
 Deterministico: applica l'integrità, conta gli esiti, dà lo stato del ciclo (sezione 8).
 
+Poi le **regole finali** (`verdict/final_rules.py`, dal 28-11 per MG83): regole del codice che
+lavorano sugli esiti già fatti del ciclo (per esempio un WARNING del modello su un'operazione
+che il codice ha già deciso) e li cambiano. Si accendono per nome con `agent.final_rules`
+(vuoto = nessuna; un nome sconosciuto ferma le impostazioni). Le righe della verifica di
+integrità non si toccano. Siccome usano solo quello che c'è nel `report.json`, si provano sulle
+prove già fatte, senza modello: `eval rigioca` (sezione 15.3).
+
 ### 5.8 Report (`report/`)
 
 Tre file nella cartella del run (con la CLI `runs/ultimo`):
@@ -744,7 +751,8 @@ l'unico modulo che lo importa è `agent/sdk_session.py`. Il resto del codice par
   (sul PC è già l'id completo `eu.`). Nessun nuovo tentativo dentro l'SDK: li fa già
   `agent/runner.py`. Provare l'accesso: `eval chiamata-diretta` (una domanda finta, meno di un
   centesimo).
-- Con `diretta`: `agent.direct_cache` (MG56, variante `diretta_cache`) mette i punti di cache di
+- Con `diretta`: `agent.direct_cache` (MG56; nella variante `diretta`, perché la cache non cambia
+  le risposte, solo il prezzo) mette i punti di cache di
   Bedrock su istruzioni, strumenti e storia della sessione (dal secondo turno la storia si
   rilegge dalla cache); `agent.shared_reference_first` (MG59, variante `testo_comune`) manda il
   testo del manuale delle sessioni in linea in un blocco a sé prima della domanda, con un punto
@@ -1020,6 +1028,7 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.direct_cache` | `false` | con `diretta`: punti di cache di Bedrock (MG56) |
 | `agent.shared_reference_first` | `false` | il testo del manuale prima della domanda, in un blocco da tenere in cache (MG59) |
 | `agent.language_batch_size` | 0 | confronto tra le lingue di più operazioni in una sessione (MG55); 0 = spento |
+| `agent.final_rules` | vuoto | regole finali sugli esiti già fatti, per nome (MG83; sezione 5.7) |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
 | `paths.*` | `config/profiles`, `prompts`, `data/knowledge`, `runs` | cartelle |
 | `paths.machines_file` | vuoto | JSON delle macchine attive |
@@ -1244,7 +1253,8 @@ opzioni.
 | `eval muta` | fa le copie cieche: `--lista`, `--knowledge`, `--quanti`, `--seme`, `--per-ciclo` (6) | no |
 | `eval prova [pdf]…` | valida, confronta con gli errori noti, scrive `prestazioni.md` e `riepilogo.md`. `--nome`, `--variante`, `--lista` (ripetibile), `--attesi` (ripetibile), `--cartella`, `--profile` (predefinito `auto`: MOS o DR ciclo per ciclo, dalla testata, così un DR nella lista non si ferma con «Modulo sbagliato») | sì |
 | `eval chiamata-diretta` | prova la chiamata diretta a Bedrock (MG54) con una domanda finta, senza testi aziendali: dice se modello, regione, accesso e strumento di risposta funzionano. `--config` (vuoto = `data/settings.yaml`). Meno di un centesimo (28-11) | sì |
-| `eval senza-modello` | gli stessi cicli della campagna (`--insiemi`, predefinito piccolo e grande), solo con i controlli del codice: al posto del modello una risposta fissa «non verificabile». Dice quanti errori noti trova il codice da solo e se dà falsi errori. Prove in `runs/senza-modello-<insieme>`, fuori dalle cartelle della campagna. I WARNING qui non contano (tutto quello che fa il modello esce WARNING). `--knowledge` (vuoto = ultima fotografia), `--config`, `--cartella`. Serve a provare una regola nuova del codice prima di una campagna (27-11 notte) | no |
+| `eval senza-modello` | gli stessi cicli della campagna (`--insiemi`, predefinito piccolo e grande), solo con i controlli del codice: al posto del modello una risposta fissa «non verificabile». Dice quanti errori noti trova il codice da solo e se dà falsi errori. Prove in `runs/senza-modello-<insieme>`, fuori dalle cartelle della campagna. I WARNING qui non contano (tutto quello che fa il modello esce WARNING). `--knowledge` (vuoto = ultima fotografia), `--config`, `--cartella`. Serve a provare una regola nuova del codice prima di una campagna (27-11 notte). Con `--variante` (28-11) dopo la base prova anche la variante e stampa la riga `Differenza sul <insieme>`: errori trovati prima e dopo (in più e persi, solo dei cicli noti: delle copie cieche solo il numero), falsi errori, da verificare, e una parola: `da scartare`, `da guardare` (ERRATO nuovi fuori dalla lista), `si può tenere` o `nessuna differenza` | no |
+| `eval rigioca` | una regola finale (MG83) sulle prove già fatte (28-11): `--variante` (nome in `eval/varianti`), `--riferimento` (vuoto = quello di `eval/campagna.yaml`), `--insiemi`, `--file`, `--config`, `--cartella`. Rifà il conto delle prove del riferimento dai loro `report.json`, con gli errori noti di adesso (anche copie cieche e gruppo nascosto), e delle stesse prove con le regole della variante; stampa per insieme errori stabili, falsi OK, falsi errori, da verificare e WARNING per ciclo, prima → dopo, e la decisione. Solo per una variante che cambia soltanto `agent.final_rules` (altrimenti si ferma e dice che cosa cambia). Prove in `runs/rigioca-<insieme>`, rifatta da capo ogni volta; le cartelle della campagna non si toccano. 0 $, pochi secondi | no |
 | `eval banco` | banco di prova sulle 14 stampe vere di `docs/CONFRONTO_V1_14_CICLI.md`: il programma mette un errore alla volta su ogni operazione possibile (un numero, un limite, «massimo»/«minimo», un'azione in una lingua; il numero del DR) e conta quanti ne trovano i controlli del codice, per tipo, e i falsi allarmi su altre operazioni; poi la lettura della stampa contro la tabella della v1 (operazioni, targhe, schede). `--giri` (5: semi diversi), `--knowledge`, `--config`. 0 $, pochi secondi; a schermo solo impronte, operazioni e conteggi (27-11 notte) | no |
 | `eval riepilogo` | riscrive `riepilogo.md` della cartella. Con `--attesi` (ripetibile) prima ricalcola le prove già fatte dai `report.json` dei cicli, con gli errori noti di adesso: solo i cicli che sono in quei file (copie cieche, gruppo nascosto e cicli veri tengono il punteggio e prendono solo i WARNING per operazione, MG83). Serve quando la lista degli errori noti cambia (27-11) | no |
 | `eval campagna` | tutte le prove di `eval/campagna.yaml` in fila, per ogni modello e insieme, e il report unico `runs/campagna.md`. `--piano` (gratis), `--solo-report` (gratis: solo il report), `--modelli` (con un solo modello il report è `runs/campagna-<modello>.md`), `--insiemi`, `--varianti`, `--ripetizioni`, `--grande`, `--massimo-dollari`, `--knowledge` (vuoto = ultima fotografia), `--config` (vuoto = `data/settings.yaml` se c'è), `--file`, `--cartella` | sì |
@@ -1478,8 +1488,8 @@ riferimento: quasi_finale   # facoltativo: la variante con cui si confrontano le
   non eseguito e il modello che non rispondeva restava buona, e la variante risultava scartata
   invece di rifare la prova). `eval prova` scrive `ATTENZIONE: prova non valida` in fondo.
 - Il report `runs/campagna.md`: per ogni modello e insieme la scelta migliore e la classifica
-  (prove, stabili, mai visti per il modello stabili, falsi errori, da verificare, costo e
-  tempo per ciclo, decisione); i modelli a confronto, variante per variante; gli errori mai
+  (prove, stabili, mai visti per il modello stabili, falsi errori, falsi OK a prova (dal
+  28-11), da verificare, costo e tempo per ciclo, decisione); i modelli a confronto, variante per variante; gli errori mai
   visti per tipo, con cosa ha risposto la v2 sui mancati, e i WARNING per motivo, tutti e due
   nell'ultima prova della scelta migliore di ogni insieme (piccolo e grande). Fino al 28-11
   guardavano l'ultima base sul piccolo, anche quando le prove della base erano fatte con il
@@ -1523,15 +1533,29 @@ riferimento: quasi_finale   # facoltativo: la variante con cui si confrontano le
 1. **scartata** se: un falso errore, un ciclo non eseguito, un ciclo oltre 10 minuti, costo per
    ciclo oltre 2 volte la base;
 2. **da ripetere** se ha meno di 2 prove;
-3. **classifica**: errori stabili (trovati in tutte le prove), trovati minimo, trovati medio,
+3. **non si tiene** se dà più **falsi OK** della base (errori noti mancati con CORRETTO, in
+   media per prova; dal 28-11, per MG83: togliere WARNING non deve far dire OK a un errore);
+4. **classifica**: errori stabili (trovati in tutte le prove), trovati minimo, trovati medio,
    meno da verificare, meno warning, meno costo, meno tempo;
-4. **si tiene** se non perde errori stabili, **non perde errori mai visti per il modello
+5. **si tiene** se non perde errori stabili, **non perde errori mai visti per il modello
    stabili** (altrimenti «non generalizza») e: trova **più errori stabili** della base, oppure
    trova gli stessi con un **risparmio vero** (costo per ciclo almeno 10% in meno, tempo almeno
    20% in meno o almeno 1 WARNING per ciclo in meno: `MIN_COST_SAVING`, `MIN_TIME_SAVING`,
    `MIN_WARNING_SAVING`). Con gli stessi errori e differenze più piccole è **«pari alla
    base»** e non si tiene (dal 24-11 sera: prima bastava stare sopra la base in classifica, e
    quattro varianti «si tenevano» per 0,2 WARNING o il 3% di costo, finendo anche sul grande).
+
+**Provare una miglioria senza campagna** (28-11). Una campagna serve solo se la miglioria
+cambia quello che fa il modello. Per il resto:
+
+| La miglioria cambia | Come si prova | Costo |
+|---|---|---|
+| solo il codice dei controlli (per esempio MG48) | `eval senza-modello --variante`: gli errori che il codice trova senza modello li trova in ogni prova | 0 $, minuti |
+| solo gli esiti già fatti (regole finali, MG83) | `eval rigioca`: le stesse risposte del modello delle prove di riferimento, con la regola in più | 0 $, secondi |
+| il modo di chiamare il modello, con le stesse risposte (per esempio la cache) | una prova sola (`eval campagna --varianti X --insiemi piccolo --ripetizioni 1`): costo e tempo cambiano poco da una prova all'altra | una prova |
+| il modello, il prompt o le sessioni | la campagna, 3 prove: le risposte cambiano da una prova all'altra | 3 prove per insieme |
+
+Una prova sola conta come la prima delle tre: la campagna dopo fa solo quelle che mancano.
 
 Le copie cieche (`eval muta`) sono tutte diverse: se due stampe dello stesso ciclo danno la
 stessa copia, la seconda si salta (24-11: 41 copie scritte ma 39 diverse, perché due avevano

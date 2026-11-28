@@ -58,9 +58,9 @@ sezione 1 di `COPILOT.md`):
 | 7e13 | Aggiornare, senza modello, `eval banco`; campagna (o, se già partita, ricalcolo dei riepiloghi per le metriche di controllo) | COPILOT passo 4h | senza modello e banco ✅ 27-11 notte: 41 su 45 e 31 su 31, 0 e 0; banco sul PC uguale a quello di Claude (308 su 310, 0 falsi allarmi, lettura 105 su 105); campagna ✅ 28-11 notte: `quasi_finale` si tiene (42 su 45, 31 su 31, 0 falsi errori, 0 da verificare) |
 | 7e14 | Claude: tabelle per tipo e per motivo sulla scelta migliore; MG58 risultato già calcolato (solo servizio) | Claude | ✅ 28-11 |
 | 7e15 | Claude: MG48, MG54, MG56, MG59, MG55 (spente, una variante ciascuna), dati per MG83, riferimento della campagna | Claude | ✅ 28-11 |
-| 7e16 | Aggiornare, `eval chiamata-diretta`, report rifatto con i WARNING per operazione | COPILOT passo 4i | da fare |
-| 7e17 | Claude: MG83 (variante `meno_avvisi`) dai dati del 7e16 | Claude | da fare |
-| 7e18 | Campagna completa delle migliorie del 28-11, contro `quasi_finale` (circa 12-14 $) | COPILOT passo 4j | da fare |
+| 7e16 | Aggiornare, `eval chiamata-diretta`, MG48 senza modello, report rifatto con i WARNING per operazione, prova di `eval rigioca`, una prova sola di `diretta` sul piccolo (circa 0,40 $) | COPILOT passo 4i | da fare |
+| 7e17 | Claude: MG83 (regola finale e variante `meno_avvisi`, provata con `eval rigioca`) dai dati del 7e16 | Claude | da fare |
+| 7e18 | Campagna delle varianti che usano il modello (`diretta`, `testo_comune`, `lingue_insieme`), contro `quasi_finale` (circa 6-7 $; era 12-14 $ con tutte) | COPILOT passo 4j | da fare |
 | 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
 | 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |
 | 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
@@ -1655,6 +1655,18 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   campagna ha appena mostrato come il punto debole: prima la tabella «WARNING per operazione»
   (passo 4i), poi la variante. MG49 non serve. La campagna confronta con `quasi_finale`
   (`riferimento` in `eval/campagna.yaml`).
+- **28-11, provare senza campagna (chiesto dall'utente: «come ieri sera»).** Decisione: una
+  campagna solo per quello che cambia il modello. Tre modi gratis o quasi (DOCUMENTAZIONE 15.3):
+  `eval senza-modello --variante` per il codice dei controlli (MG48); `eval rigioca` per le
+  regole finali (MG83: nuovo stadio `verdict/final_rules.py`, `agent.final_rules`), che
+  rifà il conto delle prove di `quasi_finale` dai loro `report.json` con e senza la regola;
+  una prova sola per costo e tempo (la chiamata diretta). `diretta` e `diretta_cache` sono
+  diventate una variante sola (la cache non cambia le risposte). Considerazioni: `rigioca` vale
+  solo se la variante cambia soltanto le regole finali (il comando lo controlla); le risposte
+  del modello sono quelle delle 3 prove di riferimento, quindi la stabilità si misura su quelle.
+  Nuova regola della decisione: una variante con più falsi OK della base non si tiene (prima i
+  falsi OK si vedevano solo nelle metriche di controllo); nel report della campagna c'è la
+  colonna «Falsi OK a prova». La campagna del passo 4j scende da circa 12-14 $ a 6-7 $.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

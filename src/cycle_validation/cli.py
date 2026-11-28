@@ -51,6 +51,12 @@ from cycle_validation.evaluation.leaderboard import build_leaderboard, render_le
 from cycle_validation.evaluation.metrics import measure
 from cycle_validation.evaluation.mutations import mutate_cases
 from cycle_validation.evaluation.no_model import ModelFreeSession, model_free_settings
+from cycle_validation.evaluation.replay import (
+    extra_rules,
+    other_changes,
+    replay_trials,
+    write_replay,
+)
 from cycle_validation.evaluation.run import Suite, load_suites, run_variant
 from cycle_validation.evaluation.snapshot import snapshot_version, take_snapshot
 from cycle_validation.evaluation.trials import (
@@ -62,6 +68,7 @@ from cycle_validation.evaluation.trials import (
     Proposal,
     Trial,
     build_trial,
+    build_variants,
     failed_cycle,
     load_known_errors,
     load_trials,
@@ -1251,6 +1258,13 @@ def eval_without_model(
         Path | None, typer.Option(help="Conoscenza. Vuoto = l'ultima fotografia.")
     ] = None,
     config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
+    variante: Annotated[
+        Path | None,
+        typer.Option(
+            help="Variante (eval/varianti/...yaml): dopo la base si prova anche lei e si "
+            "stampa la differenza."
+        ),
+    ] = None,
     runs: Annotated[Path, typer.Option("--cartella", help="Cartella dei risultati.")] = Path(
         "runs"
     ),
@@ -1258,8 +1272,9 @@ def eval_without_model(
     """Gli stessi cicli della campagna, solo con i controlli del codice: 0 $, pochi minuti.
     Al posto del modello una risposta fissa («non verificabile»). Dice quanti errori noti
     trova il codice da solo e se dà falsi errori: per provare una regola nuova del codice
-    prima di una campagna. Le prove vanno in `runs/senza-modello-<insieme>`, fuori dalle
-    cartelle della campagna."""
+    prima di una campagna. Con `--variante` prova anche la variante e stampa che cosa cambia
+    (28-11). Le prove vanno in `runs/senza-modello-<insieme>`, fuori dalle cartelle della
+    campagna."""
     try:
         kb = knowledge or _latest_knowledge()
         sets = _campaign_sets(runs, KNOWN_ERRORS_FILE)
@@ -1267,30 +1282,91 @@ def eval_without_model(
         unknown = [name for name in chosen if name not in sets]
         if unknown or not chosen:
             raise CycleValidationError(f"Insiemi: piccolo, grande (non {', '.join(unknown)}).")
-        settings = model_free_settings(load_settings(config))
+        runs_of: list[tuple[str, str, Settings, Proposal]] = [
+            (
+                "senza-modello",
+                "Senza modello",
+                model_free_settings(load_settings(config)),
+                Proposal(),
+            )
+        ]
+        if variante is not None:
+            loaded = load_variant(variante, config_override=config)
+            runs_of.append(
+                (
+                    f"senza-modello {loaded.name}",
+                    f"Senza modello con {loaded.name}",
+                    model_free_settings(loaded.settings),
+                    _proposal(loaded),
+                )
+            )
     except (CycleValidationError, OSError, ValueError) as error:
         raise _fail(error) from error
     for name in chosen:
-        typer.echo(f"--- {name} (senza modello) ---")
         cycles = sets[name]
-        trial, _ = _run_trial(
-            cycles.entries,
-            cycles.known,
-            settings,
-            "auto",
-            kb,
-            "senza-modello",
-            Proposal(),
-            runs / f"senza-modello-{name}",
-            session=ModelFreeSession(),
-        )
-        warnings = sum(sum(c.warnings.values()) for c in trial.cycles)
-        typer.echo(
-            f"Senza modello, {name}: errori trovati dal codice {trial.known_found} su "
-            f"{trial.known_total} · falsi errori {trial.false_errors} · da verificare "
-            f"{trial.extra_errors} · WARNING per ciclo {warnings / max(len(trial.cycles), 1):.1f}"
-            f" · costo {trial.cost_usd:.2f} $"
-        )
+        done_trials: list[Trial] = []
+        for label, shown, settings, proposal in runs_of:
+            typer.echo(f"--- {name} ({label}) ---")
+            trial, _ = _run_trial(
+                cycles.entries,
+                cycles.known,
+                settings,
+                "auto",
+                kb,
+                label,
+                proposal,
+                runs / f"senza-modello-{name}",
+                session=ModelFreeSession(),
+            )
+            done_trials.append(trial)
+            typer.echo(
+                f"{shown}, {name}: errori trovati dal codice {trial.known_found} "
+                f"su {trial.known_total} · falsi errori {trial.false_errors} · da verificare "
+                f"{trial.extra_errors} · WARNING per ciclo {_warnings_per_cycle(trial):.1f}"
+                f" · costo {trial.cost_usd:.2f} $"
+            )
+        if len(done_trials) == 2:
+            typer.echo(_no_model_difference(name, *done_trials))
+
+
+def _warnings_per_cycle(trial: Trial) -> float:
+    warnings = sum(sum(c.warnings.values()) for c in trial.cycles)
+    return warnings / max(len(trial.cycles), 1)
+
+
+def _seen_found(trial: Trial) -> set[tuple[str, str]]:
+    """Gli errori trovati nei cicli noti a Claude: delle copie cieche e del gruppo nascosto
+    solo il numero, mai dove sono."""
+    return {
+        (c.fingerprint, f.op)
+        for c in trial.cycles
+        if c.kind == "errori" and c.seen
+        for f in c.found
+    }
+
+
+def _no_model_difference(set_name: str, base: Trial, variant: Trial) -> str:
+    """`eval senza-modello --variante`: che cosa cambia la variante, in una riga."""
+    gained = sorted(_seen_found(variant) - _seen_found(base))
+    lost = sorted(_seen_found(base) - _seen_found(variant))
+
+    def ops(items: list[tuple[str, str]]) -> str:
+        return ", ".join(f"{fp} {op}" for fp, op in items) or "-"
+
+    if variant.false_errors > base.false_errors or variant.known_found < base.known_found:
+        verdict = "da scartare"
+    elif variant.extra_errors > base.extra_errors:
+        verdict = "da guardare: ERRATO nuovi fuori dalla lista (righe sopra, «ERRATO in più»)"
+    elif variant.known_found > base.known_found:
+        verdict = "si può tenere: trova di più"
+    else:
+        verdict = "nessuna differenza (nessun danno)"
+    return (
+        f"Differenza sul {set_name}: errori trovati {base.known_found} → {variant.known_found}"
+        f" (in più {ops(gained)}; persi {ops(lost)}) · falsi errori {base.false_errors} → "
+        f"{variant.false_errors} · da verificare {base.extra_errors} → {variant.extra_errors}"
+        f" · {verdict}"
+    )
 
 
 @eval_app.command("banco")
@@ -1652,6 +1728,73 @@ def eval_campaign(
         f"Prove fatte ora: {outcome.run} · spesa {outcome.spent:.2f} $."
     )
     typer.echo(f"Report finale: {report}")
+
+
+@eval_app.command("rigioca")
+def eval_replay(
+    variante: Annotated[str, typer.Option(help="Nome della variante (eval/varianti/<nome>.yaml).")],
+    riferimento: Annotated[
+        str | None,
+        typer.Option(help="Le prove da rigiocare. Vuoto = il riferimento di eval/campagna.yaml."),
+    ] = None,
+    insiemi: Annotated[str, typer.Option(help="piccolo, grande o tutti e due.")] = "piccolo,grande",
+    file: Annotated[Path, typer.Option("--file", help="Elenco degli esperimenti.")] = CAMPAIGN_FILE,
+    config: Annotated[
+        Path | None, typer.Option(help="settings.yaml. Vuoto = data/settings.yaml se c'è.")
+    ] = None,
+    runs: Annotated[Path, typer.Option("--cartella", help="Cartella dei risultati.")] = Path(
+        "runs"
+    ),
+) -> None:
+    """Una regola finale (MG83) sulle prove già fatte del riferimento: 0 $, pochi secondi.
+    Rifà il conto delle prove di riferimento con gli errori noti di adesso e delle stesse
+    prove con le regole della variante, e decide con le regole della campagna. Solo per una
+    variante che cambia soltanto `agent.final_rules`. Le prove rigiocate vanno in
+    `runs/rigioca-<insieme>` (rifatta da capo ogni volta), fuori dalle cartelle della campagna."""
+    try:
+        campaign = load_campaign(file)
+        reference = (riferimento or campaign.riferimento or BASE_NAME).casefold()
+        if config is None and Path("data/settings.yaml").is_file():
+            config = Path("data/settings.yaml")
+        models = list(campaign.modelli)
+        model_id = campaign.modelli[models[0]]
+        ref_settings, _ = _campaign_settings(reference, model_id, config)
+        var_settings, proposal = _campaign_settings(variante, model_id, config)
+        changes = other_changes(ref_settings, var_settings)
+        if changes:
+            raise CycleValidationError(
+                f"La variante {variante} cambia anche {', '.join(changes[:4])}: si rigioca solo "
+                "una variante che cambia le regole finali (agent.final_rules). Per il codice "
+                "dei controlli: eval senza-modello --variante; per il modello o il prompt: la "
+                "campagna."
+            )
+        rules = extra_rules(ref_settings, var_settings)
+        sets = _campaign_sets(runs, KNOWN_ERRORS_FILE)
+        chosen = _split(insiemi) or []
+        unknown = [name for name in chosen if name not in sets]
+        if unknown or not chosen:
+            raise CycleValidationError(f"Insiemi: piccolo, grande (non {', '.join(unknown)}).")
+    except (CycleValidationError, OSError, ValueError) as error:
+        raise _fail(error) from error
+    name = variante if variante.casefold() != reference else f"{variante} rigiocata"
+    for set_name in chosen:
+        folder = folder_for(models, models[0], set_name, runs)
+        pairs = replay_trials(folder, reference, name, rules, sets[set_name].known, proposal)
+        if not pairs:
+            typer.echo(f"{set_name}: nessuna prova di {reference} in {folder}")
+            continue
+        summary = write_replay(runs / f"rigioca-{set_name}", reference, pairs)
+        variants = build_variants([t for pair in pairs for t in pair], reference)
+        old = next(v for v in variants if v.name.casefold() == reference)
+        new = next(v for v in variants if v.name.casefold() == name.casefold())
+        typer.echo(
+            f"Rigiocate {len(pairs)} prove di {reference} con {variante}, {set_name}: errori "
+            f"stabili {old.stable} → {new.stable} · falsi OK a prova {old.false_ok:.1f} → "
+            f"{new.false_ok:.1f} · falsi errori {old.false_errors} → {new.false_errors} · da "
+            f"verificare {old.extra_max} → {new.extra_max} · WARNING per ciclo "
+            f"{old.clean_warnings:.1f} → {new.clean_warnings:.1f} · {new.decision}"
+        )
+        typer.echo(f"Riepilogo: {summary}")
 
 
 @eval_app.command("riepilogo")
