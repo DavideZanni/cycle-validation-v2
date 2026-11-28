@@ -130,28 +130,10 @@ stessi errori. Dalle tabelle Claude ha scritto due regole finali (si provano sul
 fatte, 0 $): `meno_avvisi` (MG83, la fonte assente detta una volta sola) e `limiti_citati`
 (MG87, il falso OK del limite invertito).
 
-1. **Aggiornare** (2.1).
-   - **Deve uscire:** in fondo `... passed` e nessun `failed`.
-   - **Mandami:** la foto dell'ultima riga.
-2. **Le due regole sulle prove già fatte, e MG48 sul piccolo** (0 $, qualche minuto):
+Fatto alle 11:05: `meno_avvisi` si tiene (grande 8,9 → 5,3 WARNING per ciclo, stessi
+errori), `limiti_citati` non scatta, MG48 sul piccolo nessuna differenza.
 
-   ```powershell
-   $env:UV_PYTHON = "3.14"
-   [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-   uv run cycle-validation eval rigioca --variante meno_avvisi
-   uv run cycle-validation eval rigioca --variante limiti_citati
-   uv run cycle-validation eval senza-modello --insiemi piccolo --variante eval/varianti/altro_stadio.yaml
-   ```
-
-   - **Deve uscire:** quattro righe `Rigiocate 3 prove di quasi_finale con ...` (piccolo e
-     grande per ogni regola), poi `Senza modello con altro_stadio, piccolo: ...` e `Differenza
-     sul piccolo: ...`. Atteso per `meno_avvisi`: grande `WARNING per ciclo 8.9 → 5` circa,
-     errori, falsi OK e falsi errori uguali. Per `limiti_citati`: piccolo `falsi OK a prova 1.0
-     → 0.0` se la riga citata dal modello contiene il limite (altrimenti nessuna differenza),
-     falsi errori sempre 0.
-   - **Mandami:** la foto delle quattro righe `Rigiocate ...` e delle righe `Senza modello con
-     altro_stadio, piccolo` e `Differenza sul piccolo`.
-3. **La campagna** (circa 4-5 $, 2-3 ore): le 2 prove che mancano di `diretta` sul piccolo e
+1. **La campagna** (circa 4-5 $, 2-3 ore): le 2 prove che mancano di `diretta` sul piccolo e
    le 3 sul grande, poi `testo_comune` e `lingue_insieme` (3 sul piccolo e 3 sul grande). Le
    prove già fatte si saltano; se si ferma (tetto di spesa o PC spento), rilanciata riparte da
    dove era. Prima `aws sso login` se serve:
@@ -168,7 +150,22 @@ fatte, 0 $): `meno_avvisi` (MG83, la fonte assente detta una volta sola) e `limi
    - **Mandami:** da `runs\campagna.md` le due tabelle delle varianti (piccolo e grande, con
      la colonna «Decisione») e la foto della riga `Campagna finita`.
 
-Con queste foto Claude decide che cosa entra nella base e aggiorna `V1_CONTRO_V2.md`.
+2. **Dopo la campagna, perché `limiti_citati` non scatta** (0 $, pochi secondi): Aggiornare
+   (2.1), poi:
+
+   ```powershell
+   $env:UV_PYTHON = "3.14"
+   [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+   uv run cycle-validation eval rigioca --variante limiti_citati --insiemi piccolo
+   ```
+
+   - **Deve uscire:** la riga `Rigiocate 3 prove ...` e poi alcune righe `Falso OK, riga
+     citata: <impronta> <op>: citazioni ... · ... · verso letto vicino al numero ...` (solo
+     sì/no e conteggi, nessun testo).
+   - **Mandami:** la foto di quelle righe.
+
+Con queste foto Claude decide che cosa entra nella base (anche `meno_avvisi`) e aggiorna
+`V1_CONTRO_V2.md`.
 
 ---
 

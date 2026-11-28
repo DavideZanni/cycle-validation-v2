@@ -29,7 +29,7 @@ from cycle_validation.evaluation.trials import (
     write_summary,
     write_trial,
 )
-from cycle_validation.verdict.final_rules import replay_report
+from cycle_validation.verdict.final_rules import quote_diagnosis, replay_report
 
 REPLAYABLE = "agent.final_rules"
 
@@ -103,6 +103,24 @@ def replay_trials(
             )
         )
     return pairs
+
+
+def false_ok_quotes(root: Path, reference: str, known: KnownErrors) -> list[str]:
+    """MG87: per ogni falso OK delle prove di `reference` (errore noto mancato con CORRETTO),
+    che cosa c'è nella riga citata dal modello. Solo impronta, operazione, sì/no e conteggi."""
+    lines: list[str] = []
+    for path, trial in _read_trials(sorted(root.glob(f"*/{TRIAL_FILE}"))):
+        if trial.name.strip().casefold() != reference.casefold() or trial.unusable:
+            continue
+        for cycle in trial.cycles:
+            report = _report(path.parent / cycle.fingerprint / "report.json")
+            if report is None:
+                continue
+            for missed in score_cycle(report, known, cycle.fingerprint).missed:
+                if missed.said.startswith("CORRETTO"):
+                    diagnosis = quote_diagnosis(report.cycle, report.results, missed.op)
+                    lines.append(f"{cycle.fingerprint} {missed.op}: {diagnosis}")
+    return lines
 
 
 def write_replay(folder: Path, reference: str, pairs: Sequence[tuple[Trial, Trial]]) -> Path:

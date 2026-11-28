@@ -1699,6 +1699,15 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   MG87 = regola finale `limite_contro_citazione` (il CORRETTO diventa ERRATO se la riga che il
   modello cita dà il limite al contrario). Tutte e due da rigiocare a 0 $. EVIDENZA_NON_TROVATA
   non si toglie con una regola: è anche la risposta su un errore mancato.
+- **28-11, 11:05, le due regole rigiocate e MG48 sul piccolo.** `meno_avvisi`: piccolo 42 → 42,
+  WARNING per ciclo 4,9 → 4,9; grande 31 → 31, **8,9 → 5,3**, falsi OK e falsi errori uguali:
+  si tiene. Decisione: entra nella base dopo la campagna del passo 4j, per non cambiare a metà
+  il riferimento (le prove di `quasi_finale` sono senza la regola); poi si rigiocano con la
+  regola anche le varianti nuove. `limiti_citati`: non scatta (falsi OK 1,0 → 1,0, niente
+  danni): la riga citata dal modello non ha lo stesso numero con un verso che il codice legge.
+  `eval rigioca` ora stampa per ogni falso OK che cosa c'è nella riga citata (solo sì/no e
+  conteggi). MG48 sul piccolo: 41 → 41, nessuna differenza, come sul grande: resta spenta
+  (non c'è un caso nei nostri cicli; nessun danno). La campagna non è ancora partita.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

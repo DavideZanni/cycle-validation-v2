@@ -430,6 +430,21 @@ def _limited_after(text: str) -> dict[Decimal, set[str]]:
     return found
 
 
+def values_in(text: str) -> set[Decimal]:
+    """I numeri del testo (non i codici), come valori."""
+    return {
+        Decimal(m.group().replace(",", "."))
+        for m in _NUMBER.finditer(text)
+        if not m["code"] and m.group() not in {".", ","}
+    }
+
+
+def has_limit_word(text: str) -> bool:
+    """Nel testo c'è almeno una parola di limite, in una delle due lingue."""
+    rules = (*_LIMIT_DOWN.values(), *_LIMIT_UP.values(), _LIMIT_AFTER)
+    return any(rule.search(text) for rule in rules)
+
+
 def limit_ways(
     text: str, language: str | None = None, *, after: bool = False
 ) -> dict[Decimal, set[str]]:

@@ -212,3 +212,33 @@ def test_limits_written_after_the_number() -> None:
         Decimal("2"): {"su"},
     }
     assert limit_ways(quote, "en") == {}  # senza `after` come prima (MG75)
+
+
+def test_the_quote_diagnosis_says_only_yes_and_no() -> None:
+    """MG87: perché la regola non scatta, senza mostrare il testo della riga citata."""
+    from cycle_validation.domain.check import Evidence
+
+    cycle = _ops("PROFONDITA' ALMENO 0,5 MM / DEPTH AT LEAST 0.5 MM", "PULIRE / CLEAN")
+    target = [Target.operation(n, op) for n, op in enumerate(cycle.operations)]
+
+    def ok(n: int, quote: str) -> CheckResult:
+        evidence = [Evidence(document_key="m1", quote=quote)]
+        return make_result(
+            CheckName.OPERATION_DESCRIPTION,
+            target[n],
+            Reason.VERIFICATO,
+            "uguale",
+            evidence=evidence,
+            decided_by="agent",
+        )
+
+    seen = final_rules.quote_diagnosis(cycle, [ok(0, "Depth 0.5 mm maximum.")], "010")
+    assert seen == (
+        "citazioni 1 · limite letto nella descrizione sì · stesso numero nella riga citata sì "
+        "· parole di limite nella riga sì · verso letto vicino al numero giù"
+    )
+    other = final_rules.quote_diagnosis(cycle, [ok(0, "Blend the damage.")], "010")
+    assert "stesso numero nella riga citata no" in other and "Blend" not in other
+    assert final_rules.quote_diagnosis(cycle, [ok(1, "x")], "010") == (
+        "nessun CORRETTO della descrizione"
+    )

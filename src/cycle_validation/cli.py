@@ -53,6 +53,7 @@ from cycle_validation.evaluation.mutations import mutate_cases
 from cycle_validation.evaluation.no_model import ModelFreeSession, model_free_settings
 from cycle_validation.evaluation.replay import (
     extra_rules,
+    false_ok_quotes,
     other_changes,
     replay_trials,
     write_replay,
@@ -1808,6 +1809,8 @@ def eval_replay(
             f"{old.clean_warnings:.1f} → {new.clean_warnings:.1f} · {new.decision}"
         )
         typer.echo(f"Riepilogo: {summary}")
+        for line in false_ok_quotes(folder, reference, sets[set_name].known):
+            typer.echo(f"Falso OK, riga citata: {line}")
 
 
 @eval_app.command("riepilogo")

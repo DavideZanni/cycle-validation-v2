@@ -12,7 +12,12 @@ from collections.abc import Callable, Sequence
 from decimal import Decimal
 
 from cycle_validation.checks.base import make_result
-from cycle_validation.checks.languages import language_blocks, limit_ways
+from cycle_validation.checks.languages import (
+    has_limit_word,
+    language_blocks,
+    limit_ways,
+    values_in,
+)
 from cycle_validation.domain.check import (
     CheckName,
     CheckResult,
@@ -136,6 +141,46 @@ def limit_against_quote(cycle: Cycle, results: list[CheckResult]) -> list[CheckR
             )
         )
     return out
+
+
+def quote_diagnosis(cycle: Cycle, results: Sequence[CheckResult], op: str) -> str:
+    """MG87, perché la regola non scatta: che cosa c'è nella riga citata dal modello per il
+    CORRETTO della descrizione su `op`. Solo sì/no e conteggi, mai il testo (va a schermo)."""
+    result = next(
+        (
+            r
+            for r in results
+            if r.check is CheckName.OPERATION_DESCRIPTION
+            and r.verdict is Verdict.CORRETTO
+            and r.target.label == op
+            and r.target.index is not None
+            and 0 <= r.target.index < len(cycle.operations)
+        ),
+        None,
+    )
+    if result is None or result.target.index is None:
+        return "nessun CORRETTO della descrizione"
+    described = _description_ways(cycle.operations[result.target.index].operation_description)
+    limited = {value for value, ways in described.items() if len(ways) == 1}
+    quotes = [e.quote for e in result.evidence]
+    numbers = set().union(*(values_in(q) for q in quotes)) if quotes else set()
+    near = {
+        way
+        for q in quotes
+        for value, ways in limit_ways(q, after=True).items()
+        if value in limited
+        for way in ways
+    }
+
+    def yes(flag: bool) -> str:
+        return "sì" if flag else "no"
+
+    return (
+        f"citazioni {len(quotes)} · limite letto nella descrizione {yes(bool(limited))} · "
+        f"stesso numero nella riga citata {yes(bool(limited & numbers))} · parole di limite "
+        f"nella riga {yes(any(has_limit_word(q) for q in quotes))} · verso letto vicino al "
+        f"numero {', '.join(sorted(near)) or 'nessuno'}"
+    )
 
 
 # nome → regola, in `agent.final_rules` (una variante per regola).
