@@ -950,3 +950,61 @@ def test_a_missing_sheet_says_it_is_missing() -> None:
     [result] = check_process_sheets(_ctx(cycle))
     assert result.verdict is Verdict.WARNING
     assert result.rationale.startswith("Scheda mancante")
+
+
+# MG48 (28-11): il task citato è di un altro stadio. Manuale e codici inventati.
+def _stage_kb(tmp_path: Path, heading: str) -> KnowledgeBase:
+    path = tmp_path / "MAN-ST.md"
+    path.write_text(
+        f"indice\nTASK 10-00-00-200-801\n{heading}\n1. Ispezionare le pale.\n", encoding="utf-8"
+    )
+    document = DocumentInfo(key="MAN-ST", path=path)
+    task = TaskLocation(
+        manual_key="MAN-ST", task="10-00-00-200-801", document=document, line_start=2, line_end=4
+    )
+    return IndexedKnowledgeBase("v", documents=[document], tasks=[task])
+
+
+def _stage_cycle(title: str) -> Cycle:
+    return Cycle.model_validate(
+        {
+            "cycle_description": title,
+            "sources": [{"manual": "MAN-ST", "task": "10-00-00-200-801"}],
+            "operations": [
+                {"operation_number": "050", "task_codes": ["10-00-00-200-801"]},
+            ],
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    ("title", "heading", "expected"),
+    [
+        ("DEMO LPT BLADE STAGE 7", "STAGE 6 LPT BLADES - INSPECTION", Reason.TASK_ALTRO_STADIO),
+        ("DEMO LPT BLADE STAGE 7", "STAGE 7 LPT BLADES - INSPECTION", Reason.VERIFICATO),
+        ("DEMO LPT BLADE STAGE 7", "LPT BLADES STAGES 1 THRU 7", Reason.VERIFICATO),
+        ("DEMO LPT BLADE STAGE 7", "LPT BLADES STAGES 6 AND 7", Reason.VERIFICATO),
+        ("DEMO LPT BLADE STAGE 7", "LPT BLADES STAGES 1-4", Reason.TASK_ALTRO_STADIO),
+        # un altro modulo (un altro pezzo) o un'intestazione senza stadi: non si confronta
+        ("DEMO LPT BLADE STAGE 7", "HPT STAGE 1 NOZZLE", Reason.VERIFICATO),
+        ("DEMO LPT BLADE STAGE 7", "LPT BLADES - INSPECTION", Reason.VERIFICATO),
+        # ciclo senza stadio, o con due: non si controlla
+        ("DEMO LPT BLADE", "STAGE 6 LPT BLADES", Reason.VERIFICATO),
+        ("DEMO LPT BLADE STAGE 6 E STAGE 7", "STAGE 5 LPT BLADES", Reason.VERIFICATO),
+    ],
+)
+def test_a_task_of_another_stage_is_errato(
+    tmp_path: Path, title: str, heading: str, expected: Reason
+) -> None:
+    from cycle_validation.config import AgentSettings
+
+    kb = _stage_kb(tmp_path, heading)
+    ctx = _ctx(_stage_cycle(title), kb=kb)
+    on = CheckContext(**{**ctx.__dict__, "agent": AgentSettings(task_stage_check=True)})
+    result = check_task_codes(on)[0]
+    assert result.reason is expected, result.rationale
+    if expected is Reason.TASK_ALTRO_STADIO:
+        assert result.verdict is Verdict.ERRATO and "stadio 7" in result.rationale
+        assert result.evidence[0].line == 3
+    # spento (la base): mai
+    assert check_task_codes(ctx)[0].reason is Reason.VERIFICATO

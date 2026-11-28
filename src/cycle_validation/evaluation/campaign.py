@@ -31,11 +31,13 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from cycle_validation.errors import ConfigError
 from cycle_validation.evaluation.trials import (
     BASE_NAME,
+    REFERENCE_FILE,
     WARNING_MEANING,
     Trial,
     Variant,
     best_variant,
     build_variants,
+    load_reference,
     load_trials,
     unseen_answers,
     unseen_by_kind,
@@ -61,6 +63,9 @@ class CampaignFile(BaseModel):
     insiemi: list[Literal["piccolo", "grande"]] = Field(default_factory=_default_sets)
     grande: Literal["se_si_tiene", "sempre", "mai"] = "se_si_tiene"
     massimo_dollari: float = Field(default=40.0, gt=0)
+    # La variante con cui si confrontano le altre (28-11). Vuoto = la base. Si scrive in
+    # `riferimento.txt` nelle cartelle delle prove, così anche `riepilogo.md` la usa.
+    riferimento: str | None = None
 
 
 def load_campaign(path: Path) -> CampaignFile:
@@ -91,7 +96,7 @@ def kept_on(folder: Path) -> set[str]:
     """Le varianti che sul piccolo si tengono (più la base): quelle da provare sul grande."""
     if not folder.is_dir():
         return {BASE_NAME}
-    variants = build_variants(load_trials(folder))
+    variants = build_variants(load_trials(folder), load_reference(folder))
     kept = {v.name.casefold() for v in variants if v.decision.startswith("si tiene")}
     return kept | {BASE_NAME}
 
@@ -194,7 +199,7 @@ def render_campaign(
         for set_name in config.insiemi:
             folder = folder_for(models, model, set_name, runs)
             trials = load_trials(folder) if folder.is_dir() else []
-            variants = build_variants(trials)
+            variants = build_variants(trials, load_reference(folder))
             tables[(model, set_name)] = variants
             lines += [f"## {model} · {set_name} (`{folder.as_posix()}`)", ""]
             if not variants:
@@ -220,6 +225,7 @@ def render_campaign(
     ]
     lines += _unseen_section(chosen)
     lines += _warning_section(chosen)
+    lines += _warning_ops_section(chosen)
     lines += [
         "Dettagli di ogni insieme: `riepilogo.md` nella sua cartella. Le considerazioni le scrive "
         "Claude nel registro di `docs/MEMORIA.md`.",
@@ -274,8 +280,9 @@ def _last_of_best(folder: Path) -> Trial | None:
     if not folder.is_dir():
         return None
     trials = load_trials(folder)
-    best = best_variant(build_variants(trials))
-    name = best.name.casefold() if best else BASE_NAME
+    reference = load_reference(folder)
+    best = best_variant(build_variants(trials, reference))
+    name = best.name.casefold() if best else reference
     picked = [t for t in trials if t.name.casefold() == name]
     return picked[-1] if picked else None
 
@@ -318,3 +325,35 @@ def _warning_section(chosen: Sequence[tuple[str, Trial]]) -> list[str]:
     else:
         lines.append("Nessuna prova.")
     return [*lines, ""]
+
+
+def _warning_ops_section(chosen: Sequence[tuple[str, Trial]]) -> list[str]:
+    """MG83: i WARNING dei cicli senza errori noti, operazione per operazione (impronta, numero,
+    controllo e motivo): da qui si sceglie che cosa tagliare."""
+    lines = [
+        "## WARNING per operazione (scelta migliore, ultima prova, cicli senza errori noti)",
+        "",
+    ]
+    rows: list[str] = []
+    for label, trial in chosen:
+        rows += [
+            f"| {label} | {fingerprint} | {op} | `{reason}` |"
+            for fingerprint, op, reason, _ in trial.clean_warning_ops()
+        ]
+    if rows:
+        lines += ["| Prova | Ciclo | Op | Controllo e motivo |", "|---|---|---|---|", *rows]
+    else:
+        lines.append("Nessun dato (prove scritte prima del 28-11: rifai il riepilogo).")
+    return [*lines, ""]
+
+
+def write_reference(config: CampaignFile, folders: Sequence[Path]) -> None:
+    """Scrive (o toglie) `riferimento.txt` nelle cartelle delle prove, dal campo
+    `riferimento` della campagna."""
+    for folder in folders:
+        path = folder / REFERENCE_FILE
+        if config.riferimento:
+            folder.mkdir(parents=True, exist_ok=True)
+            path.write_text(config.riferimento.strip() + "\n", "utf-8")
+        elif path.exists():
+            path.unlink()

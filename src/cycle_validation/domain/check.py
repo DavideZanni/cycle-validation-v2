@@ -39,6 +39,8 @@ class Reason(StrEnum):
     SCHEDA_INESISTENTE = "SCHEDA_INESISTENTE"
     # l'operazione cita un DR diverso da quello del ciclo (MG76, 27-11 notte)
     DR_DIVERSO = "DR_DIVERSO"
+    # il task citato è di un altro stadio del motore (MG48, 28-11, `task_stage_check`)
+    TASK_ALTRO_STADIO = "TASK_ALTRO_STADIO"
 
     EVIDENZA_NON_TROVATA = "EVIDENZA_NON_TROVATA"
     FONTE_ASSENTE = "FONTE_ASSENTE"
@@ -83,6 +85,7 @@ _ERRATO = (
     Reason.SCHEDA_MATERIALE_DIVERSO,
     Reason.SCHEDA_INESISTENTE,
     Reason.DR_DIVERSO,
+    Reason.TASK_ALTRO_STADIO,
 )
 _NON_APPLICABILE = (
     Reason.CAMPO_ASSENTE,

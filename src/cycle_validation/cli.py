@@ -21,9 +21,9 @@ from typing import Annotated, Any
 import typer
 import yaml
 
+from cycle_validation.agent.factory import make_agent_session
 from cycle_validation.agent.prompt import OPERATION_PROMPT_FILE, load_prompt, prompt_version
-from cycle_validation.agent.sdk_session import SdkAgentSession
-from cycle_validation.agent.session import AgentSession
+from cycle_validation.agent.session import AgentSession, SessionRequest
 from cycle_validation.checks.languages import language_parts, number_mismatches
 from cycle_validation.config import AgentSettings, Settings, load_profile, load_settings
 from cycle_validation.domain.check import CheckName
@@ -44,6 +44,7 @@ from cycle_validation.evaluation.campaign import (
     load_campaign,
     plan,
     render_campaign,
+    write_reference,
 )
 from cycle_validation.evaluation.draft import draft_case
 from cycle_validation.evaluation.leaderboard import build_leaderboard, render_leaderboard
@@ -109,7 +110,7 @@ app.add_typer(eval_app, name="eval")
 
 def make_session(settings: AgentSettings, transcripts_dir: Path | None) -> AgentSession:
     """Punto di sostituzione: i test iniettano una sessione finta."""
-    return SdkAgentSession(settings, transcripts_dir)
+    return make_agent_session(settings, transcripts_dir)
 
 
 def _fail(error: Exception) -> typer.Exit:
@@ -1199,6 +1200,50 @@ def eval_trial(
     typer.echo(f"Riepilogo di tutte le prove: {summary}")
 
 
+@eval_app.command("chiamata-diretta")
+def eval_direct_call(
+    config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
+) -> None:
+    """Prova la chiamata diretta a Bedrock (MG54) con una domanda finta, senza testi aziendali:
+    una sessione, meno di un centesimo. Dice se modello, regione, accesso e strumento di
+    risposta funzionano, prima di una campagna con la variante `diretta`."""
+    import asyncio
+
+    from cycle_validation.agent.direct_session import DirectBedrockSession
+
+    if config is None and Path("data/settings.yaml").is_file():
+        config = Path("data/settings.yaml")
+    try:
+        settings = load_settings(config)
+    except (CycleValidationError, OSError, ValueError) as error:
+        raise _fail(error) from error
+    agent = settings.agent.model_copy(update={"session_backend": "diretta", "direct_cache": True})
+    request = SessionRequest(
+        session_id="prova-diretta",
+        system_prompt="Rispondi solo con l'oggetto richiesto.",
+        prompt="Il testo «PULIRE CON SOLVENTE» e il testo «CLEAN WITH SOLVENT» dicono la stessa "
+        "cosa? Rispondi `uguali` o `diverse`.",
+        output_schema={
+            "type": "object",
+            "properties": {"risposta": {"type": "string", "enum": ["uguali", "diverse"]}},
+            "required": ["risposta"],
+        },
+    )
+    outcome = asyncio.run(DirectBedrockSession(agent).run(request))
+    usage = outcome.usage
+    model = agent.direct_model or agent.model
+    if outcome.status.value != "ok":
+        typer.echo(
+            f"Chiamata diretta NON riuscita ({model}): {outcome.status.value} {outcome.error}"
+        )
+        raise typer.Exit(code=1)
+    typer.echo(
+        f"Chiamata diretta: ok ({model}) · risposta {outcome.output} · token "
+        f"{usage.input_tokens}+{usage.output_tokens} · costo {usage.cost_usd:.5f} $ · "
+        f"{usage.wall_ms / 1000:.1f} s"
+    )
+
+
 @eval_app.command("senza-modello")
 def eval_without_model(
     insiemi: Annotated[str, typer.Option(help="piccolo, grande o tutti e due.")] = "piccolo,grande",
@@ -1552,6 +1597,11 @@ def eval_campaign(
                 raise CycleValidationError(f"Variante non trovata: eval/varianti/{name}.yaml")
         kb = knowledge or _latest_knowledge()
         sets = _campaign_sets(runs, KNOWN_ERRORS_FILE)
+        # il riferimento delle decisioni (28-11): in tutte le cartelle, anche dei modelli saltati
+        write_reference(
+            load_campaign(file),
+            [folder_for(all_models, m, s, runs) for m in all_models for s in ("piccolo", "grande")],
+        )
     except (CycleValidationError, OSError, ValueError) as error:
         raise _fail(error) from error
     outcome = Outcome()

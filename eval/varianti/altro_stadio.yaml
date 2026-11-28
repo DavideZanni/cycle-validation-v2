@@ -1,0 +1,7 @@
+nome: altro_stadio
+descrizione: "MG48: il task citato è di un altro stadio. Lo stadio del ciclo dal titolo, quelli del task dalla sua intestazione nel manuale; se il task dice solo stadi diversi dello stesso modulo, ERRATO TASK_ALTRO_STADIO dal codice"
+ipotesi: "È l'unico controllo che la v1 fa e la v2 no (V1_CONTRO_V2). Sui 14 cicli non c'è un errore noto di questo tipo: misura soprattutto che non dia falsi errori sulle stampe giuste e sui cicli veri"
+atteso: "stessi errori stabili di quasi_finale, 0 falsi errori, 0 da verificare in più; costo e tempo uguali (è codice)"
+base: quasi_finale
+agent:
+  task_stage_check: true

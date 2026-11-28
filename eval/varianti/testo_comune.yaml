@@ -1,0 +1,7 @@
+nome: testo_comune
+descrizione: "MG59: diretta_cache più il testo del manuale prima della domanda, in un blocco con un punto di cache: le operazioni che citano lo stesso task lo pagano una volta"
+ipotesi: "Nello stesso ciclo molte operazioni citano lo stesso task: il testo uguale si legge dalla cache. Cambia l'ordine del prompt (prima il manuale, poi l'operazione)"
+atteso: "stessi errori di diretta_cache; costo un po' più basso. Se perde errori, l'ordine del prompt conta: si scarta"
+base: diretta_cache
+agent:
+  shared_reference_first: true

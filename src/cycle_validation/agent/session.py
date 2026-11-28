@@ -31,6 +31,10 @@ class SessionRequest(BaseModel):
     max_turns: int = 3
     # Ragionamento del modello per questa richiesta. None = quello delle impostazioni.
     effort: Literal["low", "medium", "high"] | None = None
+    # MG59 (28-11): il testo di riferimento, uguale per le operazioni che citano lo stesso
+    # task, mandato prima di `prompt`. La sessione diretta con la cache lo mette in un blocco
+    # con un punto di cache; la sessione dell'SDK lo mette semplicemente davanti.
+    shared_context: str = ""
 
 
 class SessionOutcome(BaseModel):

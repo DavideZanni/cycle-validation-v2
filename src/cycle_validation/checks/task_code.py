@@ -9,6 +9,11 @@ per esempio 70-11-00-350) ma diverso, è un ERRATO: la stampa si contraddice. Ne
 errori messi a mano il task cambiato di una cifra esiste spesso nel manuale, quindi il
 controllo «task inesistente» non lo vede. Un task di un'altra famiglia (attacco chimico,
 liquidi penetranti, pulizia) è un altro processo e non si confronta.
+
+MG48 (28-11, `agent.task_stage_check`): il task trovato nel manuale è di un altro stadio. Lo
+stadio del ciclo viene dal suo titolo («LPT BLADE STAGE 7»), quelli del task dalle prime righe
+del task nel manuale («STAGE 6 LPT BLADES - INSPECTION», «STAGES 1 THRU 7»). Se il task dice
+solo stadi diversi, dello stesso modulo, è un ERRATO.
 """
 
 import re
@@ -16,8 +21,8 @@ import re
 from cycle_validation.checks.base import CheckContext, evidence_at, make_result, per_operation
 from cycle_validation.domain.check import CheckName, CheckResult, Evidence, Reason, Target
 from cycle_validation.domain.cycle import Cycle, Operation
-from cycle_validation.kb.documents import folded_text
-from cycle_validation.kb.port import DocumentInfo
+from cycle_validation.kb.documents import folded_text, read_lines
+from cycle_validation.kb.port import DocumentInfo, TaskLocation
 from cycle_validation.resolve.civil import (
     cited_documents,
     manuals_for_operation,
@@ -55,6 +60,20 @@ def _by_task(ctx: CheckContext, target: Target, operation: Operation) -> CheckRe
             Reason.FONTE_ASSENTE,
             f"Task code non trovati nei manuali citati: {', '.join(refs.missing)}.",
         )
+    if ctx.agent.task_stage_check:
+        stage = cycle_stage(ctx.cycle)
+        for item in refs.found if stage is not None else ():
+            found = task_stages(item, module_of(ctx.cycle.cycle_description or ""))
+            if found is not None and stage not in found[0]:
+                stages = ", ".join(str(n) for n in sorted(found[0]))
+                return make_result(
+                    CHECK,
+                    target,
+                    Reason.TASK_ALTRO_STADIO,
+                    f"Il task {item.task} è per lo stadio {stages}, il ciclo è per lo stadio "
+                    f"{stage}: il task citato è di un altro stadio.",
+                    evidence=[evidence_at(item.document, found[1])],
+                )
     return make_result(
         CHECK,
         target,
@@ -62,6 +81,57 @@ def _by_task(ctx: CheckContext, target: Target, operation: Operation) -> CheckRe
         "Tutti i task code citati sono presenti nei manuali citati.",
         evidence=[evidence_at(item.document, item.line_start) for item in refs.found],
     )
+
+
+_CYCLE_STAGE = re.compile(r"\b(?:STAGE|STADIO|STG)\.?\s*(\d{1,2})\b", re.IGNORECASE)
+_STAGES = re.compile(
+    r"\b(?:STAGES?|STGS?)\.?\s+(\d{1,2}(?:\s*(?:,|&|/|-|AND|THRU|THROUGH|TO)\s*\d{1,2})*)",
+    re.IGNORECASE,
+)
+_RANGE = re.compile(r"(\d{1,2})\s*(?:-|THRU|THROUGH|TO)\s*(\d{1,2})", re.IGNORECASE)
+_MODULES = ("LPT", "HPT", "HPC", "LPC", "IPC", "IPT", "FAN", "BOOSTER")
+# righe del task in cui si cerca lo stadio: l'intestazione, non il testo delle procedure
+HEADING_LINES = 6
+
+
+def cycle_stage(cycle: Cycle) -> int | None:
+    """Lo stadio del ciclo, dal titolo: uno solo, altrimenti None (non si controlla)."""
+    found = {int(n) for n in _CYCLE_STAGE.findall(cycle.cycle_description or "")}
+    return found.pop() if len(found) == 1 else None
+
+
+def module_of(text: str) -> str | None:
+    words = set(re.findall(r"[A-Z]+", text.upper()))
+    found = [module for module in _MODULES if module in words]
+    return found[0] if len(found) == 1 else None
+
+
+def stages_in(text: str) -> set[int]:
+    """Gli stadi scritti in un testo: «STAGE 6», «STAGES 1 AND 2», «STAGES 1 THRU 7»."""
+    stages: set[int] = set()
+    for match in _STAGES.finditer(text):
+        body = match.group(1)
+        for low, high in _RANGE.findall(body):
+            stages.update(range(int(low), int(high) + 1))
+        stages.update(int(n) for n in re.findall(r"\d{1,2}", _RANGE.sub("", body)))
+    return stages
+
+
+def task_stages(location: TaskLocation, module: str | None) -> tuple[set[int], int] | None:
+    """Gli stadi dell'intestazione del task e la riga dove sono, o None se l'intestazione non
+    dice stadi o è di un altro modulo (un altro pezzo: non è questo controllo)."""
+    lines = read_lines(location.document.path)
+    last = min(location.line_start + HEADING_LINES - 1, len(lines))
+    for number in range(location.line_start, last + 1):
+        line = lines[number - 1]
+        stages = stages_in(line)
+        if not stages:
+            continue
+        other = module_of(line)
+        if module is not None and other is not None and other != module:
+            return None
+        return stages, number
+    return None
 
 
 def _code_pattern(code: str) -> re.Pattern[str]:

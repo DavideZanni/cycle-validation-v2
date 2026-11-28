@@ -160,6 +160,37 @@ class AgentSettings(_Strict):
     # notte): sotto i 600 s del backend. Le sessioni che non finiscono in tempo diventano
     # WARNING per errore tecnico e il report esce con quello che c'è. None = nessun limite.
     validation_timeout_s: float | None = Field(default=480, gt=0)
+    # Il task citato è di un altro stadio (MG48, 28-11): il titolo del ciclo dice uno stadio
+    # («... STAGE 7») e l'intestazione del task nel manuale dice solo stadi diversi («STAGE 6
+    # ... INSPECTION»): ERRATO TASK_ALTRO_STADIO, dal codice. Lo fa la v1 (con il modello). Si
+    # confrontano solo intestazioni dello stesso modulo (LPT con LPT...). Variante
+    # `altro_stadio`.
+    task_stage_check: bool = False
+    # Come si chiama il modello (MG54, 28-11). `sdk`: Claude Agent SDK, cioè Claude Code avviato
+    # per ogni sessione (circa 3-5 s di avvio ciascuna). `diretta`: l'SDK `anthropic` chiama
+    # Bedrock direttamente (`agent/direct_session.py`); Read e Grep li esegue la v2 con le
+    # stesse regole. Variante `diretta`.
+    session_backend: Literal["sdk", "diretta"] = "sdk"
+    # Con `diretta`: l'id del modello su Bedrock (per esempio un profilo `eu.anthropic...`).
+    # None = `model` (sul PC è già l'id completo; l'alias `haiku` vale solo per l'SDK).
+    direct_model: str | None = None
+    # Con `diretta`: prezzi in dollari per milione di token, per il costo nel report. Listino
+    # di Haiku 5.5; la fattura di Bedrock può essere diversa. La scrittura in cache costa 1,25
+    # volte l'ingresso, la lettura 0,1 volte.
+    direct_input_price: float = Field(default=0.10, ge=0)
+    direct_output_price: float = Field(default=0.50, ge=0)
+    # Con `diretta`: punti di cache di Bedrock (MG56, 28-11) su istruzioni, strumenti e storia
+    # della sessione. Variante `diretta_cache`.
+    direct_cache: bool = False
+    # Il testo di riferimento prima della domanda, in un blocco che si può tenere in cache
+    # (MG59, 28-11): le operazioni che citano lo stesso task lo pagano una volta. Cambia
+    # l'ordine del prompt (prima il manuale, poi l'operazione). Variante `testo_comune`.
+    shared_reference_first: bool = False
+    # Il confronto tra le due lingue di più operazioni in una sola sessione (MG55, 28-11): una
+    # sessione ogni `language_batch_size` operazioni invece di una per operazione. Rischio: il
+    # modello mescola le operazioni (il codice ritrova comunque le citazioni nella lingua
+    # giusta di ogni operazione). 0 = spento. Variante `lingue_insieme`.
+    language_batch_size: int = Field(default=0, ge=0, le=30)
     # Testo delle sessioni su disco: contiene cicli e manuali. Spento nel servizio, acceso
     # negli esperimenti (eval/varianti/baseline.yaml).
     save_transcripts: bool = False

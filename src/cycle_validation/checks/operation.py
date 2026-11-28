@@ -26,11 +26,14 @@ from cycle_validation.agent.prompt import (
     LanguagesJudgement,
     LanguagesVerdict,
     OperationJudgement,
+    build_batch_languages_prompt,
     build_languages_prompt,
     build_operation_prompt,
     build_strict_languages_prompt,
     judgement_schema,
+    languages_batch_schema,
     languages_schema,
+    reference_lines,
 )
 from cycle_validation.agent.runner import run_sessions
 from cycle_validation.agent.session import (
@@ -326,6 +329,7 @@ def plan_operation_checks(
             )
             continue
         inline = sum(item.n_lines for item in locations) <= settings.inline_max_lines
+        apart = inline and settings.shared_reference_first
         prompt = build_operation_prompt(
             ctx.cycle,
             operation,
@@ -337,11 +341,13 @@ def plan_operation_checks(
             languages=_languages(operation, settings),
             dr_procedure=settings.dr_procedure_always and _has_dr_procedure(locations),
             inspection=settings.inspection_source and _has_inspection(locations),
+            reference_apart=apart,
         )
         request = SessionRequest(
             session_id=f"op-{index:03d}-{operation.operation_number}",
             system_prompt=system_prompt,
             prompt=prompt,
+            shared_context="\n".join(reference_lines(locations)) if apart else "",
             output_schema=schema,
             use_tools=not inline,
             allowed_files=tuple({item.document.path for item in locations}),
@@ -376,6 +382,64 @@ def plan_language_checks(
         )
         jobs.append(LanguageJob(index, italian, english, request, strict))
     return jobs
+
+
+@dataclass(frozen=True)
+class LanguageBatch:
+    """MG55: i confronti tra le lingue di più operazioni in una sola sessione."""
+
+    jobs: tuple[LanguageJob, ...]
+    numbers: tuple[str, ...]
+    request: SessionRequest
+
+
+def batch_language_jobs(
+    ctx: CheckContext, jobs: Sequence[LanguageJob], settings: AgentSettings
+) -> list[LanguageBatch]:
+    size = settings.language_batch_size
+    strict = settings.compare_languages_strict
+    batches: list[LanguageBatch] = []
+    for start in range(0, len(jobs), size):
+        chunk = tuple(jobs[start : start + size])
+        numbers = tuple(ctx.cycle.operations[job.index].operation_number for job in chunk)
+        items = [(n, job.italian, job.english) for n, job in zip(numbers, chunk, strict=True)]
+        request = SessionRequest(
+            session_id=f"lingue-insieme-{start // size + 1:02d}",
+            system_prompt=LANGUAGES_SYSTEM_PROMPT,
+            prompt=build_batch_languages_prompt(items, strict),
+            output_schema=languages_batch_schema(strict),
+            use_tools=False,
+            max_turns=settings.inline_max_turns,
+        )
+        batches.append(LanguageBatch(chunk, numbers, request))
+    return batches
+
+
+def split_language_batch(batch: LanguageBatch, outcome: SessionOutcome) -> list[SessionOutcome]:
+    """L'esito di ogni operazione del gruppo, come se avesse avuto la sua sessione. Il costo va
+    tutto sulla prima (la somma resta giusta). Un'operazione che manca nella risposta, o che
+    compare due volte, resta senza giudizio: il confronto non cambia il suo esito."""
+    answers: dict[str, list[dict[str, object]]] = {}
+    if outcome.status is SessionStatus.OK and outcome.output is not None:
+        for item in outcome.output.get("operations") or []:
+            if isinstance(item, dict):
+                number = str(item.get("operation", "")).strip()
+                answers.setdefault(number, []).append(
+                    {k: v for k, v in item.items() if k != "operation"}
+                )
+    split: list[SessionOutcome] = []
+    for n, number in enumerate(batch.numbers):
+        found = answers.get(number, [])
+        usage = outcome.usage if n == 0 else Usage()
+        if outcome.status is not SessionStatus.OK:
+            split.append(outcome.model_copy(update={"usage": usage}))
+        elif len(found) != 1:
+            split.append(
+                SessionOutcome(status=SessionStatus.INVALID_OUTPUT, usage=usage, error="manca")
+            )
+        else:
+            split.append(SessionOutcome(status=SessionStatus.OK, output=found[0], usage=usage))
+    return split
 
 
 def _plain(text: str) -> str:
@@ -601,6 +665,15 @@ def _repeated(request: SessionRequest, repeats: int) -> list[SessionRequest]:
 def _validate(output: dict[str, object]) -> object:
     """Le sessioni del confronto con il manuale e quelle del confronto tra le lingue girano
     insieme: ognuna con il suo schema."""
+    if "operations" in output:  # MG55: più operazioni in una sessione
+        items = output["operations"]
+        if not isinstance(items, list):
+            raise ValueError("operations non è una lista")
+        for item in items:
+            if not isinstance(item, dict):
+                raise ValueError("elemento non valido")
+            LanguagesJudgement.model_validate({k: v for k, v in item.items() if k != "operation"})
+        return output
     if "languages" in output:
         return LanguagesJudgement.model_validate(output)
     return OperationJudgement.model_validate(output)
@@ -708,10 +781,24 @@ async def check_operations(
         if language_jobs:
             stats["lingue"] = len(language_jobs)
     # le sessioni delle lingue girano insieme a quelle del manuale: il ciclo non dura di più
-    every = await _run(
-        session, [job.request for job in jobs] + [job.request for job in language_jobs], settings
+    batches = (
+        batch_language_jobs(ctx, language_jobs, settings)
+        if settings.language_batch_size and language_jobs
+        else []
     )
-    outcomes, language_outcomes = every[: len(jobs)], every[len(jobs) :]
+    language_requests = (
+        [batch.request for batch in batches] if batches else [job.request for job in language_jobs]
+    )
+    if stats is not None and batches:
+        stats["lingue"] = len(batches)
+    every = await _run(session, [job.request for job in jobs] + language_requests, settings)
+    outcomes, language_outcomes = every[: len(jobs)], list(every[len(jobs) :])
+    if batches:
+        language_outcomes = [
+            item
+            for batch, outcome in zip(batches, language_outcomes, strict=True)
+            for item in split_language_batch(batch, outcome)
+        ]
     decided = [
         decide_operation(job, outcome, settings)
         for job, outcome in zip(jobs, outcomes, strict=True)

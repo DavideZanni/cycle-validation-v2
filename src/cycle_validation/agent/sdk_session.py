@@ -173,7 +173,12 @@ class SdkAgentSession:
             name = _UNSAFE.sub("_", request.session_id)
             transcript = (self._transcripts_dir / f"{name}.jsonl").open("a", encoding="utf-8")
         try:
-            async for message in query(prompt=request.prompt, options=self.build_options(request)):
+            prompt = (
+                f"{request.shared_context}\n\n{request.prompt}"
+                if request.shared_context
+                else request.prompt
+            )
+            async for message in query(prompt=prompt, options=self.build_options(request)):
                 if transcript is not None:
                     line = json.dumps(_to_jsonable(message), ensure_ascii=False, default=str)
                     transcript.write(line + "\n")

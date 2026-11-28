@@ -57,7 +57,10 @@ sezione 1 di `COPILOT.md`):
 | 7e12 | Claude: banco di prova (`eval banco`), metriche di controllo nel riepilogo, date e limiti ripetuti | Claude | ✅ 27-11 notte |
 | 7e13 | Aggiornare, senza modello, `eval banco`; campagna (o, se già partita, ricalcolo dei riepiloghi per le metriche di controllo) | COPILOT passo 4h | senza modello e banco ✅ 27-11 notte: 41 su 45 e 31 su 31, 0 e 0; banco sul PC uguale a quello di Claude (308 su 310, 0 falsi allarmi, lettura 105 su 105); campagna ✅ 28-11 notte: `quasi_finale` si tiene (42 su 45, 31 su 31, 0 falsi errori, 0 da verificare) |
 | 7e14 | Claude: tabelle per tipo e per motivo sulla scelta migliore; MG58 risultato già calcolato (solo servizio) | Claude | ✅ 28-11 |
-| 7e15 | Aggiornare, report della campagna rifatto (0 $) | COPILOT passo 4i | da fare |
+| 7e15 | Claude: MG48, MG54, MG56, MG59, MG55 (spente, una variante ciascuna), dati per MG83, riferimento della campagna | Claude | ✅ 28-11 |
+| 7e16 | Aggiornare, `eval chiamata-diretta`, report rifatto con i WARNING per operazione | COPILOT passo 4i | da fare |
+| 7e17 | Claude: MG83 (variante `meno_avvisi`) dai dati del 7e16 | Claude | da fare |
+| 7e18 | Campagna completa delle migliorie del 28-11, contro `quasi_finale` (circa 12-14 $) | COPILOT passo 4j | da fare |
 | 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
 | 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |
 | 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
@@ -1637,6 +1640,21 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   tabelle «per tipo» e «WARNING per motivo» di `campagna.md` guardavano l'ultima base sul
   piccolo, fatta con il codice di prima: ora guardano l'ultima prova della scelta migliore,
   piccolo e grande (passo 4i per rifare il report). Copilot nelle foto non si vedeva.
+- **28-11, migliorie del 28-11 scritte (l'utente le ha chieste tutte prima della campagna).**
+  MG48 (task di un altro stadio, dal codice: la v1 lo fa con il modello: sui 14 cicli lo dice
+  sulla 140 di 8d3c673c, dove l'errore noto è un numero in una lingua, che la v2 trova già), MG54 (chiamata
+  diretta a Bedrock con l'SDK `anthropic`, `AsyncAnthropicBedrock`: Read e Grep li esegue la
+  v2 con le regole dell'hook; la risposta con lo strumento `StructuredOutput`, come Claude
+  Code; il costo dai token con il listino di Haiku 5.5, 0,10 e 0,50 $ per milione: da
+  controllare contro il costo che dava l'SDK nelle prove), MG56 (cache), MG59 (testo comune in
+  cache; con Haiku la cache vale solo sopra una lunghezza minima del testo, e le sessioni che
+  partono insieme non la trovano ancora scritta: lo dirà la campagna), MG55 (solo il confronto
+  tra le lingue, il più semplice da mettere insieme; le differenze si confermano sempre con le
+  sessioni di una sola operazione). Tutte spente, una variante ciascuna. MG83: senza sapere
+  quali operazioni danno «evidenza non trovata» un taglio alla cieca rischia falsi OK, che la
+  campagna ha appena mostrato come il punto debole: prima la tabella «WARNING per operazione»
+  (passo 4i), poi la variante. MG49 non serve. La campagna confronta con `quasi_finale`
+  (`riferimento` in `eval/campagna.yaml`).
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

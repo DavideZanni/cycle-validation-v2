@@ -24,24 +24,23 @@ e 20 s a ciclo sul piccolo, 0,019 $ e 30 s sul grande. Tutti gli errori noti tro
 su 3 (MG49 non serve più). Restano: 3 copie cieche che trova solo il modello mancate, con 3
 falsi OK su 9 (MG87), e gli avvisi (4,9 e 8,9 per ciclo, MG83).
 
-**Prossime, in ordine (28-11, dopo la campagna):** solo quelle che si possono fare davvero e che
-migliorano qualcosa di misurabile. L'ingestion si fa più avanti, quando l'utente ha tempo; la
-conoscenza prima di pubblicarla per ora la controlla l'utente a mano.
+**28-11, scritte da Claude (tutte spente nella base, una variante ciascuna):** MG48
+`altro_stadio`, MG54 `diretta`, MG56 `diretta_cache`, MG59 `testo_comune`, MG55
+`lingue_insieme`. Per MG83 il report ora dà i WARNING operazione per operazione. MG49 non serve
+(tutti gli errori noti 3 su 3).
 
-1. Report della campagna rifatto (utente, passo 4i, 0 $): le tabelle per tipo e per motivo
-   ora guardano `quasi_finale`, non la base vecchia. Da lì MG83 e MG87.
-2. ✅ MG58 risultato già calcolato (28-11): stesso PDF e stessa conoscenza, risposta in un
-   secondo e 0 $. Solo nel servizio; non tocca il modello né le prove.
-3. MG83 meno avvisi (Claude, dalla tabella «WARNING per motivo» di `quasi_finale`): cancello C.
-   Sul piccolo della base vecchia 3,8 dei 4,8 erano «evidenza non trovata».
-4. MG87 falsi OK sulle copie cieche (Claude, dalla tabella per tipo di `quasi_finale`): una
-   variante della campagna.
-5. MG54 chiamata diretta a Bedrock (circa metà del tempo), scritta spenta; poi MG56 cache di
-   Bedrock con MG59 (il batch no, non risponde subito). Ognuna come variante contro
-   `quasi_finale`, si tiene solo se trova gli stessi errori. MG55 per ultima (rischio: il
-   modello mescola le operazioni).
-6. MG48 task di un altro stadio: prima una domanda a Copilot, poi il codice.
-7. MG42 prova EJ200 (utente, passo 4f): cancello B.
+**Prossime, in ordine (28-11):** solo quelle che si possono fare davvero e che migliorano
+qualcosa di misurabile. L'ingestion si fa più avanti, quando l'utente ha tempo; la conoscenza
+prima di pubblicarla per ora la controlla l'utente a mano.
+
+1. Passo 4i (utente, meno di 1 centesimo): Aggiornare, `eval chiamata-diretta`, report rifatto
+   con le tabelle per tipo, per motivo e per operazione di `quasi_finale`.
+2. MG83 meno avvisi (Claude, dalla tabella «WARNING per operazione»): la variante
+   `meno_avvisi`. Sul piccolo della base vecchia 3,8 dei 4,8 erano «evidenza non trovata».
+   MG87 falsi OK sulle copie cieche, dalla tabella per tipo, se c'è una causa chiara.
+3. Passo 4j (utente, circa 12-14 $): la campagna completa, ogni variante contro `quasi_finale`.
+   Si tiene solo quello che trova gli stessi errori (o di più) e risparmia davvero.
+4. MG42 prova EJ200 (utente, passo 4f): cancello B.
 
 Più avanti, con l'ingestion (utente, quando ha tempo; il codice dell'indice lo scrive Claude se
 `knowledge-index` si collega a una sessione): MG73 grande ingestion (la classe dell'acido, meno
@@ -103,18 +102,18 @@ introduce).
 | MG45 | Fuori tema più prudente | mai N/A se la descrizione ha un limite o una negazione: WARNING e seconda ricerca (tocca il modello: si misura con la campagna) | 🔶 | 4 | F3 |
 | MG46 | Materiale tra le lingue | materiale diverso tra italiano e inglese, dal codice | ⬜ | 4 | F1 |
 | MG47 | Azione diversa tra le lingue | dal codice: rimuovere, raccordare, sostituire, lucidare, sabbiare, saldare, pulire (e9b74c84 040, 298bc28e 035). P15: un'azione in una condizione («durante la sabbiatura») non conta; «ripristinare» = «replace» | ✅ | 4 | F1 |
-| MG48 | Task di un altro stadio | il task cita un pezzo diverso da quello del ciclo | ⬜ | 3 | F2 |
+| MG48 | Task di un altro stadio | il task cita un pezzo diverso da quello del ciclo (28-11: dal codice, stadio del titolo contro intestazione del task; `agent.task_stage_check`, variante `altro_stadio`) | 🔶 | 3 | F2 |
 | MG49 | Errori più stabili | errori che escono 2 volte su 3 (28-11: con `quasi_finale` tutti gli errori noti 3 su 3, non serve) | ✅ | 3 | F4 |
 | MG50 | DR senza serial | la procedura DR dal numero «D.R. CASE #» della stampa (P14); le recommendation restano da decidere con le persone | 🔶 | 3 | F5 |
 | MG51 | Frontend con i due WARNING | colori diversi per `[da guardare]` e `[non controllabile]` (collega) | ⬜ | 3 | F7 |
 | MG52 | Fonte della nota | la fonte giusta per il task della nota nelle MOS | ⬜ | 3 | H16 |
 | MG53 | Tempo massimo della validazione | 480 s per le sessioni di un ciclo: chiude con quello che ha | ✅ | 3 | T1 |
-| MG54 | Chiamata diretta a Bedrock | niente avvio dell'agente per ogni operazione: circa metà del tempo | ⬜ | 3 | B1 |
-| MG55 | Più operazioni insieme | dopo MG54: meno tempo | ⬜ | 2 | B4 |
-| MG56 | Cache e batch di Bedrock | meno costo | ⬜ | 2 | H10 |
+| MG54 | Chiamata diretta a Bedrock | niente avvio dell'agente per ogni operazione: circa metà del tempo (28-11: `agent/direct_session.py`, `agent.session_backend: diretta`, variante `diretta`; prova `eval chiamata-diretta`) | 🔶 | 3 | B1 |
+| MG55 | Più operazioni insieme | dopo MG54: meno tempo (28-11: il confronto tra le lingue di 8 operazioni in una sessione, `agent.language_batch_size`, variante `lingue_insieme`) | 🔶 | 2 | B4 |
+| MG56 | Cache e batch di Bedrock | meno costo (28-11: cache su istruzioni, strumenti e storia, `agent.direct_cache`, variante `diretta_cache`; il batch no, non risponde subito) | 🔶 | 2 | H10 |
 | MG57 | Numeri contro il manuale | numeri e classi della descrizione confrontati dal codice con il manuale | ⬜ | 3 | I4, H12 |
 | MG58 | Risultato già calcolato | stesso PDF e stessa conoscenza: risposta subito e 0 $ (28-11: nel servizio, in memoria, 200 risultati per 6 ore; DOCUMENTAZIONE 13.3) | ✅ | 2 | H13 |
-| MG59 | Più operazioni in una sessione | stesso testo mandato una volta | ⬜ | 1 | H14 |
+| MG59 | Più operazioni in una sessione | stesso testo mandato una volta (28-11: il testo del manuale prima della domanda, in un blocco in cache, `agent.shared_reference_first`, variante `testo_comune`) | 🔶 | 1 | H14 |
 | MG60 | Macchine attive su S3 | file notturno con le macchine attive, leggibile anche dal PC | ⬜ | 3 | H1 |
 | MG61 | Ingestion guidata | classifica dei manuali più chiesti che mancano | ⬜ | 2 | H2 |
 | MG62 | `kb-check` nell'ingestion | una conoscenza rotta non si pubblica mai | ⬜ | 4 | H3 |
@@ -138,7 +137,7 @@ introduce).
 | MG80 | Test sulle 14 stampe vere | le regole del codice sul testo di `CONFRONTO_V1_14_CICLI.md`, a ogni `pytest` | ✅ | 4 | — |
 | MG81 | Massimo contro minimo tra le lingue | «profondità massima» in italiano, «min depth» in inglese, anche senza un numero: ERRATO dal codice (22f586bb e 895167b9 010) | ✅ | 4 | — |
 | MG82 | Motivo degli ERRATO in più | a schermo e nel riepilogo, accanto a ogni ERRATO da verificare, il motivo (quale controllo): si capisce subito da dove viene | ✅ | 3 | — |
-| MG83 | Meno avvisi per ciclo | tagliare le cause più frequenti dei WARNING (tabella «WARNING per motivo»), per il cancello C | ⬜ | 4 | — |
+| MG83 | Meno avvisi per ciclo | tagliare le cause più frequenti dei WARNING (tabella «WARNING per motivo»), per il cancello C (28-11: prima i dati, tabella «WARNING per operazione» nel report; poi la variante `meno_avvisi`) | 🔶 | 4 | — |
 | MG84 | Banco di prova | `eval banco`: errori messi dal programma su ogni operazione delle 14 stampe vere (numero, limite, massimo/minimo, azione, DR): 310 copie, trovate 308, 0 falsi allarmi; lettura della stampa uguale alla v1 | ✅ | 4 | — |
 | MG85 | Metriche di controllo | nel riepilogo: falsi OK, mancati come WARNING o N/A, esiti decisi, errori tecnici, ciclo più lento e più caro | ✅ | 4 | — |
 | MG86 | Date e limiti ripetuti | trovati dal banco: una data in una lingua sola disallineava i numeri; «massimo 2 … massimo 2» con uno girato non si vedeva | ✅ | 3 | — |

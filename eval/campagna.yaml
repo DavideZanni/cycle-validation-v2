@@ -30,7 +30,15 @@
 # base. Le prove della base sono già fatte (con il codice di prima) e si saltano: si fanno le 3
 # prove di `quasi_finale` (uguale alla base nuova) sul piccolo e sul grande, nello stesso
 # riepilogo delle prove di prima. Prima, gratis: `eval senza-modello` (COPILOT passo 4h)
-varianti: [quasi_finale]
+# 28-11: `quasi_finale` si tiene (42 su 45, 31 su 31, 0 falsi). Le sue prove sono il
+# riferimento (`riferimento`, sotto): la base ha prove fatte con il codice di prima. Campagna
+# completa delle migliorie del 28-11, tutte spente nella base: MG48 (`altro_stadio`), MG54
+# (`diretta`), MG56 (`diretta_cache`), MG59 (`testo_comune`), MG55 (`lingue_insieme`). Le
+# prove già fatte (base, `schede_e_limiti`, `quasi_finale`) si saltano.
+varianti: [quasi_finale, altro_stadio, diretta, diretta_cache, testo_comune, lingue_insieme]
+
+# La variante con cui si confrontano le altre. Vuoto = la base.
+riferimento: quasi_finale
 
 # Prove per variante: tre (le differenze sono di uno o due errori).
 ripetizioni: 3
@@ -52,4 +60,5 @@ grande: sempre
 # Tetto di spesa della campagna, in dollari. Il 26-27-11: base 0,22-0,26 $ a prova,
 # `lingue_tra_loro` 0,39-0,56 $. Questa: circa 6 $ (18 prove). Arrivata al tetto la campagna si
 # ferma; rilanciata, riparte da dove era.
-massimo_dollari: 10
+# 28-11: 5 varianti nuove x 6 prove, circa 0,4 $ a prova = circa 12 $.
+massimo_dollari: 16

@@ -495,3 +495,54 @@ def test_the_summary_counts_the_false_ok(tmp_path: Path) -> None:
     text = render_summary([trial])
     assert "## Metriche di controllo" in text
     assert f"| base | 1 su {len(missed)} |" in text
+
+
+def test_the_warnings_are_kept_operation_by_operation(tmp_path: Path) -> None:
+    """MG83 (28-11): i WARNING dei cicli senza errori noti, per operazione, per sapere quali
+    tagliare. Anche le prove vecchie li prendono dal loro report.json, con il ricalcolo."""
+    known = _known(tmp_path)
+    clean = _report("bbbb2222", [])
+    score = score_cycle(clean, known)
+    assert score.warning_ops == {
+        op: ["operation_description:EVIDENZA_NON_TROVATA"] for op in ("005", "010", "030")
+    }
+    root = tmp_path / "prove"
+    old = score.model_copy(update={"warning_ops": {}})  # prova scritta prima del 28-11
+    trial = build_trial("base", datetime(2030, 1, 1, 9), [clean], [old])
+    write_trial(trial, root / "2030-base")
+    folder = root / "2030-base" / "bbbb2222"
+    folder.mkdir(parents=True)
+    (folder / "report.json").write_text(clean.model_dump_json(), "utf-8")
+    rescore_trials(root, load_known_errors_empty())
+    (trial,) = load_trials(root)
+    assert trial.clean_warning_ops() == [
+        ("bbbb2222", op, "operation_description:EVIDENZA_NON_TROVATA", 1)
+        for op in ("005", "010", "030")
+    ]
+
+
+def load_known_errors_empty():  # type: ignore[no-untyped-def]
+    from cycle_validation.evaluation.trials import KnownErrors
+
+    return KnownErrors(cicli={})
+
+
+def test_the_variants_can_be_compared_with_another_reference(tmp_path: Path) -> None:
+    """28-11: la base aveva prove fatte con il codice di prima; con `riferimento.txt` le
+    decisioni si prendono contro un'altra variante (per esempio `quasi_finale`)."""
+    from cycle_validation.evaluation.trials import REFERENCE_FILE, build_variants, load_reference
+
+    known = _known(tmp_path)
+    trials = []
+    for name, errato in (("base", []), ("nuova", ["005"]), ("prova", [])):
+        for hour in (9, 10):
+            reports = [_report("aaaa1111", errato), _report("bbbb2222", [])]
+            scores = [score_cycle(r, known) for r in reports]
+            trials.append(build_trial(name, datetime(2030, 1, 1, hour), reports, scores))
+    assert load_reference(tmp_path) == "base"
+    (tmp_path / REFERENCE_FILE).write_text("nuova\n", "utf-8")
+    assert load_reference(tmp_path) == "nuova"
+    decided = {v.name: v.decision for v in build_variants(trials, "nuova")}
+    assert decided["nuova"] == "riferimento"
+    assert decided["prova"].startswith("non si tiene: errori stabili 0 contro 1")
+    assert build_variants(trials)[0].decision.startswith("si tiene")  # contro la base

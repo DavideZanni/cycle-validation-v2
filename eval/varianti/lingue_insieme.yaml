@@ -1,0 +1,7 @@
+nome: lingue_insieme
+descrizione: "MG55: diretta_cache più il confronto tra le due lingue di 8 operazioni in una sola sessione, invece di una sessione per operazione; le differenze trovate si confermano con le sessioni di una sola operazione"
+ipotesi: "Le sessioni delle lingue sono corte e tante (una per operazione scritta in due lingue): insieme costano meno istruzioni ripetute e meno chiamate"
+atteso: "stessi errori di diretta_cache (le 060 dei cicli veri e i limiti al contrario restano), 0 falsi errori; costo e tempo più bassi. Rischio: il modello mescola le operazioni"
+base: diretta_cache
+agent:
+  language_batch_size: 8

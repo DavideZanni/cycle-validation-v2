@@ -37,8 +37,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from cycle_validation.agent.factory import make_agent_session
 from cycle_validation.agent.prompt import OPERATION_PROMPT_FILE, load_prompt, prompt_version
-from cycle_validation.agent.sdk_session import SdkAgentSession
 from cycle_validation.agent.session import AgentSession
 from cycle_validation.api.app import ApiServices, NullMetrics
 from cycle_validation.api.aws import CloudWatchMetrics
@@ -308,7 +308,7 @@ def assemble_services(
     redshift_data: Any | None = None,
     secrets: Any | None = None,
     redshift_driver: Any | None = None,
-    session_factory: SessionFactory = SdkAgentSession,
+    session_factory: SessionFactory = make_agent_session,
 ) -> ApiServices:
     """I servizi con client già costruiti: qui nessun accesso alla rete. La conoscenza si
     scarica nel `warmup`, all'avvio: un file pubblicato non valido ferma lì il servizio (per

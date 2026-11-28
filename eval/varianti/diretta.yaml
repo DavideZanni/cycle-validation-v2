@@ -1,0 +1,7 @@
+nome: diretta
+descrizione: "MG54: il modello si chiama direttamente su Bedrock con l'SDK anthropic, senza avviare Claude Code per ogni sessione; Read e Grep li esegue la v2 con le stesse regole (lettura a paragrafo, solo i file ammessi)"
+ipotesi: "Ogni sessione oggi paga 3-5 s di avvio di Claude Code e il suo testo di istruzioni: senza, circa metà del tempo per ciclo"
+atteso: "stessi errori stabili di quasi_finale, 0 falsi errori; tempo per ciclo circa -40/-50%; costo simile (il costo si calcola dai token con il listino)"
+base: quasi_finale
+agent:
+  session_backend: diretta

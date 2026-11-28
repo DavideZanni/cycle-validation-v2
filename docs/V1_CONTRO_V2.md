@@ -67,7 +67,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | Stabilità | ✅ | non misurata | misurata su 3 prove: tutti gli errori noti 3 su 3 |
 | **Codici di task sbagliati** | ✅ | col modello, a volte «incompleto» su codici giusti | dal codice, senza modello: codice assente e fratelli presenti |
 | Task dell'operazione contro la testata | ➖ | sì | sì (MG36) |
-| Task di un altro stadio | ❌ | sì | no (MG48) |
+| Task di un altro stadio | 🔶 | sì | dal codice, variante `altro_stadio` (MG48, passo 4j) |
 | Numeri o limiti cambiati in una lingua | ✅ | solo inglese | due lingue, dal codice |
 | Negazioni e frasi al contrario | ✅ | solo inglese | due lingue; 2 errori veri trovati in stampe «giuste» |
 | Parola o materiale cambiati in una lingua | ➖ | la parola sì | azione diversa e «massimo» contro «minimo» dal codice (MG47, MG81); il materiale lo trova la scheda |

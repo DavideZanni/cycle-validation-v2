@@ -341,6 +341,13 @@ sorgente non risponde, l'esito è WARNING `ERRORE_TECNICO`.
   altro processo e non si confronta; senza task in testata non si confronta. Nasce dalla v1
   sugli stessi cicli: il task cambiato di una cifra esiste nel manuale, quindi
   `TASK_INESISTENTE` non lo vedeva.
+- **Task di un altro stadio (MG48, dal 28-11, solo con `agent.task_stage_check`, spento nella
+  base, variante `altro_stadio`):** lo stadio del ciclo viene dal titolo («... STAGE 7»,
+  «STADIO 7»; uno solo, altrimenti non si controlla), quelli del task dalle prime 6 righe del
+  task nel manuale («STAGE 6 ... INSPECTION», «STAGES 6 AND 7», «STAGES 1 THRU 7»). Se il task
+  dice solo stadi diversi da quello del ciclo: ERRATO `TASK_ALTRO_STADIO`, con la riga del
+  manuale come prova. Un'intestazione di un altro modulo (HPT in un ciclo LPT) è un altro pezzo
+  e non si confronta. È il controllo che la v1 fa con il modello e la v2 non faceva.
 - Nessun task: N/A `CAMPO_ASSENTE`.
 - **MOS e DR:** ogni task si cerca nei manuali delle fonti collegate all'operazione (stesso
   repair code; se nessuna, tutte le fonti). I task del **capitolo 70** si cercano **prima
@@ -653,6 +660,7 @@ Ogni motivo ha un solo esito (`domain/check.py`).
 | | `TASK_DIVERSO_DALLA_TESTATA` | il task accanto all'operazione è della stessa famiglia di quello della testata, ma diverso (H17, 27-11 sera) |
 | | `MACCHINE_DIVERSE` | la stessa operazione ha targhe diverse su pagine diverse (H19, 27-11 sera) |
 | | `DR_DIVERSO` | l'operazione cita un DR diverso da quello del ciclo (MG76, 27-11 notte) |
+| | `TASK_ALTRO_STADIO` | il task citato è di un altro stadio del motore (MG48, con `agent.task_stage_check`) |
 | | `SCHEDA_ALTRO_MOTORE` | la scheda è di un'altra famiglia di motore (H18, con `agent.sheet_consistency`) |
 | | `SCHEDA_MATERIALE_DIVERSO` | il materiale della scheda non è quello della descrizione (H18) |
 | | `SCHEDA_INESISTENTE` | la scheda non è nell'indice, che ha altre schede con lo stesso prefisso (H18) |
@@ -720,6 +728,33 @@ in linea, con ricerca, di conferma.
 inferenza `eu.` scritto in `data/settings.yaml` sul PC). Si usa il **Claude Agent SDK**:
 l'unico modulo che lo importa è `agent/sdk_session.py`. Il resto del codice parla con la porta
 `AgentSession` (`agent/session.py`) e si prova senza rete.
+
+**Due modi di chiamare il modello (`agent.session_backend`, MG54, dal 28-11):**
+
+- `sdk` (la base): il Claude Agent SDK avvia Claude Code per ogni sessione (circa 3-5 s di
+  avvio ciascuna); il costo lo dà l'SDK.
+- `diretta` (variante `diretta`): l'SDK `anthropic` (`AsyncAnthropicBedrock`, la stessa
+  chiamata `InvokeModel` di Bedrock con le credenziali dell'ambiente) chiama il modello da
+  `agent/direct_session.py`, senza avviare niente. Read e Grep li esegue la v2, con le stesse
+  regole dell'hook (`agent/hooks.check_tool_call`: solo i file ammessi, lettura a paragrafo).
+  La risposta arriva con lo strumento `StructuredOutput` (lo schema della domanda), come fa
+  Claude Code. Il costo si calcola dai token con i prezzi in `agent.direct_input_price` e
+  `agent.direct_output_price` (listino di Haiku 5.5; la scrittura in cache costa 1,25 volte
+  l'ingresso, la lettura 0,1 volte). Id del modello: `agent.direct_model`, vuoto = `agent.model`
+  (sul PC è già l'id completo `eu.`). Nessun nuovo tentativo dentro l'SDK: li fa già
+  `agent/runner.py`. Provare l'accesso: `eval chiamata-diretta` (una domanda finta, meno di un
+  centesimo).
+- Con `diretta`: `agent.direct_cache` (MG56, variante `diretta_cache`) mette i punti di cache di
+  Bedrock su istruzioni, strumenti e storia della sessione (dal secondo turno la storia si
+  rilegge dalla cache); `agent.shared_reference_first` (MG59, variante `testo_comune`) manda il
+  testo del manuale delle sessioni in linea in un blocco a sé prima della domanda, con un punto
+  di cache (`SessionRequest.shared_context`): le operazioni che citano lo stesso task lo pagano
+  una volta. Con `sdk` il blocco va semplicemente davanti alla domanda.
+- `agent.language_batch_size` (MG55, variante `lingue_insieme`): il confronto tra le due lingue
+  di più operazioni (al massimo quel numero) in una sessione sola, con un elemento per
+  operazione nella risposta. Le citazioni si ritrovano comunque nella lingua giusta di ogni
+  operazione, e una differenza si conferma con le sessioni di una sola operazione; un'operazione
+  che manca o compare due volte nella risposta resta senza giudizio delle lingue. 0 = spento.
 
 **Ogni sessione è isolata:**
 
@@ -978,6 +1013,13 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.prudent_out_of_scope` | `true` (dal 27-11 notte) | `fuori_tema` non vale se la descrizione ha una negazione o un limite: WARNING e una seconda ricerca (MG45) |
 | `agent.validation_timeout_s` | 480 | tempo massimo delle sessioni di un ciclo (MG53; sezione 9) |
 | `agent.confirm_contradiction` | 2 | sessioni di conferma per ogni ERRATO del modello |
+| `agent.task_stage_check` | `false` | task di un altro stadio: ERRATO `TASK_ALTRO_STADIO` (MG48; sezione 6.2) |
+| `agent.session_backend` | `sdk` | `diretta`: chiamata diretta a Bedrock senza Claude Code (MG54; sezione 9) |
+| `agent.direct_model` | vuoto | con `diretta`: id del modello su Bedrock (vuoto = `agent.model`) |
+| `agent.direct_input_price`, `agent.direct_output_price` | 0,10 e 0,50 | con `diretta`: dollari per milione di token, per il costo nel report |
+| `agent.direct_cache` | `false` | con `diretta`: punti di cache di Bedrock (MG56) |
+| `agent.shared_reference_first` | `false` | il testo del manuale prima della domanda, in un blocco da tenere in cache (MG59) |
+| `agent.language_batch_size` | 0 | confronto tra le lingue di più operazioni in una sessione (MG55); 0 = spento |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
 | `paths.*` | `config/profiles`, `prompts`, `data/knowledge`, `runs` | cartelle |
 | `paths.machines_file` | vuoto | JSON delle macchine attive |
@@ -1201,9 +1243,10 @@ opzioni.
 | `eval scegli <cartelle>` | sceglie i cicli: prima quelli noti, poi i veri civili con almeno l'80% di operazioni confrontabili (`--copertura`), fino a `--quanti` (0 = tutti). Accanto a ogni ciclo vero scrive se è MOS o DR (dalla testata) e in fondo quanti per tipo | no |
 | `eval muta` | fa le copie cieche: `--lista`, `--knowledge`, `--quanti`, `--seme`, `--per-ciclo` (6) | no |
 | `eval prova [pdf]…` | valida, confronta con gli errori noti, scrive `prestazioni.md` e `riepilogo.md`. `--nome`, `--variante`, `--lista` (ripetibile), `--attesi` (ripetibile), `--cartella`, `--profile` (predefinito `auto`: MOS o DR ciclo per ciclo, dalla testata, così un DR nella lista non si ferma con «Modulo sbagliato») | sì |
+| `eval chiamata-diretta` | prova la chiamata diretta a Bedrock (MG54) con una domanda finta, senza testi aziendali: dice se modello, regione, accesso e strumento di risposta funzionano. `--config` (vuoto = `data/settings.yaml`). Meno di un centesimo (28-11) | sì |
 | `eval senza-modello` | gli stessi cicli della campagna (`--insiemi`, predefinito piccolo e grande), solo con i controlli del codice: al posto del modello una risposta fissa «non verificabile». Dice quanti errori noti trova il codice da solo e se dà falsi errori. Prove in `runs/senza-modello-<insieme>`, fuori dalle cartelle della campagna. I WARNING qui non contano (tutto quello che fa il modello esce WARNING). `--knowledge` (vuoto = ultima fotografia), `--config`, `--cartella`. Serve a provare una regola nuova del codice prima di una campagna (27-11 notte) | no |
 | `eval banco` | banco di prova sulle 14 stampe vere di `docs/CONFRONTO_V1_14_CICLI.md`: il programma mette un errore alla volta su ogni operazione possibile (un numero, un limite, «massimo»/«minimo», un'azione in una lingua; il numero del DR) e conta quanti ne trovano i controlli del codice, per tipo, e i falsi allarmi su altre operazioni; poi la lettura della stampa contro la tabella della v1 (operazioni, targhe, schede). `--giri` (5: semi diversi), `--knowledge`, `--config`. 0 $, pochi secondi; a schermo solo impronte, operazioni e conteggi (27-11 notte) | no |
-| `eval riepilogo` | riscrive `riepilogo.md` della cartella. Con `--attesi` (ripetibile) prima ricalcola le prove già fatte dai `report.json` dei cicli, con gli errori noti di adesso: solo i cicli che sono in quei file (copie cieche, gruppo nascosto e cicli veri restano come sono). Serve quando la lista degli errori noti cambia (27-11) | no |
+| `eval riepilogo` | riscrive `riepilogo.md` della cartella. Con `--attesi` (ripetibile) prima ricalcola le prove già fatte dai `report.json` dei cicli, con gli errori noti di adesso: solo i cicli che sono in quei file (copie cieche, gruppo nascosto e cicli veri tengono il punteggio e prendono solo i WARNING per operazione, MG83). Serve quando la lista degli errori noti cambia (27-11) | no |
 | `eval campagna` | tutte le prove di `eval/campagna.yaml` in fila, per ogni modello e insieme, e il report unico `runs/campagna.md`. `--piano` (gratis), `--solo-report` (gratis: solo il report), `--modelli` (con un solo modello il report è `runs/campagna-<modello>.md`), `--insiemi`, `--varianti`, `--ripetizioni`, `--grande`, `--massimo-dollari`, `--knowledge` (vuoto = ultima fotografia), `--config` (vuoto = `data/settings.yaml` se c'è), `--file`, `--cartella` | sì |
 
 ### 14.3 Esperimenti con i casi rivisti (sezione 15.2)
@@ -1394,7 +1437,14 @@ modelli: {haiku: }    # vuoto = quello delle impostazioni; sonnet: eu.anthropic.
 insiemi: [piccolo, grande]
 grande: se_si_tiene   # sempre | mai
 massimo_dollari: 15
+riferimento: quasi_finale   # facoltativo: la variante con cui si confrontano le altre
 ```
+
+- **Il riferimento (dal 28-11).** Le decisioni («si tiene», «non si tiene») si prendono contro
+  la base, oppure contro la variante scritta in `riferimento`. La campagna lo scrive in
+  `riferimento.txt` nelle cartelle delle prove, così anche `riepilogo.md` lo usa; senza il
+  campo il file si toglie e si torna alla base. Serve quando la base ha prove fatte con il
+  codice di prima (28-11: le prove di `quasi_finale` sono quelle di oggi).
 
 - Per ogni modello, in ordine: base e varianti sul piccolo; poi sul grande la base e le varianti
   che sul piccolo «si tengono» (`se_si_tiene`). Il modello della campagna sostituisce
@@ -1433,7 +1483,10 @@ massimo_dollari: 15
   visti per tipo, con cosa ha risposto la v2 sui mancati, e i WARNING per motivo, tutti e due
   nell'ultima prova della scelta migliore di ogni insieme (piccolo e grande). Fino al 28-11
   guardavano l'ultima base sul piccolo, anche quando le prove della base erano fatte con il
-  codice di prima.
+  codice di prima. Poi (MG83, 28-11) i WARNING operazione per operazione nei cicli senza errori
+  noti: impronta, numero dell'operazione, controllo e motivo (`CycleScore.warning_ops`): da qui
+  si sceglie che cosa tagliare. Le prove scritte prima li prendono dal loro `report.json` con
+  `eval riepilogo --attesi`.
 - Le cartelle delle prove hanno i secondi nel nome (`AAAAMMGG-HHMMSS-<nome>`, con `-2`, `-3`
   se due prove partono nello stesso secondo).
 - **Due modelli insieme** (24-11): con `--modelli haiku` in un terminale e `--modelli sonnet`

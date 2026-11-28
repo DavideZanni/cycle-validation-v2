@@ -878,3 +878,64 @@ def test_at_least_against_more_than_is_not_a_contradiction_only_with_the_setting
     text = "ALMENO 4 VOLTE LA LARGHEZZA / MORE THAN 4 TIMES THE WIDTH"
     assert "«almeno N»" in job_for(op(text)).request.prompt  # nella base dal 27-11 notte
     assert "«almeno N»" not in job_for(op(text), off).request.prompt
+
+
+def test_shared_reference_goes_before_the_question_in_its_own_block() -> None:
+    """MG59: con `shared_reference_first` il testo del manuale non è nel prompt ma in
+    `shared_context`; il prompt dice dove trovarlo. Spento: tutto come prima."""
+    plain = job_for().request
+    assert plain.shared_context == "" and "Testo di riferimento, con il numero" in plain.prompt
+    apart = job_for(settings=SETTINGS.model_copy(update={"shared_reference_first": True})).request
+    assert apart.shared_context.startswith("Testo di riferimento, con il numero")
+    assert "Testo di riferimento, con il numero" not in apart.prompt
+    assert "nel blocco prima di queste istruzioni" in apart.prompt
+    # stesso testo di riferimento: la parte comune è identica byte per byte
+    body = plain.prompt.split("Testo di riferimento, con il numero")[1]
+    assert apart.shared_context.split("Testo di riferimento, con il numero")[1] in body
+
+
+# --- MG55: il confronto tra le lingue di più operazioni in una sessione --------------------
+
+
+def _two_ops() -> list[Operation]:
+    second = op("PULIRE IL BORDO / CLEAN THE EDGE").model_copy(update={"operation_number": "0020"})
+    return [op(BILINGUAL), second]
+
+
+def _batch_script(items: Any) -> ScriptedSession:
+    def reply(request: SessionRequest, attempt: int) -> dict[str, Any]:
+        if request.session_id.startswith("lingue-insieme"):
+            return {"operations": items}
+        if "-lingue" in request.session_id:  # conferme: una sessione per operazione
+            return _languages("diverse")
+        return answer("coerente", [QUOTE_OK])
+
+    return ScriptedSession(reply)
+
+
+BATCH_ON = LANG_ON.model_copy(update={"language_batch_size": 8})
+
+
+def test_the_languages_of_several_operations_go_in_one_session() -> None:
+    items = [
+        {"operation": "0010", **_languages("diverse")},
+        {"operation": "0020", **_languages("uguali", "", "")},
+    ]
+    session = _batch_script(items)
+    stats: dict[str, int] = {}
+    results, _ = asyncio.run(check_operations(ctx(_two_ops()), session, BATCH_ON, "s", stats))
+    assert stats["lingue"] == 1
+    assert [r.reason for r in results] == [Reason.INCOERENZA_LINGUE, Reason.VERIFICATO]
+    ids = [r.session_id for r in session.requests]
+    assert ids.count("lingue-insieme-01") == 1
+    # la differenza si conferma con le sessioni di una sola operazione
+    assert "op-000-0010-lingue-conferma-1" in ids
+    batch = next(r for r in session.requests if r.session_id == "lingue-insieme-01")
+    assert "# Operazione 0010" in batch.prompt and "# Operazione 0020" in batch.prompt
+
+
+def test_a_mixed_up_or_missing_answer_changes_nothing() -> None:
+    # le citazioni della 0010 attribuite alla 0020: il codice non le ritrova nella 0020
+    items = [{"operation": "0020", **_languages("diverse")}]
+    results, _ = asyncio.run(check_operations(ctx(_two_ops()), _batch_script(items), BATCH_ON, "s"))
+    assert [r.reason for r in results] == [Reason.VERIFICATO, Reason.VERIFICATO]

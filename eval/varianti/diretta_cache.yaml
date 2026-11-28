@@ -1,0 +1,7 @@
+nome: diretta_cache
+descrizione: "MG56: diretta più i punti di cache di Bedrock su istruzioni, strumenti e storia della sessione (i turni dopo il primo rileggono la storia dalla cache)"
+ipotesi: "Le sessioni con Grep e Read rimandano tutta la storia a ogni turno: dalla cache costa un decimo"
+atteso: "stessi errori di diretta; costo per ciclo almeno -10% rispetto a diretta"
+base: diretta
+agent:
+  direct_cache: true

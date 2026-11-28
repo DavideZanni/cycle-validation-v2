@@ -140,6 +140,47 @@ def build_strict_languages_prompt(italian: str, english: str) -> str:
     )
 
 
+def languages_batch_schema(strict: bool = False) -> dict[str, Any]:
+    """MG55: più operazioni in una sessione. Un elemento per operazione, con il suo numero."""
+    item = languages_schema(strict)
+    item = {
+        **item,
+        "required": ["operation", *item["required"]],
+        "properties": {"operation": {"type": "string"}, **item["properties"]},
+    }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["operations"],
+        "properties": {"operations": {"type": "array", "items": item}},
+    }
+
+
+def build_batch_languages_prompt(
+    items: Sequence[tuple[str, str, str]], strict: bool = False
+) -> str:
+    """MG55: la stessa domanda del confronto tra le lingue, per più operazioni (`items`:
+    numero, italiano, inglese). Ogni operazione si giudica da sola."""
+    build = build_strict_languages_prompt if strict else build_languages_prompt
+    question = build("", "").split("## Domanda\n\n", 1)[1]
+    parts = []
+    for number, italian, english in items:
+        parts.append(
+            f"# Operazione {number}\n\n"
+            f"## Descrizione in italiano\n\n{italian.strip()}\n\n"
+            f"## Descrizione in inglese\n\n{english.strip()}"
+        )
+    return (
+        "\n\n".join(parts)
+        + "\n\n# Domanda, per ogni operazione\n\n"
+        + question
+        + "\n\nGiudica ogni operazione da sola, confrontando solo le sue due lingue: non "
+        "mescolare testi di operazioni diverse. Rispondi con un elemento di `operations` per "
+        "ogni operazione qui sopra, con `operation` uguale al suo numero e le citazioni prese "
+        "solo dalla sua descrizione."
+    )
+
+
 def build_languages_prompt(italian: str, english: str) -> str:
     """La domanda del confronto tra le due lingue (variante `lingue_tra_loro`, 26-11 sera)."""
     return (
@@ -315,6 +356,16 @@ def _where(location: TaskLocation) -> str:
     return f"{location.document.path} ({label}, righe {location.line_start}-{location.line_end})"
 
 
+def reference_lines(locations: Sequence[TaskLocation]) -> list[str]:
+    """Il testo di riferimento delle sessioni senza tool, con i numeri di riga."""
+    lines = ["Testo di riferimento, con il numero di riga di ciascun file:"]
+    for location in locations:
+        lines.append("")
+        lines.append(f"File: {_where(location)}")
+        lines.extend(numbered_lines(location.document.path, location.line_start, location.line_end))
+    return lines
+
+
 def build_operation_prompt(
     cycle: Cycle,
     operation: Operation,
@@ -328,8 +379,11 @@ def build_operation_prompt(
     second_search: bool = False,
     dr_procedure: bool = False,
     inspection: bool = False,
+    reference_apart: bool = False,
 ) -> str:
-    """`languages`: le due parti della descrizione, se vanno giudicate separatamente
+    """`reference_apart` (MG59, `AgentSettings.shared_reference_first`): con `inline`, il testo
+    di riferimento non è nel prompt ma va mandato prima, a parte (`reference_lines`).
+    `languages`: le due parti della descrizione, se vanno giudicate separatamente
     (`AgentSettings.separate_languages`). `second_search`: è la seconda ricerca, nei documenti
     interi, dopo un primo giudizio «non verificabile» (`AgentSettings.search_when_unverifiable`).
     `dr_procedure`: tra i testi c'è la procedura della D.R. insieme ai task
@@ -351,14 +405,13 @@ def build_operation_prompt(
     if second_search:
         lines.append(SECOND_SEARCH_NOTE)
     lines.append("")
-    if inline:
-        lines.append("Testo di riferimento, con il numero di riga di ciascun file:")
-        for location in locations:
-            lines.append("")
-            lines.append(f"File: {_where(location)}")
-            lines.extend(
-                numbered_lines(location.document.path, location.line_start, location.line_end)
-            )
+    if inline and reference_apart:
+        lines.append(
+            "Il testo di riferimento, con il numero di riga di ciascun file, è nel blocco prima "
+            "di queste istruzioni. Non hai tool: giudica su quel testo."
+        )
+    elif inline:
+        lines.extend(reference_lines(locations))
         lines.append("")
         lines.append("Non hai tool: giudica sul testo qui sopra.")
     else:

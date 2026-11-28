@@ -120,6 +120,9 @@ class CycleScore(_Strict):
     waiting: dict[str, str] = Field(default_factory=dict)
     # WARNING del ciclo per motivo (`Reason`, tutti i controlli): da dove viene il lavoro a mano
     warnings: dict[str, int] = Field(default_factory=dict)
+    # MG83 (28-11): i WARNING delle operazioni, operazione → motivi (solo numeri e motivi): dice
+    # quali operazioni lasciano lavoro a mano, per tagliare le cause più frequenti
+    warning_ops: dict[str, list[str]] = Field(default_factory=dict)
     cost_usd: float = 0.0
     tokens: int = 0
     cache_read_tokens: int = 0  # token di input riletti dalla cache (prompt caching, H10)
@@ -325,6 +328,22 @@ class Trial(_Strict):
             for reason, count in sorted(totals.items(), key=lambda item: -item[1])
         }
 
+    def clean_warning_ops(self) -> list[tuple[str, str, str, int]]:
+        """MG83: i WARNING dei cicli senza errori noti per (ciclo, operazione, controllo e
+        motivo), dal più frequente: quante volte compare nella prova."""
+        rows: dict[tuple[str, str, str], int] = {}
+        for cycle in self._clean():
+            for op, reasons in cycle.warning_ops.items():
+                for reason in reasons:
+                    key = (cycle.fingerprint, op, reason)
+                    rows[key] = rows.get(key, 0) + 1
+        return [
+            (fingerprint, op, reason, count)
+            for (fingerprint, op, reason), count in sorted(
+                rows.items(), key=lambda item: (item[0][2], item[0][0], item[0][1])
+            )
+        ]
+
     def _run(self) -> int:
         """Quanti cicli sono stati eseguiti."""
         return sum(1 for c in self.cycles if not c.failure)
@@ -397,6 +416,7 @@ def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = No
     errato: dict[str, Finding] = {}
     said: dict[str, str] = {}
     warnings: dict[str, int] = {}
+    warning_ops: dict[str, list[str]] = {}
     model_checks = model_failures = 0
     for result in report.results:
         if result.decided_by == "agent":
@@ -407,6 +427,8 @@ def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = No
         if result.target.kind is not TargetKind.OPERATION:
             continue
         op = op_key(result.target.label)
+        if result.verdict is Verdict.WARNING:
+            warning_ops.setdefault(op, []).append(f"{result.check.value}:{result.reason.value}")
         if result.verdict is Verdict.ERRATO and op not in errato:
             errato[op] = Finding(
                 op=op,
@@ -450,6 +472,7 @@ def score_cycle(report: Report, known: KnownErrors, fingerprint: str | None = No
         model_failures=model_failures,
         waiting=dict(waiting),
         warnings=warnings,
+        warning_ops=warning_ops,
     )
 
 
@@ -808,20 +831,27 @@ def rescore_trials(root: Path, known: KnownErrors) -> int:
     """Ricalcola, nelle prove già fatte, il punteggio dei cicli che sono negli errori noti,
     dal loro `report.json`: serve quando la lista degli errori noti cambia (27-11: errori
     trovati nel testo delle stampe). Gli altri cicli (copie cieche, gruppo nascosto, cicli
-    veri, cicli non eseguiti) restano come sono. Restituisce quanti punteggi sono cambiati."""
+    veri) tengono il punteggio e prendono solo i WARNING per operazione (MG83, 28-11); i cicli
+    non eseguiti restano come sono. Restituisce quanti punteggi sono cambiati."""
     changed = 0
     for path, trial in _read_trials(sorted(root.glob(f"*/{TRIAL_FILE}"))):
         cycles: list[CycleScore] = []
         for cycle in trial.cycles:
             report_file = path.parent / cycle.fingerprint / "report.json"
             new = cycle
-            if known.cycle(cycle.fingerprint) is not None and report_file.is_file():
+            report = None
+            if report_file.is_file():
                 try:
                     report = Report.model_validate_json(report_file.read_text("utf-8"))
                 except (OSError, ValueError):
                     report = None
-                if report is not None:
-                    new = score_cycle(report, known, cycle.fingerprint)
+            if report is not None and known.cycle(cycle.fingerprint) is not None:
+                new = score_cycle(report, known, cycle.fingerprint)
+            elif report is not None:
+                # copie cieche e cicli veri: il punteggio resta (gli errori delle copie cieche
+                # non sono in questa lista); si aggiungono solo i WARNING per operazione (MG83)
+                ops = score_cycle(report, KnownErrors(cicli={}), cycle.fingerprint).warning_ops
+                new = cycle.model_copy(update={"warning_ops": ops})
             changed += new != cycle
             cycles.append(new)
         if cycles != trial.cycles:
@@ -909,8 +939,24 @@ class Variant(_Strict):
         return None
 
 
-def build_variants(trials: Sequence[Trial]) -> list[Variant]:
-    """Le varianti (prove con lo stesso nome), in classifica, con la decisione rispetto alla base."""
+REFERENCE_FILE = "riferimento.txt"
+
+
+def load_reference(folder: Path) -> str:
+    """La variante con cui si confrontano le altre: la base, oppure quella scritta in
+    `riferimento.txt` nella cartella delle prove (la campagna lo scrive dal suo campo
+    `riferimento`, 28-11: le prove della base erano fatte con il codice di prima, quelle di
+    `quasi_finale` con il codice di oggi)."""
+    try:
+        name = (folder / REFERENCE_FILE).read_text("utf-8").strip()
+    except OSError:
+        return BASE_NAME
+    return name.casefold() or BASE_NAME
+
+
+def build_variants(trials: Sequence[Trial], reference: str = BASE_NAME) -> list[Variant]:
+    """Le varianti (prove con lo stesso nome), in classifica, con la decisione rispetto alla
+    base (o alla variante `reference`)."""
     groups: dict[str, list[Trial]] = {}
     for trial in trials:
         groups.setdefault(trial.name.strip().casefold(), []).append(trial)
@@ -940,7 +986,7 @@ def build_variants(trials: Sequence[Trial]) -> list[Variant]:
                 proposal=next((t.proposal for t in reversed(group) if t.proposal), Proposal()),
             )
         )
-    base = next((v for v in variants if v.name.casefold() == BASE_NAME), None)
+    base = next((v for v in variants if v.name.casefold() == reference.casefold()), None)
     variants.sort(key=lambda v: v.rank_key(), reverse=True)
     for variant in variants:
         variant.decision = _decide(variant, base)
@@ -1111,12 +1157,12 @@ def _render_to_check(trials: Sequence[Trial]) -> list[str]:
     return lines
 
 
-def render_summary(trials: Sequence[Trial]) -> str:
+def render_summary(trials: Sequence[Trial], reference: str = BASE_NAME) -> str:
     """Il riepilogo di tutte le prove: tabella delle prove ed errore per errore."""
     if not trials:
         return "# Riepilogo delle prove\n\nNessuna prova.\n"
     first, last = trials[0].started_at, trials[-1].started_at
-    variants = build_variants(trials)
+    variants = build_variants(trials, reference)
     best = best_variant(variants)
     cycle_sets = len({t.cycle_set for t in trials})
     lines = [
@@ -1314,5 +1360,5 @@ def render_summary(trials: Sequence[Trial]) -> str:
 def write_summary(root: Path) -> Path:
     path = root / SUMMARY_REPORT
     root.mkdir(parents=True, exist_ok=True)
-    path.write_text(render_summary(load_trials(root)), "utf-8")
+    path.write_text(render_summary(load_trials(root), load_reference(root)), "utf-8")
     return path

@@ -114,36 +114,64 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 | ✅ | 1-4e · campagne, v1 sugli stessi cicli, base nuova, schede e regole | 27-11 |
 | ✅ | 4g · Domande P13 e P14 | 27-11 notte |
 | ✅ | 4h · Versione quasi finale: senza modello, banco, campagna | 28-11 notte: si tiene |
-| 👉 | **4i · Report della campagna rifatto** | adesso · 0 $ |
+| 👉 | **4i · Aggiornare, chiamata diretta, report rifatto** | adesso · meno di 1 centesimo |
+| ⬜ | **4j · Campagna completa delle migliorie del 28-11** | dopo 4i · circa 12-14 $, 4-5 ore |
 | ⬜ | **4f · EJ200 sul PC** | dopo l'ingestion EJ200 · centesimi |
 | ⬜ | **5 · Grande ingestion e QA** | dopo |
 
 ---
 
-**👉 Passo 4i · Report della campagna rifatto** (0 $, niente modello)
+**👉 Passo 4i · Aggiornare, chiamata diretta, report rifatto** (meno di 1 centesimo)
 
 La campagna `quasi_finale` (28-11 notte) si tiene: 42 su 45 e 31 su 31, 0 falsi errori, 0 da
-verificare. Nel `campagna.md` le tabelle «Errori mai visti per tipo» e «WARNING per motivo»
-guardavano ancora la base vecchia: Claude le ha cambiate, ora guardano l'ultima prova della
-scelta migliore, sul piccolo e sul grande. Servono per le prossime migliorie (meno avvisi e i
-3 falsi OK sulle copie cieche). Nello stesso aggiornamento c'è MG58 (risultato già calcolato):
-vale solo per il servizio, non cambia le prove.
+verificare. Claude ha scritto le migliorie del 28-11, tutte **spente** nella base: MG58 (solo
+servizio), MG48 task di un altro stadio, MG54 chiamata diretta a Bedrock, MG56 cache, MG59
+testo comune, MG55 lingue di più operazioni insieme. Si provano nella campagna del passo 4j.
+Prima servono tre cose: provare la chiamata diretta (se non va, la campagna si fermerebbe lì) e
+i dati per MG83 (meno avvisi): quali operazioni danno WARNING.
 
-1. **Aggiornare** (2.1).
+1. **Aggiornare** (2.1). Questa volta `uv` installa anche il pacchetto `anthropic` (serve alla
+   chiamata diretta): la prima volta ci mette un po' di più.
    - **Deve uscire:** in fondo `... passed` e nessun `failed`.
    - **Mandami:** la foto dell'ultima riga.
-2. **Il report rifatto**, con le prove che ci sono (non lancia niente):
+2. **La chiamata diretta**, con una domanda finta (nessun testo aziendale), dopo `aws sso login`
+   se serve:
 
    ```powershell
    $env:UV_PYTHON = "3.14"
    [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+   uv run cycle-validation eval chiamata-diretta
+   ```
+
+   - **Deve uscire:** `Chiamata diretta: ok (...) · risposta {'risposta': 'uguali'} · token
+     ... · costo 0.000.. $ · ... s`.
+   - **Mandami:** la foto della riga. Se esce `Chiamata diretta NON riuscita`, la foto della
+     riga (dice solo il tipo di errore).
+3. **I WARNING per operazione** anche nelle prove già fatte (gratis, dai loro `report.json`),
+   poi il report rifatto (non lancia niente):
+
+   ```powershell
+   $env:UV_PYTHON = "3.14"
+   [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+   "piccolo", "grande" | ForEach-Object { uv run cycle-validation eval riepilogo --cartella "runs/prove-$_" --attesi eval/errori-noti.yaml }
    uv run cycle-validation eval campagna --solo-report
    ```
 
-   - **Deve uscire:** `Report scritto (niente lanciato): runs\campagna.md`.
-   - **Mandami:** da `runs\campagna.md` le tabelle «Errori mai visti per tipo (scelta
-     migliore, ultima prova)» e «WARNING per motivo (scelta migliore, ultima prova, ...)»: ogni
-     riga inizia con `haiku · piccolo · quasi_finale` o `haiku · grande · quasi_finale`.
+   - **Deve uscire:** due volte `Ricalcolati con gli errori noti di adesso: ...`, poi
+     `Report scritto (niente lanciato): runs\campagna.md`.
+   - **Mandami:** da `runs\campagna.md` tre tabelle: «Errori mai visti per tipo (scelta
+     migliore, ultima prova)», «WARNING per motivo (scelta migliore, ...)» e «WARNING per
+     operazione (scelta migliore, ...)». Ogni riga inizia con `haiku · piccolo · quasi_finale`
+     o `haiku · grande · quasi_finale`; nell'ultima ci sono solo impronte, numeri di operazione
+     e motivi.
+
+Con queste foto Claude scrive MG83 (la variante `meno_avvisi`) e la aggiunge alla campagna.
+
+**⬜ Passo 4j · Campagna completa delle migliorie del 28-11** (circa 12-14 $, 4-5 ore)
+
+Dopo il passo 4i e la variante `meno_avvisi`. Le prove già fatte (base, `schede_e_limiti`,
+`quasi_finale`) si saltano; le varianti nuove si confrontano con `quasi_finale` (campo
+`riferimento` di `eval/campagna.yaml`). Il blocco arriva con l'aggiornamento di Claude.
 
 ---
 
