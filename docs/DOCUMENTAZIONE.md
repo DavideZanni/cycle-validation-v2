@@ -300,6 +300,7 @@ Le regole (28-11; una variante ciascuna). Nella base dal 28-11: `fonte_assente_u
 |---|---|---|
 | `fonte_assente_una_volta` | MG83, variante `meno_avvisi` | la fonte assente si dice una volta sola: un WARNING `FONTE_ASSENTE` per ogni avviso diverso del ciclo, con l'elenco delle operazioni («Stesso avviso anche per le operazioni …»). Le altre righe diventano N/A `GIA_SEGNALATO` e dicono in quale operazione guardare. Si uniscono i `FONTE_ASSENTE` della stessa operazione (controlli diversi: la spiegazione dell'altro si aggiunge) e quelli dello stesso controllo con la stessa spiegazione |
 | `limite_contro_citazione` | MG87, variante `limiti_citati` | un CORRETTO del modello sulla descrizione diventa ERRATO `LIMITE_CONTRO_CITAZIONE` se la riga del manuale che il modello cita dà lo stesso valore con il limite al contrario («al massimo» contro «almeno»). Il limite si legge prima del numero (come MG75) e anche dopo («0.5 MM MAX», «(0.25 MM) MAX»; «5 MIN» senza unità sono minuti). Conta solo un valore con un verso solo nella descrizione (le due lingue d'accordo) e uno solo nella riga citata |
+| `parola_limite_contro_citazione` | MG87b, varianti `limiti_parole` e `controllo_finale_parole` (28-11) | un CORRETTO del modello sulla descrizione diventa ERRATO `LIMITE_CONTRO_CITAZIONE` se la descrizione dice «massimo» in tutte e due le lingue (e nessun «minimo»), o il contrario, e una riga del manuale citata dal modello ha solo la parola opposta, a non più di 25 caratteri da un numero che c'è anche nella descrizione. Non guarda il verso sul numero: nel falso OK del 28-11 «MASSIMO» era lontano dai numeri e la riga citata diceva «a minimum of …». «5 MIN» sono minuti. Le lingue in disaccordo le vede già MG81 |
 
 ### 5.8 Report (`report/`)
 
@@ -675,7 +676,7 @@ Ogni motivo ha un solo esito (`domain/check.py`).
 | | `MACCHINE_DIVERSE` | la stessa operazione ha targhe diverse su pagine diverse (H19, 27-11 sera) |
 | | `DR_DIVERSO` | l'operazione cita un DR diverso da quello del ciclo (MG76, 27-11 notte) |
 | | `TASK_ALTRO_STADIO` | il task citato è di un altro stadio del motore (MG48, con `agent.task_stage_check`) |
-| | `LIMITE_CONTRO_CITAZIONE` | la riga del manuale citata dal modello dà lo stesso valore con il limite al contrario (MG87, regola finale `limite_contro_citazione`, sezione 5.7) |
+| | `LIMITE_CONTRO_CITAZIONE` | la riga del manuale citata dal modello dà lo stesso valore con il limite al contrario (MG87 e MG87b, regole finali `limite_contro_citazione` e `parola_limite_contro_citazione`, sezione 5.7) |
 | | `SCHEDA_ALTRO_MOTORE` | la scheda è di un'altra famiglia di motore (H18, con `agent.sheet_consistency`) |
 | | `SCHEDA_MATERIALE_DIVERSO` | il materiale della scheda non è quello della descrizione (H18) |
 | | `SCHEDA_INESISTENTE` | la scheda non è nell'indice, che ha altre schede con lo stesso prefisso (H18) |
@@ -1051,7 +1052,7 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.direct_cache` | `true` (dal 28-11) | con `diretta`: punti di cache di Bedrock (MG56) |
 | `agent.shared_reference_first` | `false` | il testo del manuale prima della domanda, in un blocco da tenere in cache (MG59) |
 | `agent.language_batch_size` | 8 (dal 28-11) | confronto tra le lingue di più operazioni in una sessione (MG55); 0 = spento |
-| `agent.final_rules` | `[fonte_assente_una_volta]` (dal 28-11) | regole finali sugli esiti già fatti, per nome: `fonte_assente_una_volta` (MG83), `limite_contro_citazione` (MG87); sezione 5.7 |
+| `agent.final_rules` | `[fonte_assente_una_volta]` (dal 28-11) | regole finali sugli esiti già fatti, per nome: `fonte_assente_una_volta` (MG83), `limite_contro_citazione` (MG87), `parola_limite_contro_citazione` (MG87b); sezione 5.7 |
 | `agent.save_transcripts` | `false` | testo delle sessioni su disco |
 | `paths.*` | `config/profiles`, `prompts`, `data/knowledge`, `runs` | cartelle |
 | `paths.machines_file` | vuoto | JSON delle macchine attive |

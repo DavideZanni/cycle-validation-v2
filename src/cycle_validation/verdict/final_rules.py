@@ -14,6 +14,7 @@ from decimal import Decimal
 
 from cycle_validation.checks.base import make_result
 from cycle_validation.checks.languages import (
+    extreme_word,
     has_limit_word,
     language_blocks,
     limit_ways,
@@ -137,6 +138,78 @@ def limit_against_quote(cycle: Cycle, results: list[CheckResult]) -> list[CheckR
                 f"La descrizione dice {_WAY[mine_way]} {value}, la riga del manuale citata "
                 f"dice {_WAY[quoted_way]} {value}: lo stesso limite al contrario. "
                 f"(Il modello aveva detto: {result.rationale})",
+                evidence=result.evidence,
+                usage=result.usage,
+            )
+        )
+    return out
+
+
+# MG87b: la parola di limite della riga citata, al massimo così lontana da un numero in comune
+_NEAR = 25
+
+
+def _quote_extreme(quote: str, shared: set[Decimal]) -> str | None:
+    """`max` o `min` se la riga citata ha una sola delle due parole, vicina a un numero che c'è
+    anche nella descrizione; altrimenti None."""
+    kinds = {kind for lang in ("en", "it") if (kind := extreme_word(quote, lang))}
+    if len(kinds) != 1:
+        return None
+    kind = next(iter(kinds))
+    for match in _NUMBER_IN_QUOTE.finditer(quote):
+        if Decimal(match.group().replace(",", ".")) not in shared:
+            continue
+        around = quote[max(0, match.start() - _NEAR) : match.end() + _NEAR]
+        if extreme_word(around, "en") == kind or extreme_word(around, "it") == kind:
+            return kind
+    return None
+
+
+def limit_word_against_quote(cycle: Cycle, results: list[CheckResult]) -> list[CheckResult]:
+    """MG87b (28-11, passo 4l): il modello dice CORRETTO, ma la descrizione dice «massimo» (in
+    tutte e due le lingue, e nessun «minimo») e la riga del manuale che lui stesso cita dice
+    «minimum» vicino a un numero che c'è anche nella descrizione (o il contrario). La forma del
+    falso OK di 9ccfacac 030: «... MASSIMO ...» / «... MAXIMUM ...» senza un numero vicino, la
+    riga citata «... a minimum of 99 ...»; per questo `limite_contro_citazione`, che guarda il
+    verso sul numero, non scattava."""
+    out: list[CheckResult] = []
+    names = {"max": "massimo", "min": "minimo"}
+    for result in results:
+        index = result.target.index
+        if (
+            result.check is not CheckName.OPERATION_DESCRIPTION
+            or result.verdict is not Verdict.CORRETTO
+            or index is None
+            or not 0 <= index < len(cycle.operations)
+        ):
+            out.append(result)
+            continue
+        description = cycle.operations[index].operation_description
+        blocks = language_blocks(description)
+        mine = None
+        if blocks is not None:
+            italian, english = extreme_word(blocks[0], "it"), extreme_word(blocks[1], "en")
+            mine = italian if italian is not None and italian == english else None
+        shared_values = values_in(description)
+        quoted = next(
+            (
+                kind
+                for evidence in result.evidence
+                if (kind := _quote_extreme(evidence.quote, shared_values)) is not None
+            ),
+            None,
+        )
+        if mine is None or quoted is None or quoted == mine:
+            out.append(result)
+            continue
+        out.append(
+            make_result(
+                result.check,
+                result.target,
+                Reason.LIMITE_CONTRO_CITAZIONE,
+                f"La descrizione dice «{names[mine]}» in tutte e due le lingue, la riga del "
+                f"manuale citata dice «{names[quoted]}» vicino a un numero della descrizione: "
+                f"il limite al contrario. (Il modello aveva detto: {result.rationale})",
                 evidence=result.evidence,
                 usage=result.usage,
             )
@@ -311,6 +384,7 @@ _NUMBER_IN_QUOTE = re.compile(r"(?<![\w.,/-])\d+(?:[.,]\d+)?(?![\w/-]|[.,]\d)")
 RULES: dict[str, FinalRule] = {
     "fonte_assente_una_volta": once_missing_source,
     "limite_contro_citazione": limit_against_quote,
+    "parola_limite_contro_citazione": limit_word_against_quote,
 }
 
 

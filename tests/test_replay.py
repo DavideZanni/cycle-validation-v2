@@ -266,3 +266,65 @@ def test_the_shape_keeps_only_limit_words() -> None:
     assert "9 MIN" in shapes and "9.9 mm minimum" in shapes
     for word in ("LUCIDARE", "POLISH", "Blend", "depth", "0.5", "5 MIN"):
         assert word not in shapes
+
+
+def _said_ok(cycle: Cycle, quote: str) -> CheckResult:
+    from cycle_validation.domain.check import Evidence
+
+    return make_result(
+        CheckName.OPERATION_DESCRIPTION,
+        Target.operation(0, cycle.operations[0]),
+        Reason.VERIFICATO,
+        "uguale al manuale",
+        evidence=[Evidence(document_key="m1", quote=quote)],
+        decided_by="agent",
+    )
+
+
+_FLIPPED = (
+    "1) LUCIDARE AL MASSIMO LA SUPERFICIE INDICATA, POI 10 PASSATE / "
+    "1) POLISH THE INDICATED SURFACE TO MAXIMUM, THEN 10 PASSES"
+)
+
+
+def test_the_limit_word_against_the_quote_flags_a_flipped_extreme() -> None:
+    """MG87b: «MASSIMO» lontano dai numeri, la riga citata «a minimum of 10»."""
+    cycle = _ops(_FLIPPED, "PULIRE / CLEAN")
+    out = final_rules.limit_word_against_quote(
+        cycle, [_said_ok(cycle, "Polish to a minimum of 10 passes.")]
+    )
+    assert out[0].verdict is Verdict.ERRATO
+    assert out[0].reason is Reason.LIMITE_CONTRO_CITAZIONE
+    assert "«massimo»" in out[0].rationale and "«minimo»" in out[0].rationale
+    assert out[0].evidence
+
+
+@pytest.mark.parametrize(
+    ("description", "quote"),
+    [
+        (_FLIPPED, "Polish to a maximum of 10 passes."),  # stesso verso
+        (_FLIPPED, "Polish, minimum 10 passes, maximum 2 times."),  # le due parole
+        (_FLIPPED, "Polish to a minimum of 4 passes."),  # nessun numero in comune
+        (_FLIPPED, "Polish 10 passes. Hold the part at the minimum speed of the wheel."),
+        (  # la descrizione ha tutte e due le parole
+            "LUCIDARE AL MASSIMO, MINIMO 10 PASSATE / POLISH TO MAXIMUM, MINIMUM 10 PASSES",
+            "Polish to a minimum of 10 passes.",
+        ),
+        (  # le lingue non sono d'accordo: lo vede già MG81
+            "LUCIDARE AL MASSIMO, 10 PASSATE / POLISH, 10 PASSES",
+            "Polish to a minimum of 10 passes.",
+        ),
+        (  # «10 MIN» sono minuti
+            "ASCIUGARE AL MASSIMO PER 10 MIN / DRY TO MAXIMUM FOR 10 MIN",
+            "Dry for 10 min.",
+        ),
+    ],
+)
+def test_the_limit_word_rule_leaves_the_other_cases(description: str, quote: str) -> None:
+    cycle = _ops(description, "PULIRE / CLEAN")
+    result = _said_ok(cycle, quote)
+    assert final_rules.limit_word_against_quote(cycle, [result]) == [result]
+
+
+def test_the_limit_word_rule_is_a_known_final_rule() -> None:
+    final_rules.check_rule_names(["parola_limite_contro_citazione"])

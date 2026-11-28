@@ -58,9 +58,11 @@ sezione 1 di `COPILOT.md`):
 | 7e13 | Aggiornare, senza modello, `eval banco`; campagna (o, se già partita, ricalcolo dei riepiloghi per le metriche di controllo) | COPILOT passo 4h | senza modello e banco ✅ 27-11 notte: 41 su 45 e 31 su 31, 0 e 0; banco sul PC uguale a quello di Claude (308 su 310, 0 falsi allarmi, lettura 105 su 105); campagna ✅ 28-11 notte: `quasi_finale` si tiene (42 su 45, 31 su 31, 0 falsi errori, 0 da verificare) |
 | 7e14 | Claude: tabelle per tipo e per motivo sulla scelta migliore; MG58 risultato già calcolato (solo servizio) | Claude | ✅ 28-11 |
 | 7e15 | Claude: MG48, MG54, MG56, MG59, MG55 (spente, una variante ciascuna), dati per MG83, riferimento della campagna | Claude | ✅ 28-11 |
-| 7e16 | Aggiornare, `eval chiamata-diretta`, MG48 senza modello, report rifatto con i WARNING per operazione, prova di `eval rigioca`, una prova sola di `diretta` sul piccolo (circa 0,40 $) | COPILOT passo 4i | da fare |
-| 7e17 | Claude: MG83 (regola finale e variante `meno_avvisi`, provata con `eval rigioca`) dai dati del 7e16 | Claude | da fare |
-| 7e18 | Campagna delle varianti che usano il modello (`diretta`, `testo_comune`, `lingue_insieme`), contro `quasi_finale` (circa 6-7 $; era 12-14 $ con tutte) | COPILOT passo 4j | da fare |
+| 7e16 | Aggiornare, `eval chiamata-diretta`, MG48 senza modello, report rifatto con i WARNING per operazione, prova di `eval rigioca`, una prova sola di `diretta` sul piccolo (circa 0,40 $) | COPILOT passo 4i | ✅ 28-11 mattina |
+| 7e17 | Claude: MG83 (regola finale e variante `meno_avvisi`, provata con `eval rigioca`) dai dati del 7e16 | Claude | ✅ 28-11 (grande 8,9 → 5,3 avvisi) |
+| 7e18 | Campagna delle varianti che usano il modello (`diretta`, `testo_comune`, `lingue_insieme`), contro `quasi_finale` (circa 6-7 $; era 12-14 $ con tutte) | COPILOT passo 4j | ✅ 28-11: nella base `lingue_insieme` e MG83 |
+| 7e19 | La base nuova a 0 $, forma dei falsi OK, senza modello e banco con il codice nuovo | COPILOT passi 4k e 4l | ✅ 28-11 pomeriggio: niente rotto; MG87b dalla forma |
+| 7e20 | **Ultimi esperimenti:** MG87b rigiocata, prova di controllo `controllo_finale` (0,60 $). Poi esperimenti chiusi | COPILOT passo 4m | da fare |
 | 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
 | 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |
 | 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
@@ -1744,6 +1746,28 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   controlla i percorsi prima di partire e lo dice in chiaro; un PDF che non si legge non ferma
   gli altri. L'utente ha chiesto la lista degli esperimenti rimasti prima delle prove a mano e
   della QA, e una spiegazione più semplice della prova EJ200.
+- **28-11, 14:00, passo 4l (0 $).** Il codice nuovo (base con chiamata diretta, cache, lingue
+  insieme, MG83) non rompe i controlli del codice: senza modello piccolo 41 su 45, grande 31 su
+  31, 0 falsi errori, 0 da verificare (WARNING 5,2 e 8,9, qui non contano); banco 290 su 292
+  (numeri 38 su 40, mancati sempre 8d3c673c 060 ed e9b74c84 010; limiti 12, massimo/minimo 16,
+  azioni 223, DR 1: tutti), 0 falsi allarmi, lettura 105 su 105, targhe 104 su 105, schede 21
+  su 22. **Correzione:** il totale del banco scritto il 27-11 notte, «308 su 310», era una
+  somma sbagliata di Claude: i numeri per tipo erano gli stessi di oggi, il totale giusto è 290
+  su 292. Forma del falso OK 9ccfacac 030: descrizione «A. xxxx: 9) xxxx xx MASSIMO xxxx ...»
+  / «... 9) xxxx xxx MAXIMUM xxxx ... TO», nessun numero vicino alla parola scambiata; riga
+  citata in una prova «xx xxxxx xxxx xx a minimum xx 99 xxxxx ...», nell'altra nessuna parola
+  di limite nelle due righe citate. Considerazione: la regola MG87 guarda il verso sul numero e
+  non può vedere un «MASSIMO» staccato dai numeri; MG87b guarda la parola: «massimo» nelle due
+  lingue contro «minimum» nella riga citata vicino a un numero in comune. Nella prova in cui la
+  riga citata non ha la parola il codice non può fare niente (resta il modello). **Decisione
+  dell'utente:** chiudere gli esperimenti sui cicli MOS e DR; poi lui fa le prove a mano, la
+  grande ingestion e la QA. Ultimo passo (4m): MG87b rigiocata su `lingue_insieme`, una prova
+  di controllo della versione finale (`controllo_finale`, una sul piccolo e una sul grande,
+  circa 0,60 $) e MG87b rigiocata anche su quella. Gli avvisi «evidenza non trovata» (3,2 per
+  ciclo) non si toccano: sono il giudizio del modello «il manuale non lo dice» e su un errore
+  mancato sono l'unico segnale; si misurano in QA (soglia ≤ 5 per ciclo, oggi 4,8 e 5,3). In
+  `COPILOT.md` 6.4 il prompt per Copilot «dove sta cosa sul PC» (cartelle, repository, branch,
+  file non salvati).
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

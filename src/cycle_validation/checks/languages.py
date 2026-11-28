@@ -504,6 +504,11 @@ def _extreme(text: str, language: str) -> str | None:
     return words[0] if len(words) == 1 else None
 
 
+def extreme_word(text: str, language: str) -> str | None:
+    """`max` o `min` se il testo ha una sola delle due parole («5 MIN» sono minuti)."""
+    return _extreme(text, language)
+
+
 def extreme_mismatch(description: str) -> tuple[str, str] | None:
     """(parola italiana, parola inglese) se una lingua dice «massimo» e l'altra «minimo»."""
     parts = language_blocks(description)

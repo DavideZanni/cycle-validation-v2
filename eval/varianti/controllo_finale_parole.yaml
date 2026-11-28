@@ -1,0 +1,7 @@
+nome: controllo_finale_parole
+descrizione: "controllo_finale più la regola MG87b `parola_limite_contro_citazione` (vedi limiti_parole). Si prova rigiocando la prova di controllo_finale"
+ipotesi: "Come limiti_parole, sulla prova fatta con la versione da portare in QA"
+atteso: "rigiocata (0 $): stessi errori o uno in più, 0 falsi errori in più"
+base: controllo_finale
+agent:
+  final_rules: [fonte_assente_una_volta, parola_limite_contro_citazione]

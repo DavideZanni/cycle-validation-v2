@@ -49,6 +49,9 @@ varianti: [quasi_finale, diretta, testo_comune, lingue_insieme]
 # 28-11, 12:37: campagna 4j finita (17 prove, 4,01 $). Nella base `lingue_insieme` (diretta,
 # cache, lingue insieme) e la regola MG83; `testo_comune` scartata. Riferimento: `lingue_insieme`
 # (le prove della base nuova senza la regola finale, che si rigioca).
+# 28-11, 14:00: ultima prova, `controllo_finale` (la versione da portare in QA, così come è nel
+# codice): una sul piccolo e una sul grande, con `--varianti controllo_finale --ripetizioni 1`
+# (COPILOT passo 4m). Poi gli esperimenti sui cicli MOS e DR sono chiusi.
 riferimento: lingue_insieme
 
 # Prove per variante: tre (le differenze sono di uno o due errori).

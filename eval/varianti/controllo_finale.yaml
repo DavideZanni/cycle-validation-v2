@@ -1,0 +1,5 @@
+nome: controllo_finale
+descrizione: "La versione da portare in QA, così come è nel codice (28-11): lingue_insieme (chiamata diretta, cache, lingue di 8 operazioni insieme) e la regola MG83. Una prova sul piccolo e una sul grande, per vederla girare tutta insieme davvero"
+ipotesi: "Nessuna modifica: le stesse impostazioni di lingue_insieme_avvisi, che finora si è misurata rigiocando le prove di lingue_insieme"
+atteso: "come lingue_insieme con MG83: piccolo circa 42 su 45, grande 31 su 31, 0 falsi errori, 0 da verificare; circa 0,0064 $ e 10 s a ciclo sul piccolo, 0,0098 $ e 13 s sul grande; WARNING circa 4,8 e 5,3"
+base: baseline

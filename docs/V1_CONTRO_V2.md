@@ -23,7 +23,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | ✅ | Errori stabili, grande | ≥ 60% | 100% (31/31) |
 | ✅ | ERRATO da verificare | 0 | 0 nella campagna, piccolo e grande (e senza modello) |
 | ✅ | Stampe lette | 14/14 | 14/14 |
-| ✅ | Banco di prova: errori messi dal programma sulle 14 stampe, trovati dal codice | ≥ 90% per tipo, 0 falsi allarmi | 308 su 310 (numeri 95%, limiti, massimo/minimo, azioni e DR 100%), 0 falsi allarmi; uguale sul PC con la conoscenza vera |
+| ✅ | Banco di prova: errori messi dal programma sulle 14 stampe, trovati dal codice | ≥ 90% per tipo, 0 falsi allarmi | 290 su 292 (numeri 95%, limiti, massimo/minimo, azioni e DR 100%), 0 falsi allarmi; uguale sul PC con la conoscenza vera, anche con il codice del 28-11 |
 | ✅ | Lettura della stampa contro la v1 | uguale, tranne gli errori noti | operazioni 105 su 105; targhe 104 su 105 e schede 21 su 22: le 2 differenze sono errori noti |
 | ❌ | Falsi OK (errori noti mancati con CORRETTO) | 0 | grande 0; piccolo 0,7 a prova (2 su 9 mancati), copie cieche che trova solo il modello: il limite invertito in tutte e due le lingue (MG87: la regola sulla riga citata non scatta: la riga citata ha lo stesso numero con lo stesso verso che il codice legge nella descrizione; si guarda la forma del testo) |
 | ✅ | Costo per ciclo | ≤ 0,05 $ | 0,0064 $ piccolo, 0,0098 $ grande (il più caro 0,022 $); prima 0,011 e 0,019 $ |

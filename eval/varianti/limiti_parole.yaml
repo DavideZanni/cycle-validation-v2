@@ -1,0 +1,7 @@
+nome: limiti_parole
+descrizione: "MG87b: un CORRETTO del modello diventa ERRATO LIMITE_CONTRO_CITAZIONE se la descrizione dice «massimo» in tutte e due le lingue e la riga del manuale che lui cita dice «minimum» vicino a un numero della descrizione (o il contrario). Regola finale `parola_limite_contro_citazione`"
+ipotesi: "La forma del falso OK (passo 4l): la copia cieca ha «MASSIMO»/«MAXIMUM» lontano dai numeri e la riga citata «a minimum of 99»: la regola sul verso del numero non lo vede, questa sì"
+atteso: "rigiocata sulle prove di lingue_insieme (0 $): piccolo falsi OK 0,7 → circa 0,3 (in una prova su due la riga citata non ha la parola) e mai visti +1 dove scatta; 0 falsi errori in più sul piccolo e sul grande"
+base: lingue_insieme
+agent:
+  final_rules: [fonte_assente_una_volta, parola_limite_contro_citazione]

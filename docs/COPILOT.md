@@ -26,7 +26,7 @@ prova e cosa si è deciso), `MEMORIA.md` (cosa è successo finora).
 | **3. Le prove** | 3.1 Come funzionano · 3.2 Cicli veri · 3.3 Copie cieche · 3.4 Gruppo nascosto · 3.5 Campagna · 3.6 Leggere i risultati · 3.7 Prova a mano · 3.8 Mettere ordine · 3.9 La v1 sugli stessi cicli |
 | **4. Prove dal frontend** | la v2 dalla pagina web |
 | **5. Dopo una nuova ingestion** | fotografia della conoscenza, lista dei manuali, cosa rifare |
-| **6. Le persone** | domande aperte, messaggio per il collega del frontend, prompt per la documentazione completa |
+| **6. Le persone** | domande aperte, messaggio per il collega del frontend, prompt per la documentazione completa, prompt «dove sta cosa» |
 | **7. QA** | la pubblicazione nell'ambiente di prova |
 
 ---
@@ -105,7 +105,7 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 | | Tappa | Stato |
 |---|---|---|
 | ✅ | 1-3 · Preparare, campagne, migliorie | 28-11: base `lingue_insieme` + MG83, 0 falsi errori, 42/45 e 31/31 stabili, 0,006-0,010 $ e 10-13 s a ciclo |
-| 👉 | 4 · Prove dal frontend (sezione 4) | A3 e A1 fatte |
+| 👉 | 4 · Ultimi esperimenti (passo 4m), poi prove dal frontend (sezione 4) | A3 e A1 fatte |
 | ⬜ | 5 · Grande ingestion, prova di controllo, QA | più avanti, quando hai tempo |
 | ⬜ | 6 · Produzione (`develop` → `main`) | quando i cancelli di `V1_CONTRO_V2.md` sono ✅ |
 
@@ -117,44 +117,63 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 | ✅ | 4i · Chiamata diretta, rigioca, tabelle, una prova di `diretta` | 28-11 mattina: `diretta` -37% di costo |
 | ✅ | 4j · Regole MG83 e MG87, campagna delle migliorie che usano il modello | 28-11: `lingue_insieme` e MG83 nella base |
 | ✅ | 4k · La base nuova a 0 $, perché MG87 non scatta | 28-11: la base tiene; MG87 la riga citata dice «almeno» |
-| 👉 | **4l · Il codice nuovo a 0 $, la forma dei falsi OK** | adesso · 0 $, 10 minuti |
-| ⬜ | **4f · EJ200 sul PC** | quando vuoi (conoscenza EJ200 già su S3) · centesimi |
+| ✅ | 4l · Il codice nuovo a 0 $, la forma dei falsi OK | 28-11: niente rotto; il falso OK è «MASSIMO» contro «a minimum of» |
+| 👉 | **4m · Gli ultimi esperimenti: MG87b e la prova di controllo** | adesso · 0,60 $, 30-40 minuti |
+| ⬜ | **4f · EJ200 sul PC** (facoltativo) | quando vuoi (conoscenza EJ200 già su S3) · centesimi |
 | ⬜ | **5 · Grande ingestion e QA** | dopo |
 
 ---
 
-**👉 Passo 4l · Il codice nuovo a 0 $, e la «forma» dei falsi OK** (0 $, circa 10 minuti)
+**👉 Passo 4m · Gli ultimi esperimenti sui cicli MOS e DR** (circa 0,60 $, 30-40 minuti)
 
-Passo 4k fatto il 28-11: la base nuova tiene (piccolo 42 → 42, grande 31 → 31, avvisi sul
-grande 8,9 → 5,3). La regola MG87 non scatta: la riga citata ha lo stesso numero con «almeno»,
-quindi il codice legge «almeno» anche nella descrizione. Adesso `eval rigioca` mostra anche la
-**forma** del testo: lettere → `x`, cifre → `9`, restano leggibili solo le parole di limite
-(«MASSIMO», «MIN», «at least»...). Nessun codice e nessuna parola del manuale.
+Passo 4l fatto il 28-11: il codice nuovo non ha rotto niente (senza modello 41 su 45 e 31 su
+31, 0 falsi errori; banco 290 su 292, 0 falsi allarmi, lettura 105 su 105). La forma del falso
+OK mostra perché MG87 non scattava: nella copia cieca c'è «MASSIMO»/«MAXIMUM» lontano dai
+numeri, e la riga del manuale citata dice «a minimum of ...». Nuova regola MG87b:
+`parola_limite_contro_citazione`.
+
+**Dopo questo passo gli esperimenti sono finiti.** Claude decide con le foto e mette la
+versione finale nel codice; tu fai solo Aggiornare.
 
 1. **Aggiornare** (2.1).
    - **Deve uscire:** in fondo `... passed` e nessun `failed`.
    - **Mandami:** la foto dell'ultima riga.
-2. **La forma dei falsi OK, e i controlli del codice con le impostazioni nuove** (0 $):
+2. **MG87b sulle prove già fatte** (0 $, pochi secondi):
 
    ```powershell
    $env:UV_PYTHON = "3.14"
    [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-   uv run cycle-validation eval rigioca --variante lingue_insieme_avvisi --insiemi piccolo
-   uv run cycle-validation eval senza-modello
-   uv run cycle-validation eval banco
+   uv run cycle-validation eval rigioca --variante limiti_parole
    ```
 
-   - **Deve uscire:**
-     - `Rigiocate 3 prove di lingue_insieme ... 42 → 42`, poi per ogni falso OK due righe:
-       `Falso OK, riga citata: <impronta> <op>: ...` e
-       `Falso OK, riga citata: <impronta> <op> forma: it «...» · en «...» · riga 1 «...»`;
-     - senza modello: piccolo 41 su 45, grande 31 su 31, 0 falsi errori, 0 da verificare (come
-       il 27-11 notte);
-     - banco: 308 su 310, 0 falsi allarmi, lettura 105 su 105.
-   - **Mandami:** la foto delle righe `Falso OK` (si devono leggere bene le righe `forma`) e
-     la foto delle righe finali di `senza-modello` e `banco`.
+   - **Deve uscire:** `Rigiocate 3 prove di lingue_insieme con limiti_parole, piccolo: errori
+     stabili 42 → 42 (o 43) · falsi OK a prova 0.7 → circa 0.3 · falsi errori 0 → 0 ...` e
+     per il grande `31 → 31 · falsi errori 0 → 0 · WARNING per ciclo 8.9 → 5.3`.
+   - **Mandami:** la foto delle due righe `Rigiocate ...` (le righe `Falso OK` non servono).
+3. **La prova di controllo della versione finale** (circa 0,60 $, 20-30 minuti): una prova
+   sul piccolo e una sul grande con il codice così com'è, per vederlo girare tutto insieme.
+   Se il modello non risponde: `aws sso login` e rilancia (riparte da dove era).
 
-Con queste foto Claude scrive la correzione per MG87 (si rigioca a 0 $) e il passo dopo.
+   ```powershell
+   $env:UV_PYTHON = "3.14"
+   [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
+   uv run cycle-validation eval campagna --varianti controllo_finale --ripetizioni 1
+   uv run cycle-validation eval rigioca --riferimento controllo_finale --variante controllo_finale_parole
+   ```
+
+   - **Deve uscire:** `=== haiku · piccolo · controllo_finale · prova 1 di 1 ...`, una riga per
+     ciclo, `Prova «controllo_finale»: visti ...`; lo stesso per il grande; `Campagna finita.
+     Prove fatte ora: 2 · spesa ... $`. Poi due righe `Rigiocate 1 prove di controllo_finale
+     con controllo_finale_parole ...`. Attesi: piccolo circa 42 su 45, grande 31 su 31, 0
+     falsi errori, 0 da verificare.
+   - **Mandami:** le foto delle due righe `Prova «controllo_finale»: ...`, della riga `Campagna
+     finita`, delle due righe `Rigiocate ...` e, in `runs\prove-piccolo\riepilogo.md` e
+     `runs\prove-grande\riepilogo.md`, la sezione **Metriche di controllo**.
+
+**Dopo il passo 4m (Claude):** MG87b nella base se tiene (0 falsi errori in più),
+`V1_CONTRO_V2.md` con i numeri finali, esperimenti chiusi. A te restano, nell'ordine che
+vuoi: Aggiornare (2.1), EJ200 (passo 4f, facoltativo), le prove a mano dal frontend (sezione
+4), la grande ingestion (passo 5), la QA (sezione 7).
 
 ---
 
@@ -713,6 +732,37 @@ dividi in parti («Parte 1 di N») e aspetta che io scriva «continua».
 **Mandami:** il testo della risposta (copiato e incollato, non in foto: è lungo). **Prima di
 mandarlo, controlla** che non ci siano nomi veri (bucket, persone, codici): se ce ne sono,
 cancellali. Claude aggiorna `DOCUMENTAZIONE.md` e la guida allo studio.
+
+---
+
+### 6.4 Prompt per Copilot: dove sta cosa sul PC
+
+**A cosa serve:** Claude non vede il PC. Con le risposte sa dove sono le altre cartelle (v1,
+ingestion, frontend) per il passo 5 e le prove dal frontend, e controlla che nel salvataggio
+(2.2) non finiscano file di `runs` o `data`. **Quando:** quando vuoi, anche subito. Copilot
+**in modalità Ask**. Copia tutto il blocco nella chat di Copilot.
+
+```text
+Modalità sola lettura: non modificare niente, non creare file, non aprire la cartella data/
+né i file dentro runs/. Nelle risposte scrivi solo percorsi relativi alla cartella
+ProgettoDocumenti (mai C:\Users\...), e niente nomi di bucket, account, persone o azienda.
+Rispondi con una lista numerata, una riga per punto dove si può.
+
+1. Quali cartelle ci sono dentro ProgettoDocumenti, e quali sono repository git? Per ognuna:
+   a cosa serve in una riga (v1 della cycle validation, v2, ingestion / knowledge-index,
+   frontend, altro) e su quale branch è adesso.
+2. Il repository che contiene app_cycle_validation_v2: su che branch è? Quali file risultano
+   modificati e non salvati (solo i nomi, come git status --short)? Ci sono file di runs/ o
+   data/ che git vede invece di ignorarli?
+3. Dove sta il codice dell'ingestion (knowledge-index)? Con quale comando si lancia? Dove
+   scrive il current.json civile e quello EJ200 (solo la parte del percorso dopo il bucket)?
+4. Dove sta il frontend che chiama la v2? In quale file e con quale variabile prende
+   l'indirizzo del servizio (il nome della variabile, non il valore)?
+5. Sul PC c'è già una cartella con stampe EJ200, fuori da ProgettoDocumenti? Rispondi solo
+   sì o no, senza aprire i file.
+```
+
+- **Mandami:** la foto della risposta di Copilot (se è lunga, più foto).
 
 ---
 
