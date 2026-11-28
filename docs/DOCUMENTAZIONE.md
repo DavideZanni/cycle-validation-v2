@@ -751,6 +751,15 @@ l'unico modulo che lo importa è `agent/sdk_session.py`. Il resto del codice par
   (sul PC è già l'id completo `eu.`). Nessun nuovo tentativo dentro l'SDK: li fa già
   `agent/runner.py`. Provare l'accesso: `eval chiamata-diretta` (una domanda finta, meno di un
   centesimo).
+- Il trasporto (`agent.direct_transport`, dal 28-11): `boto3` (predefinito) manda lo stesso
+  corpo con `invoke_model` di `bedrock-runtime`, con la rete di boto3 (proxy, `AWS_CA_BUNDLE`,
+  credenziali) che sul PC funziona già per S3; un solo client per processo, nessun nuovo
+  tentativo dentro boto3. `httpx` usa il client `AsyncAnthropicBedrock` dell'SDK, con il
+  certificato di `AWS_CA_BUNDLE` (o `SSL_CERT_FILE`, `REQUESTS_CA_BUNDLE`) se c'è. Il 28-11 sul
+  PC il client HTTP dell'SDK ha dato `APIConnectionError`.
+- Un errore della sessione diretta dice i tipi della catena delle cause, il codice di AWS e una
+  causa probabile (`describe_error`: certificato, accesso scaduto, tempo scaduto, proxy...),
+  mai il messaggio (può contenere indirizzi, account o testo del ciclo).
 - Con `diretta`: `agent.direct_cache` (MG56; nella variante `diretta`, perché la cache non cambia
   le risposte, solo il prezzo) mette i punti di cache di
   Bedrock su istruzioni, strumenti e storia della sessione (dal secondo turno la storia si
@@ -1024,6 +1033,7 @@ nell'immagine del servizio diventano `config/settings.azienda.yaml`.
 | `agent.task_stage_check` | `false` | task di un altro stadio: ERRATO `TASK_ALTRO_STADIO` (MG48; sezione 6.2) |
 | `agent.session_backend` | `sdk` | `diretta`: chiamata diretta a Bedrock senza Claude Code (MG54; sezione 9) |
 | `agent.direct_model` | vuoto | con `diretta`: id del modello su Bedrock (vuoto = `agent.model`) |
+| `agent.direct_transport` | `boto3` | con `diretta`: `boto3` (`invoke_model`) o `httpx` (client HTTP dell'SDK) |
 | `agent.direct_input_price`, `agent.direct_output_price` | 0,10 e 0,50 | con `diretta`: dollari per milione di token, per il costo nel report |
 | `agent.direct_cache` | `false` | con `diretta`: punti di cache di Bedrock (MG56) |
 | `agent.shared_reference_first` | `false` | il testo del manuale prima della domanda, in un blocco da tenere in cache (MG59) |
@@ -1252,7 +1262,7 @@ opzioni.
 | `eval scegli <cartelle>` | sceglie i cicli: prima quelli noti, poi i veri civili con almeno l'80% di operazioni confrontabili (`--copertura`), fino a `--quanti` (0 = tutti). Accanto a ogni ciclo vero scrive se è MOS o DR (dalla testata) e in fondo quanti per tipo | no |
 | `eval muta` | fa le copie cieche: `--lista`, `--knowledge`, `--quanti`, `--seme`, `--per-ciclo` (6) | no |
 | `eval prova [pdf]…` | valida, confronta con gli errori noti, scrive `prestazioni.md` e `riepilogo.md`. `--nome`, `--variante`, `--lista` (ripetibile), `--attesi` (ripetibile), `--cartella`, `--profile` (predefinito `auto`: MOS o DR ciclo per ciclo, dalla testata, così un DR nella lista non si ferma con «Modulo sbagliato») | sì |
-| `eval chiamata-diretta` | prova la chiamata diretta a Bedrock (MG54) con una domanda finta, senza testi aziendali: dice se modello, regione, accesso e strumento di risposta funzionano. `--config` (vuoto = `data/settings.yaml`). Meno di un centesimo (28-11) | sì |
+| `eval chiamata-diretta` | prova la chiamata diretta a Bedrock (MG54) con una domanda finta, senza testi aziendali: dice se modello, regione, accesso e strumento di risposta funzionano. `--config` (vuoto = `data/settings.yaml`), `--trasporto` (`boto3` o `httpx`; vuoto = le impostazioni). Se non riesce, dice tipi, codice di AWS e causa probabile. Meno di un centesimo (28-11) | sì |
 | `eval senza-modello` | gli stessi cicli della campagna (`--insiemi`, predefinito piccolo e grande), solo con i controlli del codice: al posto del modello una risposta fissa «non verificabile». Dice quanti errori noti trova il codice da solo e se dà falsi errori. Prove in `runs/senza-modello-<insieme>`, fuori dalle cartelle della campagna. I WARNING qui non contano (tutto quello che fa il modello esce WARNING). `--knowledge` (vuoto = ultima fotografia), `--config`, `--cartella`. Serve a provare una regola nuova del codice prima di una campagna (27-11 notte). Con `--variante` (28-11) dopo la base prova anche la variante e stampa la riga `Differenza sul <insieme>`: errori trovati prima e dopo (in più e persi, solo dei cicli noti: delle copie cieche solo il numero), falsi errori, da verificare, e una parola: `da scartare`, `da guardare` (ERRATO nuovi fuori dalla lista), `si può tenere` o `nessuna differenza` | no |
 | `eval rigioca` | una regola finale (MG83) sulle prove già fatte (28-11): `--variante` (nome in `eval/varianti`), `--riferimento` (vuoto = quello di `eval/campagna.yaml`), `--insiemi`, `--file`, `--config`, `--cartella`. Rifà il conto delle prove del riferimento dai loro `report.json`, con gli errori noti di adesso (anche copie cieche e gruppo nascosto), e delle stesse prove con le regole della variante; stampa per insieme errori stabili, falsi OK, falsi errori, da verificare e WARNING per ciclo, prima → dopo, e la decisione. Solo per una variante che cambia soltanto `agent.final_rules` (altrimenti si ferma e dice che cosa cambia). Prove in `runs/rigioca-<insieme>`, rifatta da capo ogni volta; le cartelle della campagna non si toccano. 0 $, pochi secondi | no |
 | `eval banco` | banco di prova sulle 14 stampe vere di `docs/CONFRONTO_V1_14_CICLI.md`: il programma mette un errore alla volta su ogni operazione possibile (un numero, un limite, «massimo»/«minimo», un'azione in una lingua; il numero del DR) e conta quanti ne trovano i controlli del codice, per tipo, e i falsi allarmi su altre operazioni; poi la lettura della stampa contro la tabella della v1 (operazioni, targhe, schede). `--giri` (5: semi diversi), `--knowledge`, `--config`. 0 $, pochi secondi; a schermo solo impronte, operazioni e conteggi (27-11 notte) | no |

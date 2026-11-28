@@ -1,6 +1,7 @@
 """MG54-MG56-MG59: la sessione diretta su Bedrock, con un client finto (niente rete)."""
 
 import asyncio
+import json
 from pathlib import Path
 from typing import Any
 
@@ -189,3 +190,103 @@ def test_the_smoke_command_reports_the_call(monkeypatch: Any, tmp_path: Path) ->
     assert result.exit_code == 0, result.output
     assert "Chiamata diretta: ok" in result.output and "uguali" in result.output
     assert client.calls[0]["system"][0]["cache_control"] == {"type": "ephemeral"}
+
+
+class FakeBoto:
+    """`bedrock-runtime` finto: risponde con il JSON della Messages API."""
+
+    def __init__(self, reply: dict[str, Any]) -> None:
+        self.reply = reply
+        self.calls: list[dict[str, Any]] = []
+
+    def invoke_model(self, **kwargs: Any) -> dict[str, Any]:
+        import io
+
+        self.calls.append(kwargs)
+        return {"body": io.BytesIO(json.dumps(self.reply).encode("utf-8"))}
+
+
+def test_the_boto3_transport_sends_the_messages_body(tmp_path: Path) -> None:
+    """28-11: sul PC il client HTTP dell'SDK dava `APIConnectionError`; boto3 usa la rete che
+    funziona già per S3. Stesso corpo che manda l'SDK per Bedrock, storia compresa."""
+    from cycle_validation.agent.direct_session import BEDROCK_VERSION, BotoBedrockClient
+
+    manual = tmp_path / "manuale.txt"
+    manual.write_text("riga 1\nriga 2\n", encoding="utf-8")
+    usage = {"input_tokens": 10, "output_tokens": 5}
+    first = {
+        "id": "m1",
+        "type": "message",
+        "role": "assistant",
+        "model": "finto",
+        "content": [
+            {"type": "thinking", "thinking": "...", "signature": "firma"},
+            {
+                "type": "tool_use",
+                "id": "t1",
+                "name": "Read",
+                "input": {"file_path": str(manual), "offset": 1, "limit": 2},
+            },
+        ],
+        "stop_reason": "tool_use",
+        "stop_sequence": None,
+        "usage": usage,
+    }
+    second = {
+        **first,
+        "id": "m2",
+        "content": [
+            {"type": "tool_use", "id": "t2", "name": OUTPUT_TOOL, "input": {"judgement": "ok"}}
+        ],
+    }
+    boto = FakeBoto(first)
+    client = BotoBedrockClient(AgentSettings(), boto_client=boto)
+
+    def factory(_: AgentSettings) -> BotoBedrockClient:
+        return client
+
+    session = DirectBedrockSession(
+        AgentSettings(model="eu.finto", session_backend="diretta", direct_cache=True),
+        client_factory=factory,
+    )
+    original = boto.invoke_model
+
+    def answer(**kwargs: Any) -> dict[str, Any]:
+        result = original(**kwargs)
+        boto.reply = second
+        return result
+
+    boto.invoke_model = answer  # type: ignore[method-assign]
+    request = _request(use_tools=True, allowed_files=(manual,), max_turns=3)
+    outcome = asyncio.run(session.run(request))
+    assert outcome.status is SessionStatus.OK and outcome.output == {"judgement": "ok"}
+    assert [call["modelId"] for call in boto.calls] == ["eu.finto", "eu.finto"]
+    body = json.loads(boto.calls[1]["body"])
+    assert body["anthropic_version"] == BEDROCK_VERSION and "model" not in body
+    assert body["thinking"] == {"type": "adaptive"}
+    history = body["messages"][1]["content"]
+    assert history[0] == {"type": "thinking", "thinking": "...", "signature": "firma"}
+    assert body["messages"][2]["content"][0]["content"] == "1: riga 1\n2: riga 2"
+
+
+def test_an_error_says_its_causes_without_the_message() -> None:
+    from cycle_validation.agent.direct_session import describe_error
+
+    class ConnectError(Exception):
+        pass
+
+    try:
+        try:
+            raise ConnectError("[SSL: CERTIFICATE_VERIFY_FAILED] host-segreto.interno")
+        except ConnectError as inner:
+            raise RuntimeError("connessione") from inner
+    except RuntimeError as exc:
+        text = describe_error(exc)
+    assert text == "RuntimeError ← ConnectError · certificato (filtro di rete?)"
+
+    class ClientError(Exception):
+        def __init__(self) -> None:
+            super().__init__("x")
+            self.response = {"Error": {"Code": "ExpiredTokenException", "Message": "account 1"}}
+
+    assert describe_error(ClientError()) == "ClientError · ExpiredTokenException"

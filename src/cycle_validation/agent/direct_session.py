@@ -11,11 +11,22 @@ Claude Code per ogni sessione. Stesso contratto di `SdkAgentSession` (una richie
   (`SessionRequest.shared_context`): il testo di riferimento in un blocco a sé, prima della
   domanda, con un punto di cache: le operazioni che citano lo stesso task lo pagano una volta.
 
-Le credenziali AWS non passano da qui: l'SDK usa quelle dell'ambiente, come boto3.
+Le credenziali AWS non passano da qui: si usano quelle dell'ambiente.
+
+Il trasporto (28-11, dopo la prima prova sul PC: `APIConnectionError` con il client HTTP
+dell'SDK) è predefinito su **boto3** (`agent.direct_transport`): `invoke_model` di
+`bedrock-runtime`, con la stessa rete (proxy, certificati con `AWS_CA_BUNDLE`, credenziali) che
+sul PC già funziona per S3. Il corpo è quello della Messages API, come lo manda l'SDK per
+Bedrock. `httpx` resta: il client `AsyncAnthropicBedrock` dell'SDK, con il certificato di
+`AWS_CA_BUNDLE` se c'è.
 """
 
+import asyncio
 import json
+import os
 import re
+import ssl
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -145,11 +156,126 @@ def _block_dict(block: Any) -> dict[str, Any]:
 ClientFactory = Callable[[AgentSettings], Any]
 
 
-def default_client(settings: AgentSettings) -> Any:
-    from anthropic import AsyncAnthropicBedrock
+BEDROCK_VERSION = "bedrock-2023-05-31"
+_BOTO_CLIENTS: dict[tuple[str | None, float | None, int], Any] = {}
+_BOTO_LOCK = threading.Lock()
 
+
+def _boto_client(settings: AgentSettings) -> Any:
+    """Un client `bedrock-runtime` per processo (i client di boto3 si possono usare da più
+    thread; crearne uno per sessione costa)."""
+    key = (settings.aws_region, settings.session_timeout_s, settings.concurrency)
+    with _BOTO_LOCK:
+        if key not in _BOTO_CLIENTS:
+            import boto3
+            from botocore.config import Config
+
+            config = Config(
+                # i nuovi tentativi li fa già `agent/runner.py`
+                retries={"max_attempts": 1, "mode": "standard"},
+                read_timeout=int(settings.session_timeout_s or 300),
+                connect_timeout=20,
+                max_pool_connections=max(10, 2 * settings.concurrency),
+            )
+            _BOTO_CLIENTS[key] = boto3.client(
+                "bedrock-runtime", region_name=settings.aws_region, config=config
+            )
+        return _BOTO_CLIENTS[key]
+
+
+def _plain(value: Any) -> Any:
+    """I blocchi dell'SDK (pydantic) come JSON, solo i campi arrivati dal servizio."""
+    if hasattr(value, "model_dump"):
+        return value.model_dump(mode="json", exclude_unset=True)
+    raise TypeError(type(value).__name__)
+
+
+class BotoBedrockClient:
+    """Lo stesso `messages.create` del client dell'SDK, ma con `invoke_model` di boto3."""
+
+    def __init__(self, settings: AgentSettings, boto_client: Any | None = None) -> None:
+        self._client = boto_client if boto_client is not None else _boto_client(settings)
+        self.messages = self
+
+    async def create(self, **kwargs: Any) -> Any:
+        from anthropic.types import Message
+
+        model = kwargs.pop("model")
+        body = json.dumps({"anthropic_version": BEDROCK_VERSION, **kwargs}, default=_plain)
+        raw = await asyncio.to_thread(
+            self._client.invoke_model,
+            modelId=model,
+            body=body,
+            contentType="application/json",
+            accept="application/json",
+        )
+        data = await asyncio.to_thread(raw["body"].read)
+        return Message.model_validate(json.loads(data))
+
+    async def close(self) -> None:
+        return None  # il client di boto3 resta per le sessioni dopo
+
+
+def _ca_context() -> ssl.SSLContext | None:
+    """Il certificato del filtro di rete, se l'ambiente lo dà (COPILOT.md, riga Zscaler)."""
+    for name in ("AWS_CA_BUNDLE", "SSL_CERT_FILE", "REQUESTS_CA_BUNDLE"):
+        path = os.environ.get(name)
+        if path and os.path.isfile(path):
+            return ssl.create_default_context(cafile=path)
+    return None
+
+
+def default_client(settings: AgentSettings) -> Any:
+    if settings.direct_transport == "boto3":
+        return BotoBedrockClient(settings)
+    from anthropic import AsyncAnthropicBedrock, DefaultAsyncHttpxClient
+
+    context = _ca_context()
+    http_client = DefaultAsyncHttpxClient(verify=context) if context is not None else None
     # i nuovi tentativi li fa già `agent/runner.py`: qui nessuno, per non raddoppiare l'attesa
-    return AsyncAnthropicBedrock(aws_region=settings.aws_region, max_retries=0)
+    return AsyncAnthropicBedrock(
+        aws_region=settings.aws_region, max_retries=0, http_client=http_client
+    )
+
+
+# Parole del messaggio di un errore di rete → una causa da mostrare. Del messaggio non si
+# mostra niente (può contenere indirizzi, account o testo del ciclo): solo tipi e codici.
+_CAUSES = (
+    (("certificate", "ssl"), "certificato (filtro di rete?)"),
+    (("expired", "sso", "token"), "accesso AWS scaduto?"),
+    (("credential",), "credenziali AWS"),
+    (("timed out", "timeout"), "tempo scaduto"),
+    (("proxy",), "proxy"),
+    (("getaddrinfo", "name or service", "nodename", "name resolution"), "nome del servizio"),
+    (("refused",), "connessione rifiutata"),
+    (("reset", "closed", "eof"), "connessione chiusa"),
+)
+
+
+def describe_error(exc: BaseException) -> str:
+    """Il tipo dell'errore, le sue cause (solo i tipi), il codice di AWS e una causa probabile:
+    `APIConnectionError ← ConnectError · certificato (filtro di rete?)`."""
+    chain: list[BaseException] = []
+    current: BaseException | None = exc
+    while current is not None and len(chain) < 5:
+        chain.append(current)
+        current = current.__cause__ or current.__context__
+    names = " ← ".join(type(item).__name__ for item in chain)
+    code = ""
+    for item in chain:
+        response = getattr(item, "response", None)
+        if isinstance(response, dict):
+            code = str(response.get("Error", {}).get("Code", ""))
+            if code:
+                break
+    text = " ".join(str(item) for item in chain).lower()
+    # con un codice di AWS il codice basta (per esempio `ExpiredTokenException`)
+    cause = (
+        ""
+        if code
+        else next((label for words, label in _CAUSES if any(w in text for w in words)), "")
+    )
+    return " · ".join(part for part in (names, code, cause) if part)
 
 
 class DirectBedrockSession:
@@ -306,8 +432,10 @@ class DirectBedrockSession:
                     )
             return SessionOutcome(status=SessionStatus.MAX_TURNS, usage=usage)
         except Exception as exc:
-            # solo il tipo: il messaggio può riportare testo del ciclo (come in runner.py)
-            return SessionOutcome(status=SessionStatus.ERROR, usage=usage, error=type(exc).__name__)
+            # solo tipi, codice e causa: il messaggio può riportare testo del ciclo
+            return SessionOutcome(
+                status=SessionStatus.ERROR, usage=usage, error=describe_error(exc)
+            )
         finally:
             close = getattr(client, "close", None)
             if close is not None:

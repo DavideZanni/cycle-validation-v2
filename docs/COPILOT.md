@@ -88,7 +88,7 @@ La riga `$env:UV_PYTHON = "3.14"` all'inizio dei blocchi serve: non toglierla.
 | `costo 0.00 $` in una prova, oppure `Campagna fermata: il modello non ha risposto` | l'accesso AWS è scaduto: i cicli girano ma il modello non risponde | Ctrl+C se gira ancora → `aws sso login` → rilancia lo stesso blocco: toglie da solo le prove senza risposte e le rifà |
 | `Token has expired`, `ExpiredToken`, `SSO session` | accesso AWS scaduto | `aws sso login`, accedi dal browser, rilancia il blocco |
 | `Campagna fermata: ...` (altro motivo) | si è fermata da sola (es. tetto di spesa) | leggi il motivo; foto a Claude |
-| `SELF_SIGNED_CERT_IN_CHAIN`, `unable to get local issuer certificate` | il filtro di rete (Zscaler) blocca il certificato | lancia la riga qui sotto e rilancia il blocco (vale fino alla chiusura del terminale) |
+| `SELF_SIGNED_CERT_IN_CHAIN`, `unable to get local issuer certificate`, `certificato (filtro di rete?)` | il filtro di rete (Zscaler) blocca il certificato | lancia la riga qui sotto e rilancia il blocco (vale fino alla chiusura del terminale) |
 | `FERMO: ...` | il blocco si è fermato prima di fare danni: niente è cambiato | leggi il motivo (di solito la cartella del terminale), correggi, rilancia |
 | `failed` nei test o una scritta rossa `Errore` | qualcosa non va | **fermati** e manda la foto a Claude |
 | la campagna non finisce dopo ore | è normale: dura ore | lasciala girare |
@@ -138,7 +138,8 @@ campagna per ognuna:
    - **Deve uscire:** in fondo `... passed` e nessun `failed`.
    - **Mandami:** la foto dell'ultima riga.
 2. **La chiamata diretta**, con una domanda finta (nessun testo aziendale), dopo `aws sso login`
-   se serve:
+   se serve. Prima prova (28-11, 10:30): `NON riuscita ... APIConnectionError` con il client
+   HTTP dell'SDK. Ora la chiamata passa da boto3, come S3, e l'errore dice anche la causa:
 
    ```powershell
    $env:UV_PYTHON = "3.14"
@@ -146,10 +147,14 @@ campagna per ognuna:
    uv run cycle-validation eval chiamata-diretta
    ```
 
-   - **Deve uscire:** `Chiamata diretta: ok (...) · risposta {'risposta': 'uguali'} · token
-     ... · costo 0.000.. $ · ... s`.
-   - **Mandami:** la foto della riga. Se esce `Chiamata diretta NON riuscita`, la foto della
-     riga (dice solo il tipo di errore) e **salta il punto 6**.
+   - **Deve uscire:** `Chiamata diretta: ok (..., boto3) · risposta {'risposta': 'uguali'} ·
+     token ... · costo 0.000.. $ · ... s`.
+   - Se esce `NON riuscita` con `certificato (filtro di rete?)`: lancia la riga Zscaler di 0.4
+     («Se qualcosa va storto») e rilancia il blocco. Con
+     `ExpiredTokenException` o `accesso AWS scaduto?`: `aws sso login` e rilancia.
+   - **Mandami:** la foto della riga (dice solo tipi, codici e la causa probabile). Se è ancora
+     `NON riuscita`, anche la riga di `uv run cycle-validation eval chiamata-diretta
+     --trasporto httpx`, e **salta il punto 6**.
 3. **MG48 senza modello** (0 $, qualche minuto): sul piccolo e sul grande prima la base, poi la
    variante `altro_stadio`, e la differenza:
 

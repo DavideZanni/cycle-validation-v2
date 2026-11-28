@@ -174,6 +174,10 @@ class AgentSettings(_Strict):
     # Con `diretta`: l'id del modello su Bedrock (per esempio un profilo `eu.anthropic...`).
     # None = `model` (sul PC è già l'id completo; l'alias `haiku` vale solo per l'SDK).
     direct_model: str | None = None
+    # Con `diretta`: come si arriva a Bedrock. `boto3` (predefinito dal 28-11): `invoke_model`
+    # di boto3, la stessa rete che sul PC funziona per S3. `httpx`: il client HTTP dell'SDK
+    # `anthropic` (sul PC la prima prova ha dato `APIConnectionError`).
+    direct_transport: Literal["boto3", "httpx"] = "boto3"
     # Con `diretta`: prezzi in dollari per milione di token, per il costo nel report. Listino
     # di Haiku 5.5; la fattura di Bedrock può essere diversa. La scrittura in cache costa 1,25
     # volte l'ingresso, la lettura 0,1 volte.

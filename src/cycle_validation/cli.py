@@ -1210,6 +1210,10 @@ def eval_trial(
 @eval_app.command("chiamata-diretta")
 def eval_direct_call(
     config: Annotated[Path | None, typer.Option(help="settings.yaml.")] = None,
+    trasporto: Annotated[
+        str | None,
+        typer.Option(help="boto3 o httpx. Vuoto = quello delle impostazioni (boto3)."),
+    ] = None,
 ) -> None:
     """Prova la chiamata diretta a Bedrock (MG54) con una domanda finta, senza testi aziendali:
     una sessione, meno di un centesimo. Dice se modello, regione, accesso e strumento di
@@ -1224,7 +1228,15 @@ def eval_direct_call(
         settings = load_settings(config)
     except (CycleValidationError, OSError, ValueError) as error:
         raise _fail(error) from error
-    agent = settings.agent.model_copy(update={"session_backend": "diretta", "direct_cache": True})
+    if trasporto not in (None, "boto3", "httpx"):
+        raise _fail(CycleValidationError("Trasporto: boto3 o httpx."))
+    agent = settings.agent.model_copy(
+        update={
+            "session_backend": "diretta",
+            "direct_cache": True,
+            "direct_transport": trasporto or settings.agent.direct_transport,
+        }
+    )
     request = SessionRequest(
         session_id="prova-diretta",
         system_prompt="Rispondi solo con l'oggetto richiesto.",
@@ -1241,11 +1253,12 @@ def eval_direct_call(
     model = agent.direct_model or agent.model
     if outcome.status.value != "ok":
         typer.echo(
-            f"Chiamata diretta NON riuscita ({model}): {outcome.status.value} {outcome.error}"
+            f"Chiamata diretta NON riuscita ({model}, {agent.direct_transport}): "
+            f"{outcome.status.value} {outcome.error}"
         )
         raise typer.Exit(code=1)
     typer.echo(
-        f"Chiamata diretta: ok ({model}) · risposta {outcome.output} · token "
+        f"Chiamata diretta: ok ({model}, {agent.direct_transport}) · risposta {outcome.output} · token "
         f"{usage.input_tokens}+{usage.output_tokens} · costo {usage.cost_usd:.5f} $ · "
         f"{usage.wall_ms / 1000:.1f} s"
     )

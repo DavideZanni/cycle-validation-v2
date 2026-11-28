@@ -1667,6 +1667,14 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   Nuova regola della decisione: una variante con più falsi OK della base non si tiene (prima i
   falsi OK si vedevano solo nelle metriche di controllo); nel report della campagna c'è la
   colonna «Falsi OK a prova». La campagna del passo 4j scende da circa 12-14 $ a 6-7 $.
+- **28-11 mattina, prima chiamata diretta sul PC.** Aggiornare ✅ (tutti i test passano). `eval
+  chiamata-diretta`: `NON riuscita (eu....haiku-5-5): error APIConnectionError`. Vuol dire che
+  il client HTTP dell'SDK `anthropic` (httpx) non arriva a Bedrock: la firma AWS si fa prima,
+  quindi non sono le credenziali; restano rete, proxy o certificato (Zscaler). Claude Code e
+  boto3 (S3) sul PC funzionano. Decisione: la chiamata diretta passa da boto3 (`invoke_model`,
+  `agent.direct_transport: boto3`), la stessa rete di S3; httpx resta come opzione e prende il
+  certificato da `AWS_CA_BUNDLE`. Gli errori ora dicono i tipi della catena, il codice di AWS e
+  la causa probabile (mai il messaggio). Da rifare il punto 2 del passo 4i.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 
