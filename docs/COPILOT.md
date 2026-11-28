@@ -104,8 +104,8 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 | | Tappa | Stato |
 |---|---|---|
-| ✅ | 1-3 · Preparare, campagne, migliorie | 28-11: base `lingue_insieme` + MG83, 0 falsi errori, 42/45 e 31/31 stabili, 0,006-0,010 $ e 10-13 s a ciclo |
-| 👉 | 4 · Ultimi esperimenti (passo 4m), poi prove dal frontend (sezione 4) | A3 e A1 fatte |
+| ✅ | 1-3 · Preparare, campagne, migliorie | 28-11: esperimenti finiti. Versione finale `lingue_insieme` + MG83 + MG87b: 0 falsi errori, 42-43/45 e 31/31, falsi OK 0-0,3 a prova, 0,006-0,010 $ e 10-13 s a ciclo |
+| 👉 | 4 · Aggiornare e salvare (passo 4n), poi prove dal frontend (sezione 4) | A3 e A1 fatte |
 | ⬜ | 5 · Grande ingestion, prova di controllo, QA | più avanti, quando hai tempo |
 | ⬜ | 6 · Produzione (`develop` → `main`) | quando i cancelli di `V1_CONTRO_V2.md` sono ✅ |
 
@@ -118,51 +118,34 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 | ✅ | 4j · Regole MG83 e MG87, campagna delle migliorie che usano il modello | 28-11: `lingue_insieme` e MG83 nella base |
 | ✅ | 4k · La base nuova a 0 $, perché MG87 non scatta | 28-11: la base tiene; MG87 la riga citata dice «almeno» |
 | ✅ | 4l · Il codice nuovo a 0 $, la forma dei falsi OK | 28-11: niente rotto; il falso OK è «MASSIMO» contro «a minimum of» |
-| 👉 | **4m · Gli ultimi esperimenti: MG87b e la prova di controllo** | MG87b ✅ nella base; prova di controllo in corso |
+| ✅ | 4m · Gli ultimi esperimenti: MG87b e la prova di controllo | 28-11 14:30: MG87b nella base, controllo 0 falsi errori, 0,43 $ |
+| 👉 | **4n · Aggiornare e salvare la versione finale** | adesso · 0 $, 10 minuti |
 | ⬜ | **4f · EJ200 sul PC** (facoltativo) | quando vuoi (conoscenza EJ200 già su S3) · centesimi |
 | ⬜ | **5 · Grande ingestion e QA** | dopo |
 
 ---
 
-**👉 Passo 4m · Gli ultimi esperimenti sui cicli MOS e DR** (circa 0,60 $, 30-40 minuti)
+**👉 Passo 4n · Aggiornare e salvare la versione finale** (0 $, 10 minuti)
 
-Passo 4l fatto il 28-11: il codice nuovo non ha rotto niente (senza modello 41 su 45 e 31 su
-31, 0 falsi errori; banco 290 su 292, 0 falsi allarmi, lettura 105 su 105). La forma del falso
-OK mostra perché MG87 non scattava: nella copia cieca c'è «MASSIMO»/«MAXIMUM» lontano dai
-numeri, e la riga del manuale citata dice «a minimum of ...». Nuova regola MG87b:
-`parola_limite_contro_citazione`.
+**Gli esperimenti sui cicli MOS e DR sono finiti** (passo 4m, 28-11 14:30). La prova di
+controllo della versione finale: piccolo 31 su 31 errori noti dei cicli, mai visti 1 su 4,
+grande 31 su 31, 0 falsi errori, 0 da verificare, 0,43 $ in tutto. Rigiocata con MG87b
+(che ora è nel codice): piccolo 42 → 43, falsi OK 1 → 0, avvisi 5,0; grande 31 → 31, avvisi
+5,4. I numeri finali sono in `V1_CONTRO_V2.md`.
 
-**Dopo questo passo gli esperimenti sono finiti.** Claude decide con le foto e mette la
-versione finale nel codice; tu fai solo Aggiornare.
+1. **Aggiornare** (2.1).
+   - **Deve uscire:** in fondo `... passed` e nessun `failed`.
+   - **Mandami:** la foto dell'ultima riga.
+2. **Salvare nel repository aziendale** (2.2, i due blocchi).
+   - **Deve uscire:** nel blocco 1 righe `M`/`A` solo sotto le cartelle del `git add` (circa
+     50 file: il lavoro del 28-11), niente sotto `data/` o `runs/`; nel blocco 2 la riga del
+     push e `## feature/cycle-validation-v2...origin/feature/cycle-validation-v2` senza
+     `[ahead ...]`.
+   - **Mandami:** la foto della parte finale del blocco 2.
 
-1. ✅ **Aggiornare** (2.1).
-2. ✅ **MG87b sulle prove già fatte** (28-11 14:15): piccolo falsi OK 0,7 → 0,3, falsi errori
-   0 → 0 sul piccolo e sul grande. **Nella base.**
-3. 👉 **La prova di controllo della versione finale** (in corso dalle 14:15; circa 0,60 $, 20-30
-   minuti). **Aggiornare solo quando è finita.** Una prova
-   sul piccolo e una sul grande con il codice così com'è, per vederlo girare tutto insieme.
-   Se il modello non risponde: `aws sso login` e rilancia (riparte da dove era).
-
-   ```powershell
-   $env:UV_PYTHON = "3.14"
-   [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-   uv run cycle-validation eval campagna --varianti controllo_finale --ripetizioni 1
-   uv run cycle-validation eval rigioca --riferimento controllo_finale --variante controllo_finale_parole
-   ```
-
-   - **Deve uscire:** `=== haiku · piccolo · controllo_finale · prova 1 di 1 ...`, una riga per
-     ciclo, `Prova «controllo_finale»: visti ...`; lo stesso per il grande; `Campagna finita.
-     Prove fatte ora: 2 · spesa ... $`. Poi due righe `Rigiocate 1 prove di controllo_finale
-     con controllo_finale_parole ...`. Attesi: piccolo circa 42 su 45, grande 31 su 31, 0
-     falsi errori, 0 da verificare.
-   - **Mandami:** le foto delle due righe `Prova «controllo_finale»: ...`, della riga `Campagna
-     finita`, delle due righe `Rigiocate ...` e, in `runs\prove-piccolo\riepilogo.md` e
-     `runs\prove-grande\riepilogo.md`, la sezione **Metriche di controllo**.
-
-**Dopo il passo 4m (Claude):** MG87b è già nella base;
-`V1_CONTRO_V2.md` con i numeri finali, esperimenti chiusi. A te restano, nell'ordine che
-vuoi: Aggiornare (2.1), EJ200 (passo 4f, facoltativo), le prove a mano dal frontend (sezione
-4), la grande ingestion (passo 5), la QA (sezione 7).
+**Dopo, nell'ordine che vuoi:** le prove a mano dal frontend (sezione 4), EJ200 (passo 4f,
+facoltativo), la grande ingestion (passo 5), la QA (sezione 7). Per Claude non resta niente
+da provare: lavora solo sulle foto di questi passi.
 
 ---
 

@@ -52,6 +52,7 @@ varianti: [quasi_finale, diretta, testo_comune, lingue_insieme]
 # 28-11, 14:00: ultima prova, `controllo_finale` (la versione da portare in QA, così come è nel
 # codice): una sul piccolo e una sul grande, con `--varianti controllo_finale --ripetizioni 1`
 # (COPILOT passo 4m). Poi gli esperimenti sui cicli MOS e DR sono chiusi.
+# 28-11, 14:30: fatta (0,43 $, 0 falsi errori, con MG87b falsi OK 0). Esperimenti chiusi.
 riferimento: lingue_insieme
 
 # Prove per variante: tre (le differenze sono di uno o due errori).

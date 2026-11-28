@@ -1,8 +1,9 @@
 # v1 contro v2
 
 Numeri: v1 da `CONFRONTO_V1_14_CICLI.md`; v2 dalla campagna del 28-11 (passo 4j: la base nuova
-`lingue_insieme`, 3 prove sul piccolo e 3 sul grande, contro `quasi_finale` del passo 4h), da
-`eval rigioca` per la regola MG83 (passo 4k, sulle prove di `lingue_insieme`) e dalla prova senza modello del 27-11 notte
+`lingue_insieme`, 3 prove sul piccolo e 3 sul grande, contro `quasi_finale` del passo 4h), dalla
+prova di controllo della versione finale (passo 4m, una prova per insieme), da
+`eval rigioca` per le regole MG83 e MG87b (passi 4k e 4m) e dalla prova senza modello del 27-11 notte
 (solo i controlli del codice: quello che trovano lo trovano sempre). La v1 ha documenti che la v2 non ha ancora: per ogni errore mancato si dice se
 manca il **documento** o il **controllo**. Claude aggiorna il file dopo ogni campagna.
 
@@ -25,7 +26,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | ✅ | Stampe lette | 14/14 | 14/14 |
 | ✅ | Banco di prova: errori messi dal programma sulle 14 stampe, trovati dal codice | ≥ 90% per tipo, 0 falsi allarmi | 290 su 292 (numeri 95%, limiti, massimo/minimo, azioni e DR 100%), 0 falsi allarmi; uguale sul PC con la conoscenza vera, anche con il codice del 28-11 |
 | ✅ | Lettura della stampa contro la v1 | uguale, tranne gli errori noti | operazioni 105 su 105; targhe 104 su 105 e schede 21 su 22: le 2 differenze sono errori noti |
-| ❌ | Falsi OK (errori noti mancati con CORRETTO) | 0 | grande 0; piccolo **0,3 a prova** (era 0,7; 1 su 9 mancati), sempre la copia cieca con il limite invertito in tutte e due le lingue: MG87b la prende quando la riga citata dice «minimum», non quando la riga citata non ha parole di limite (lì solo il modello) |
+| ❌ | Falsi OK (errori noti mancati con CORRETTO) | 0 | grande 0; piccolo **0,3 a prova** sulle 3 prove di `lingue_insieme` rigiocate (era 0,7) e **0** nella prova di controllo; sempre la copia cieca con il limite invertito in tutte e due le lingue: MG87b la prende quando la riga citata dice «minimum», non quando la riga citata non ha parole di limite (lì solo il modello) |
 | ✅ | Costo per ciclo | ≤ 0,05 $ | 0,0064 $ piccolo, 0,0098 $ grande (il più caro 0,022 $); prima 0,011 e 0,019 $ |
 | ✅ | Tempo per ciclo | ≤ 2 min | 10 s piccolo, 13 s grande (il più lento 34 s); prima 20 e 30 s |
 | ✅ | Test | 0 `failed` | 0 |
@@ -51,7 +52,7 @@ Si passa quando tutte le righe del cancello sono ✅. Soglie proposte da Claude.
 | ⬜ | QA: un MOS e un DR veri, con e senza serial | nessun errore tecnico | — |
 | ⬜ | QA: targhe vere (Redshift) | 0 targhe giuste ERRATO | — |
 | ⬜ | Esperto su 5-10 risultati QA | 0 falsi, ≥ 80% trovati | — |
-| ⬜ | Avvisi per ciclo in QA | ≤ 5, `[da guardare]` ≤ 2 | 4,8 piccolo, 5,3 grande (base nuova con MG83, rigiocata sulle prove di `lingue_insieme`); restano 3,2 «evidenza non trovata» |
+| ⬜ | Avvisi per ciclo in QA | ≤ 5, `[da guardare]` ≤ 2 | 4,8-5,0 piccolo, 5,3-5,4 grande (versione finale); restano circa 3 «evidenza non trovata» (il manuale non ne parla), da misurare in QA |
 | ⬜ | Accessi EJ200 in QA | solo `cv_ej200` e `all` | ok nei test |
 | ⬜ | Ritorno alla v1 (`qa --torna-alla-v1`) | provato | — |
 
@@ -143,6 +144,7 @@ Le 6 stampe con errori che la v1 valida. ✔ trovato · — mancato.
 Nella campagna `quasi_finale` (3 prove) tutte le operazioni di questa tabella sono trovate in
 3 prove su 3, e nessun falso errore.
 
-*Aggiornato il 28-11, dopo la campagna 4j e la rigiocata del passo 4k (base nuova: piccolo 42
-su 45, grande 31 su 31, 0 falsi errori, 0 da verificare, avvisi 4,8 e 5,3). Prossimo: MG87 (i
-falsi OK) e gli avvisi «evidenza non trovata».*
+*Aggiornato il 28-11 alle 14:30: esperimenti sui cicli MOS e DR finiti. Versione finale
+(`lingue_insieme`, MG83, MG87b), prova di controllo: piccolo 43 su 45 con MG87b, grande 31 su
+31, 0 falsi errori, 0 da verificare, falsi OK 0, 0,43 $ per le due prove. Prossimo: grande
+ingestion e prova di controllo sul grande, poi QA.*

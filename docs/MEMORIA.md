@@ -62,7 +62,8 @@ sezione 1 di `COPILOT.md`):
 | 7e17 | Claude: MG83 (regola finale e variante `meno_avvisi`, provata con `eval rigioca`) dai dati del 7e16 | Claude | ✅ 28-11 (grande 8,9 → 5,3 avvisi) |
 | 7e18 | Campagna delle varianti che usano il modello (`diretta`, `testo_comune`, `lingue_insieme`), contro `quasi_finale` (circa 6-7 $; era 12-14 $ con tutte) | COPILOT passo 4j | ✅ 28-11: nella base `lingue_insieme` e MG83 |
 | 7e19 | La base nuova a 0 $, forma dei falsi OK, senza modello e banco con il codice nuovo | COPILOT passi 4k e 4l | ✅ 28-11 pomeriggio: niente rotto; MG87b dalla forma |
-| 7e20 | **Ultimi esperimenti:** MG87b rigiocata, prova di controllo `controllo_finale` (0,60 $). Poi esperimenti chiusi | COPILOT passo 4m | MG87b ✅ 28-11 14:15, nella base; prova di controllo in corso |
+| 7e20 | **Ultimi esperimenti:** MG87b rigiocata, prova di controllo `controllo_finale` (0,60 $). Poi esperimenti chiusi | COPILOT passo 4m | ✅ 28-11 14:30: MG87b nella base; controllo 0 falsi errori, 0,43 $. **Esperimenti finiti** |
+| 7e21 | Aggiornare e salvare la versione finale; poi prove dal frontend, EJ200 (facoltativo), grande ingestion, QA | COPILOT passo 4n | da fare |
 | 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
 | 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |
 | 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
@@ -1797,6 +1798,24 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   `VITE_BACKEND_URL`; rotte `/cycle_validation/...` e `/cycle_validation/ej200/...`; in locale
   `vite.config.ts` manda `/cycle_validation/` alla porta 8003; la pagina si accende con
   `VITE_ENABLE_CV` (come già in sezione 9). Nessuna cartella di stampe EJ200 sul PC.
+- **28-11, 14:15-14:30, passo 4m, prova di controllo della versione finale (2 prove, 0,43 $).**
+  `controllo_finale` (codice di prima di MG87b: `lingue_insieme` e MG83), una prova per
+  insieme. Piccolo: errori noti dei cicli 31 su 31, controlli del codice 10 su 10, mai visti
+  per il modello 1 su 4 (mancati 7d8bb3c9, 910e2e60, 9ccfacac), 0 falsi errori, 0 da
+  verificare, in attesa 5, 0,21 $. Grande: 31 su 31, 0 falsi errori, 0 da verificare, in
+  attesa 5, 0,23 $. Rigiocata con MG87b (`controllo_finale_parole`): piccolo errori 42 → 43,
+  falsi OK 1,0 → 0,0 (preso 9ccfacac 030: la riga citata dice «a minimum of»), falsi errori
+  0 → 0, WARNING 5,0; grande 31 → 31, 0 falsi OK, 0 falsi errori, WARNING 5,4. Il programma
+  dice «da ripetere» (una prova sola): va bene, la prova serviva a vedere girare tutto insieme,
+  non a confrontare. Considerazione: la versione finale fa quello che le prove separate
+  dicevano (stessi errori, 0 falsi errori, stesso costo). **Decisione (Claude, chiesta
+  dall'utente): gli esperimenti sui cicli MOS e DR sono chiusi.** Versione finale nel codice:
+  `lingue_insieme` (chiamata diretta, cache, lingue di 8 operazioni insieme), MG83, MG87b.
+  Restano all'utente: Aggiornare e Salvare (passo 4n), prove a mano dal frontend, EJ200
+  (facoltativo), grande ingestion con la prova di controllo sul grande, QA. Restano aperti, da
+  guardare in QA e non con altri esperimenti: il falso OK della copia cieca quando la riga
+  citata non ha parole di limite (solo il modello), circa 3 avvisi «evidenza non trovata» per
+  ciclo, la classe dell'acido (serve il documento: grande ingestion).
 
 ## 13. Da correggere nell'indice (knowledge-index)
 
