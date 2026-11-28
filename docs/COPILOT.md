@@ -104,60 +104,45 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 
 | | Tappa | Stato |
 |---|---|---|
-| ✅ | 1-3 · Preparare, campagne, migliorie | 27-11: base con `schede_e_limiti`, 0 falsi errori, 34/43 e 23/29 stabili |
+| ✅ | 1-3 · Preparare, campagne, migliorie | 28-11: base `quasi_finale`, 0 falsi errori, 42/45 e 31/31 stabili |
 | 👉 | 4 · Prove dal frontend (sezione 4) | A3 e A1 fatte |
-| ⬜ | 5 · Grande ingestion, prova di controllo, QA | dopo il passo 4h |
+| ⬜ | 5 · Grande ingestion, prova di controllo, QA | più avanti, quando hai tempo |
 | ⬜ | 6 · Produzione (`develop` → `main`) | quando i cancelli di `V1_CONTRO_V2.md` sono ✅ |
 
 | | Passo | Quando · costo |
 |---|---|---|
 | ✅ | 1-4e · campagne, v1 sugli stessi cicli, base nuova, schede e regole | 27-11 |
 | ✅ | 4g · Domande P13 e P14 | 27-11 notte |
-| 👉 | **4h · Versione quasi finale: campagna** (senza modello e banco fatti) | adesso · circa 2,5 $ |
+| ✅ | 4h · Versione quasi finale: senza modello, banco, campagna | 28-11 notte: si tiene |
+| 👉 | **4i · Report della campagna rifatto** | adesso · 0 $ |
 | ⬜ | **4f · EJ200 sul PC** | dopo l'ingestion EJ200 · centesimi |
 | ⬜ | **5 · Grande ingestion e QA** | dopo |
 
 ---
 
-**👉 Passo 4h · Versione quasi finale: la campagna** (circa 2,5 $)
+**👉 Passo 4i · Report della campagna rifatto** (0 $, niente modello)
 
-Fatti il 27-11 notte: due prove senza modello e la P15. Solo il codice trova 41 errori su 45
-nel piccolo e 31 su 31 nel grande, con 0 falsi errori. I 4 ERRATO da verificare dei cicli veri
-erano falsi errori di MG47 (P15: «sabbiatura» in una condizione, «replace» per «ripristinare»):
-Claude li ha corretti. Terza prova (27-11 notte): 41 su 45 e 31 su 31, 0 falsi errori, 0 da
-verificare.
+La campagna `quasi_finale` (28-11 notte) si tiene: 42 su 45 e 31 su 31, 0 falsi errori, 0 da
+verificare. Nel `campagna.md` le tabelle «Errori mai visti per tipo» e «WARNING per motivo»
+guardavano ancora la base vecchia: Claude le ha cambiate, ora guardano l'ultima prova della
+scelta migliore, sul piccolo e sul grande. Servono per le prossime migliorie (meno avvisi e i
+3 falsi OK sulle copie cieche).
 
-Dopo (27-11 notte) Claude ha aggiunto il **banco di prova** (`eval banco`), le **metriche di
-controllo** nel riepilogo e due correzioni dei numeri (date, limiti ripetuti). Quarta prova
-senza modello e banco sul PC (27-11 notte): 41 su 45 e 31 su 31, 0 e 0; banco 308 su 310, 0
-falsi allarmi, lettura 105 su 105. Manca solo la campagna. **Se la campagna sta già girando,
-non fermarla:** finita quella, fai il punto 2.
-
-1. **La campagna** (3 prove di `quasi_finale`, piccolo e grande, circa un'ora; la base è già
-   fatta e si salta). Prima il piano (3.5), poi:
+1. **Aggiornare** (2.1).
+   - **Deve uscire:** in fondo `... passed` e nessun `failed`.
+   - **Mandami:** la foto dell'ultima riga.
+2. **Il report rifatto**, con le prove che ci sono (non lancia niente):
 
    ```powershell
    $env:UV_PYTHON = "3.14"
    [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-   uv run cycle-validation eval campagna --piano
-   uv run cycle-validation eval campagna
+   uv run cycle-validation eval campagna --solo-report
    ```
 
-   - **Deve uscire:** nel piano `quasi_finale: 3 da fare` per piccolo e grande; alla fine
-     `Campagna finita. Prove fatte ora: 6 · spesa ... $.`
-   - **Mandami:** la riga finale della campagna, poi dei due `riepilogo.md`
-     (`runs\prove-piccolo`, `runs\prove-grande`) la classifica, la tabella «ERRATO da
-     verificare» e la tabella «Metriche di controllo».
-2. **Solo se la campagna è partita prima dell'aggiornamento del 27-11 notte:** ricalcola i
-   riepiloghi, così escono anche le «Metriche di controllo»:
-
-   ```powershell
-   $env:UV_PYTHON = "3.14"
-   "piccolo", "grande" | ForEach-Object { uv run cycle-validation eval riepilogo --cartella "runs/prove-$_" --attesi eval/errori-noti.yaml }
-   ```
-
-   - **Deve uscire:** due volte `Ricalcolati con gli errori noti di adesso: ...`.
-   - **Mandami:** la tabella «Metriche di controllo» dei due `riepilogo.md`.
+   - **Deve uscire:** `Report scritto (niente lanciato): runs\campagna.md`.
+   - **Mandami:** da `runs\campagna.md` le tabelle «Errori mai visti per tipo (scelta
+     migliore, ultima prova)» e «WARNING per motivo (scelta migliore, ultima prova, ...)»: ogni
+     riga inizia con `haiku · piccolo · quasi_finale` o `haiku · grande · quasi_finale`.
 
 ---
 

@@ -18,33 +18,30 @@ Seconda prova: piccolo 41 su 45, grande 31 su 31, 0 falsi errori. P15: i 4 da ve
 falsi errori di MG47, tutti dallo stesso testo («sabbiatura» in una condizione, «replace» per
 «ripristinare»): corretti, attesi 0.
 
-**Prossime, in ordine (27-11 notte, riscritte con l'utente):** solo quelle che si possono fare
-davvero e che migliorano qualcosa di misurabile. L'ingestion si fa più avanti, quando l'utente
-ha tempo; la conoscenza prima di pubblicarla per ora la controlla l'utente a mano.
+**28-11, campagna `quasi_finale` (3 prove sul piccolo e 3 sul grande, 2,36 $):** si tiene,
+è la base. Piccolo 42 su 45 stabili, grande 31 su 31; 0 falsi errori, 0 da verificare; 0,011 $
+e 20 s a ciclo sul piccolo, 0,019 $ e 30 s sul grande. Tutti gli errori noti trovati in 3 prove
+su 3 (MG49 non serve più). Restano: 3 copie cieche che trova solo il modello mancate, con 3
+falsi OK su 9 (MG87), e gli avvisi (4,9 e 8,9 per ciclo, MG83).
 
-Adesso, Claude (non serve aspettare la campagna):
+**Prossime, in ordine (28-11, dopo la campagna):** solo quelle che si possono fare davvero e che
+migliorano qualcosa di misurabile. L'ingestion si fa più avanti, quando l'utente ha tempo; la
+conoscenza prima di pubblicarla per ora la controlla l'utente a mano.
 
-1. MG58 risultato già calcolato: stesso PDF e stessa conoscenza, risposta in un secondo e 0 $.
-   Non tocca il modello.
-2. MG54 chiamata diretta a Bedrock (circa metà del tempo): si scrive come scelta spenta,
-   così `quasi_finale` non cambia; si accende solo in una variante della campagna.
-3. MG56 cache di Bedrock con MG59, sopra MG54: il testo fisso si paga una volta. Il batch no,
-   non risponde subito. Anche questa spenta finché la campagna non la prova.
-4. MG48 task di un altro stadio: prima una domanda a Copilot (come l'indice scrive il pezzo nei
-   titoli dei task), poi il codice.
-
-Adesso, utente:
-
-5. La campagna `quasi_finale` (passo 4h, circa 2,5 $): chiude il cancello A ed è la base con cui
-   si confronta tutto il resto.
-6. MG42 prova EJ200 (passo 4f): cancello B.
-
-Dopo la campagna:
-
-7. MG83 meno avvisi e MG49 errori più stabili (Claude, dai numeri della campagna): cancello C.
-8. Una campagna per tempo e costo: MG54, poi MG56, ognuna come variante contro
-   `quasi_finale`. Si tiene solo se trova gli stessi errori.
-9. MG55 più operazioni insieme, per ultima (rischio: il modello mescola le operazioni).
+1. Report della campagna rifatto (utente, passo 4i, 0 $): le tabelle per tipo e per motivo
+   ora guardano `quasi_finale`, non la base vecchia. Da lì MG83 e MG87.
+2. MG58 risultato già calcolato (Claude, adesso): stesso PDF e stessa conoscenza, risposta in
+   un secondo e 0 $. Non tocca il modello.
+3. MG83 meno avvisi (Claude, dalla tabella «WARNING per motivo» di `quasi_finale`): cancello C.
+   Sul piccolo della base vecchia 3,8 dei 4,8 erano «evidenza non trovata».
+4. MG87 falsi OK sulle copie cieche (Claude, dalla tabella per tipo di `quasi_finale`): una
+   variante della campagna.
+5. MG54 chiamata diretta a Bedrock (circa metà del tempo), scritta spenta; poi MG56 cache di
+   Bedrock con MG59 (il batch no, non risponde subito). Ognuna come variante contro
+   `quasi_finale`, si tiene solo se trova gli stessi errori. MG55 per ultima (rischio: il
+   modello mescola le operazioni).
+6. MG48 task di un altro stadio: prima una domanda a Copilot, poi il codice.
+7. MG42 prova EJ200 (utente, passo 4f): cancello B.
 
 Più avanti, con l'ingestion (utente, quando ha tempo; il codice dell'indice lo scrive Claude se
 `knowledge-index` si collega a una sessione): MG73 grande ingestion (la classe dell'acido, meno
@@ -107,7 +104,7 @@ introduce).
 | MG46 | Materiale tra le lingue | materiale diverso tra italiano e inglese, dal codice | ⬜ | 4 | F1 |
 | MG47 | Azione diversa tra le lingue | dal codice: rimuovere, raccordare, sostituire, lucidare, sabbiare, saldare, pulire (e9b74c84 040, 298bc28e 035). P15: un'azione in una condizione («durante la sabbiatura») non conta; «ripristinare» = «replace» | ✅ | 4 | F1 |
 | MG48 | Task di un altro stadio | il task cita un pezzo diverso da quello del ciclo | ⬜ | 3 | F2 |
-| MG49 | Errori più stabili | errori che escono 2 volte su 3 | ⬜ | 3 | F4 |
+| MG49 | Errori più stabili | errori che escono 2 volte su 3 (28-11: con `quasi_finale` tutti gli errori noti 3 su 3, non serve) | ✅ | 3 | F4 |
 | MG50 | DR senza serial | la procedura DR dal numero «D.R. CASE #» della stampa (P14); le recommendation restano da decidere con le persone | 🔶 | 3 | F5 |
 | MG51 | Frontend con i due WARNING | colori diversi per `[da guardare]` e `[non controllabile]` (collega) | ⬜ | 3 | F7 |
 | MG52 | Fonte della nota | la fonte giusta per il task della nota nelle MOS | ⬜ | 3 | H16 |
@@ -145,3 +142,4 @@ introduce).
 | MG84 | Banco di prova | `eval banco`: errori messi dal programma su ogni operazione delle 14 stampe vere (numero, limite, massimo/minimo, azione, DR): 310 copie, trovate 308, 0 falsi allarmi; lettura della stampa uguale alla v1 | ✅ | 4 | — |
 | MG85 | Metriche di controllo | nel riepilogo: falsi OK, mancati come WARNING o N/A, esiti decisi, errori tecnici, ciclo più lento e più caro | ✅ | 4 | — |
 | MG86 | Date e limiti ripetuti | trovati dal banco: una data in una lingua sola disallineava i numeri; «massimo 2 … massimo 2» con uno girato non si vedeva | ✅ | 3 | — |
+| MG87 | Falsi OK sulle copie cieche | il modello dice CORRETTO su un errore che solo lui può trovare, confrontando con il manuale (campagna del 28-11: 3 su 9 mancati, piccolo). Quale tipo: dalla tabella per tipo del report rifatto | ⬜ | 4 | — |

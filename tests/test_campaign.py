@@ -101,6 +101,9 @@ def test_a_campaign_runs_everything_and_starts_again_where_it_stopped(project: P
     report = (runs / "campagna.md").read_text(encoding="utf-8")
     assert "## haiku · piccolo" in report and "## sonnet · grande" in report
     assert "## I modelli a confronto" in report
+    # per tipo e per motivo: la scelta migliore di ogni insieme, non l'ultima base sul piccolo
+    assert "## WARNING per motivo (scelta migliore, ultima prova" in report
+    assert "ultima base" not in report
     assert "Prove fatte ora: 16" in result.output
     again = _campaign()
     assert "Prove fatte ora: 0" in again.output  # riparte da dove era: niente da rifare

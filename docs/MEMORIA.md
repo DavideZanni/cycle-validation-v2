@@ -55,7 +55,9 @@ sezione 1 di `COPILOT.md`):
 | 7e10 | Claude: MG47 corretta (condizioni, «ripristinare») | Claude | ✅ 27-11 notte |
 | 7e11 | Aggiornare, senza modello (0 e 0 attesi), poi subito la campagna `quasi_finale` | COPILOT passo 4h | senza modello ✅ 27-11 notte: piccolo 41 su 45, grande 31 su 31, 0 falsi errori, 0 da verificare; campagna da fare |
 | 7e12 | Claude: banco di prova (`eval banco`), metriche di controllo nel riepilogo, date e limiti ripetuti | Claude | ✅ 27-11 notte |
-| 7e13 | Aggiornare, senza modello, `eval banco`; campagna (o, se già partita, ricalcolo dei riepiloghi per le metriche di controllo) | COPILOT passo 4h | senza modello e banco ✅ 27-11 notte: 41 su 45 e 31 su 31, 0 e 0; banco sul PC uguale a quello di Claude (308 su 310, 0 falsi allarmi, lettura 105 su 105); campagna da fare |
+| 7e13 | Aggiornare, senza modello, `eval banco`; campagna (o, se già partita, ricalcolo dei riepiloghi per le metriche di controllo) | COPILOT passo 4h | senza modello e banco ✅ 27-11 notte: 41 su 45 e 31 su 31, 0 e 0; banco sul PC uguale a quello di Claude (308 su 310, 0 falsi allarmi, lettura 105 su 105); campagna ✅ 28-11 notte: `quasi_finale` si tiene (42 su 45, 31 su 31, 0 falsi errori, 0 da verificare) |
+| 7e14 | Claude: tabelle per tipo e per motivo sulla scelta migliore | Claude | ✅ 28-11 |
+| 7e15 | Aggiornare, report della campagna rifatto (0 $) | COPILOT passo 4i | da fare |
 | 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
 | 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |
 | 7e | Claude: tabella finale v1 contro v2, cosa deve fare la v2 (sezione 0, sotto), pagina per la presentazione | Claude | dopo 7d |
@@ -1631,6 +1633,10 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   massimo/minimo 16 su 16, azioni 223 su 223, DR 1 su 1, 0 falsi allarmi; lettura contro la v1
   105 su 105, targhe 104 su 105, schede 21 su 22, 13 operazioni lette solo dalla v2. Via libera
   alla campagna `quasi_finale`.
+- **28-11 notte, campagna `quasi_finale`: si tiene.** Dettagli nel registro (sezione 16). Le
+  tabelle «per tipo» e «WARNING per motivo» di `campagna.md` guardavano l'ultima base sul
+  piccolo, fatta con il codice di prima: ora guardano l'ultima prova della scelta migliore,
+  piccolo e grande (passo 4i per rifare il report). Copilot nelle foto non si vedeva.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 
@@ -2020,3 +2026,22 @@ errori, 4 ERRATO da verificare nei cicli veri del grande (P15). Decisione: la ca
 15 sulle sue 19 operazioni); il modello serve ancora per le copie cieche e per dire OK con la
 frase del manuale. Seconda prova con MG81: piccolo 41 su 45, grande 31 su 31; i 4 da
 verificare erano falsi errori di MG47 (P15), corretti.
+
+**Campagna `quasi_finale` (27-11 23:41 - 28-11 00:35, 3 prove sul piccolo e 3 sul grande,
+2,36 $).** Decisione: **si tiene**, è la base (era già nel codice della base: le prove della
+base erano fatte con il codice di prima). Numeri: piccolo 42 su 45 stabili (base 31,
+`schede_e_limiti` 35), mai visti per il modello 1 su 4, 0 falsi errori, 0 da verificare,
+precisione 100%, 4,9 WARNING per ciclo senza errori, 0,0114 $ e 20 s a ciclo (il più lento
+55 s); grande 31 su 31 (base 20, `schede_e_limiti` 24), 0 falsi errori, 0 da verificare, 8,9
+WARNING per ciclo, 0,0188 $ e 30 s (il più lento 56 s, il più caro 0,035 $). Errori tecnici 0
+su 417 e 0 su 516. Metriche di controllo, piccolo: dei 9 mancati (3 errori in 3 prove) 3 con
+CORRETTO (falsi OK), 4 con WARNING, 2 con N/A; grande: nessun mancato. Considerazioni: tutti
+gli errori noti (anche le 060 dei cicli veri, 22f586bb 030, 298bc28e 035, e9b74c84 040,
+895167b9 030) trovati in 3 prove su 3: il codice ha tolto l'instabilità del modello (MG49 non
+serve). I 3 mancati sono copie cieche che trova solo il modello confrontando con il manuale:
+nell'ultima base sul piccolo `limite_invertito` CORRETTO VERIFICATO, `negazione_due_lingue`
+N/A FUORI_TEMA, `numero_manuale` WARNING EVIDENZA_NON_TROVATA (per `quasi_finale`: passo 4i).
+Le 2 ERRATO da verificare della P13 (8d3c673c 060, b1261d11 060) spariscono (MG78). In attesa
+(0 su 3 in tutte le varianti, come previsto): 04ecaabe 030, 2d724fba 030, 5ff17062 040, c5ff3cd6
+030, f355dc3c 040. Prossimo: report rifatto (passo 4i), poi MG83 (meno avvisi, soprattutto sul
+grande) e MG87 (i falsi OK delle copie cieche).

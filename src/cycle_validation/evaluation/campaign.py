@@ -159,7 +159,7 @@ def render_campaign(
     launched: Sequence[str] | None = None,
 ) -> str:
     """Il report finale: per ogni modello e insieme la scelta e la classifica, poi i modelli a
-    confronto e gli errori mai visti per tipo (base, piccolo). `models` sono tutti i modelli del
+    confronto, gli errori mai visti e i WARNING per tipo (scelta migliore, ultima prova). `models` sono tutti i modelli del
     file, nel loro ordine (decide le cartelle): il report li mostra tutti, con le prove che ci
     sono. `launched` sono quelli lanciati ora (vuoto = solo il report, niente lanciato)."""
     launched = list(models if launched is None else launched)
@@ -212,9 +212,14 @@ def render_campaign(
             ]
     if len(models) > 1:
         lines += _compare(tables, models, config.insiemi)
-    bases = [(m, _last_base(folder_for(models, m, "piccolo", runs))) for m in models]
-    lines += _unseen_section([(m, t) for m, t in bases if t is not None])
-    lines += _warning_section([(m, t) for m, t in bases if t is not None])
+    chosen = [
+        (f"{m} · {s} · {t.name}", t)
+        for m in models
+        for s in config.insiemi
+        if (t := _last_of_best(folder_for(models, m, s, runs))) is not None
+    ]
+    lines += _unseen_section(chosen)
+    lines += _warning_section(chosen)
     lines += [
         "Dettagli di ogni insieme: `riepilogo.md` nella sua cartella. Le considerazioni le scrive "
         "Claude nel registro di `docs/MEMORIA.md`.",
@@ -261,43 +266,55 @@ def _base_first(name: str) -> tuple[int, str]:
     return (0 if name == BASE_NAME else 1, name)
 
 
-def _last_base(folder: Path) -> Trial | None:
+def _last_of_best(folder: Path) -> Trial | None:
+    """L'ultima prova della scelta migliore della cartella (la base se nessuna variante vale):
+    le tabelle per tipo e per motivo guardano la versione che si tiene, non la base vecchia
+    (fino al 28-11 guardavano l'ultima base sul piccolo, anche quando la base aveva prove fatte
+    con il codice di prima)."""
     if not folder.is_dir():
         return None
-    bases = [t for t in load_trials(folder) if t.name.casefold() == BASE_NAME]
-    return bases[-1] if bases else None
+    trials = load_trials(folder)
+    best = best_variant(build_variants(trials))
+    name = best.name.casefold() if best else BASE_NAME
+    picked = [t for t in trials if t.name.casefold() == name]
+    return picked[-1] if picked else None
 
 
-def _unseen_section(bases: Sequence[tuple[str, Trial]]) -> list[str]:
-    """Gli errori mai visti per tipo nell'ultima prova della base sul piccolo (`bases`: modello
-    e prova): da qui si scelgono le migliorie (solo conteggi, mai quali sono)."""
-    lines = ["## Errori mai visti per tipo (ultima base, piccolo)", ""]
+def _unseen_section(chosen: Sequence[tuple[str, Trial]]) -> list[str]:
+    """Gli errori mai visti per tipo nell'ultima prova della scelta migliore (`chosen`:
+    «modello · insieme · variante» e prova): da qui si scelgono le migliorie (solo conteggi,
+    mai quali sono)."""
+    lines = ["## Errori mai visti per tipo (scelta migliore, ultima prova)", ""]
     rows: list[str] = []
-    for model, trial in bases:
+    for label, trial in chosen:
         answers = unseen_answers(trial)
         rows += [
-            f"| {model} | {kind} | {found} su {total} | {answers.get(kind, '-')} |"
+            f"| {label} | {kind} | {found} su {total} | {answers.get(kind, '-')} |"
             for kind, (found, total) in unseen_by_kind(trial).items()
         ]
     if rows:
-        header = "| Modello | Tipo | Trovati | Cosa ha risposto la v2 sui mancati |"
+        header = "| Prova | Tipo | Trovati | Cosa ha risposto la v2 sui mancati |"
         lines += [header, "|---|---|---|---|", *rows, ""]
     else:
-        lines.append("Nessuna base sul piccolo con errori mai visti.")
+        lines.append("Nessuna prova con errori mai visti.")
     return [*lines, ""]
 
 
-def _warning_section(bases: Sequence[tuple[str, Trial]]) -> list[str]:
-    """Da dove vengono i WARNING dei cicli senza errori noti (ultima base, piccolo)."""
-    lines = ["## WARNING per motivo (ultima base, piccolo, per ciclo senza errori noti)", ""]
+def _warning_section(chosen: Sequence[tuple[str, Trial]]) -> list[str]:
+    """Da dove vengono i WARNING dei cicli senza errori noti, nell'ultima prova della scelta
+    migliore di ogni insieme."""
+    lines = [
+        "## WARNING per motivo (scelta migliore, ultima prova, per ciclo senza errori noti)",
+        "",
+    ]
     rows: list[str] = []
-    for model, trial in bases:
+    for label, trial in chosen:
         rows += [
-            f"| {model} | `{reason}` | {per_cycle:.1f} | {WARNING_MEANING.get(reason, '-')} |"
+            f"| {label} | `{reason}` | {per_cycle:.1f} | {WARNING_MEANING.get(reason, '-')} |"
             for reason, per_cycle in trial.clean_warning_reasons().items()
         ]
     if rows:
-        lines += ["| Modello | Motivo | Per ciclo | Cosa vuol dire |", "|---|---|---|---|", *rows]
+        lines += ["| Prova | Motivo | Per ciclo | Cosa vuol dire |", "|---|---|---|---|", *rows]
     else:
-        lines.append("Nessuna base sul piccolo.")
+        lines.append("Nessuna prova.")
     return [*lines, ""]

@@ -1420,7 +1420,10 @@ massimo_dollari: 15
 - Il report `runs/campagna.md`: per ogni modello e insieme la scelta migliore e la classifica
   (prove, stabili, mai visti per il modello stabili, falsi errori, da verificare, costo e
   tempo per ciclo, decisione); i modelli a confronto, variante per variante; gli errori mai
-  visti per tipo nell'ultima base sul piccolo, con cosa ha risposto la v2 sui mancati.
+  visti per tipo, con cosa ha risposto la v2 sui mancati, e i WARNING per motivo, tutti e due
+  nell'ultima prova della scelta migliore di ogni insieme (piccolo e grande). Fino al 28-11
+  guardavano l'ultima base sul piccolo, anche quando le prove della base erano fatte con il
+  codice di prima.
 - Le cartelle delle prove hanno i secondi nel nome (`AAAAMMGG-HHMMSS-<nome>`, con `-2`, `-3`
   se due prove partono nello stesso secondo).
 - **Due modelli insieme** (24-11): con `--modelli haiku` in un terminale e `--modelli sonnet`
