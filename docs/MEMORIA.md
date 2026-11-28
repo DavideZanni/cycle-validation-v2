@@ -1675,6 +1675,14 @@ Le risposte già date. Le domande ancora aperte sono in `COPILOT.md` (sezione 6.
   `agent.direct_transport: boto3`), la stessa rete di S3; httpx resta come opzione e prende il
   certificato da `AWS_CA_BUNDLE`. Gli errori ora dicono i tipi della catena, il codice di AWS e
   la causa probabile (mai il messaggio). Da rifare il punto 2 del passo 4i.
+- **28-11, 10:40, passo 4i sul PC.** Aggiornare ✅. `eval chiamata-diretta` con boto3: `ok`,
+  risposta giusta, 539+55 token, 0,00008 $, 7,5 s: la strada boto3 funziona sul PC. MG48
+  senza modello sul grande: 31 → 31, falsi errori 0 → 0, nessuna differenza (la riga del
+  piccolo era scorsa via: da rimandare). Riepiloghi ricalcolati con gli errori noti di adesso:
+  `quasi_finale` 42 su 45 (3 volte) e 31 su 31 (3 volte), come ieri notte. `eval rigioca
+  --variante quasi_finale`: 42 → 42 e 31 → 31, WARNING per ciclo 4,9 e 8,9 uguali: il comando
+  legge bene le prove sul PC. Falsi OK a prova: 1,0 sul piccolo, 0 sul grande (MG87). Mancano
+  ancora le tre tabelle di `runs\campagna.md` e la prova di `diretta`. Copilot era su Agent.
 
 ## 13. Da correggere nell'indice (knowledge-index)
 

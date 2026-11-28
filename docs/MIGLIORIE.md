@@ -41,7 +41,9 @@ prima di pubblicarla per ora la controlla l'utente a mano.
 
 1. Passo 4i (utente, circa 0,40 $): Aggiornare, `eval chiamata-diretta`, MG48 senza modello,
    le tabelle per tipo, per motivo e per operazione di `quasi_finale`, prova di `eval rigioca`,
-   una prova sola di `diretta` sul piccolo.
+   una prova sola di `diretta` sul piccolo. 28-11, 10:40: chiamata diretta `ok` (boto3),
+   `eval rigioca` ok, MG48 sul grande senza differenze; mancano MG48 sul piccolo, le tabelle e
+   la prova di `diretta`.
 2. MG83 meno avvisi (Claude, dalla tabella «WARNING per operazione»): una regola finale e la
    variante `meno_avvisi`, provata con `eval rigioca` (0 $). Sul piccolo della base vecchia 3,8
    dei 4,8 erano «evidenza non trovata». MG87 falsi OK sulle copie cieche, dalla tabella per

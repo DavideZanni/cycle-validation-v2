@@ -114,49 +114,22 @@ $env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\app_cycle_validation\zscaler.pem).Pa
 | ✅ | 1-4e · campagne, v1 sugli stessi cicli, base nuova, schede e regole | 27-11 |
 | ✅ | 4g · Domande P13 e P14 | 27-11 notte |
 | ✅ | 4h · Versione quasi finale: senza modello, banco, campagna | 28-11 notte: si tiene |
-| 👉 | **4i · Prove corte: chiamata diretta, MG48 senza modello, rigioca, una prova di `diretta`** | adesso · circa 0,40 $, 30-40 minuti |
+| 👉 | **4i · Prove corte: MG48 sul piccolo, tre tabelle, una prova di `diretta`** | adesso · circa 0,40 $, 15-20 minuti |
 | ⬜ | **4j · Campagna delle migliorie che usano il modello** | dopo 4i · circa 6-7 $, 2-3 ore |
 | ⬜ | **4f · EJ200 sul PC** | dopo l'ingestion EJ200 · centesimi |
 | ⬜ | **5 · Grande ingestion e QA** | dopo |
 
 ---
 
-**👉 Passo 4i · Prove corte delle migliorie del 28-11** (circa 0,40 $, 30-40 minuti)
+**👉 Passo 4i · Prove corte delle migliorie del 28-11** (circa 0,40 $, 15-20 minuti)
 
-La campagna `quasi_finale` (28-11 notte) si tiene: 42 su 45 e 31 su 31, 0 falsi errori, 0 da
-verificare. Claude ha scritto le migliorie del 28-11, tutte **spente** nella base. Non serve una
-campagna per ognuna:
-- MG48 (task di un altro stadio) è solo codice: si prova **senza modello**, 0 $;
-- MG83 (meno avvisi) sarà una regola finale: si prova **sulle prove già fatte** (`eval
-  rigioca`), 0 $. Oggi si controlla solo che il comando vada sul PC;
-- la chiamata diretta (MG54 con la cache MG56, variante `diretta`) cambia il modo di chiamare
-  il modello: **una prova sola** sul piccolo dice se funziona e quanto fa risparmiare. Se non
-  risparmia, cadono anche `testo_comune` (MG59) e `lingue_insieme` (MG55).
+Fatto il 28-11 mattina: Aggiornare ✅, chiamata diretta ✅ (`ok`, boto3, 7,5 s), `eval
+rigioca` ✅ (42 → 42 e 31 → 31), riepiloghi ricalcolati ✅, MG48 sul grande: nessuna
+differenza. Restano tre cose:
 
-1. **Aggiornare** (2.1). Questa volta `uv` installa anche il pacchetto `anthropic` (serve alla
-   chiamata diretta): la prima volta ci mette un po' di più.
-   - **Deve uscire:** in fondo `... passed` e nessun `failed`.
-   - **Mandami:** la foto dell'ultima riga.
-2. **La chiamata diretta**, con una domanda finta (nessun testo aziendale), dopo `aws sso login`
-   se serve. Prima prova (28-11, 10:30): `NON riuscita ... APIConnectionError` con il client
-   HTTP dell'SDK. Ora la chiamata passa da boto3, come S3, e l'errore dice anche la causa:
-
-   ```powershell
-   $env:UV_PYTHON = "3.14"
-   [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-   uv run cycle-validation eval chiamata-diretta
-   ```
-
-   - **Deve uscire:** `Chiamata diretta: ok (..., boto3) · risposta {'risposta': 'uguali'} ·
-     token ... · costo 0.000.. $ · ... s`.
-   - Se esce `NON riuscita` con `certificato (filtro di rete?)`: lancia la riga Zscaler di 0.4
-     («Se qualcosa va storto») e rilancia il blocco. Con
-     `ExpiredTokenException` o `accesso AWS scaduto?`: `aws sso login` e rilancia.
-   - **Mandami:** la foto della riga (dice solo tipi, codici e la causa probabile). Se è ancora
-     `NON riuscita`, anche la riga di `uv run cycle-validation eval chiamata-diretta
-     --trasporto httpx`, e **salta il punto 6**.
-3. **MG48 senza modello** (0 $, qualche minuto): sul piccolo e sul grande prima la base, poi la
-   variante `altro_stadio`, e la differenza:
+1. **La riga di MG48 sul piccolo** (0 $). È già sullo schermo del punto 3 di stamattina, più in
+   alto: scorri il terminale fino a `--- piccolo (senza-modello altro_stadio) ---`. Se il
+   terminale è stato chiuso, rilancia:
 
    ```powershell
    $env:UV_PYTHON = "3.14"
@@ -164,45 +137,20 @@ campagna per ognuna:
    uv run cycle-validation eval senza-modello --variante eval/varianti/altro_stadio.yaml
    ```
 
-   - **Deve uscire:** due righe `Differenza sul piccolo: ...` e `Differenza sul grande: ...`,
-     che finiscono con `nessuna differenza (nessun danno)`, `si può tenere: trova di più`,
+   - **Deve uscire:** `Senza modello con altro_stadio, piccolo: ...` e `Differenza sul piccolo:
+     ...`, che finisce con `nessuna differenza (nessun danno)`, `si può tenere: trova di più`,
      `da guardare: ...` o `da scartare`.
-   - **Mandami:** la foto delle righe `Senza modello, ...`, `Senza modello con altro_stadio,
-     ...` e `Differenza ...`. Se una dice `da guardare`, anche le righe del grande con
-     `ERRATO in più` nella prova `senza-modello altro_stadio` (solo impronta e operazione).
-4. **I WARNING per operazione** anche nelle prove già fatte (gratis, dai loro `report.json`),
-   poi il report rifatto (non lancia niente):
-
-   ```powershell
-   $env:UV_PYTHON = "3.14"
-   [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-   "piccolo", "grande" | ForEach-Object { uv run cycle-validation eval riepilogo --cartella "runs/prove-$_" --attesi eval/errori-noti.yaml }
-   uv run cycle-validation eval campagna --solo-report
-   ```
-
-   - **Deve uscire:** due volte `Ricalcolati con gli errori noti di adesso: ...`, poi
-     `Report scritto (niente lanciato): runs\campagna.md`.
-   - **Mandami:** da `runs\campagna.md` tre tabelle: «Errori mai visti per tipo (scelta
-     migliore, ultima prova)», «WARNING per motivo (scelta migliore, ...)» e «WARNING per
-     operazione (scelta migliore, ...)». Ogni riga inizia con `haiku · piccolo · quasi_finale`
-     o `haiku · grande · quasi_finale`; nell'ultima ci sono solo impronte, numeri di operazione
-     e motivi.
-5. **Prova del comando `eval rigioca`** (0 $, pochi secondi): rifà il conto delle 3 prove di
-   `quasi_finale` senza cambiare niente, per vedere che sul PC legge tutte le prove:
-
-   ```powershell
-   $env:UV_PYTHON = "3.14"
-   [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONIOENCODING = "utf-8"
-   uv run cycle-validation eval rigioca --variante quasi_finale
-   ```
-
-   - **Deve uscire:** `Rigiocate 3 prove di quasi_finale con quasi_finale, piccolo: errori
-     stabili 42 → 42 · falsi OK a prova ... · ... · non si tiene: pari alla base ...`, poi la
-     stessa riga per il grande (31 → 31). I numeri a sinistra e a destra della freccia sono
-     uguali.
-   - **Mandami:** la foto delle due righe `Rigiocate ...`.
-6. **Una prova sola della chiamata diretta**, sul piccolo (circa 0,40 $, 10-15 minuti). Solo se
-   il punto 2 è `ok`:
+   - **Mandami:** la foto di quelle due righe. Se dice `da guardare`, anche le righe del piccolo
+     con `ERRATO in più` nella prova `senza-modello altro_stadio` (solo impronta e operazione).
+2. **Le tre tabelle di `runs\campagna.md`** (0 $, il file è già scritto: aprilo in VS Code,
+   niente da lanciare).
+   - **Deve uscire:** nel file le tabelle «Errori mai visti per tipo (scelta migliore, ultima
+     prova)», «WARNING per motivo (scelta migliore, ...)» e «WARNING per operazione (scelta
+     migliore, ...)».
+   - **Mandami:** la foto delle tre tabelle. Ogni riga inizia con `haiku · piccolo ·
+     quasi_finale` o `haiku · grande · quasi_finale`; nell'ultima ci sono solo impronte, numeri
+     di operazione e motivi.
+3. **Una prova sola della chiamata diretta**, sul piccolo (circa 0,40 $, 10-15 minuti):
 
    ```powershell
    $env:UV_PYTHON = "3.14"
