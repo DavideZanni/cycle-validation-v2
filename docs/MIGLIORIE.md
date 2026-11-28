@@ -30,8 +30,8 @@ conoscenza prima di pubblicarla per ora la controlla l'utente a mano.
 
 1. Report della campagna rifatto (utente, passo 4i, 0 $): le tabelle per tipo e per motivo
    ora guardano `quasi_finale`, non la base vecchia. Da lì MG83 e MG87.
-2. MG58 risultato già calcolato (Claude, adesso): stesso PDF e stessa conoscenza, risposta in
-   un secondo e 0 $. Non tocca il modello.
+2. ✅ MG58 risultato già calcolato (28-11): stesso PDF e stessa conoscenza, risposta in un
+   secondo e 0 $. Solo nel servizio; non tocca il modello né le prove.
 3. MG83 meno avvisi (Claude, dalla tabella «WARNING per motivo» di `quasi_finale`): cancello C.
    Sul piccolo della base vecchia 3,8 dei 4,8 erano «evidenza non trovata».
 4. MG87 falsi OK sulle copie cieche (Claude, dalla tabella per tipo di `quasi_finale`): una
@@ -113,7 +113,7 @@ introduce).
 | MG55 | Più operazioni insieme | dopo MG54: meno tempo | ⬜ | 2 | B4 |
 | MG56 | Cache e batch di Bedrock | meno costo | ⬜ | 2 | H10 |
 | MG57 | Numeri contro il manuale | numeri e classi della descrizione confrontati dal codice con il manuale | ⬜ | 3 | I4, H12 |
-| MG58 | Risultato già calcolato | stesso PDF e stessa conoscenza: risposta subito | ⬜ | 2 | H13 |
+| MG58 | Risultato già calcolato | stesso PDF e stessa conoscenza: risposta subito e 0 $ (28-11: nel servizio, in memoria, 200 risultati per 6 ore; DOCUMENTAZIONE 13.3) | ✅ | 2 | H13 |
 | MG59 | Più operazioni in una sessione | stesso testo mandato una volta | ⬜ | 1 | H14 |
 | MG60 | Macchine attive su S3 | file notturno con le macchine attive, leggibile anche dal PC | ⬜ | 3 | H1 |
 | MG61 | Ingestion guidata | classifica dei manuali più chiesti che mancano | ⬜ | 2 | H2 |

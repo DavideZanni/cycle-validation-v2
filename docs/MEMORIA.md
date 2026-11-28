@@ -56,7 +56,7 @@ sezione 1 di `COPILOT.md`):
 | 7e11 | Aggiornare, senza modello (0 e 0 attesi), poi subito la campagna `quasi_finale` | COPILOT passo 4h | senza modello ✅ 27-11 notte: piccolo 41 su 45, grande 31 su 31, 0 falsi errori, 0 da verificare; campagna da fare |
 | 7e12 | Claude: banco di prova (`eval banco`), metriche di controllo nel riepilogo, date e limiti ripetuti | Claude | ✅ 27-11 notte |
 | 7e13 | Aggiornare, senza modello, `eval banco`; campagna (o, se già partita, ricalcolo dei riepiloghi per le metriche di controllo) | COPILOT passo 4h | senza modello e banco ✅ 27-11 notte: 41 su 45 e 31 su 31, 0 e 0; banco sul PC uguale a quello di Claude (308 su 310, 0 falsi allarmi, lettura 105 su 105); campagna ✅ 28-11 notte: `quasi_finale` si tiene (42 su 45, 31 su 31, 0 falsi errori, 0 da verificare) |
-| 7e14 | Claude: tabelle per tipo e per motivo sulla scelta migliore | Claude | ✅ 28-11 |
+| 7e14 | Claude: tabelle per tipo e per motivo sulla scelta migliore; MG58 risultato già calcolato (solo servizio) | Claude | ✅ 28-11 |
 | 7e15 | Aggiornare, report della campagna rifatto (0 $) | COPILOT passo 4i | da fare |
 | 7e3 | Claude: comando `prova-ej200` (EJ200 sul PC senza tracce), misura con 2900 documenti (`eval scala`), cache dei codici, file `docs/V1_CONTRO_V2.md` | Claude | ✅ 27-11 notte |
 | 7e4 | Ingestion EJ200 e prova EJ200 sul PC | COPILOT passo 4f | da fare |

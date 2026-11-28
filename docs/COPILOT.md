@@ -126,7 +126,8 @@ La campagna `quasi_finale` (28-11 notte) si tiene: 42 su 45 e 31 su 31, 0 falsi 
 verificare. Nel `campagna.md` le tabelle «Errori mai visti per tipo» e «WARNING per motivo»
 guardavano ancora la base vecchia: Claude le ha cambiate, ora guardano l'ultima prova della
 scelta migliore, sul piccolo e sul grande. Servono per le prossime migliorie (meno avvisi e i
-3 falsi OK sulle copie cieche).
+3 falsi OK sulle copie cieche). Nello stesso aggiornamento c'è MG58 (risultato già calcolato):
+vale solo per il servizio, non cambia le prove.
 
 1. **Aggiornare** (2.1).
    - **Deve uscire:** in fondo `... passed` e nessun `failed`.

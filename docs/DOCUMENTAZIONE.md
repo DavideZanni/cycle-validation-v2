@@ -1044,6 +1044,16 @@ accesso.
 Al massimo `API_MAX_WORKERS` (6) validazioni insieme: le altre aspettano. File al massimo
 `API_MAX_UPLOAD_MB` (50).
 
+**Risultato già calcolato (MG58, dal 28-11).** Se arriva di nuovo lo stesso file (stessi byte),
+con lo stesso profilo, gli stessi serial number e condition, la stessa versione della
+conoscenza, lo stesso modello, lo stesso prompt e la stessa versione della v2, il servizio non
+rifà la validazione: risponde con gli stessi esiti in meno di un secondo e 0 $. Il run è nuovo
+(id, ora e nome del file sono quelli della richiesta); nel log `Risultato riusato (MG58)`. I
+risultati stanno in memoria (`api/runner.py`, `ResultCache`): al massimo 200, per 6 ore (le
+macchine attive possono cambiare durante il giorno), e si perdono a ogni riavvio. Non si
+tengono i risultati con un errore tecnico (rete, servizio): la volta dopo si riprova. Vale
+solo per il servizio: i comandi (`validate`, `eval prova`, la campagna) validano sempre.
+
 ### 13.4 Il payload per il frontend (`report/legacy_payload.py`)
 
 In alto: `cycleCode`, `cycleDescription`, `engineModel`, `operationType`, `repairCode`,
